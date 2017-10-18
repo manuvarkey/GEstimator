@@ -32,8 +32,7 @@ def Currency(x):
 from gi.repository import Gtk, Gdk, GLib
 
 # local files import
-from .. import misc, data, undo
-from ..undo import undoable
+from .. import misc, data
 from . import analysis
 from .cellrenderercustomtext import CellRendererCustomText
 
@@ -371,7 +370,6 @@ class ScheduleView:
             self.tree.set_cursor(data[1])
             self.tree.scroll_to_cell(data[1], None)
             
-    @undoable
     def add_category_at_selection(self, newcat):
         """Add category at selection"""
         
@@ -383,16 +381,9 @@ class ScheduleView:
         self.database.insert_schedule_category(newcat, path=path)
         self.update_store()
         
-        yield "Add resource category item at path:'{}'".format(str(path))
-        # Delete added resources
-        self.database.delete_schedule_category(newcat)
-        self.update_store()
-        
-    @undoable
     def add_item_at_selection(self, items):
         """Add items at selection"""
         
-        undocodes = []
         selected = self.get_selected()
         codedict = dict()  # For code translation
         
@@ -438,7 +429,6 @@ class ScheduleView:
                                                     nextlevel=nextlevel,
                                                     shift=slno)
             codedict[item.code] = code
-            undocodes.append(code)
             item.code = code
             
             # Set translated parent
@@ -448,12 +438,6 @@ class ScheduleView:
         self.database.insert_item_multiple(items, path=path)
         self.update_store()
         self.set_selection(code=item.code)
-        
-        yield "Add schedule item at path:'{}'".format(str(path))
-        # Delete added resources
-        for code in undocodes:
-            self.database.delete_item(code)
-        self.update_store()
                 
     def delete_selected_items(self):
         selected = self.get_selected()
@@ -483,7 +467,6 @@ class ScheduleView:
             else:
                 return False
         
-    @undoable
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
         """Undoable function for modifying value of a treeview cell"""
         iterator = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
@@ -505,19 +488,6 @@ class ScheduleView:
             else:
                 self.store[iterator][column] = newvalue
                 self.evaluate_amount(iterator)
-
-        yield "Change data item at row:'{}' and column:'{}'".format(str(path), column)
-        # Undo action
-        if len(path) == 1:
-            self.store[iterator][column] = oldvalue
-            self.database.update_schedule_category(newvalue, oldvalue)
-        elif len(path) in [2,3]:
-            self.store[iterator][column] = oldvalue
-            new_code = code
-            if column == 0:
-                new_code = newvalue
-            self.database.update_item_schedule(new_code, oldvalue, column)
-            self.evaluate_amount(iterator)
         
     def copy_selection(self):
         """Copy selected row to clipboard"""
