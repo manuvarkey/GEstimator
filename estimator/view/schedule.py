@@ -253,26 +253,32 @@ class ScheduleView:
         
         if select_item is not None:
             if len(select_item) > 0:
-                if select_item[0] > len(self.store):
-                    select_item = [len(self.store)]
+                if len(self.store) == 0:
+                    return
+                elif select_item[0] >= len(self.store):
+                    select_item = [len(self.store)-1]
                 elif len(select_item) > 1:
-                    path = Gtk.TreePath.new_from_indices(select_item[0:2])
+                    path = Gtk.TreePath.new_from_indices(select_item[0:1])
                     try:
                         store_row = self.store.get_iter(path)
                         store_row_len = self.store.iter_n_children(store_row)
-                        if select_item[1] > store_row_len:
-                            select_item = [select_item[0], store_row_len]
+                        if store_row_len == 0:
+                            select_item = [select_item[0]]
+                        elif select_item[1] >= store_row_len:
+                            select_item = [select_item[0], store_row_len-1]
                         elif len(select_item) == 3:
-                            path = Gtk.TreePath.new_from_indices(select_item)
+                            path = Gtk.TreePath.new_from_indices(select_item[0:2])
                             try:
                                 store_row_2 = self.store.get_iter(path)
                                 store_row_2_len = self.store.iter_n_children(store_row)
-                                if select_item[2] > store_row_2_len:
-                                    select_item[2] = store_row_2_len
+                                if store_row_2_len == 0:
+                                    select_item = [select_item[0],select_item[1]]
+                                elif select_item[2] >= store_row_2_len:
+                                    select_item[2] = store_row_2_len-1
                             except ValueError:
-                                select_item = [select_item[0],select_item[1]]
+                                select_item = [select_item[0]]
                     except ValueError:
-                        select_item = [select_item[0]]
+                        return
             path = Gtk.TreePath.new_from_indices(select_item)
             self.tree.set_cursor(path)
     

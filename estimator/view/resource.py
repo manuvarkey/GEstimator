@@ -136,6 +136,14 @@ class ResourceView:
         self.update_store()
 
     def update_store(self):
+    
+        # Get selection
+        selection = self.tree.get_selection()
+        old_item = None
+        if selection.count_selected_rows() != 0: # if selection exists
+            [model, paths] = selection.get_selected_rows()
+            old_item = paths[0].get_indices()
+            
         # Clear store
         self.store.clear()
         # Fill in data in treeview
@@ -167,6 +175,29 @@ class ResourceView:
                         
         # Expand all expanders
         self.tree.expand_all()
+        
+        select_item = old_item
+        # Set old selection
+        if select_item is not None:
+            if len(select_item) > 0:
+                if len(self.store) == 0:
+                    return
+                elif select_item[0] >= len(self.store):
+                    select_item = [len(self.store)-1]
+                elif len(select_item) > 1:
+                    path = Gtk.TreePath.new_from_indices(select_item[0:1])
+                    try:
+                        store_row = self.store.get_iter(path)
+                        store_row_len = self.store.iter_n_children(store_row)
+                        if store_row_len == 0:
+                            select_item = [select_item[0]]
+                        elif select_item[1] >= store_row_len:
+                            select_item = [select_item[0], store_row_len-1]
+                    except ValueError:
+                        return
+                        
+            path = Gtk.TreePath.new_from_indices(select_item)
+            self.tree.set_cursor(path)
         
     def get_next_path(self, iter_path, reverse=False):
         if iter_path is None:
@@ -914,6 +945,7 @@ class ResourceUsageDialog():
         self.update_store()
 
     def update_store(self):
+            
         # Clear store
         self.store.clear()
         # Fill in data in treeview
