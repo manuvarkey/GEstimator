@@ -343,15 +343,19 @@ class MainWindow:
 
     def on_redo_clicked(self, button):
         """Redo action from stack"""
-        log.info('Redo:' + str(self.stack.redotext()))
+        if self.stack.redotext():
+            log.info(self.stack.redotext())
+            self.display_status(misc.INFO, self.stack.redotext())
         self.stack.redo()
-        self.display_status(misc.INFO, 'Redo:' + str(self.stack.redotext()))
+        self.update()
 
     def on_undo_clicked(self, button):
         """Undo action from stack"""
-        log.info('Undo:' + str(self.stack.undotext()))
+        if self.stack.undotext():
+            log.info(self.stack.undotext())
+            self.display_status(misc.INFO, self.stack.undotext())
         self.stack.undo()
-        self.display_status(misc.INFO, 'Undo:' + str(self.stack.undotext()))
+        self.update()
 
     # Schedule signal handler methods
 
@@ -480,9 +484,6 @@ class MainWindow:
         self.display_status(misc.INFO, str(index)+' records processed')
         log.info('MainWindow - on_import_res_clicked - data added - ' + str(index) + ' records')
         
-        # Clear undo stack
-        self.stack.clear()
-        
         self.update()
 
     def on_import_sch_clicked(self, button):
@@ -558,9 +559,6 @@ class MainWindow:
             self.sch_database.insert_item_multiple(items)
             self.display_status(misc.INFO, str(index)+' records processed')
             log.info('MainWindow - on_import_sch_clicked - data added - ' + str(index) + ' records')
-                    
-            # Clear undo stack
-            self.stack.clear()
             
             self.update()
         else:

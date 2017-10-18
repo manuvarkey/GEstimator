@@ -33,6 +33,7 @@ def Currency(x, places=2):
 
 # Local files import
 from .. import misc, undo
+from ..undo import undoable, group
 
 # Get logger object
 log = logging.getLogger()
@@ -628,15 +629,20 @@ class ScheduleDatabase:
             cat_list.append(category.description)
         return cat_list
         
+    @undoable
     @database.atomic()
     def update_resource_category(self, category, value):
         """Updates schedule item data"""
         try:
             ResourceCategoryTable.update(description = value).where(ResourceCategoryTable.description == category).execute()
-            return True
         except:
             return False
             
+        yield "Update resource category '{}' to '{}'".format(category, value), True
+        ResourceCategoryTable.update(description = category).where(ResourceCategoryTable.description == value).execute()
+        
+        
+    @undoable
     @database.atomic()
     def insert_resource_category(self, category, path=None):
         
@@ -658,9 +664,12 @@ class ScheduleDatabase:
         except:
             log.error('ScheduleDatabase - insert_resource_category - saving record failed for ' + category)
             return False
-            
-        return True
+
+        yield "Add resource category item at path:'{}'".format(str(path)), True
+        # Delete added resources
+        self.delete_resource_category(category)
         
+    @undoable
     @database.atomic()
     def delete_resource_category(self, category_name):
         """Delete resource category"""
@@ -670,9 +679,12 @@ class ScheduleDatabase:
             old_item.delete_instance()
             # Update order values
             ResourceCategoryTable.update(order = ResourceCategoryTable.order - 1).where(ResourceCategoryTable.order > old_order).execute()
-            return True
         except ResourceCategoryTable.DoesNotExist:
             return False
+            
+        yield "Delete resource category:'{}'".format(str(category_name)), True
+        # Add back deleted resources
+        self.insert_resource_category(category_name, [old_order])
 
 
     ## Resource methods
@@ -729,7 +741,15 @@ class ScheduleDatabase:
                                    rate, vat, discount, reference]
                 res[category_name] = items
         else:
-            res_cat = ResourceTable.select().order_by(ResourceTable.order)
+            if category:
+                try:
+                    category_model = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category).get()
+                except ScheduleTable.DoesNotExist:
+                    log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
+                    return res
+                res_cat = ResourceTable.select().where(ResourceTable.category == category_model.id).order_by(ResourceTable.order)
+            else:
+                res_cat = ResourceTable.select().order_by(ResourceTable.order)
             for item in res_cat:
                 if modify_code and len(item.code.split('.')) == 1:
                     code = proj_code + '.' + item.code
@@ -782,22 +802,53 @@ class ScheduleDatabase:
         except ResourceTable.DoesNotExist:
             return False
             
+    @undoable
     @database.atomic()
-    def delete_resource(self, code):
+    def delete_resource_item(self, code):
         """Delete schedule item"""
         try:
             old_item = ResourceTable.select().where(ResourceTable.code == code).get()
             old_order = old_item.order
+            old_category_order = old_item.category.order
+            
+            old_res_model = self.get_resource(code)
+            if old_order > 0:
+                old_res_path = [old_category_order, old_order-1]
+            else:
+                old_res_path = [old_category_order]
+            
             old_item.delete_instance()
             # Update order values
             ResourceTable.update(order = ResourceTable.order - 1).where(ResourceTable.order > old_order).execute()
-            return True
         except ResourceTable.DoesNotExist:
             return False
+            
+        yield "Delete resource item:'{}'".format(str(code)), True
+        # Add back deleted resources
+        self.insert_resource(old_res_model, old_res_path)
+        
+    @database.atomic()
+    def delete_resource(self, selected):
+        """Delete resource elements"""
+        with group("Delete resource items"):
+            for path, code in selected.items():
+                # Category
+                if len(path) == 1:
+                    # Delete all resources under category
+                    ress = self.get_resource_table(category=code, flat=True)
+                    for res_code in ress:
+                        self.delete_resource_item(res_code)
+                    # Then delete category
+                    self.delete_resource_category(code)
+                # Resource Items
+                elif len(path) == 2:
+                    self.delete_resource_item(code)
 
+    @undoable
     @database.atomic()
     def insert_resource(self, resource, path=None):
         
+        res_category_added = None
         # If path is specified
         if path:
             # Get category by order
@@ -833,6 +884,7 @@ class ScheduleDatabase:
                 if self.insert_resource_category(category_name):
                     category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category_name).get()
                     category_id = category.id
+                    res_category_added = category_name
                     order = 0
                 else:
                     log.error('ScheduleDatabase - insert_resource - category could not be set - ' + str(category_name))
@@ -853,19 +905,26 @@ class ScheduleDatabase:
         except peewee.IntegrityError:
             log.warning('ScheduleDatabase - insert_resource - Item code exists, Item not added - ' + resource.code)
             return False
-
-        return True
+        
+        yield "Add resource data item at path:'{}'".format(str(path)), True
+        # Delete added resources
+        self.delete_resource_item(resource.code)
+        # Delete any category added
+        if res_category_added:
+            self.delete_resource_category(res_category_added)
         
     @database.atomic()
     def insert_resource_multiple(self, resources, path=None):
-        if path is None or len(path) == 1:
-            for resource in resources:
-                self.insert_resource(resource, path)
-        elif len(path) == 2:
-            for resource in resources:
-                self.insert_resource(resource, path)
-                path = [path[0], path[1]+1]
+        with group("Add resource data items at path:'{}'".format(str(path))):
+            if path is None or len(path) == 1:
+                for resource in resources:
+                    self.insert_resource(resource, path)
+            elif len(path) == 2:
+                for resource in resources:
+                    self.insert_resource(resource, path)
+                    path = [path[0], path[1]+1]
             
+    @undoable
     @database.atomic()
     def update_resource(self, code, newvalue, column):
         try:
@@ -874,26 +933,54 @@ class ScheduleDatabase:
             return False
             
         if column == 0:
+            oldvalue = res.code
             res.code = newvalue
         elif column == 1:
+            oldvalue = res.description
             res.description = newvalue
         elif column == 2:
+            oldvalue = res.unit
             res.unit = newvalue
         elif column == 3:
+            oldvalue = res.rate
             res.rate = newvalue
         elif column == 4:
+            oldvalue = res.vat
             res.vat = newvalue
         elif column == 5:
+            oldvalue = res.discount
             res.discount = newvalue
         elif column == 6:
+            oldvalue = res.reference
             res.reference = newvalue
         
         try:
             res.save()
         except:
             return False
+        
+        yield "Update resource '{}'".format(str(code)), True
+        if column != 0:
+            res = ResourceTable.select().where(ResourceTable.code == code).get()
+        else:
+            res = ResourceTable.select().where(ResourceTable.code == newvalue).get()
             
-        return True
+        if column == 0:
+            res.code = oldvalue
+        elif column == 1:
+            res.description = oldvalue
+        elif column == 2:
+            res.unit = oldvalue
+        elif column == 3:
+            res.rate = oldvalue
+        elif column == 4:
+            res.vat = oldvalue
+        elif column == 5:
+            res.discount = oldvalue
+        elif column == 6:
+            res.reference = oldvalue
+        
+        res.save()
         
     def get_new_resource_category_name(self):
         categories =  ResourceCategoryTable.select(ResourceCategoryTable.description).where(ResourceCategoryTable.description.startswith('_CATEGORY'))

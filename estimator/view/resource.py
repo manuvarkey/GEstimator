@@ -34,7 +34,7 @@ from gi.repository import Gtk, Gdk, GLib
 
 # local files import
 from .. import misc, data, undo
-from ..undo import undoable
+from ..undo import undoable, group
 
 # Setup logger object
 log = logging.getLogger(__name__)
@@ -250,7 +250,6 @@ class ResourceView:
             self.tree.set_cursor(data[1])
             self.tree.scroll_to_cell(data[1], None)
             
-    @undoable
     def add_category_at_selection(self, newcat):
         """Add category at selection"""
         
@@ -261,17 +260,10 @@ class ResourceView:
             path = None
         self.database.insert_resource_category(newcat, path=path)
         self.update_store()
-        
-        yield "Add resource category item at path:'{}'".format(str(path))
-        # Delete added resources
-        self.database.delete_resource_category(newcat)
-        self.update_store()
     
-    @undoable
     def add_resource_at_selection(self, ress=None):
         """Add items at selection"""
         
-        undocodes = []
         paths = self.get_selected_paths()
         
         # Setup position to insert
@@ -284,7 +276,6 @@ class ResourceView:
             # Add multiple resource
             for slno, res in enumerate(ress):
                 code = self.database.get_new_resource_code(shift=slno)
-                undocodes.append(code)
                 res.code = code
 
             self.database.insert_resource_multiple(ress, path=path)
@@ -301,15 +292,8 @@ class ResourceView:
                                                   category = None)
       
             if self.database.insert_resource(res, path=path):
-                undocodes.append(code)
                 self.update_store()
                 self.set_selection(code=code)
-        
-        yield "Add resource data item at path:'{}'".format(str(path))
-        # Delete added resources
-        for code in undocodes:
-            self.database.delete_resource(code)
-        self.update_store()
         
     def delete_selected_item(self):
         selected = self.get_selected()
@@ -319,20 +303,19 @@ class ResourceView:
             dialog = Gtk.MessageDialog(self.parent, 0, Gtk.MessageType.QUESTION,
                 Gtk.ButtonsType.OK_CANCEL , "Are you sure you want to delete ?")
             dialog.format_secondary_text(
-                "Analysis of items will be affected by this action and cannot be undone.")
+                "Analysis of items will be affected by this action and cannot be undone. Undo stack will be cleared.")
             ret_code = dialog.run()
             dialog.destroy()
             
             if ret_code != Gtk.ResponseType.OK:
                 return
 
-        for path, code in selected.items():
-            # Category
-            if len(path) == 1:
-                self.database.delete_resource_category(code)
-            # Resource Items
-            elif len(path) == 2:
-                self.database.delete_resource(code)
+        self.database.delete_resource(selected)
+                
+        if affected_items:
+            # Clear stack since action cannot be undone
+            undo.stack().clear()
+        
         self.update_store()
                             
     def copy_selection(self):
@@ -372,10 +355,8 @@ class ResourceView:
         else:
             log.warning('ResourceView - paste_at_selection - No text in clipboard')
             
-                        
-    @undoable
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
-        """Undoable function for modifying value of a treeview cell"""
+        """Function for modifying value of a treeview cell"""
         iterator = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
         
         # Update category
@@ -393,18 +374,6 @@ class ResourceView:
                 log.warning('ScheduleView - cell_renderer_text - value not updated - ' + str(oldvalue) + ':' + str(newvalue) + ' {' + str(column) + '}')
             else:
                 self.store[iterator][column] = newvalue
-
-        yield "Change resource item at row:'{}' and column:'{}'".format(str(path), column)
-        # Undo action
-        if len(path) == 1:
-            self.store[iterator][column] = oldvalue
-            self.database.update_resource_category(newvalue, oldvalue)
-        elif len(path) == 2:
-            self.store[iterator][column] = oldvalue
-            new_code = code
-            if column == 0:
-                new_code = newvalue
-            self.database.update_resource(new_code, oldvalue, column)
     
         
     # Search functions
@@ -548,9 +517,7 @@ class ResourceView:
         iterator = self.store.get_iter_from_string(path_str)
         oldvalue = self.store[iterator][column]
         
-        # Call undoable function only if there is a change in value
-        if new_text != oldvalue:
-            self.cell_renderer_text(path, column, oldvalue, new_text)
+        self.cell_renderer_text(path, column, oldvalue, new_text)
 
     def on_cell_edited_num(self, widget, path_str, new_text, column):
         """Treeview cell renderer for editable number field
@@ -573,9 +540,7 @@ class ResourceView:
             + new_text + "] failed")
             return
         
-        # Call undoable function only if there is a change in value
-        if evaluated != oldvalue:
-            self.cell_renderer_text(path, column, oldvalue, evaluated)
+        self.cell_renderer_text(path, column, oldvalue, evaluated)
             
     def on_cell_edit_started(self, widget, editable, path, column):
         """Fill in text from schedule when schedule view column get edited
