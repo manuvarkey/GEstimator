@@ -1500,7 +1500,9 @@ class ScheduleDatabase:
                                 order = order,
                                 suborder = suborder)
                                 
-            path_added = [sch.category.id, sch.order, sch.suborder]
+            path_added = [sch.category.order, sch.order]
+            if sch.suborder:
+                path_added.append(sch.suborder)
 
         try:
             sch.save()
@@ -1569,7 +1571,7 @@ class ScheduleDatabase:
         if update:
             message = "Update schedule data item:'{}'".format(item.code)
         else:
-            message = "Add schedule data item at path:'{}'".format(str(path))
+            message = "Add schedule data item at path:'{}'".format(str(path_added))
         
         yield message, [code, path_added]
         # If update item, insert back old item
