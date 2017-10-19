@@ -339,10 +339,9 @@ class ScheduleView:
             [tree, paths] = selection.get_selected_rows()
             for path in paths:
                 path_index = tuple(path.get_indices())
-                if len(path) == 1:
-                    if include_category:
-                        category = self.filter[path][1]
-                        codes[path_index] = category
+                if len(path) == 1 and include_category and path[0] < len(self.store)-1:
+                    category = self.filter[path][1]
+                    codes[path_index] = category
                 elif len(path) in [2,3]:
                     code = self.filter[path][0]
                     codes[path_index] = code
@@ -385,59 +384,18 @@ class ScheduleView:
         """Add items at selection"""
         
         selected = self.get_selected()
-        codedict = dict()  # For code translation
         
         # Setup position to insert
         if selected:
             last_selected = list(selected.items())[-1]
             path = last_selected[0]
-            code = last_selected[1]
         else:
             path = None
-            
-        # Add multiple items
-        for slno, item in enumerate(items):
-            
-            # Setup position to insert
-            if path:
-                if len(path) == 1:
-                    near_item_code = str(path[0]+1)
-                    nextlevel = True
-                elif len(path) == 2:
-                    near_item_code = code
-                    near_item = self.database.get_item(near_item_code)
-                    if near_item.unit == '' and item.parent is not None:
-                        nextlevel = True
-                    else:
-                        nextlevel = False
-                elif len(path) == 3:
-                    if item.parent is None:
-                        path = path[0:2]
-                        path_iter = Gtk.TreePath.new_from_indices(path)
-                        
-                        near_item_code = self.store[path_iter][0]
-                        nextlevel = False
-                    else:
-                        near_item_code = code
-                        nextlevel = False
-            else:
-                path = None
-                near_item_code = None
-                nextlevel = False
-            
-            code = self.database.get_next_item_code(near_item_code=near_item_code, 
-                                                    nextlevel=nextlevel,
-                                                    shift=slno)
-            codedict[item.code] = code
-            item.code = code
-            
-            # Set translated parent
-            if item.parent in codedict:
-                item.parent = codedict[item.parent]
 
-        self.database.insert_item_multiple(items, path=path)
-        self.update_store()
-        self.set_selection(code=item.code)
+        [codes, paths] = self.database.insert_item_multiple(items, path=path, number_with_path=True)
+        if codes:
+            self.update_store()
+            self.set_selection(code=codes[-1])
                 
     def delete_selected_items(self):
         selected = self.get_selected()

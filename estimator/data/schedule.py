@@ -1226,15 +1226,15 @@ class ScheduleDatabase:
                 
             for category in categories:
                 cat_dict = OrderedDict()
-                items = ScheduleTable.select().where(ScheduleTable.category == category.id).order_by(ScheduleTable.order, ScheduleTable.suborder)
+                items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
                 for item in items:
-                    if item.parent is None:
-                        child_list = []
-                        parent_list = [item.code, item.description, item.unit, item.rate, item.qty, item.remarks]
-                        for child in item.children:
-                            child_list.append([child.code, child.description, child.unit,
-                                          child.rate, child.qty, child.remarks])
-                        cat_dict[item.code] = (parent_list, child_list,)
+                    child_list = []
+                    parent_list = [item.code, item.description, item.unit, item.rate, item.qty, item.remarks]
+                    children = ScheduleTable.select().where(ScheduleTable.parent == item.id).order_by(ScheduleTable.suborder)
+                    for child in children:
+                        child_list.append([child.code, child.description, child.unit,
+                                      child.rate, child.qty, child.remarks])
+                    cat_dict[item.code] = (parent_list, child_list,)
                 category_name = category.description
                 if category_name is None or category_name == '':
                     category_name = 'UNCATEGORISED'
@@ -1248,7 +1248,7 @@ class ScheduleDatabase:
                     return
                 items = ScheduleTable.select().where(ScheduleTable.category == category_model.id).order_by(ScheduleTable.order, ScheduleTable.suborder)
             else:
-                items = ScheduleTable.select().order_by(-ScheduleTable.order, -ScheduleTable.suborder)
+                items = ScheduleTable.select().order_by(ScheduleTable.category.order, ScheduleTable.order, ScheduleTable.suborder)
             
             for item in items:
                 item_list = [item.code, item.description, item.unit, 
@@ -1345,37 +1345,42 @@ class ScheduleDatabase:
     
     @undoable
     @database.atomic()
-    def insert_item(self, item, path=None, update=False):
+    def insert_item(self, item, path=None, update=False, number_with_path=False):
         
         sch_category_added = None
         old_item = None
+        code = item.code
+        path_added = path
         
-        # Get category from database
-        if item.category is None or item.category == '':
-            category_name = 'UNCATEGORISED'
-        else:
-            category_name = item.category
-        try:
-            category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category_name).get()
-            category_id = category.id
-        except ScheduleCategoryTable.DoesNotExist:
-            # Add new category
-            if self.insert_schedule_category(category_name):
+        # Get category and parent if path not specified or update
+        if path is None:
+        
+            # Get category from database
+            if item.category is None or item.category == '':
+                category_name = 'UNCATEGORISED'
+            else:
+                category_name = item.category
+            try:
                 category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category_name).get()
                 category_id = category.id
-                sch_category_added = category.description
-            else:
-                log.error('ScheduleDatabase - insert_item - Category could not be set - ' + str(category_name))
-                return False
+            except ScheduleCategoryTable.DoesNotExist:
+                # Add new category
+                if self.insert_schedule_category(category_name):
+                    category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category_name).get()
+                    category_id = category.id
+                    sch_category_added = category.description
+                else:
+                    log.error('ScheduleDatabase - insert_item - Category could not be set - ' + str(category_name))
+                    return False
                 
-        # Get parent item from database
-        parent_id = None
-        if item.parent is not None:
-            try:
-                parent = ScheduleTable.select().where(ScheduleTable.code == item.parent).get()
-                parent_id = parent.id
-            except ScheduleTable.DoesNotExist:
-                log.warning('ScheduleDatabase - insert_item - Parent not found for ' + str(item.code))
+            # Get parent item from database
+            parent_id = None
+            if item.parent is not None:
+                try:
+                    parent = ScheduleTable.select().where(ScheduleTable.code == item.parent).get()
+                    parent_id = parent.id
+                except ScheduleTable.DoesNotExist:
+                    log.warning('ScheduleDatabase - insert_item - Parent not found for ' + str(item.code))
                 
         if update:
             # Get old item
@@ -1414,62 +1419,76 @@ class ScheduleDatabase:
                 else:
                     order = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.parent == None)).count()
                     suborder = None
-                            
+            
             else:
-                
-                # Get category by order
+            
+                # Get category by path
                 try:
                     category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.order == path[0]).get()
                 except ScheduleCategoryTable.DoesNotExist:
-                    print(path)
                     log.error('ScheduleDatabase - insert_resource - category could not be found for ' + str(path))
                     return False
                 category_id = category.id
-            
+                
                 # If category selected, add as first item
                 if len(path) == 1:
                     order = 0
                     suborder = None
                     parent_id = None
+                    # Modify code according to path
+                    if number_with_path:
+                        code = self.get_next_item_code(near_item_code=str(path[0]+1), 
+                                                                nextlevel=True)
                     ScheduleTable.update(order = ScheduleTable.order + 1).where(ScheduleTable.category == category_id).execute()
                 
                 # If item selected, add next or under
                 elif len(path) == 2:
                    
                     try:
-                        selected_item = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.order == path[1])).get()
+                        selected_item = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.order == path[1]) & (ScheduleTable.suborder == None)).get()
                     except:
                         log.error('ScheduleDatabase - insert_resource - selected item could not be found for ' + str(path))
                         return False
                             
                    # Add under
-                    if selected_item.unit == '' and item.parent is not None:     
+                    if selected_item.unit == '' and item.parent is not None:
                         order = path[1]
                         suborder = 0
                         parent_id = selected_item.id
-                        ScheduleTable.update(suborder = ScheduleTable.suborder + 1).where((ScheduleTable.order == order) & (ScheduleTable.category == category_id)).execute()
+                        # Modify code according to path
+                        if number_with_path:
+                            code = self.get_next_item_code(near_item_code=selected_item.code, 
+                                                                    nextlevel=True)
+                        ScheduleTable.update(suborder = ScheduleTable.suborder + 1).where((ScheduleTable.category == category_id) & (ScheduleTable.order == order)  & (ScheduleTable.suborder != None)).execute()
 
                     # Add next
                     else:
                         order = path[1]+1
                         suborder = None
                         parent_id = None
+                        # Modify code according to path
+                        if number_with_path:
+                            code = self.get_next_item_code(near_item_code=selected_item.code, 
+                                                                    nextlevel=False)
                         ScheduleTable.update(order = ScheduleTable.order + 1).where((ScheduleTable.category == category_id) & (ScheduleTable.order >= order)).execute()
                             
                 # If subitem selected, add next
                 elif len(path) == 3:
                     try:
-                        parent_item = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.order == path[1])).get()
+                        parent_item = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.order == path[1]) & (ScheduleTable.suborder == None)).get()
                     except:
                         log.error('ScheduleDatabase - insert_resource - parent item could not be found for ' + str(path))
                         return False
                     order = path[1]
                     suborder = path[2]+1
                     parent_id = parent_item.id
+                    if number_with_path:
+                        code = self.get_next_item_code(near_item_code=parent_item.code, 
+                                                       nextlevel=True, shift=path[2]+1)
                     ScheduleTable.update(suborder = ScheduleTable.suborder + 1).where((ScheduleTable.suborder >= suborder) & (ScheduleTable.order == order) & (ScheduleTable.category == category_id)).execute()
                 
             # Setup new schedule item
-            sch = ScheduleTable(code = item.code,
+            sch = ScheduleTable(code = code,
                                 description = item.description,
                                 unit = item.unit,
                                 rate = item.rate,
@@ -1480,6 +1499,8 @@ class ScheduleDatabase:
                                 parent = parent_id,
                                 order = order,
                                 suborder = suborder)
+                                
+            path_added = [sch.category.id, sch.order, sch.suborder]
 
         try:
             sch.save()
@@ -1550,7 +1571,7 @@ class ScheduleDatabase:
         else:
             message = "Add schedule data item at path:'{}'".format(str(path))
         
-        yield message, True
+        yield message, [code, path_added]
         # If update item, insert back old item
         if update:
             self.insert_item(old_item, update=True)
@@ -1562,48 +1583,20 @@ class ScheduleDatabase:
                 self.delete_schedule_category(sch_category_added)
 
     @database.atomic()
-    def insert_item_multiple(self, items, path=None):
+    def insert_item_multiple(self, items, path=None, number_with_path=False):
+    
+        codes_added = []
+        paths_added = []
     
         with group("Add schedule items at path:'{}'".format(path)):
             for item in items:
-                if path is None:
-                    self.insert_item(item, path)
-                else:
-                    category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.order == path[0]).get()
-                    item.category = category.description
-
-                    if len(path) == 1:
-                        self.insert_item(item, path)
-                        # Point path to next level
-                        try:
-                            sch = ScheduleTable.select().where(ScheduleTable.code == item.code).get()
-                        except ScheduleTable.DoesNotExist:
-                            return False
-                        path = [path[0], sch.order]
-
-                    elif len(path) == 2:
-                        self.insert_item(item, path)
-                        
-                        try:
-                            sch = ScheduleTable.select().where(ScheduleTable.code == item.code).get()
-                        except ScheduleTable.DoesNotExist:
-                            return False
-                        
-                        # Point path to next level
-                        if sch.parent:
-                            path = [path[0], path[1], sch.suborder]
-                        else:
-                            path = [path[0], path[1]+1]
-                            
-                        
-                    elif len(path) == 3:
-                        if item.parent == None or item.unit == '':
-                            path = [path[0], path[1]]
-                            self.insert_item(item, path)
-                            path = [path[0], path[1]+1]
-                        else:
-                            self.insert_item(item, path)
-                            path = [path[0], path[1], path[2]+1]
+                [code_added, path_added] = self.insert_item(item, path, number_with_path=True)
+                path = path_added
+                
+                codes_added.append(code_added)
+                paths_added.append(path_added)
+        
+        return [codes_added, paths_added]
                 
     @undoable
     @database.atomic()
@@ -1740,12 +1733,18 @@ class ScheduleDatabase:
                         return new_code
         
         # Fall back
-        codes = ScheduleTable.select(ScheduleTable.code).where(ScheduleTable.code.startswith('_CODE')).order_by(ScheduleTable.code).tuples()
-        if codes:
-            last_code = codes[-1][0]
-            try:
-                new_code = '_CODE' + str(int(last_code[5:])+1+shift)
-            except:
+        sch_items = ScheduleTable.select(ScheduleTable.code).where(ScheduleTable.code.startswith('_CODE'))
+        code_list = []
+        
+        # Add exisitng default items
+        for sch in sch_items:
+            code_list.append(misc.human_code(sch.code))
+            
+        if code_list:
+            last_code = sorted(code_list)[-1]
+            if type(last_code[-1]) is int:
+                new_code = '_CODE' + str(int(last_code[-1])+1+shift)
+            else:
                 new_code = '_CODE' + str(1+shift)
         else:
             new_code = '_CODE' + str(1+shift)

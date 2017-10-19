@@ -369,7 +369,7 @@ class MainWindow:
             
     def on_sch_add_item_clicked(self, button):
         """Add empty row to schedule view"""
-        item = data.schedule.ScheduleItemModel(code = '',
+        item = data.schedule.ScheduleItemModel(code = '1.1',
                                               description = '',
                                               unit = '',
                                               rate = 0,
@@ -382,7 +382,7 @@ class MainWindow:
         
     def on_sch_add_sub_item_clicked(self, button):
         """Add empty row to schedule view"""
-        item = data.schedule.item = data.schedule.ScheduleItemModel(code = '',
+        item = data.schedule.item = data.schedule.ScheduleItemModel(code = '1.1',
                                               description = '',
                                               unit = 'Unit',
                                               rate = 0,
