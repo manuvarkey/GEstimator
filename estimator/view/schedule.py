@@ -441,11 +441,7 @@ class ScheduleView:
                 
     def delete_selected_items(self):
         selected = self.get_selected()
-        for path, code in selected.items():
-            if len(path) == 1:
-                self.database.delete_schedule_category(code)
-            elif len(path) in [2,3]:
-                self.database.delete_item(code)
+        self.database.delete_schedule(selected)
         self.update_store()
                         
     def update_selected_rates(self):

@@ -1220,13 +1220,13 @@ class ScheduleDatabase:
                     categories = [ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category).get()]
                 except ScheduleTable.DoesNotExist:
                     log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
-                    return res
+                    return
             else:
                 categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
                 
             for category in categories:
                 cat_dict = OrderedDict()
-                items = ScheduleTable.select().where(ScheduleTable.category == category.id).order_by(ScheduleTable.order)
+                items = ScheduleTable.select().where(ScheduleTable.category == category.id).order_by(ScheduleTable.order, ScheduleTable.suborder)
                 for item in items:
                     if item.parent is None:
                         child_list = []
@@ -1240,7 +1240,16 @@ class ScheduleDatabase:
                     category_name = 'UNCATEGORISED'
                 sch_table[category_name] = cat_dict
         else:
-            items = ScheduleTable.select().order_by(ScheduleTable.order)
+            if category is not None:
+                try:
+                    category_model = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category).get()
+                except ScheduleTable.DoesNotExist:
+                    log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
+                    return
+                items = ScheduleTable.select().where(ScheduleTable.category == category_model.id).order_by(ScheduleTable.order, ScheduleTable.suborder)
+            else:
+                items = ScheduleTable.select().order_by(-ScheduleTable.order, -ScheduleTable.suborder)
+            
             for item in items:
                 item_list = [item.code, item.description, item.unit, 
                                item.rate, item.qty, item.remarks, 
@@ -1596,11 +1605,14 @@ class ScheduleDatabase:
                             self.insert_item(item, path)
                             path = [path[0], path[1], path[2]+1]
                 
+    @undoable
     @database.atomic()
     def delete_item(self, code):
         """Delete schedule item"""
         try:
+            old_item_model = self.get_item(code)
             old_item = ScheduleTable.select().where(ScheduleTable.code == code).get()
+            old_category_order = old_item.category.order
             old_order = old_item.order
             old_suborder = old_item.suborder
             old_item.delete_instance()
@@ -1609,9 +1621,35 @@ class ScheduleDatabase:
             if old_item.parent:
                 parent_id = old_item.parent.id
                 ScheduleTable.update(suborder = ScheduleTable.suborder - 1).where((ScheduleTable.suborder > old_suborder) & (ScheduleTable.parent == parent_id)).execute()
-            return True
         except ScheduleTable.DoesNotExist:
             return False
+        
+        yield "Delete schedule item:'{}'".format(code), True
+        
+        if old_suborder is None and old_order == 0:
+            path = [old_category_order]
+        elif old_suborder in [None, 0]:
+            path = [old_category_order, old_order]
+        else:
+            path = [old_category_order, old_order, old_suborder-1]
+        self.insert_item(old_item_model, path=path)
+        
+    @database.atomic()
+    def delete_schedule(self, selected):
+        """Delete schedule elements"""
+        with group("Delete schedule items"):
+            for path, code in reversed(list(selected.items())):
+                # Category
+                if len(path) == 1:
+                    # Delete all schedule under category
+                    items = self.get_item_table(category=code, flat=True)
+                    for sch_code in items:
+                        self.delete_item(sch_code)
+                    # Then delete category
+                    self.delete_schedule_category(code)
+                # Schedule Items
+                elif len(path) in [2,3]:
+                    self.delete_item(code)
     
     @database.atomic()
     def get_res_usage(self):
@@ -1634,12 +1672,14 @@ class ScheduleDatabase:
                                        res_item.id_res.discount]
         return res_list_item
         
+    @undoable
     @database.atomic()
     def assign_auto_item_numbers(self):
         """Assign automatic item numbers to schedule items"""
-        # Change all items to negetive to prevent uniqueness errors
+        # Change all items to prevent uniqueness errors
         ScheduleTable.update(code = ScheduleTable.code.concat('TEMP')).execute()
         
+        undodict = dict()
         code_cat = 1
         code_item = 1
         code_subitem = 1
@@ -1648,11 +1688,14 @@ class ScheduleDatabase:
             items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
             for item in items:
                 code = str(code_cat) + '.' + str(code_item)
+                undodict[code] = item.code[:-4]
                 item.code = code
                 item.save()
                 code_subitem = 1
-                for child in item.children:
+                children = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == item.id)).order_by(ScheduleTable.suborder)
+                for child in children:
                     code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
+                    undodict[code] = child.code[:-4]
                     child.code = code
                     child.save()
                     code_subitem = code_subitem + 1
@@ -1660,6 +1703,25 @@ class ScheduleDatabase:
                 code_item = code_item + 1
             code_item = 1
             code_cat = code_cat + 1
+        
+        yield "Assign automatic item numbers"
+        
+        # Change all items to prevent uniqueness errors
+        ScheduleTable.update(code = ScheduleTable.code.concat('TEMP')).execute()
+        
+        categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
+        for category in categories:
+            items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
+            for item in items:
+                mod_code = item.code[:-4]
+                if mod_code in undodict:
+                    item.code = undodict[mod_code]
+                    item.save()
+                for child in item.children:
+                    mod_code_child = child.code[:-4]
+                    if mod_code_child in undodict:
+                        child.code = undodict[mod_code_child]
+                        child.save()
         
     def get_next_item_code(self, near_item_code=None, nextlevel=False, shift=0):
         if near_item_code:
