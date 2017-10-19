@@ -1249,8 +1249,10 @@ class ScheduleDatabase:
                 
         return sch_table
         
+    @undoable
     @database.atomic()
     def update_rates(self, codes = None):
+        old_rates = dict()
         if codes is None:
             sch_rows = ScheduleTable.select()
         else:
@@ -1258,9 +1260,21 @@ class ScheduleDatabase:
         for sch_row in sch_rows:
             sch = self.get_item(sch_row.code)
             sch.update_rate()
+            
+            old_rates[sch_row.code] = sch_row.rate
+            
             sch_row.rate = sch.rate
             sch_row.save()
-        return True
+        
+        yield "Update schedule item rates", True
+        
+        if codes is None:
+            sch_rows = ScheduleTable.select()
+        else:
+            sch_rows = ScheduleTable.select().where(ScheduleTable.code << codes)
+        for sch_row in sch_rows:
+            sch_row.rate = old_rates[sch_row.code]
+            sch_row.save()
         
     @undoable
     @database.atomic()
@@ -1325,6 +1339,7 @@ class ScheduleDatabase:
     def insert_item(self, item, path=None, update=False):
         
         sch_category_added = None
+        old_item = None
         
         # Get category from database
         if item.category is None or item.category == '':
@@ -1359,6 +1374,9 @@ class ScheduleDatabase:
                 sch = ScheduleTable.select().where(ScheduleTable.code == item.code).get()
             except ScheduleTable.DoesNotExist:
                 return False
+                
+            # Get old item model
+            old_item = self.get_item(item.code)
 
             # Update basic values
             sch.code = item.code
@@ -1517,13 +1535,22 @@ class ScheduleDatabase:
                                     code = None,
                                     description = anaitem['description'])
                 seq.save()
+                
+        if update:
+            message = "Update schedule data item:'{}'".format(item.code)
+        else:
+            message = "Add schedule data item at path:'{}'".format(str(path))
         
-        yield "Add schedule data item at path:'{}'".format(str(path)), True
-        # Delete added resources
-        self.delete_item(item.code)
-        # Delete any category added
-        if sch_category_added:
-            self.delete_schedule_category(sch_category_added)
+        yield message, True
+        # If update item, insert back old item
+        if update:
+            self.insert_item(old_item, update=True)
+        else:
+            # Delete added resources
+            self.delete_item(item.code)
+            # Delete any category added
+            if sch_category_added:
+                self.delete_schedule_category(sch_category_added)
 
     @database.atomic()
     def insert_item_multiple(self, items, path=None):
