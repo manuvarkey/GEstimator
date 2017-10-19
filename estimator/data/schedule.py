@@ -1450,7 +1450,7 @@ class ScheduleDatabase:
                         log.error('ScheduleDatabase - insert_resource - selected item could not be found for ' + str(path))
                         return False
                             
-                   # Add under
+                    # Add under
                     if selected_item.unit == '' and item.parent is not None:
                         order = path[1]
                         suborder = 0
@@ -1501,7 +1501,7 @@ class ScheduleDatabase:
                                 suborder = suborder)
                                 
             path_added = [sch.category.order, sch.order]
-            if sch.suborder:
+            if sch.suborder is not None:
                 path_added.append(sch.suborder)
 
         try:
@@ -1592,7 +1592,8 @@ class ScheduleDatabase:
     
         with group("Add schedule items at path:'{}'".format(path)):
             for item in items:
-                [code_added, path_added] = self.insert_item(item, path, number_with_path=True)
+                [code_added, path_added] = self.insert_item(item, path, number_with_path=number_with_path)
+
                 path = path_added
                 
                 codes_added.append(code_added)
