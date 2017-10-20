@@ -1474,18 +1474,32 @@ class ScheduleDatabase:
                             
                 # If subitem selected, add next
                 elif len(path) == 3:
+                    
                     try:
                         parent_item = ScheduleTable.select().where((ScheduleTable.category == category_id) & (ScheduleTable.order == path[1]) & (ScheduleTable.suborder == None)).get()
                     except:
                         log.error('ScheduleDatabase - insert_resource - parent item could not be found for ' + str(path))
                         return False
-                    order = path[1]
-                    suborder = path[2]+1
-                    parent_id = parent_item.id
-                    if number_with_path:
-                        code = self.get_next_item_code(near_item_code=parent_item.code, 
-                                                       nextlevel=True, shift=path[2]+1)
-                    ScheduleTable.update(suborder = ScheduleTable.suborder + 1).where((ScheduleTable.suborder >= suborder) & (ScheduleTable.order == order) & (ScheduleTable.category == category_id)).execute()
+                            
+                    # Add as next element
+                    if item.parent is not None:
+                        order = path[1]
+                        suborder = path[2]+1
+                        parent_id = parent_item.id
+                        if number_with_path:
+                            code = self.get_next_item_code(near_item_code=parent_item.code, 
+                                                           nextlevel=True, shift=path[2]+1)
+                        ScheduleTable.update(suborder = ScheduleTable.suborder + 1).where((ScheduleTable.suborder >= suborder) & (ScheduleTable.order == order) & (ScheduleTable.category == category_id)).execute()
+                    # Add as next element of parent
+                    else:
+                        order = path[1]+1
+                        suborder = None
+                        parent_id = None
+                        # Modify code according to path
+                        if number_with_path:
+                            code = self.get_next_item_code(near_item_code=parent_item.code, 
+                                                                    nextlevel=False)
+                        ScheduleTable.update(order = ScheduleTable.order + 1).where((ScheduleTable.category == category_id) & (ScheduleTable.order >= order)).execute()
                 
             # Setup new schedule item
             sch = ScheduleTable(code = code,
