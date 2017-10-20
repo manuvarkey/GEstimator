@@ -392,10 +392,11 @@ class ScheduleView:
         else:
             path = None
 
-        [codes, paths] = self.database.insert_item_multiple(items, path=path, number_with_path=True)
-        if codes:
+        [items_added, net_ress_added] = self.database.insert_item_multiple(items, path=path, number_with_path=True)
+        if items_added:
             self.update_store()
-            self.set_selection(code=codes[-1])
+            selection_code = list(items_added.items())[-1][1]
+            self.set_selection(code=selection_code)
                 
     def delete_selected_items(self):
         selected = self.get_selected()
