@@ -1624,7 +1624,9 @@ class ScheduleDatabase:
         
         if old_suborder is None and old_order == 0:
             path = [old_category_order]
-        elif old_suborder in [None, 0]:
+        elif old_suborder is None:
+            path = [old_category_order, old_order-1]
+        elif old_suborder == 0:
             path = [old_category_order, old_order]
         else:
             path = [old_category_order, old_order, old_suborder-1]
@@ -1639,12 +1641,24 @@ class ScheduleDatabase:
                 if len(path) == 1:
                     # Delete all schedule under category
                     items = self.get_item_table(category=code, flat=True)
-                    for sch_code in items:
+                    for sch_code in reversed(items):
                         self.delete_item(sch_code)
                     # Then delete category
                     self.delete_schedule_category(code)
                 # Schedule Items
-                elif len(path) in [2,3]:
+                elif len(path) == 2:
+                    # Get main item
+                    try:
+                        item = ScheduleTable.select().where(ScheduleTable.code == code).get()
+                    except:
+                        log.error("Item not found :'{}'".format(code))
+                        return False
+                    # Delete children
+                    for child in item.children:
+                        self.delete_item(child.code)
+                    # Delete main item
+                    self.delete_item(code)
+                elif len(path) == 3:
                     self.delete_item(code)
     
     @database.atomic()
