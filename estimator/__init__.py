@@ -407,7 +407,7 @@ class MainWindow:
         codes = self.schedule_view.get_selected_codes()
         if codes:
             code = codes[0]
-            model = self.sch_database.get_item(code)
+            model = self.sch_database.get_item(code, modify_res_code=False)
             if model.unit != '':
                 dialog_ana = self.analysis_view.init(model)
                 # Show stack page
@@ -587,30 +587,29 @@ class MainWindow:
             def exec_func(progress, models):
                 index = 0
                 
-                with group("Import analysis of rates"):
-                    while index < len(models):
-                        item = data.schedule.ScheduleItemModel(None,None)
-                        index = data.schedule.parse_analysis(models, item, index, True)
-                        # Get item with corresponding code from database
-                        sch_item = self.sch_database.get_item(item.code)
-                        if sch_item:
-                            # Copy values to imported item
-                            item.description = sch_item.description
-                            item.unit = sch_item.unit
-                            item.rate = sch_item.rate
-                            item.qty = sch_item.qty
-                            item.category = sch_item.category
-                            item.remarks = sch_item.remarks
-                            item.parent = sch_item.parent
-                            # Update item in database
-                            self.sch_database.update_item(item)
-                            progress.add_message('Analysis for Item No.' + item.code + ' imported')
-                            log.info('MainWindow - on_import_ana_clicked - analysis added - ' + str(item.code))
-                        else:
-                            progress.add_message("<span foreground='#FF0000'>Item No." + str(item.code) + ' not found in schedule items</span>')
-                            log.warning('MainWindow - on_import_ana_clicked - analysis not added - code not found - ' + str(item.code))
-                        # Update fraction
-                        progress.set_fraction(index/len(models))
+                while index < len(models):
+                    item = data.schedule.ScheduleItemModel(None,None)
+                    index = data.schedule.parse_analysis(models, item, index, True)
+                    # Get item with corresponding code from database
+                    sch_item = self.sch_database.get_item(item.code)
+                    if sch_item:
+                        # Copy values to imported item
+                        item.description = sch_item.description
+                        item.unit = sch_item.unit
+                        item.rate = sch_item.rate
+                        item.qty = sch_item.qty
+                        item.category = sch_item.category
+                        item.remarks = sch_item.remarks
+                        item.parent = sch_item.parent
+                        # Update item in database
+                        self.sch_database.update_item_atomic(item)
+                        progress.add_message('Analysis for Item No.' + item.code + ' imported')
+                        log.info('MainWindow - on_import_ana_clicked - analysis added - ' + str(item.code))
+                    else:
+                        progress.add_message("<span foreground='#FF0000'>Item No." + str(item.code) + ' not found in schedule items</span>')
+                        log.warning('MainWindow - on_import_ana_clicked - analysis not added - code not found - ' + str(item.code))
+                    # Update fraction
+                    progress.set_fraction(index/len(models))
             
             self.run_command(exec_func, models)
     

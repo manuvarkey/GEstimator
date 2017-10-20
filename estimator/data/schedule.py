@@ -987,11 +987,11 @@ class ScheduleDatabase:
 
             [path_added, res_category_added] = self.insert_resource_atomic(resource, path)
             
-            # Modify deleted
+            # Modify inserted
             if res_category_added:
-                deleted[(path_added[0],)] = res_category_added
+                inserted[(path_added[0],)] = res_category_added
                 
-            deleted[tuple(path_added)] = resource.code
+            inserted[tuple(path_added)] = resource.code
             
             if path is None or len(path) == 1:
                 pass
@@ -1006,7 +1006,7 @@ class ScheduleDatabase:
         
         inserted = self.insert_resource_multiple_atomic(resources, path)
 
-        yield "Add resource items at path:'{}'".format(path), deleted
+        yield "Add resource items at path:'{}'".format(path), inserted
         
         # Delete added item
         self.delete_resource_atomic(inserted)
@@ -1256,7 +1256,7 @@ class ScheduleDatabase:
     ## Schedule item methods
 
     @database.atomic()
-    def get_item(self, code):
+    def get_item(self, code, modify_res_code=True):
         try:
             item = ScheduleTable.select().where(ScheduleTable.code == code).get()
         except ScheduleTable.DoesNotExist:
@@ -1287,7 +1287,7 @@ class ScheduleDatabase:
                 res_list = []
                 for res in ress:
                     # If already derived item retain code
-                    if len((res.id_res.code).split('.')) > 1:
+                    if modify_res_code == False or len((res.id_res.code).split('.')) > 1 or proj_code == '':
                         mod_code = res.id_res.code
                     # Modify code
                     else:
@@ -1437,6 +1437,10 @@ class ScheduleDatabase:
             sch.remarks = old_value
         
         sch.save()
+        
+    def update_item_atomic(self, sch_model):
+        """Updates schedule item i/c analysis"""
+        return self.insert_item_atomic(sch_model, path=None, update=True)
 
     def update_item(self, sch_model):
         """Updates schedule item i/c analysis"""
