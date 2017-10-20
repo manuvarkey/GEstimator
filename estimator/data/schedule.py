@@ -844,11 +844,11 @@ class ScheduleDatabase:
                 elif len(path) == 2:
                     self.delete_resource_item(code)
 
-    @undoable
     @database.atomic()
-    def insert_resource(self, resource, path=None):
+    def insert_resource_atomic(self, resource, path=None):
         
         res_category_added = None
+        
         # If path is specified
         if path:
             # Get category by order
@@ -900,29 +900,78 @@ class ScheduleDatabase:
                             category = category_id,
                             order = order)
                             
+        path_added = [category.order, order]
+        
         try:
             res.save()
         except peewee.IntegrityError:
             log.warning('ScheduleDatabase - insert_resource - Item code exists, Item not added - ' + resource.code)
             return False
+            
+        return [path_added, res_category_added]
         
-        yield "Add resource data item at path:'{}'".format(str(path)), True
+    @undoable
+    @database.atomic()
+    def insert_resource(self, resource, path=None):
+
+        ret = self.insert_resource_atomic(resource, path)
+        if ret:
+            [path_added, res_category_added] = ret
+        else:
+            path_added = None
+            res_category_added = None
+    
+        yield "Add resource data item at path:'{}'".format(str(path)), [path_added, res_category_added]
         # Delete added resources
-        self.delete_resource_item(resource.code)
+        if path_added:
+            self.delete_resource_item(resource.code)
         # Delete any category added
         if res_category_added:
             self.delete_resource_category(res_category_added)
+                
+        
         
     @database.atomic()
     def insert_resource_multiple(self, resources, path=None):
-        with group("Add resource data items at path:'{}'".format(str(path))):
-            if path is None or len(path) == 1:
-                for resource in resources:
-                    self.insert_resource(resource, path)
-            elif len(path) == 2:
-                for resource in resources:
-                    self.insert_resource(resource, path)
+        
+        def action_func(resources, path):
+            deleted = OrderedDict()
+            for resource in resources:
+
+                [path_added, res_category_added] = self.insert_resource(resource, path)
+                
+                # Modify deleted
+                if res_category_added:
+                    deleted[res_category_added] = path_added[0]
+                deleted[resource.code] = path_added
+                
+                if path is None or len(path) == 1:
+                    pass
+                elif len(path) == 2:
                     path = [path[0], path[1]+1]
+            
+            return deleted
+        
+        @undoable
+        def undoable_func(resources, path):
+        
+            deleted = action_func(resources, path)
+
+            yield "Add resource items at path:'{}'".format(path), deleted
+            
+            with database.atomic() as tx:
+                self.delete_resource(deleted)
+                        
+        # Prevent huge inserts from eating up memory
+        if len(items) < 10:
+            deleted = undoable_func(resources, path)
+        else:
+            # Do action
+            deleted = action_func(resources, path)
+            # Clear stack
+            undo.stack().clear()
+            
+        return deleted
             
     @undoable
     @database.atomic()
@@ -1343,14 +1392,13 @@ class ScheduleDatabase:
         """Updates schedule item i/c analysis"""
         return self.insert_item(sch_model, path=None, update=True)
     
-    @undoable
     @database.atomic()
-    def insert_item(self, item, path=None, update=False, number_with_path=False):
+    def insert_item_atomic(self, item, path=None, update=False, number_with_path=False):
         
         sch_category_added = None
-        old_item = None
         code = item.code
         path_added = path
+        ress_added = []
         
         # Get category and parent if path not specified or update
         if path is None:
@@ -1388,9 +1436,6 @@ class ScheduleDatabase:
                 sch = ScheduleTable.select().where(ScheduleTable.code == item.code).get()
             except ScheduleTable.DoesNotExist:
                 return False
-                
-            # Get old item model
-            old_item = self.get_item(item.code)
 
             # Update basic values
             sch.code = item.code
@@ -1542,6 +1587,7 @@ class ScheduleDatabase:
                     except peewee.DoesNotExist:
                         self.insert_resource(item.resources[resource[0]])
                         res = ResourceTable.select().where(ResourceTable.code == resource[0]).get()
+                        ress_added.append(res.code)
                         
                     resitem = ResourceItemTable(id_sch = sch.id,
                                                 id_seq = seq.id,
@@ -1581,13 +1627,30 @@ class ScheduleDatabase:
                                     code = None,
                                     description = anaitem['description'])
                 seq.save()
-                
+        
+        return [code, path_added, sch_category_added, ress_added]
+    
+    @undoable
+    @database.atomic()
+    def insert_item(self, item, path=None, update=False, number_with_path=False):
+        
+        ret = self.insert_item_atomic(item, path=path, update=update, number_with_path=number_with_path)
+        
+        if ret:
+            [code, path_added, sch_category_added, ress_added] = ret
+        else:
+            return False
+        
         if update:
+            # Get old item model
+            old_item = self.get_item(item.code)
+            
             message = "Update schedule data item:'{}'".format(item.code)
         else:
             message = "Add schedule data item at path:'{}'".format(str(path_added))
         
-        yield message, [code, path_added]
+        yield message, [code, path_added, sch_category_added]
+        
         # If update item, insert back old item
         if update:
             self.insert_item(old_item, update=True)
@@ -1597,23 +1660,66 @@ class ScheduleDatabase:
             # Delete any category added
             if sch_category_added:
                 self.delete_schedule_category(sch_category_added)
+                
+        # Delete resources
+        for code in ress_added:
+            self.delete_resource_item(code)
 
     @database.atomic()
     def insert_item_multiple(self, items, path=None, number_with_path=False):
-    
-        codes_added = []
-        paths_added = []
-    
-        with group("Add schedule items at path:'{}'".format(path)):
-            for item in items:
-                [code_added, path_added] = self.insert_item(item, path, number_with_path=number_with_path)
-
-                path = path_added
-                
-                codes_added.append(code_added)
-                paths_added.append(path_added)
+        """Undoable function to add multiple schedule items into schedule"""
         
+        def action_func(items, path, number_with_path):
+            codes_added = []
+            paths_added = []
+            net_ress_added = []
+        
+            for item in items:
+                ret = self.insert_item_atomic(item, path=path, number_with_path=number_with_path)
+                if ret:
+                    [code_added, path_added, category_added, ress_added] = ret
+                    path = path_added
+                    
+                    if category_added is not None:
+                        codes_added.append(category_added)
+                        paths_added.append([path_added[0]])
+                        
+                    codes_added.append(code_added)
+                    paths_added.append(path_added)
+                    net_ress_added = net_ress_added + ress_added
+
+            return [codes_added, paths_added, net_ress_added]
+        
+        @undoable
+        def undoable_func(items, path, number_with_path):
+            [codes_added, paths_added, ress_added] = action_func(items, path=path, number_with_path=number_with_path)
+
+            yield "Add schedule items at path:'{}'".format(path), [codes_added, paths_added]
+            
+            with database.atomic() as tx:
+                
+                # Delete items
+                for code, path in zip(reversed(codes_added), reversed(paths_added)):
+                    if len(path) == 1:
+                        self.delete_schedule_category(code)
+                    elif len(path) in [2,3]:
+                        self.delete_item(code)
+                
+                # Delete resources
+                for code in ress_added:
+                    self.delete_resource_item(code)
+                        
+        # Prevent huge inserts from eating up memory
+        if len(items) < 10:
+            [codes_added, paths_added] = undoable_func(items, path, number_with_path)
+        else:
+            # Do action
+            [codes_added, paths_added] = action_func(items, path, number_with_path)
+            # Clear stack
+            undo.stack().clear()
+            
         return [codes_added, paths_added]
+        
                 
     @undoable
     @database.atomic()
