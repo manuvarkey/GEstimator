@@ -390,21 +390,23 @@ class ResourceView:
         """Function for modifying value of a treeview cell"""
         iterator = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
         
-        # Update category
-        if len(path) == 1 and column == 1:
-            
-            if not self.database.update_resource_category(oldvalue, newvalue):
-                log.warning('ScheduleView - cell_renderer_text - category not updated - ' + str(oldvalue) + ':' + str(newvalue))
-            else:
-                self.store[iterator][column] = newvalue
+        if oldvalue != newvalue:
         
-        # Update items     
-        elif len(path) in [2,3]:
-            code = self.store[iterator][0]
-            if not self.database.update_resource(code, newvalue, column):
-                log.warning('ScheduleView - cell_renderer_text - value not updated - ' + str(oldvalue) + ':' + str(newvalue) + ' {' + str(column) + '}')
-            else:
-                self.store[iterator][column] = newvalue
+            # Update category
+            if len(path) == 1 and column == 1:
+                
+                if not self.database.update_resource_category(oldvalue, newvalue):
+                    log.warning('ScheduleView - cell_renderer_text - category not updated - ' + str(oldvalue) + ':' + str(newvalue))
+                else:
+                    self.store[iterator][column] = newvalue
+            
+            # Update items     
+            elif len(path) in [2,3]:
+                code = self.store[iterator][0]
+                if not self.database.update_resource(code, newvalue, column):
+                    log.warning('ScheduleView - cell_renderer_text - value not updated - ' + str(oldvalue) + ':' + str(newvalue) + ' {' + str(column) + '}')
+                else:
+                    self.store[iterator][column] = newvalue
     
         
     # Search functions

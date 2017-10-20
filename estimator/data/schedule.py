@@ -641,10 +641,8 @@ class ScheduleDatabase:
         yield "Update resource category '{}' to '{}'".format(category, value), True
         ResourceCategoryTable.update(description = category).where(ResourceCategoryTable.description == value).execute()
         
-        
-    @undoable
     @database.atomic()
-    def insert_resource_category(self, category, path=None):
+    def insert_resource_category_atomic(self, category, path=None):
         
         if path:
             # Path specified add at path
@@ -664,14 +662,20 @@ class ScheduleDatabase:
         except:
             log.error('ScheduleDatabase - insert_resource_category - saving record failed for ' + category)
             return False
-
-        yield "Add resource category item at path:'{}'".format(str(path)), True
+            
+        return True
+            
+    @undoable
+    @database.atomic()
+    def insert_resource_category(self, category, path=None):
+        ret = self.insert_resource_category_atomic(category, path)
+        
+        yield "Add resource category item at path:'{}'".format(str(path)), ret
         # Delete added resources
         self.delete_resource_category(category)
         
-    @undoable
     @database.atomic()
-    def delete_resource_category(self, category_name):
+    def delete_resource_category_atomic(self, category_name):
         """Delete resource category"""
         try:
             old_item = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category_name).get()
@@ -682,7 +686,15 @@ class ScheduleDatabase:
         except ResourceCategoryTable.DoesNotExist:
             return False
             
-        yield "Delete resource category:'{}'".format(str(category_name)), True
+        return old_order
+            
+    @undoable
+    @database.atomic()
+    def delete_resource_category(self, category_name):
+        
+        old_order = self.delete_resource_category_atomic(category_name)
+        
+        yield "Delete resource category:'{}'".format(str(category_name))
         # Add back deleted resources
         self.insert_resource_category(category_name, [old_order])
 
@@ -802,16 +814,14 @@ class ScheduleDatabase:
         except ResourceTable.DoesNotExist:
             return False
             
-    @undoable
     @database.atomic()
-    def delete_resource_item(self, code):
+    def delete_resource_item_atomic(self, code):
         """Delete schedule item"""
         try:
             old_item = ResourceTable.select().where(ResourceTable.code == code).get()
             old_order = old_item.order
             old_category_order = old_item.category.order
             
-            old_res_model = self.get_resource(code)
             if old_order > 0:
                 old_res_path = [old_category_order, old_order-1]
             else:
@@ -823,26 +833,63 @@ class ScheduleDatabase:
         except ResourceTable.DoesNotExist:
             return False
             
-        yield "Delete resource item:'{}'".format(str(code)), True
+        return old_res_path
+        
+    @undoable
+    @database.atomic()
+    def delete_resource_item(self, code):
+        old_res_model = self.get_resource(code)
+        old_res_path = self.delete_resource_item_atomic(code)
+        
+        yield "Delete resource item:'{}'".format(str(code)), old_res_path
         # Add back deleted resources
         self.insert_resource(old_res_model, old_res_path)
         
     @database.atomic()
-    def delete_resource(self, selected):
+    def delete_resource_atomic(self, selected):
         """Delete resource elements"""
+        
+        # Handle sub items first
+        for path, code in selected.items():
+            if len(path) == 1:
+                # Delete all resources under category
+                ress = self.get_resource_table(category=code, flat=True)
+                for res_code in ress:
+                    self.delete_resource_item_atomic(res_code)
+            # Resource Items
+            if len(path) == 2:
+                self.delete_resource_item_atomic(code)
+                
+        # Handle categories second
+        for path, code in selected.items():
+            # Category
+            if len(path) == 1:
+                self.delete_resource_category_atomic(code)
+                
+    @database.atomic()
+    def delete_resource(self, selected):
+        """Undoable Delete resource elements"""
         with group("Delete resource items"):
+            
+            unique_codes = set()
+            unique_cats = set()
             for path, code in selected.items():
-                # Category
                 if len(path) == 1:
-                    # Delete all resources under category
                     ress = self.get_resource_table(category=code, flat=True)
                     for res_code in ress:
-                        self.delete_resource_item(res_code)
-                    # Then delete category
-                    self.delete_resource_category(code)
+                        unique_codes.add(res_code)
+                    unique_cats.add(code)
                 # Resource Items
-                elif len(path) == 2:
-                    self.delete_resource_item(code)
+                if len(path) == 2:
+                    unique_codes.add(code)
+            
+            # Handle sub items first     
+            for code in unique_codes:
+                self.delete_resource_item(code)
+                    
+            # Handle categories second
+            for code in unique_cats: 
+                self.delete_resource_category(code)
 
     @database.atomic()
     def insert_resource_atomic(self, resource, path=None):
@@ -881,7 +928,7 @@ class ScheduleDatabase:
                 order = ResourceTable.select().where(ResourceTable.category == category_id).count()
             except ResourceCategoryTable.DoesNotExist:
                 # Add new category at end and add item under it
-                if self.insert_resource_category(category_name):
+                if self.insert_resource_category_atomic(category_name):
                     category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category_name).get()
                     category_id = category.id
                     res_category_added = category_name
@@ -924,54 +971,42 @@ class ScheduleDatabase:
         yield "Add resource data item at path:'{}'".format(str(path)), [path_added, res_category_added]
         # Delete added resources
         if path_added:
-            self.delete_resource_item(resource.code)
+            self.delete_resource_item_atomic(resource.code)
         # Delete any category added
         if res_category_added:
-            self.delete_resource_category(res_category_added)
+            self.delete_resource_category_atomic(res_category_added)
                 
+    @database.atomic()
+    def insert_resource_multiple_atomic(self, resources, path=None):
+    
+        deleted = OrderedDict()
+        for resource in resources:
+
+            [path_added, res_category_added] = self.insert_resource_atomic(resource, path)
+            
+            # Modify deleted
+            if res_category_added:
+                deleted[(path_added[0],)] = res_category_added
+                
+            deleted[tuple(path_added)] = resource.code
+            
+            if path is None or len(path) == 1:
+                pass
+            elif len(path) == 2:
+                path = [path[0], path[1]+1]
         
+        return deleted
         
+    @undoable
     @database.atomic()
     def insert_resource_multiple(self, resources, path=None):
         
-        def action_func(resources, path):
-            deleted = OrderedDict()
-            for resource in resources:
+        deleted = self.insert_resource_multiple_atomic(resources, path)
 
-                [path_added, res_category_added] = self.insert_resource(resource, path)
-                
-                # Modify deleted
-                if res_category_added:
-                    deleted[res_category_added] = path_added[0]
-                deleted[resource.code] = path_added
-                
-                if path is None or len(path) == 1:
-                    pass
-                elif len(path) == 2:
-                    path = [path[0], path[1]+1]
-            
-            return deleted
+        yield "Add resource items at path:'{}'".format(path), deleted
         
-        @undoable
-        def undoable_func(resources, path):
-        
-            deleted = action_func(resources, path)
-
-            yield "Add resource items at path:'{}'".format(path), deleted
-            
-            with database.atomic() as tx:
-                self.delete_resource(deleted)
-                        
-        # Prevent huge inserts from eating up memory
-        if len(items) < 10:
-            deleted = undoable_func(resources, path)
-        else:
-            # Do action
-            deleted = action_func(resources, path)
-            # Clear stack
-            undo.stack().clear()
-            
-        return deleted
+        # Delete added item
+        self.delete_resource_atomic(deleted)
             
     @undoable
     @database.atomic()

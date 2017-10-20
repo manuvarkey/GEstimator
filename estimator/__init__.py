@@ -343,19 +343,23 @@ class MainWindow:
 
     def on_redo_clicked(self, button):
         """Redo action from stack"""
-        if self.stack.redotext():
+        if self.stack.canredo():
             log.info(self.stack.redotext())
             self.display_status(misc.INFO, self.stack.redotext())
-        self.stack.redo()
-        self.update()
+            self.stack.redo()
+            self.update()
+        else:
+            self.display_status(misc.INFO, "Nothing left to Redo")
 
     def on_undo_clicked(self, button):
         """Undo action from stack"""
-        if self.stack.undotext():
+        if self.stack.canundo():
             log.info(self.stack.undotext())
             self.display_status(misc.INFO, self.stack.undotext())
-        self.stack.undo()
-        self.update()
+            self.stack.undo()
+            self.update()
+        else:
+            self.display_status(misc.INFO, "Nothing left to Undo")
 
     # Schedule signal handler methods
 
