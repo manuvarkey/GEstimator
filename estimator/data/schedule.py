@@ -1916,24 +1916,34 @@ class ScheduleDatabase:
         
     @database.atomic()
     def get_res_usage(self):
-        res_list_item = OrderedDict()
-        res_items = ResourceItemTable.select()
-        for res_item in res_items:
-            code = res_item.id_res.code
-            res_qty = res_item.qty
-            sch_qty = res_item.id_sch.qty if res_item.id_sch.qty else 0
-            qty = res_qty*sch_qty
-            if code in res_list_item:
-                res_list_item[code][3] = res_list_item[code][3] + qty
-            else:
-                res_list_item[code] = [code,
-                                       res_item.id_res.description,
-                                       res_item.id_res.unit,
-                                       qty,
-                                       res_item.id_res.rate, 
-                                       res_item.id_res.vat,
-                                       res_item.id_res.discount]
-        return res_list_item
+        res_cats = OrderedDict()
+        cats = ResourceCategoryTable.select().order_by(ResourceCategoryTable.order)
+        for cat in cats:
+            res_list_item = OrderedDict()
+            res_items = (ResourceItemTable.select(ResourceItemTable, 
+                                                      ResourceTable, 
+                                                      ResourceCategoryTable)
+                                              .join(ResourceTable)
+                                              .join(ResourceCategoryTable)
+                                              .where(ResourceCategoryTable.id == cat.id)
+                                              .order_by(ResourceTable.order))
+            for res_item in res_items:
+                code = res_item.id_res.code
+                res_qty = res_item.qty
+                sch_qty = res_item.id_sch.qty if res_item.id_sch.qty else 0
+                qty = res_qty*sch_qty
+                if code in res_list_item:
+                    res_list_item[code][3] = res_list_item[code][3] + qty
+                else:
+                    res_list_item[code] = [code,
+                                           res_item.id_res.description,
+                                           res_item.id_res.unit,
+                                           qty,
+                                           res_item.id_res.rate, 
+                                           res_item.id_res.vat,
+                                           res_item.id_res.discount]
+            res_cats[cat.description] = res_list_item
+        return res_cats
         
     @undoable
     @database.atomic()
@@ -2047,7 +2057,7 @@ class ScheduleDatabase:
         spreadsheet.add_merged_cell('SCHEDULE OF RATES', width=7, bold=True)
         rows = [[None]]
         spreadsheet.append_data(rows)
-        spreadsheet.add_merged_cell('Name of Work: ' + proj_name, width=6, start_column=2, bold=True)        
+        spreadsheet.add_merged_cell('Name of Work: ' + proj_name, width=6, start_column=2, bold=True, horizontal='left')        
         rows = [[None],
                 ['Sl.No.', 'Description', 'Unit', 'Rate', 'Qty','Amount', 'Remarks'],
                 [None]]
@@ -2277,7 +2287,7 @@ class ScheduleDatabase:
         
             
     def export_res_usage_spreadsheet(self, spreadsheet): 
-        res_list_item = self.get_res_usage()
+        cat_res_items = self.get_res_usage()
         spreadsheet.new_sheet()
         spreadsheet.set_title('Res Usage')
 
@@ -2289,18 +2299,23 @@ class ScheduleDatabase:
         spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
         s_row = 6
         
-        for code, item in sorted(res_list_item.items()):
-            description = item[1]
-            unit = item[2]
-            qty = item[3]
-            basicrate = Decimal(item[4])
-            vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
-            discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
-            rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
-            amount_formula = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
-            rows = [[code, description, unit, rate, qty, amount_formula]]
-            spreadsheet.append_data(rows)
+        for category, res_list_item in cat_res_items.items():
+            # Add category item
+            rows = [[None, category]]
+            spreadsheet.append_data(rows, bold=True)
             s_row = s_row + 1
+            for code, item in sorted(res_list_item.items()):
+                description = item[1]
+                unit = item[2]
+                qty = item[3]
+                basicrate = Decimal(item[4])
+                vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
+                discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
+                rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
+                amount_formula = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
+                rows = [[code, description, unit, rate, qty, amount_formula]]
+                spreadsheet.append_data(rows)
+                s_row = s_row + 1
             
         spreadsheet.set_column_widths([10, 50, 10, 10, 15, 15])
         spreadsheet.set_page_settings(font='Georgia')

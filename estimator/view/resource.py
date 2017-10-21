@@ -926,6 +926,9 @@ class ResourceUsageDialog():
         
         # Setup tree view
         self.tree.set_grid_lines(3)
+        self.tree.set_enable_tree_lines(True)
+        self.tree.set_show_expanders(False)
+        self.tree.set_level_indentation(30)
         self.tree.set_search_equal_func(self.equal_func, [0,1,2])
         self.columns = dict()
         self.cells = dict()
@@ -951,20 +954,24 @@ class ResourceUsageDialog():
         # Clear store
         self.store.clear()
         # Fill in data in treeview
-        res_table = self.database.get_res_usage()
-        for code, item in sorted(res_table.items()):
-            description = item[1]
-            unit = item[2]
-            qty = item[3]
-            basicrate = Decimal(item[4])
-            vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
-            discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
-            rate = basicrate*(1+vat/100)*(1-discount/100)
-            amount = Currency(rate*qty)
-            
-            items_str = [code, description, unit, 
-                         str(rate), str(qty), str(amount)]
-            category_iter = self.store.append(None, items_str)
+        res_cats = self.database.get_res_usage()
+        for cat, res_table in res_cats.items():
+            # Add category item
+            category_iter = self.store.append(None, ['', cat, '', '', '', ''])
+            for code, item in sorted(res_table.items()):
+                description = item[1]
+                unit = item[2]
+                qty = item[3]
+                basicrate = Decimal(item[4])
+                vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
+                discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
+                rate = basicrate*(1+vat/100)*(1-discount/100)
+                amount = Currency(rate*qty)
+                
+                items_str = [code, description, unit, 
+                             str(rate), str(qty), str(amount)]
+                item_iter = self.store.append(category_iter, items_str)
+        self.tree.expand_all()
             
     def equal_func(self, model, column, key, iterator, cols):
         """Equal function for interactive search"""
