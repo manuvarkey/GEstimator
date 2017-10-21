@@ -719,7 +719,7 @@ class SelectResourceDialog:
                         name = self.library_combo.get_active_text()
                         # Get resource from selected library
                         with self.database.using_library(name):
-                            selected_resource = self.database.get_resource(selected_code)
+                            selected_resource = self.database.get_resource(selected_code, modify_code=True)
                             
                     if selected_resource:
                         log.info('SelectResourceDialog - run - Selected - ' + selected_code)

@@ -610,11 +610,12 @@ class MainWindow:
                         log.warning('MainWindow - on_import_ana_clicked - analysis not added - code not found - ' + str(item.code))
                     # Update fraction
                     progress.set_fraction(index/len(models))
+                
+                # Clear undo stack
+                self.stack.clear()
+                self.resource_view.update_store()
             
             self.run_command(exec_func, models)
-    
-        # Clear undo stack
-        self.stack.clear()
         
             
     # Analysis signal handler methods
