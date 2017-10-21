@@ -2026,14 +2026,18 @@ class ScheduleDatabase:
 
     def export_sch_spreadsheet(self, spreadsheet):
         sch_table = self.get_item_table()
+        proj_name = self.get_project_settings()['project_name']
 
         # Header
         spreadsheet.add_merged_cell('SCHEDULE OF RATES', width=7, bold=True)
+        rows = [[None]]
+        spreadsheet.append_data(rows)
+        spreadsheet.add_merged_cell('Name of Work: ' + proj_name, width=6, start_column=2, bold=True)        
         rows = [[None],
                 ['Sl.No.', 'Description', 'Unit', 'Rate', 'Qty','Amount', 'Remarks'],
                 [None]]
         spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
-        s_row = 6
+        s_row = 8
         
         # Insert data
         for category, items in sch_table.items():
@@ -2073,7 +2077,7 @@ class ScheduleDatabase:
                     spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                     s_row = s_row + 1
         # Add sum of amount
-        amount = '=SUM(F5:F' + str(s_row) + ')'
+        amount = '=SUM(F7:F' + str(s_row) + ')'
         rows = [[None],[None,'TOTAL',None,None,None,amount]]
         spreadsheet.append_data(rows, bold=True)
         
