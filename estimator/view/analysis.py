@@ -212,7 +212,7 @@ class AnalysisView:
                         return
                     res_item[1] = evaluated
         elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_SUM:
-            if column == 0:
+            if column == 1:
                 if item['description'] == newtext:
                     return
                 item['description'] = newtext
