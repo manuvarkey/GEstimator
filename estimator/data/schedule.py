@@ -149,7 +149,7 @@ def parse_analysis(models, item, index, set_code=False):
                      and model[4] == 0 and model[5] != 0
                      and string_has(model[1], TIMES_KEYS)
                      and model[5] < models[index-1][5]):
-                    item.add_ana_times(model[1], Currency(model[5]/models[index-1][5], 3))
+                    item.add_ana_times(model[1], Currency(model[5]/models[index-1][5], 6))
 
                     index = index + 1
                     continue
