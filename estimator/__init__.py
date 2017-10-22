@@ -560,7 +560,7 @@ class MainWindow:
                     id_cur_item = code
                     items.append(sch)
                         
-            self.sch_database.insert_item_multiple(items)
+            self.sch_database.insert_item_multiple(items, preserve_structure=True)
             self.display_status(misc.INFO, str(index)+' records processed')
             log.info('MainWindow - on_import_sch_clicked - data added - ' + str(index) + ' records')
             

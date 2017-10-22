@@ -1518,7 +1518,7 @@ class ScheduleDatabase:
             
             # Setup ScheduleTable
             
-            # Insert at last position of category
+            # Insert at last position of category and parent
             if path is None:
                 if parent_id:
                     order = parent.order
@@ -1712,7 +1712,7 @@ class ScheduleDatabase:
             old_item = self.get_item(item.code)
             
         # Insert item
-        ret = self.insert_item_atomic(item, path, update, number_with_path)
+        ret = self.insert_item_atomic(item, path=path, update=update, number_with_path=number_with_path)
         
         if ret:
             [code, path_added, sch_category_added, ress_added] = ret
@@ -1740,7 +1740,7 @@ class ScheduleDatabase:
         self.delete_resource_atomic(ress_added)
             
     @database.atomic()
-    def insert_item_multiple_atomic(self, items, path=None, number_with_path=False):
+    def insert_item_multiple_atomic(self, items, path=None, number_with_path=False, preserve_structure=False):
         """Function to add multiple schedule items into schedule"""
         
         items_added = OrderedDict()
@@ -1756,15 +1756,21 @@ class ScheduleDatabase:
                     
                 items_added[tuple(path_added)] = code_added
                 net_ress_added.update(ress_added)
+                
+                if not preserve_structure:
+                    # Update path
+                    path = path_added
+            else:
+                log.error("ScheduleDatabase - insert_item_multiple_atomic - item not added - Code:'{}', Path:'{}'".format(item.code, path))
 
         return [items_added, net_ress_added]
             
     @undoable
     @database.atomic()
-    def insert_item_multiple(self, items, path=None, number_with_path=False):
+    def insert_item_multiple(self, items, path=None, number_with_path=False, preserve_structure=False):
         """Undoable function to add multiple schedule items into schedule"""
 
-        [items_added, net_ress_added] = self.insert_item_multiple_atomic(items, path=path, number_with_path=number_with_path)
+        [items_added, net_ress_added] = self.insert_item_multiple_atomic(items, path, number_with_path, preserve_structure)
 
         yield "Add schedule items at path:'{}'".format(path), [items_added, net_ress_added]
         
