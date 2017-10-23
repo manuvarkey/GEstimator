@@ -1984,7 +1984,7 @@ class ScheduleDatabase:
                 undodict[code] = item.code[:-4]
                 item.code = code
                 item.save()
-                children = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == item.id)).order_by(ScheduleTable.suborder)
+                children = ScheduleTable.select().where(ScheduleTable.parent == item.id).order_by(ScheduleTable.suborder)
                 for child in children:
                     code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
                     undodict[code] = child.code[:-4]
@@ -2065,7 +2065,39 @@ class ScheduleDatabase:
         else:
             new_code = '_CATEGORY1'
         return new_code
+        
+    ## Data correction functions
     
+    @database.atomic()
+    def reorder_items(self):
+        """Performs reordering of all items in database to correct any insertion errors"""
+        
+        # Schedule items
+        categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
+        for cat_id, category in enumerate(categories):
+            category.order = cat_id
+            items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
+            category.save()
+            for item_id, item in enumerate(items):
+                item.order = item_id
+                item.suborder = None
+                item.save()
+                children = ScheduleTable.select().where(ScheduleTable.parent == item.id).order_by(ScheduleTable.suborder)
+                for child_id, child in enumerate(children):
+                    child.order = item_id
+                    child.suborder = child_id
+                    child.save()
+                    
+        # Resource items
+        categories = ResourceCategoryTable.select().order_by(ResourceCategoryTable.order)
+        for cat_id, category in enumerate(categories):
+            category.order = cat_id
+            category.save()
+            items = ResourceTable.select().where(ResourceTable.category == category.id).order_by(ResourceTable.order)
+            for item_id, item in enumerate(items):
+                item.order = item_id
+                item.save()
+                
     
     ## Export items
 
