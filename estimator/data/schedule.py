@@ -479,6 +479,7 @@ class ResourceItemModel:
 # Sqlite database models
 
 database = peewee.SqliteDatabase(None)
+database_filename = None
 
 class BaseModelSch(peewee.Model):
     """Base class for all schedule database class definitions"""
@@ -547,15 +548,18 @@ class ScheduleDatabase:
     def __init__(self):
         self.database = database
         self.libraries = OrderedDict()
-
         
     ## Database management
     
     def create_new_database(self, filename=None):
+        global database_filename
+        
         if filename:
             self.open_database(filename)
+            database_filename = filename
         else:
             self.open_database(':memory:')
+            database_filename = None
         # Create tables
         tables = [ProjectTable, ScheduleTable, ResourceTable, 
                   ScheduleCategoryTable, ResourceCategoryTable,
@@ -567,13 +571,23 @@ class ScheduleDatabase:
         log.info('ScheduleDatabase - create_new_database - database tables created')
 
     def open_database(self, filename):
+        global database_filename
+        
         # Database intitialisation
         self.database.init(filename)
+        # Set current database filename
+        database_filename = filename
         # Enable foreign key support for sqlite database
         self.database.execute_sql('PRAGMA foreign_keys=ON;')
         
     def close_database(self):
+        global database_filename
+        
         self.database.close()
+        database_filename = None
+        
+    def get_database_name(self):
+        return database_filename
         
     def add_library(self, filename):
         """Add a new library to database model"""

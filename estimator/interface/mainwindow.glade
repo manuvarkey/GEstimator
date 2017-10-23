@@ -218,6 +218,7 @@
     <property name="icon_name">applications-development</property>
     <property name="show_menubar">False</property>
     <signal name="delete-event" handler="on_delete_window" swapped="no"/>
+    <signal name="window-state-event" handler="on_focus_window" swapped="no"/>
     <child>
       <object class="GtkStack" id="hidden_stack">
         <property name="visible">True</property>

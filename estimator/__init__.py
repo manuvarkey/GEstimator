@@ -111,6 +111,14 @@ class MainWindow:
         self.schedule_view.update_store()
             
     # Main Window
+    
+    def on_focus_window(self, *args):
+        log.info('Window state changed :' + str(self.id))
+        # Setup correct database model
+        if self.sch_database.get_database_name() != self.filename_temp:
+            self.sch_database.close_database()
+            self.sch_database.open_database(self.filename_temp)
+            log.info('Database changed to :' + str(self.filename_temp))
 
     def on_delete_window(self, *args):
         """Callback called on pressing the close button of main window"""
@@ -723,13 +731,14 @@ class MainWindow:
         log.info('on_refresh called')
         self.update()
 
-    def __init__(self):
+    def __init__(self, id=0):
         log.info('MainWindow - Initialising')
 
         # Check for project active status
         self.project_active = False
+        self.id = id
         # Open temporary file for database
-        (temp_fpointer, self.filename_temp) = tempfile.mkstemp(prefix=misc.PROGRAM_NAME+'_tempproj_')
+        (temp_fpointer, self.filename_temp) = tempfile.mkstemp(prefix=misc.PROGRAM_NAME+'_tempproj_' +str(self.id) + '_')
         
         log.info('Setting up main Database')
         # Setup schedule database    
@@ -880,7 +889,7 @@ class MainApp(Gtk.Application):
     def do_activate(self):
         log.info('MainApp - do_activate - Start')
         
-        self.window = MainWindow()
+        self.window = MainWindow(len(self.windows))
         self.windows.append(self.window)
         self.add_window(self.window.window)
         self.window.window.show()
