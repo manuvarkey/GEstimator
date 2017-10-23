@@ -837,7 +837,7 @@ class ScheduleDatabase:
             
             old_item.delete_instance()
             # Update order values
-            ResourceTable.update(order = ResourceTable.order - 1).where(ResourceTable.order > old_order).execute()
+            ResourceTable.update(order = ResourceTable.order - 1).where((ResourceTable.category == old_item.category.id) & (ResourceTable.order > old_order)).execute()
         except ResourceTable.DoesNotExist:
             return False
             
@@ -988,7 +988,7 @@ class ScheduleDatabase:
             self.delete_resource_category_atomic(res_category_added)
                 
     @database.atomic()
-    def insert_resource_multiple_atomic(self, resources, path=None):
+    def insert_resource_multiple_atomic(self, resources, path=None, preserve_structure=False):
     
         inserted = OrderedDict()
         for resource in resources:
@@ -1001,18 +1001,17 @@ class ScheduleDatabase:
                 
             inserted[tuple(path_added)] = resource.code
             
-            if path is None or len(path) == 1:
-                pass
-            elif len(path) == 2:
-                path = [path[0], path[1]+1]
+            if not preserve_structure:
+                # Update path
+                path = path_added
         
         return inserted
         
     @undoable
     @database.atomic()
-    def insert_resource_multiple(self, resources, path=None):
+    def insert_resource_multiple(self, resources, path=None, preserve_structure=False):
         
-        inserted = self.insert_resource_multiple_atomic(resources, path)
+        inserted = self.insert_resource_multiple_atomic(resources, path, preserve_structure)
 
         yield "Add resource items at path:'{}'".format(path), inserted
         
@@ -1787,10 +1786,11 @@ class ScheduleDatabase:
             old_suborder = old_item.suborder
             old_item.delete_instance()
             # Update order values
-            ScheduleTable.update(order = ScheduleTable.order - 1).where(ScheduleTable.order > old_order).execute()
             if old_item.parent:
                 parent_id = old_item.parent.id
                 ScheduleTable.update(suborder = ScheduleTable.suborder - 1).where((ScheduleTable.suborder > old_suborder) & (ScheduleTable.parent == parent_id)).execute()
+            else:
+                ScheduleTable.update(order = ScheduleTable.order - 1).where((ScheduleTable.category == old_item.category.id) & (ScheduleTable.order > old_order)).execute()
         except ScheduleTable.DoesNotExist:
             return False
         

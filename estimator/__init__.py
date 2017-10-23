@@ -484,7 +484,7 @@ class MainWindow:
                     resources.append(res)
                 except:
                     log.warning('MainWindow - on_import_res_clicked - Error in data' + str(index))
-        self.sch_database.insert_resource_multiple(resources)
+        self.sch_database.insert_resource_multiple(resources, preserve_structure=True)
         self.display_status(misc.INFO, str(index)+' records processed')
         log.info('MainWindow - on_import_res_clicked - data added - ' + str(index) + ' records')
         
