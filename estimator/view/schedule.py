@@ -455,7 +455,7 @@ class ScheduleView:
             for path in selected:
                 if len(path) in [2,3]:
                     code = selected[path]
-                    item = self.database.get_item(code)
+                    item = self.database.get_item(code, modify_res_code=False)
                     if item:
                         items.append(item)
             if items:
