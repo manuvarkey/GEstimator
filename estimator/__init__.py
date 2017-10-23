@@ -218,7 +218,6 @@ class MainWindow:
             try:
                 # Copy current temporary file to filename
                 shutil.copy(self.filename_temp, self.filename)
-                self.update()
                 self.display_status(misc.INFO, "Project successfully saved")
                 log.info('MainWindow - on_save_project_clicked -  Project successfully saved')
                 # Save point in stack for checking change state
