@@ -118,6 +118,8 @@ class MainWindow:
         if self.sch_database.get_database_name() != self.filename_temp:
             self.sch_database.close_database()
             self.sch_database.open_database(self.filename_temp)
+            # Reassign undo stack
+            undo.setstack(self.stack)
             log.info('Database changed to :' + str(self.filename_temp))
 
     def on_delete_window(self, *args):

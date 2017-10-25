@@ -807,10 +807,6 @@ class SelectScheduleDialog:
                         remarks = proj_code + ' ' + item.code
                         item.remarks = remarks
                         
-                        # Reevaluate results and set rate
-                        item.evaluate_results()
-                        if item.results and item.results[-1] is not list:
-                            item.rate = item.results[-1]
                         log.info('SelectScheduleDialog - run - Selected - ' + selected_code)
                         selected_items.append(item)
                                          
