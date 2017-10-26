@@ -29,6 +29,8 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Pango
 
 class CellRendererCustomText(Gtk.CellRendererText):
 
+    full_text = GObject.Property(type=str)
+
     def __init__(self):
         Gtk.CellRendererText.__init__(self)
  
@@ -39,15 +41,16 @@ class CellRendererCustomText(Gtk.CellRendererText):
         for linebreaking. Pressing Return or Keypad Enter alone will finish
         editing.'''
 
-        mask     = event.state
-        keyname = Gdk.keyval_name(event.keyval)
-
+        mask = event.get_state()
+        keyname = Gdk.keyval_name(event.get_keyval()[1])
+        
         accel_masks = (Gdk.ModifierType.CONTROL_MASK | \
                        Gdk.ModifierType.SHIFT_MASK | \
                        Gdk.ModifierType.MOD1_MASK)
         enter_keynames = ('Return', 'KP_Enter')
+        tab_keynames = ('Tab', 'ISO_Left_Tab')
 
-        if ((keyname in enter_keynames) and not (mask & accel_masks)) or (keyname == 'Tab'):
+        if ((keyname in enter_keynames) and not (mask & accel_masks)) or (keyname in tab_keynames):
             buffer = editor.get_buffer()
             [start, end] = buffer.get_bounds()
             text = buffer.get_text(start,end,False)
@@ -55,7 +58,7 @@ class CellRendererCustomText(Gtk.CellRendererText):
             self.emit('edited', path, text)
         
     def do_activate(self, event, widget, path, background_area, cell_area, flags):
-
+        
         popover =  Gtk.Popover.new(widget)
         popover.set_pointing_to(cell_area)
         popover.set_position(Gtk.PositionType.BOTTOM)
@@ -65,7 +68,7 @@ class CellRendererCustomText(Gtk.CellRendererText):
         editor = Gtk.TextView()
         editor.set_wrap_mode(Gtk.WrapMode.WORD)
         editor.connect('key-press-event', self.on_key_press_event, popover, editor, path)
-        editor.get_buffer().set_text(self.props.text)
+        editor.get_buffer().set_text(self.props.full_text)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_margin_top(6)

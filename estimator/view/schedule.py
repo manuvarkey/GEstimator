@@ -71,8 +71,8 @@ class ScheduleView:
 
         # Setup treestore and filter
         # Additional bool array for editable
-        #            str for background colour 
-        self.store = Gtk.TreeStore(*([str]*7 + [bool] + [int] + [bool]*5 + [str]))
+        # str for background colour and full description
+        self.store = Gtk.TreeStore(*([str]*7 + [bool] + [int] + [bool]*5 + [str]*2))
         self.filter = self.store.filter_new()
         self.filter.set_visible_func(self.filter_func, data=[0, 1])
 
@@ -96,8 +96,10 @@ class ScheduleView:
         self.tree.set_level_indentation(30)
         self.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         self.tree.set_rubber_banding(True)
+        self.tree.props.activate_on_single_click = False
         self.tree.connect("button-press-event", self.on_click_event)
         self.tree.connect("key-press-event", self.on_key_press_treeview)
+        self.tree.connect("row-activated", self.on_row_activated)
         self.search_field.connect("search-changed", self.on_search)
 
         self.columns = dict()
@@ -125,7 +127,7 @@ class ScheduleView:
             column.add_attribute(cell, "text", slno)
             
             if caption == 'Description' and not self.read_only:
-                column.add_attribute(cell, "mode", 7+slno)
+                column.add_attribute(cell, "full_text", 15)
             else:
                 column.add_attribute(cell, "editable", 7+slno)
             
@@ -169,15 +171,15 @@ class ScheduleView:
         for category, items in sch_table.items():
             data = ['', category, '', '', '', '', '']
             if self.read_only:
-                bools = [False] + [Gtk.CellRendererMode.INERT] + [False]*5
+                bools = [False] + [False] + [False]*5
             else:
-                bools = [False] + [Gtk.CellRendererMode.ACTIVATABLE] + [False]*5
-            category_row = data + bools + [misc.MEAS_COLOR_NORMAL]
+                bools = [False] + [True] + [False]*5
+            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, category]
             category_iter = self.store.append(None, category_row)
             for code, item_list in items.items():
                 # Add items to store
                 item = item_list[0]
-                item_desc = item[1]
+                item_desc = misc.get_ellipsized_text(item[1], misc.MAX_DESC_LEN)
                 item_unit = item[2]
                 item_rate = str(item[3]) if item[3] != 0 else ''
                 item_qty = str(item[4]) if item[4] != 0 else ''
@@ -189,10 +191,12 @@ class ScheduleView:
                 data = [code, item_desc, item_unit, item_rate, 
                         item_qty, item_amount, item_remarks]
                 if self.read_only:
-                    bools = [False] + [Gtk.CellRendererMode.INERT] + [False]*5
+                    bools = [False] + [False] + [False]*5
                 else:
-                    bools = [True] + [Gtk.CellRendererMode.ACTIVATABLE] + [True]*3 + [False,True]
+                    bools = [True] + [True] + [True]*3 + [False,True]
                 colour = misc.MEAS_COLOR_NORMAL
+                full_description = item[1]
+                
                 # If mark, check rates with analysed rate
                 if mark and item_unit !='':
                     sch_item = self.database.get_item(code)
@@ -201,12 +205,13 @@ class ScheduleView:
                             colour = misc.MEAS_COLOR_LOCKED
                     else:
                         colour = misc.MEAS_COLOR_LOCKED
-                item_row = data + bools + [colour]
                 
+                item_row = data + bools + [colour, full_description]
                 item_iter = self.store.append(category_iter, item_row)
+                
                 for sub_item in item_list[1]:
                     code = sub_item[0]
-                    desc = sub_item[1]
+                    desc = misc.get_ellipsized_text(sub_item[1], misc.MAX_DESC_LEN)
                     unit = sub_item[2]
                     rate = str(sub_item[3]) if sub_item[3] != 0 else ''
                     qty = str(sub_item[4]) if sub_item[4] != 0 else ''
@@ -217,10 +222,12 @@ class ScheduleView:
                     
                     data = [code, desc, unit, rate, qty, amount, remarks]
                     if self.read_only:
-                        bools = [False] + [Gtk.CellRendererMode.INERT] + [False]*5
+                        bools = [False] + [False] + [False]*5
                     else:
-                        bools = [True] + [Gtk.CellRendererMode.ACTIVATABLE] + [True]*3 + [False,True]
+                        bools = [True] + [True] + [True]*3 + [False,True]
                     colour = misc.MEAS_COLOR_NORMAL
+                    full_description = sub_item[1]
+                    
                     # If mark, check rates with analysed rate
                     if mark and unit !='':
                         sch_item = self.database.get_item(code)
@@ -229,8 +236,8 @@ class ScheduleView:
                                 colour = misc.MEAS_COLOR_LOCKED
                         else:
                             colour = misc.MEAS_COLOR_LOCKED
-                    row = data + bools + [colour]
                     
+                    row = data + bools + [colour, full_description]
                     self.store.append(item_iter, row)
                     
         # Append sum row
@@ -238,7 +245,7 @@ class ScheduleView:
             data = ['', 'SUM TOTAL', '', '', '', str(sum_total), '']
             bools = [False]*7
             colour = misc.MEAS_COLOR_HIGHLIGHTED
-            row = data + bools + [colour]                    
+            row = data + bools + [colour, '']               
             self.store.append(None, row)
 
         # Expand all expanders
@@ -441,7 +448,11 @@ class ScheduleView:
             if not self.database.update_item_schedule(code, newvalue, column):
                 log.warning('ScheduleView - cell_renderer_text - value not updated - ' + str(oldvalue) + ':' + str(newvalue) + ' {' + str(column) + '}')
             else:
-                self.store[iterator][column] = newvalue
+                if column == 1:
+                    self.store[iterator][column] = misc.get_ellipsized_text(newvalue, misc.MAX_DESC_LEN)
+                    self.store[iterator][15] = newvalue
+                else:
+                    self.store[iterator][column] = newvalue
                 self.evaluate_amount(iterator)
         
     def copy_selection(self):
@@ -556,6 +567,16 @@ class ScheduleView:
         # Handle double clicks
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             self.select_action()
+            
+    def on_row_activated(self, treeview, path, column):
+        """User activates row by double click"""
+        columns = [c for c in treeview.get_columns()]
+        colnum = columns.index(column)
+        if colnum == 1:  # If description selected
+            cell = self.cells['Description']
+            background_area = treeview.get_background_area(path, column)
+            cell_area = treeview.get_cell_area(path, column)
+            cell.do_activate(None, treeview, path, background_area, cell_area, None)
 
     def on_key_press_treeview(self, treeview, event):
         """Handle keypress event"""
@@ -563,7 +584,8 @@ class ScheduleView:
         state = event.get_state()
         shift_pressed = bool(state & Gdk.ModifierType.SHIFT_MASK)
         control_pressed = bool(state & Gdk.ModifierType.CONTROL_MASK)
-        
+                
+        # Key Board events
         if keyname in [Gdk.KEY_Escape]:  # Unselect all
             self.tree.get_selection().unselect_all()
             return

@@ -52,6 +52,9 @@ MEAS_COLOR_HIGHLIGHTED = '#8AE234'
 PROJECT_FILE_VER = 'GESTIMATOR_FILE_REFERENCE_VER_1'
 PROJECT_EXTENSION = '.eproj'
 
+# Limiting values
+MAX_DESC_LEN = 1000
+
 ana_copy_add_items = [{"itemtype": 2, "value": 0.12, "description": "Add GST @ 12%"},
                       {"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"}, 
                       {"itemtype": 1, "description": "TOTAL"}, 
@@ -979,4 +982,11 @@ def clean_markup(text):
     for splchar, replspelchar in zip(['&', '<', '>', ], ['&amp;', '&lt;', '&gt;']):
         text = text.replace(splchar, replspelchar)
     return text
+    
+def get_ellipsized_text(text, length):
+    if len(text) > length:
+        desc = text[0:(int(length/2)-3)]  + '\n ... \n' + text[-(int(length/2)-3):]
+    else:
+        desc = text
+    return desc
     
