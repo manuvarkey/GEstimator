@@ -2127,6 +2127,18 @@ class ScheduleDatabase:
                 item = item_list[0]
                 item_desc = item[1]
                 item_unit = item[2]
+                
+                # If item has multiple lines split up lines
+                item_desc_parts = item_desc.split('\n')
+                if len(item_desc_parts) > 1:
+                    for part in item_desc_parts[0:-1]:
+                        item_row = [code, part, None, None, None, None, None]
+                        code = None
+                        spreadsheet.append_data([item_row])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 1
+                    item_desc = item_desc_parts[-1]
+                    
                 if item_unit == '':
                     item_rate = None
                     item_qty = None
@@ -2136,6 +2148,7 @@ class ScheduleDatabase:
                     item_qty = item[4]
                     item_amount = '=D' + str(s_row) + '*E' + str(s_row)
                 item_remarks = item[5]
+                    
                 item_row = [code, item_desc, item_unit, item_rate, item_qty, item_amount, item_remarks]
                 spreadsheet.append_data([item_row])
                 spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
@@ -2147,8 +2160,21 @@ class ScheduleDatabase:
                     unit = sub_item[2]
                     rate = sub_item[3]
                     qty = sub_item[4]
-                    amount = '=D' + str(s_row) + '*E' + str(s_row)
                     remarks = sub_item[5]
+                    
+                    # If item has multiple lines split up lines
+                    item_desc_parts = desc.split('\n')
+                    if len(item_desc_parts) > 1:
+                        for part in item_desc_parts[0:-1]:
+                            item_row = [code, part, None, None, None, None, None]
+                            code = None
+                            spreadsheet.append_data([item_row])
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        desc = item_desc_parts[-1]
+                        
+                    amount = '=D' + str(s_row) + '*E' + str(s_row)
+                        
                     row = [code, desc, unit, rate, qty, amount, remarks]
                     spreadsheet.append_data([row])
                     spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
