@@ -116,10 +116,14 @@ class MainWindow:
         log.info('Window state changed :' + str(self.id))
         # Setup correct database model
         if self.sch_database.get_database_name() != self.filename_temp:
+            # Reassign database
             self.sch_database.close_database()
             self.sch_database.open_database(self.filename_temp)
             # Reassign undo stack
-            undo.setstack(self.stack)
+            if self.hidden_stack.get_visible_child_name() == "Analysis":
+                undo.setstack(self.analysis_view.stack)
+            else:
+                undo.setstack(self.stack)
             log.info('Database changed to :' + str(self.filename_temp))
 
     def on_delete_window(self, *args):
