@@ -7,7 +7,7 @@
 !define DESCRIPTION "Civil estimation program for civil/electrical works"
 # These three must be integers
 !define VERSIONMAJOR 1
-!define VERSIONMINOR 0
+!define VERSIONMINOR 1
 !define VERSIONBUILD 1
 # These will be displayed by the "Click here for support information" link in "Add/Remove Programs"
 # It is possible to use "mailto:" links in here to open the email client
@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win32-1-0-1.exe"
+outFile "GEstimator-win32-1-1-1.exe"
  
 !include LogicLib.nsh
  
@@ -64,8 +64,9 @@ section "install"
 	writeUninstaller "$INSTDIR\uninstall.exe"
  
 	# Start Menu
-	createDirectory "$SMPROGRAMS\${COMPANYNAME}"
-	createShortCut "$SMPROGRAMS\${COMPANYNAME}\${APPNAME}.lnk" "$INSTDIR\ApplicationFiles\main.exe" "" "$INSTDIR\GEstimator.ico"
+	CreateDirectory "$SMPROGRAMS\${COMPANYNAME}"
+	CreateShortCut "$SMPROGRAMS\${COMPANYNAME}\${APPNAME}.lnk" "$INSTDIR\ApplicationFiles\GEstimator.exe" "" "$INSTDIR\GEstimator.ico"
+    CreateShortCut "$DESKTOP\${APPNAME}.lnk" "$INSTDIR\ApplicationFiles\GEstimator.exe" "" "$INSTDIR\GEstimator.ico"
  
 	# Registry information for add/remove programs
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANYNAME} ${APPNAME}" "DisplayName" "${COMPANYNAME} - ${APPNAME} - ${DESCRIPTION}"
@@ -85,6 +86,16 @@ section "install"
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANYNAME} ${APPNAME}" "NoRepair" 1
 	# Set the INSTALLSIZE constant (!defined at the top of this script) so Add/Remove Programs can accurately report the size
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANYNAME} ${APPNAME}" "EstimatedSize" ${INSTALLSIZE}
+    
+    # Registery key for application file registration
+    
+    WriteRegStr HKLM "Software\Classes\${APPNAME}.Document" "" "${APPNAME} Project File"
+    WriteRegStr HKLM "Software\Classes\${APPNAME}.Document\DefaultIcon" "" "$INSTDIR\ApplicationFiles\GEstimator.exe,0"
+    WriteRegStr HKLM "Software\Classes\${APPNAME}.Document\shell\open\command" "" '"$INSTDIR\ApplicationFiles\GEstimator.exe" "%1"'
+    WriteRegStr HKLM "Software\Classes\.eproj" "" "${APPNAME}.Document"
+
+
+
 sectionEnd
  
 # Uninstaller
@@ -103,6 +114,10 @@ section "uninstall"
  
 	# Remove Start Menu launcher
 	delete "$SMPROGRAMS\${COMPANYNAME}\${APPNAME}.lnk"
+    
+    # Delete desktop shortcut
+    delete "$DESKTOP\${APPNAME}.lnk"
+    
 	# Try to remove the Start Menu folder - this will only happen if it is empty
 	rmDir "$SMPROGRAMS\${COMPANYNAME}"
  
@@ -118,4 +133,10 @@ section "uninstall"
  
 	# Remove uninstaller information from the registry
 	DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANYNAME} ${APPNAME}"
+    
+    # Remove association information from registry
+    DeleteRegKey HKLM "Software\Classes\${APPNAME}.Document"
+    DeleteRegKey HKLM "Software\Classes\${APPNAME}.Document\DefaultIcon"
+    DeleteRegKey HKLM "Software\Classes\${APPNAME}.Document\shell\open\command"
+    DeleteRegKey HKLM "Software\Classes\.eproj"
 sectionEnd
