@@ -57,9 +57,9 @@ class CellRendererCustomText(Gtk.CellRendererText):
             raised_widget.destroy()
             self.emit('edited', path, text)
         
-    def do_activate(self, event, widget, path, background_area, cell_area, flags):
+    def do_activate(self, event, tree, path, background_area, cell_area, flags, colnum):
         
-        popover =  Gtk.Popover.new(widget)
+        popover =  Gtk.Popover.new(tree)
         popover.set_pointing_to(cell_area)
         popover.set_position(Gtk.PositionType.BOTTOM)
         popover.props.width_request = background_area.width + 20
@@ -68,7 +68,8 @@ class CellRendererCustomText(Gtk.CellRendererText):
         editor = Gtk.TextView()
         editor.set_wrap_mode(Gtk.WrapMode.WORD)
         editor.connect('key-press-event', self.on_key_press_event, popover, editor, path)
-        editor.get_buffer().set_text(self.props.full_text)
+        full_text = tree.get_model()[path][colnum]
+        editor.get_buffer().set_text(full_text)
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_margin_top(6)

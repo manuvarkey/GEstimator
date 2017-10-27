@@ -576,7 +576,7 @@ class ScheduleView:
             cell = self.cells['Description']
             background_area = treeview.get_background_area(path, column)
             cell_area = treeview.get_cell_area(path, column)
-            cell.do_activate(None, treeview, path, background_area, cell_area, None)
+            cell.do_activate(None, treeview, path, background_area, cell_area, None, 15)
 
     def on_key_press_treeview(self, treeview, event):
         """Handle keypress event"""
