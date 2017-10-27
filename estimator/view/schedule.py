@@ -287,6 +287,50 @@ class ScheduleView:
                         return
             path = Gtk.TreePath.new_from_indices(select_item)
             self.tree.set_cursor(path)
+            
+    def insert_row_from_database(self, path, code):
+        
+        if len(path) == 1:
+            position = path[0]
+            
+            data = ['', code, '', '', '', '', '']
+            bools = [False] + [True] + [False]*5
+            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, code]
+            
+            self.store.insert(None, position, category_row)
+            
+        elif len(path) in (2,3):
+            
+            item = self.database.get_item(code, copy_ana=False)
+            item_desc = misc.get_ellipsized_text(item.description, misc.MAX_DESC_LEN)
+            item_unit = item.unit
+            item_rate = str(item.rate) if item.rate != 0 else ''
+            item_qty = str(item.qty) if item.qty != 0 else ''
+            item_amount = str(Currency(item.rate*item.qty)) if item.rate*item.qty != 0 else ''
+            item_remarks = item.remarks
+            
+            data = [code, item_desc, item_unit, item_rate, 
+                    item_qty, item_amount, item_remarks]
+            bools = [True] + [True] + [True]*3 + [False,True]
+            item_row = data + bools + [misc.MEAS_COLOR_NORMAL, item.description]
+            
+            if len(path) == 2:
+                parent_iter = self.store.get_iter(Gtk.TreePath.new_from_indices([path[0]]))
+                position = path[1]
+            else:
+                parent_iter = self.store.get_iter(Gtk.TreePath.new_from_indices([path[0], path[1]]))
+                position = path[2]
+            self.store.insert(parent_iter, position, item_row)
+            self.tree.expand_all()
+            
+    def insert_rows_from_database(self, item_dict):
+        for path, code in sorted(item_dict.items()):
+            self.insert_row_from_database(path, code)
+            
+    def delete_rows_from_database(self, paths):
+        for path in sorted(paths, reverse=True):
+            item_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
+            self.store.remove(item_iter)
     
     def get_selected_paths(self):
         path_indices = []
@@ -384,8 +428,11 @@ class ScheduleView:
             path = paths[-1]
         else:
             path = None
-        self.database.insert_schedule_category(newcat, path=path)
-        self.update_store()
+        order = self.database.insert_schedule_category(newcat, path=path)
+        
+        if order is not False:
+            # Add new item to store
+            self.insert_row_from_database([order], newcat)
         
     def add_item_at_selection(self, items):
         """Add items at selection"""
@@ -400,15 +447,28 @@ class ScheduleView:
             path = None
 
         [items_added, net_ress_added] = self.database.insert_item_multiple(items, path=path, number_with_path=True)
+        
         if items_added:
-            self.update_store()
+            # Add new items to store
+            self.insert_rows_from_database(items_added)
+            
+            # Set selection
             selection_code = list(items_added.items())[-1][1]
             self.set_selection(code=selection_code)
+            
+            if net_ress_added:
+                return (True, True)
+            else:
+                return (True, False)
+        else:
+            return None
                 
     def delete_selected_items(self):
         selected = self.get_selected()
         self.database.delete_schedule(selected)
-        self.update_store()
+        
+        # Update store
+        self.delete_rows_from_database(selected.keys())
                         
     def update_selected_rates(self):
         codes = self.get_selected_codes()
@@ -570,13 +630,14 @@ class ScheduleView:
             
     def on_row_activated(self, treeview, path, column):
         """User activates row by double click"""
-        columns = [c for c in treeview.get_columns()]
-        colnum = columns.index(column)
-        if colnum == 1:  # If description selected
-            cell = self.cells['Description']
-            background_area = treeview.get_background_area(path, column)
-            cell_area = treeview.get_cell_area(path, column)
-            cell.do_activate(None, treeview, path, background_area, cell_area, None, 15)
+        if not self.read_only:
+            columns = [c for c in treeview.get_columns()]
+            colnum = columns.index(column)
+            if colnum == 1:  # If description selected
+                cell = self.cells['Description']
+                background_area = treeview.get_background_area(path, column)
+                cell_area = treeview.get_cell_area(path, column)
+                cell.do_activate(None, treeview, path, background_area, cell_area, None, 15)
 
     def on_key_press_treeview(self, treeview, event):
         """Handle keypress event"""

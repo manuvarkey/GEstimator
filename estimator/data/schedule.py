@@ -679,7 +679,7 @@ class ScheduleDatabase:
             log.error('ScheduleDatabase - insert_resource_category - saving record failed for ' + category)
             return False
             
-        return True
+        return order
             
     @undoable
     @database.atomic()
@@ -1277,7 +1277,7 @@ class ScheduleDatabase:
     ## Schedule item methods
 
     @database.atomic()
-    def get_item(self, code, modify_res_code=True):
+    def get_item(self, code, modify_res_code=True, copy_ana=True):
         try:
             item = ScheduleTable.select().where(ScheduleTable.code == code).get()
         except ScheduleTable.DoesNotExist:
@@ -1301,33 +1301,35 @@ class ScheduleDatabase:
                                       ana_remarks = item.ana_remarks,
                                       category = item.category.description,
                                       parent = parent)
-        for seq in item.sequences:
-            if seq.itemtype == ScheduleItemModel.ANA_GROUP:
-                ress = ResourceItemTable.select().where(ResourceItemTable.id_sch == item.id
-                                                        and ResourceItemTable.id_seq == seq.id)
-                res_list = []
-                for res in ress:
-                    # If already derived item retain code
-                    if modify_res_code == False or len((res.id_res.code).split('.')) > 1 or proj_code == '':
-                        mod_code = res.id_res.code
-                    # Modify code
-                    else:
-                        mod_code = proj_code + '.' + res.id_res.code
-                    res_list.append([mod_code, res.qty, res.remarks])
-                    res_model = self.get_resource(res.id_res.code)
-                    res_model.code = mod_code  # Modify resource code
-                    res_models[mod_code] = res_model
-                sch_model.add_ana_group(seq.description, res_list, seq.code)
-            elif seq.itemtype == ScheduleItemModel.ANA_SUM:
-                sch_model.add_ana_sum(seq.description)
-            elif seq.itemtype == ScheduleItemModel.ANA_WEIGHT:
-                sch_model.add_ana_weight(seq.description, seq.value)
-            elif seq.itemtype == ScheduleItemModel.ANA_TIMES:
-                sch_model.add_ana_times(seq.description, seq.value)
-            elif seq.itemtype == ScheduleItemModel.ANA_ROUND:
-                sch_model.add_ana_round(seq.description, seq.value)
-        sch_model.resources = res_models
-        sch_model.evaluate_results()
+        
+        if copy_ana:
+            for seq in item.sequences:
+                if seq.itemtype == ScheduleItemModel.ANA_GROUP:
+                    ress = ResourceItemTable.select().where(ResourceItemTable.id_sch == item.id
+                                                            and ResourceItemTable.id_seq == seq.id)
+                    res_list = []
+                    for res in ress:
+                        # If already derived item retain code
+                        if modify_res_code == False or len((res.id_res.code).split('.')) > 1 or proj_code == '':
+                            mod_code = res.id_res.code
+                        # Modify code
+                        else:
+                            mod_code = proj_code + '.' + res.id_res.code
+                        res_list.append([mod_code, res.qty, res.remarks])
+                        res_model = self.get_resource(res.id_res.code)
+                        res_model.code = mod_code  # Modify resource code
+                        res_models[mod_code] = res_model
+                    sch_model.add_ana_group(seq.description, res_list, seq.code)
+                elif seq.itemtype == ScheduleItemModel.ANA_SUM:
+                    sch_model.add_ana_sum(seq.description)
+                elif seq.itemtype == ScheduleItemModel.ANA_WEIGHT:
+                    sch_model.add_ana_weight(seq.description, seq.value)
+                elif seq.itemtype == ScheduleItemModel.ANA_TIMES:
+                    sch_model.add_ana_times(seq.description, seq.value)
+                elif seq.itemtype == ScheduleItemModel.ANA_ROUND:
+                    sch_model.add_ana_round(seq.description, seq.value)
+            sch_model.resources = res_models
+            sch_model.evaluate_results()
         return sch_model
 
     @database.atomic()

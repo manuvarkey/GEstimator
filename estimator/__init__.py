@@ -381,9 +381,10 @@ class MainWindow:
         """Add empty row to schedule view"""
         items = self.sch_dialog.run()
         if items:
-            self.schedule_view.add_item_at_selection(items)
-            # Refresh resource view to update any items that may be added
-            self.resource_view.update_store()
+            ret = self.schedule_view.add_item_at_selection(items)
+            if ret and ret[1]:
+                # Refresh resource view to update any items that may be added
+                self.resource_view.update_store()
             
     def on_sch_add_item_clicked(self, button):
         """Add empty row to schedule view"""
@@ -704,7 +705,12 @@ class MainWindow:
     
     def on_res_add_clicked(self, button):
         """Add empty row to schedule view"""
-        self.resource_view.add_resource_at_selection()
+        code = self.sch_database.get_new_resource_code()
+        res = data.schedule.ResourceItemModel(code = code,
+                                            description = '', 
+                                            unit = '',
+                                            rate = 0)
+        self.resource_view.add_resource_at_selection([res])
         
     def on_res_add_category_clicked(self, button):
         """Add empty category to schedule view"""

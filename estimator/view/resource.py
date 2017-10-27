@@ -198,6 +198,47 @@ class ResourceView:
                         
             path = Gtk.TreePath.new_from_indices(select_item)
             self.tree.set_cursor(path)
+            
+    def insert_row_from_database(self, path, code):
+        
+        if len(path) == 1:
+            position = path[0]
+            
+            data = ['', code, '', '', '', '', '']
+            bools = [False] + [True] + [False]*5
+            category_row = data + bools
+            
+            self.store.insert(None, position, category_row)
+            
+        elif len(path) == 2:
+            
+            item = self.database.get_resource(code, modify_code=False)
+            description = item.description
+            unit = str(item.unit)
+            rate = str(item.rate) if item.rate != 0 else ''
+            vat = str(item.vat) if item.vat != 0 else ''
+            discount = item.discount if item.discount != 0 else ''
+            reference = item.reference
+            
+            data = [code, description, unit, rate, 
+                    vat, discount, reference]
+            bools = [True]*7
+            item_row = data + bools
+            
+            parent_iter = self.store.get_iter(Gtk.TreePath.new_from_indices([path[0]]))
+            position = path[1]
+            
+            self.store.insert(parent_iter, position, item_row)
+            self.tree.expand_all()
+            
+    def insert_rows_from_database(self, item_dict):
+        for path, code in sorted(item_dict.items()):
+            self.insert_row_from_database(path, code)
+            
+    def delete_rows_from_database(self, paths):
+        for path in sorted(paths, reverse=True):
+            item_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
+            self.store.remove(item_iter)
         
     def get_next_path(self, iter_path, reverse=False):
         if iter_path is None:
@@ -289,8 +330,12 @@ class ResourceView:
             path = paths[-1]
         else:
             path = None
-        self.database.insert_resource_category(newcat, path=path)
-        self.update_store()
+            
+        order = self.database.insert_resource_category(newcat, path=path)
+        
+        if order is not False:
+            # Add new item to store
+            self.insert_row_from_database([order], newcat)
     
     def add_resource_at_selection(self, ress=None):
         """Add items at selection"""
@@ -309,22 +354,13 @@ class ResourceView:
                 code = self.database.get_new_resource_code(shift=slno)
                 res.code = code
 
-            self.database.insert_resource_multiple(ress, path=path)
-            self.update_store()
-            self.set_selection(code=res.code)
-        else:
-            # Setup blank resource and insert into database
-            code = self.database.get_new_resource_code()
-
-            res = data.schedule.ResourceItemModel(code = code,
-                                                  description = '',
-                                                  unit = '',
-                                                  rate = 0,
-                                                  category = None)
-      
-            if self.database.insert_resource(res, path=path):
-                self.update_store()
-                self.set_selection(code=code)
+            inserted = self.database.insert_resource_multiple(ress, path=path)
+            
+            if inserted:
+                # Add new items to store
+                self.insert_rows_from_database(inserted)
+                
+                self.set_selection(code=res.code)
         
     def delete_selected_item(self):
         selected = self.get_selected()
@@ -347,7 +383,8 @@ class ResourceView:
             # Clear stack since action cannot be undone
             undo.stack().clear()
         
-        self.update_store()
+        # Update store
+        self.delete_rows_from_database(selected.keys())
                             
     def copy_selection(self):
         """Copy selected row to clipboard"""
