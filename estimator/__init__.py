@@ -109,6 +109,7 @@ class MainWindow:
         log.info('MainWindow update called')
         self.resource_view.update_store()
         self.schedule_view.update_store()
+        self.display_status(misc.INFO, "Project Refreshed")
             
     # Main Window
     
@@ -437,7 +438,7 @@ class MainWindow:
     def on_sch_refresh_clicked(self, button):
         ret_code = self.schedule_view.update_selected_rates()
         if ret_code:
-            self.display_status(misc.INFO, "Rates updated")
+            self.display_status(misc.INFO, "Schedule rates updated from analysis")
         elif ret_code is None:
             self.display_status(misc.WARNING, "No valid items in selection")
         else:
@@ -446,6 +447,7 @@ class MainWindow:
     def on_sch_renumber_clicked(self, button):
         self.sch_database.assign_auto_item_numbers()
         self.schedule_view.update_store()
+        self.display_status(misc.INFO, "Schedule items re-numbered")
                 
     def on_sch_res_usage_clicked(self, button):
         view.resource.ResourceUsageDialog(self.window, self.sch_database).run()
@@ -502,6 +504,7 @@ class MainWindow:
         log.info('MainWindow - on_import_res_clicked - data added - ' + str(index) + ' records')
         
         self.update()
+        self.display_status(misc.INFO, str(index) + " resource items inserted")
 
     def on_import_sch_clicked(self, button):
         """Imports schedule from spreadsheet selected by 'filechooserbutton_schedule' into schedule view"""
@@ -576,8 +579,9 @@ class MainWindow:
             self.sch_database.insert_item_multiple(items, preserve_structure=True)
             self.display_status(misc.INFO, str(index)+' records processed')
             log.info('MainWindow - on_import_sch_clicked - data added - ' + str(index) + ' records')
-            
+
             self.update()
+            self.display_status(misc.INFO, str(index) + " schedule items inserted")
         else:
             log.info('MainWindow - on_import_sch_clicked - cancelled')
         
@@ -715,6 +719,8 @@ class MainWindow:
         databasename = dialog.run()
         self.sch_database.update_resource_from_database(databasename)
         self.resource_view.update_store()
+        
+        self.display_status(misc.INFO, "Rates updated from database")
 
     def on_res_delete_clicked(self, button):
         """Delete selected rows from schedule view"""
