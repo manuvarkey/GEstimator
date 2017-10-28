@@ -74,7 +74,7 @@ class ScheduleView:
         # str for background colour and full description
         self.store = Gtk.TreeStore(*([str]*7 + [bool] + [int] + [bool]*5 + [str]*2))
         self.filter = self.store.filter_new()
-        self.filter.set_visible_func(self.filter_func, data=[0, 1])
+        self.filter.set_visible_func(self.filter_func, data=[0,15,2])
 
         self.search_field = Gtk.SearchEntry()
         self.search_field.set_width_chars(30)
@@ -91,7 +91,7 @@ class ScheduleView:
         # Setup tree view
         self.tree.set_grid_lines(3)
         self.tree.set_enable_tree_lines(True)
-        self.tree.set_search_equal_func(self.equal_func, [0,1,2])
+        self.tree.set_search_equal_func(self.equal_func, [0,15,2])
         self.tree.set_show_expanders(False)
         self.tree.set_level_indentation(30)
         self.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
