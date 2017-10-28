@@ -724,9 +724,9 @@ class ScheduleDatabase:
         except ResourceTable.DoesNotExist:
             return None
         
-        if modify_code and len(item.code.split('.')) == 1:
+        if modify_code and len(item.code.split(':')) == 1:
             proj_code = self.get_project_settings()['project_resource_code']
-            code = proj_code + '.' + item.code
+            code = proj_code + ':' + item.code
         else:
             code = item.code
 
@@ -761,8 +761,8 @@ class ScheduleDatabase:
                 if category_name is None or category_name == '':
                     category_name = 'UNCATEGORISED'
                 for item in res_cat:
-                    if modify_code and len(item.code.split('.')) == 1:
-                        code = proj_code + '.' + item.code
+                    if modify_code and len(item.code.split(':')) == 1:
+                        code = proj_code + ':' + item.code
                     else:
                         code = item.code
                     description = item.description
@@ -785,8 +785,8 @@ class ScheduleDatabase:
             else:
                 res_cat = ResourceTable.select().order_by(ResourceTable.order)
             for item in res_cat:
-                if modify_code and len(item.code.split('.')) == 1:
-                    code = proj_code + '.' + item.code
+                if modify_code and len(item.code.split(':')) == 1:
+                    code = proj_code + ':' + item.code
                 else:
                     code = item.code
                 description = item.description
@@ -1310,11 +1310,11 @@ class ScheduleDatabase:
                     res_list = []
                     for res in ress:
                         # If already derived item retain code
-                        if modify_res_code == False or len((res.id_res.code).split('.')) > 1 or proj_code == '':
+                        if modify_res_code == False or len((res.id_res.code).split(':')) > 1 or proj_code == '':
                             mod_code = res.id_res.code
                         # Modify code
                         else:
-                            mod_code = proj_code + '.' + res.id_res.code
+                            mod_code = proj_code + ':' + res.id_res.code
                         res_list.append([mod_code, res.qty, res.remarks])
                         res_model = self.get_resource(res.id_res.code)
                         res_model.code = mod_code  # Modify resource code
