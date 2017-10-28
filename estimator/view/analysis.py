@@ -448,14 +448,15 @@ class AnalysisView:
                     amount = result_res_item[1]
 
                     rate_desc = 'Basic rate ' + str(rate)
-                    ref_desc = '[' + resource.reference + ']' if resource.reference else ''
+                    ref_desc = ' [' + resource.reference + ']' if resource.reference else ''
                     vat_desc = ' + Tax @' + str(vat) + '%' if vat else ''
                     discount_desc = ' - Discount @' + str(discount) + '%' if discount else ''
-                    if vat or discount:
-                        net_description = description + ' (' + rate_desc + \
+                    if vat or discount or ref_desc:
+                        net_description = description + '\n(' + rate_desc + \
                                       ref_desc + vat_desc + discount_desc + ')'
                     else:
                         net_description = description
+                        
                     iter_res_item = self.store.append(None,[code, misc.clean_markup(net_description), unit, str(qty), str(net_rate),
                                                                  str(amount), remarks,misc.MEAS_COLOR_NORMAL, str([p1,p2]),
                                                                  True,False,True,False,True,False,False])

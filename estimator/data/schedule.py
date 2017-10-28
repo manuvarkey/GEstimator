@@ -2272,7 +2272,18 @@ class ScheduleDatabase:
                         res_unit = resource.unit
                         rate = resource.rate
                         amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
-                        row = [res_code, res_description, res_unit, rate, qty, amount]
+                        
+                        rate_desc = 'Basic rate ' + str(rate)
+                        ref_desc = ' [' + resource.reference + ']' if resource.reference else ''
+                        vat_desc = ' + Tax @' + str(resource.vat) + '%' if resource.vat else ''
+                        discount_desc = ' - Discount @' + str(resource.discount) + '%' if resource.discount else ''
+                        if resource.vat or resource.discount or ref_desc:
+                            net_description = res_description + '\n(' + rate_desc + \
+                                          ref_desc + vat_desc + discount_desc + ')'
+                        else:
+                            net_description = res_description
+                        
+                        row = [res_code, net_description, res_unit, rate, qty, amount]
                         spreadsheet.append_data([row])
                         spreadsheet.set_style(s_row, 1, horizontal='center')
                         s_row = s_row + 1
