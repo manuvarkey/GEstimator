@@ -563,6 +563,9 @@ class ScheduleView:
                 amount = ''
                 log.warning("ScheduleView - evaluate_amount - evaluation of amount failed")
             self.store[iterator][5] = amount
+            
+    def start_search(self):
+        self.search_bar.set_search_mode(True)
         
     # Search functions
     
@@ -611,6 +614,7 @@ class ScheduleView:
         # Check children
         else:
             return search_children(key, model_iter)
+            
 
     # Callbacks
     

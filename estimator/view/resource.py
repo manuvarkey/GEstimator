@@ -444,6 +444,9 @@ class ResourceView:
                     log.warning('ScheduleView - cell_renderer_text - value not updated - ' + str(oldvalue) + ':' + str(newvalue) + ' {' + str(column) + '}')
                 else:
                     self.store[iterator][column] = newvalue
+                    
+    def start_search(self):
+        self.search_bar.set_search_mode(True)
     
         
     # Search functions

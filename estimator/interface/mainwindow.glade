@@ -335,7 +335,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Save current project</property>
+                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
                         <property name="use_stock">True</property>
                         <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
                         <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
@@ -350,7 +350,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Refresh project</property>
+                        <property name="tooltip_markup" translatable="yes">Refresh project &lt;i&gt;(F5)&lt;/i&gt;</property>
                         <signal name="clicked" handler="on_refresh" swapped="no"/>
                         <child>
                           <object class="GtkImage">
@@ -359,10 +359,32 @@
                             <property name="icon_name">view-refresh-symbolic</property>
                           </object>
                         </child>
+                        <accelerator key="F5" signal="clicked"/>
                       </object>
                       <packing>
                         <property name="pack_type">end</property>
                         <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button_search">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_markup" translatable="yes">Search for item  &lt;i&gt;(Ctrl+f)&lt;/i&gt;</property>
+                        <signal name="clicked" handler="on_search" swapped="no"/>
+                        <child>
+                          <object class="GtkImage">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="icon_name">edit-find-symbolic</property>
+                          </object>
+                        </child>
+                        <accelerator key="f" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">5</property>
                       </packing>
                     </child>
                   </object>

@@ -747,6 +747,15 @@ class MainWindow:
         """Refresh display of views"""
         log.info('on_refresh called')
         self.update()
+        
+    def on_search(self, widget):
+        """Refresh display of views"""
+        log.info('on_search called')
+        if self.stack_main.get_visible_child_name() == "Schedule Items":
+            self.schedule_view.start_search()
+        else:
+            self.resource_view.start_search()
+        
 
     def __init__(self, id=0):
         log.info('MainWindow - Initialising')
@@ -845,6 +854,9 @@ class MainWindow:
                                                         self.analysis_remark_entry, 
                                                         self.sch_database,
                                                         self.program_settings)
+                                                        
+        # Main stack
+        self.stack_main = self.builder.get_object("stack_main")
         
         self.window.show_all()
         
