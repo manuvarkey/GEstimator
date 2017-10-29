@@ -1,0 +1,6 @@
+recursive-include estimator/interface *.glade
+recursive-include estimator/database *.eproj
+recursive-include estimator/documentation *.pdf
+recursive-include bin *
+recursive-include applications *
+recursive-include pixmaps *

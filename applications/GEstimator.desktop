@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=GEstimator
+Comment=GEstimator is a simple civil estimation software written in Python and GTK+
+Exec=gestimator.gestimator
+Icon=usr/share/pixmaps/GEstimator.svg
+Terminal=false
+StartupNotify=true
+Path=bin
+Categories=Office;
