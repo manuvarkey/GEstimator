@@ -1190,9 +1190,11 @@
                     <property name="label" translatable="yes">Save</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="tooltip_markup" translatable="yes">Save analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
                     <property name="receives_default">True</property>
                     <property name="image_position">right</property>
                     <signal name="clicked" handler="on_ana_save" swapped="no"/>
+                    <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                     <style>
                       <class name="suggested-action"/>
                     </style>
