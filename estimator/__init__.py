@@ -709,7 +709,9 @@ class MainWindow:
         res = data.schedule.ResourceItemModel(code = code,
                                             description = '', 
                                             unit = '',
-                                            rate = 0)
+                                            rate = 0,
+                                            vat=0,
+                                            discount=0)
         self.resource_view.add_resource_at_selection([res])
         
     def on_res_add_category_clicked(self, button):
