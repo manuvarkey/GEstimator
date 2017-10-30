@@ -4,7 +4,7 @@ GEstimator is a simple civil estimation software written in Python and GTK+. GEs
 
 ## Installation
 
-Source file can be downloaded from the website [GitHub](https://github.com/manuvarkey/GEstimator)
+Source files can be downloaded from the website [GitHub](https://github.com/manuvarkey/GEstimator)
 
 Binary files can be downloaded from the website [GEstimator](https://manuiisc.blogspot.in/p/blog-page_28.html)
 
