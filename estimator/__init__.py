@@ -88,10 +88,16 @@ class MainWindow:
             # End progress
             progress.pulse(end=True)
             # Run process
-            if data:
-                exec_func(progress, data)
-            else:
-                exec_func(progress)
+            
+            # Handle errors
+            try:
+                if data:
+                    exec_func(progress, data)
+                else:
+                    exec_func(progress)
+            except:
+                pass
+
             # Change page
             def show_default():
                 stack.set_visible_child_name('Default')
@@ -252,7 +258,7 @@ class MainWindow:
         open_dialog.set_gravity(Gdk.Gravity.CENTER)
         open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         # Set overwrite confirmation
-        open_dialog.set_do_overwrite_confirmation(True)
+        # open_dialog.set_do_overwrite_confirmation(True)  # Disabled due to bug in GTK+
         # Set default name
         open_dialog.set_current_name("newproject")
         response_id = open_dialog.run()

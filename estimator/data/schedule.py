@@ -2148,7 +2148,7 @@ class ScheduleDatabase:
                 else:
                     item_rate = item[3]
                     item_qty = item[4]
-                    item_amount = '=D' + str(s_row) + '*E' + str(s_row)
+                    item_amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
                 item_remarks = item[5]
                     
                 item_row = [code, item_desc, item_unit, item_rate, item_qty, item_amount, item_remarks]
@@ -2175,14 +2175,14 @@ class ScheduleDatabase:
                             s_row = s_row + 1
                         desc = item_desc_parts[-1]
                         
-                    amount = '=D' + str(s_row) + '*E' + str(s_row)
+                    amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
                         
                     row = [code, desc, unit, rate, qty, amount, remarks]
                     spreadsheet.append_data([row])
                     spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                     s_row = s_row + 1
         # Add sum of amount
-        amount = '=SUM(F7:F' + str(s_row) + ')'
+        amount = '=ROUND(SUM(F7:F' + str(s_row) + '),2)'
         rows = [[None],[None,'TOTAL',None,None,None,amount]]
         spreadsheet.append_data(rows, bold=True)
         
@@ -2271,19 +2271,25 @@ class ScheduleDatabase:
                         res_description = resource.description
                         res_unit = resource.unit
                         rate = resource.rate
+                        vat = resource.vat
+                        discount = resource.discount
+                        if vat or discount:
+                            rate_formula = "=ROUND(" + str(rate) + "*" + str(1+vat/100) + "*" + str(1-discount/100) + ",2)"
+                        else:
+                            rate_formula = rate
                         amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
                         
                         rate_desc = 'Basic rate ' + str(rate)
                         ref_desc = ' [' + resource.reference + ']' if resource.reference else ''
-                        vat_desc = ' + Tax @' + str(resource.vat) + '%' if resource.vat else ''
-                        discount_desc = ' - Discount @' + str(resource.discount) + '%' if resource.discount else ''
-                        if resource.vat or resource.discount or ref_desc:
+                        vat_desc = ' + Tax @' + str(vat) + '%' if vat else ''
+                        discount_desc = ' - Discount @' + str(discount) + '%' if discount else ''
+                        if vat or discount or ref_desc:
                             net_description = res_description + '\n(' + rate_desc + \
                                           ref_desc + vat_desc + discount_desc + ')'
                         else:
                             net_description = res_description
                         
-                        row = [res_code, net_description, res_unit, rate, qty, amount]
+                        row = [res_code, net_description, res_unit, rate_formula, qty, amount]
                         spreadsheet.append_data([row])
                         spreadsheet.set_style(s_row, 1, horizontal='center')
                         s_row = s_row + 1
