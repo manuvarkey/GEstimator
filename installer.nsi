@@ -7,7 +7,7 @@
 !define DESCRIPTION "Civil estimation program for civil/electrical works"
 # These three must be integers
 !define VERSIONMAJOR 1
-!define VERSIONMINOR 1
+!define VERSIONMINOR 2
 !define VERSIONBUILD 1
 # These will be displayed by the "Click here for support information" link in "Add/Remove Programs"
 # It is possible to use "mailto:" links in here to open the email client
@@ -15,7 +15,7 @@
 !define UPDATEURL "http://github.com/manuvarkey/GEstimator/" # "Product Updates" link
 !define ABOUTURL "http://manuiisc.blogspot.com" # "Publisher" link
 # This is the size (in kB) of all the files copied into "Program Files"
-!define INSTALLSIZE 150000
+!define INSTALLSIZE 87800
  
 # RequestExecutionLevel admin ;Require admin rights on NT6+ (When UAC is turned on)
  
@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win32-1-1-1.exe"
+outFile "GEstimator-win32-1-2-1.exe"
  
 !include LogicLib.nsh
  
