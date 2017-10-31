@@ -711,8 +711,7 @@ class MainWindow:
     
     def on_res_add_clicked(self, button):
         """Add empty row to schedule view"""
-        code = self.sch_database.get_new_resource_code()
-        res = data.schedule.ResourceItemModel(code = code,
+        res = data.schedule.ResourceItemModel(code = None,
                                             description = '', 
                                             unit = '',
                                             rate = 0,

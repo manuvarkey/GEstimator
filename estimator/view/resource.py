@@ -345,13 +345,19 @@ class ResourceView:
         # Setup position to insert
         if paths:
             path = paths[-1]
+            if len(path) == 2:
+                path_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
+                selected_code = self.store[path_iter][0]
+            else:
+                selected_code = None
         else:
             path = None
+            selected_code = None
             
         if ress:
             # Add multiple resource
             for slno, res in enumerate(ress):
-                code = self.database.get_new_resource_code(shift=slno)
+                code = self.database.get_new_resource_code(near_item_code=selected_code, shift=slno)
                 res.code = code
 
             inserted = self.database.insert_resource_multiple(ress, path=path)

@@ -1107,7 +1107,19 @@ class ScheduleDatabase:
             new_code = '_CATEGORY1'
         return new_code
         
-    def get_new_resource_code(self, shift=0, exclude=None):
+    def get_new_resource_code(self, shift=0, exclude=None, near_item_code=None):
+    
+        if near_item_code is not None:
+            parsed = misc.human_code(near_item_code)
+            if type(parsed[-1]) is int:
+                new_code_parsed = parsed[:-1] + [parsed[-1]+ (1+shift)]
+                new_code = ''
+                for part in new_code_parsed:
+                    new_code = new_code + str(part)
+                if not ResourceTable.select().where(ResourceTable.code == new_code).exists():
+                    return new_code
+                        
+        # Fall back
         ress = ResourceTable.select(ResourceTable.code).where(ResourceTable.code.startswith('_CODE'))
         
         # Add exisitng default items
