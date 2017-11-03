@@ -215,9 +215,9 @@ class ResourceView:
             item = self.database.get_resource(code, modify_code=False)
             description = item.description
             unit = str(item.unit)
-            rate = str(item.rate) if item.rate != 0 else ''
-            vat = str(item.vat) if item.vat != 0 else ''
-            discount = item.discount if item.discount != 0 else ''
+            rate = str(item.rate)
+            vat = str(item.vat)
+            discount = str(item.discount)
             reference = item.reference
             
             data = [code, description, unit, rate, 
