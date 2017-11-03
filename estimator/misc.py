@@ -965,6 +965,7 @@ def open_file(filename):
 
 def human_code(code):
     """Returns a weighted value for sorting codes"""
+    
     def tryint(s):
         # For integer
         try:
@@ -972,7 +973,15 @@ def human_code(code):
         # For string
         except ValueError:
             return s
-    return list(filter(None, [ tryint(c) for c in re.split('([0-9]+)', code) ]))
+            
+    ret_list = []
+    
+    for c in re.split('([0-9]+)', code):
+        ret = tryint(c)
+        if ret not in ['', " "]:
+            ret_list.append(ret)
+    
+    return ret_list
     
 def remove_markup(text):
     """Clear markup text of special characters"""

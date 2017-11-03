@@ -1120,12 +1120,18 @@ class ScheduleDatabase:
                     return new_code
                         
         # Fall back
-        ress = ResourceTable.select(ResourceTable.code).where(ResourceTable.code.startswith('_CODE'))
+        ress = ResourceTable.select(ResourceTable.code).where(ResourceTable.code.startswith('MR.'))
+        
+        # If fall through
+        if near_item_code:
+            shift = 0
         
         # Add exisitng default items
         code_list = []
         for res in ress:
-            code_list.append(misc.human_code(res.code))
+            split_up = misc.human_code(res.code)
+            if len(split_up) == 2 and split_up[0] == 'MR.' and type(split_up[-1]) is int:
+                code_list.append(split_up)
         
         # Add items specified by exclude
         if exclude:
@@ -1135,11 +1141,11 @@ class ScheduleDatabase:
         if code_list:
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
-                new_code = '_CODE' + str(int(last_code[-1])+1+shift)
+                new_code = 'MR.' + str(int(last_code[-1])+1+shift)
             else:
-                new_code = '_CODE' + str(1+shift)
+                new_code = 'MR.' + str(1+shift)
         else:
-            new_code = '_CODE' + str(1+shift)
+            new_code = 'MR.' + str(1+shift)
         return new_code
         
     @database.atomic()
@@ -2046,21 +2052,28 @@ class ScheduleDatabase:
                         return new_code
         
         # Fall back
-        sch_items = ScheduleTable.select(ScheduleTable.code).where(ScheduleTable.code.startswith('_CODE'))
+        
+        sch_items = ScheduleTable.select(ScheduleTable.code).where(ScheduleTable.code.startswith('_'))
         code_list = []
+        
+        # If fall through
+        if near_item_code:
+            shift = 0
         
         # Add exisitng default items
         for sch in sch_items:
-            code_list.append(misc.human_code(sch.code))
-            
+            split_up = misc.human_code(sch.code)
+            if len(split_up) == 2 and split_up[0] == '_' and type(split_up[-1]) is int:
+                code_list.append(split_up)
+                
         if code_list:
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
-                new_code = '_CODE' + str(int(last_code[-1])+1+shift)
+                new_code = '_' + str(int(last_code[-1])+1+shift)
             else:
-                new_code = '_CODE' + str(1+shift)
+                new_code = '_' + str(1+shift)
         else:
-            new_code = '_CODE' + str(1+shift)
+            new_code = '_' + str(1+shift)
         return new_code
         
     def get_new_schedule_category_name(self):
