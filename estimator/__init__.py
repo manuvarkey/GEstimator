@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # estimator
@@ -115,7 +115,6 @@ class MainWindow:
         log.info('MainWindow update called')
         self.resource_view.update_store()
         self.schedule_view.update_store()
-        self.display_status(misc.INFO, "Project Refreshed")
             
     # Main Window
     
@@ -166,7 +165,7 @@ class MainWindow:
         """Open project selected by  the user"""
         
         if filename:
-            self.filename = filename
+            self.filename = misc.posix_path(filename)
         else:
             # Create a filechooserdialog to open:
             # The arguments are: title of the window, parent_window, action,
@@ -189,7 +188,7 @@ class MainWindow:
             # If response is "ACCEPT" (the button "Save" has been clicked)
             if response_id == Gtk.ResponseType.ACCEPT:
                 # get filename and set project as active
-                self.filename = open_dialog.get_filename()
+                self.filename = misc.posix_path(open_dialog.get_filename())
                 # Destroy dialog
                 open_dialog.destroy()
             # If response is "CANCEL" (the button "Cancel" has been clicked)
@@ -754,6 +753,7 @@ class MainWindow:
         """Refresh display of views"""
         log.info('on_refresh called')
         self.update()
+        self.display_status(misc.INFO, "Project Refreshed")
         
     def on_search(self, widget):
         """Refresh display of views"""
