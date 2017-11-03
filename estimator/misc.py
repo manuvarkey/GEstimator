@@ -24,6 +24,7 @@
 
 import subprocess, threading, os, posixpath, platform, logging, re, copy, json
 from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 from gi.repository import Gtk, Gdk, GLib, GObject, Pango
 import openpyxl
@@ -932,7 +933,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         return None
         
 def uri_to_file(uri):
-    return posix_path(urlparse(uri).path)
+    return posix_path(url2pathname(urlparse(uri).path))
 
 def abs_path(*args):
     """Returns absolute path to the relative path provided"""

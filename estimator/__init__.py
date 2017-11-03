@@ -752,6 +752,7 @@ class MainWindow:
     def on_refresh(self, widget):
         """Refresh display of views"""
         log.info('on_refresh called')
+        self.sch_database.reorder_items()
         self.update()
         self.display_status(misc.INFO, "Project Refreshed")
         
