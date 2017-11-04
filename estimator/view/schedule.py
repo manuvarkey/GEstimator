@@ -291,7 +291,11 @@ class ScheduleView:
     def insert_row_from_database(self, path, code):
         
         if len(path) == 1:
-            position = path[0]
+        
+            if path[0] == len(self.store):
+                position = len(self.store) - 1
+            else:
+                position = path[0]
             
             data = ['', code, '', '', '', '', '']
             bools = [False] + [True] + [False]*5

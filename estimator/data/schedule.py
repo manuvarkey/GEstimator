@@ -663,14 +663,15 @@ class ScheduleDatabase:
         if path:
             # Path specified add at path
             cat_len = ResourceCategoryTable.select().count()
-            if path[0] > cat_len:
+            if path[0] >= cat_len:
                 order = cat_len
             else:
-                order = path[0]
-                ResourceCategoryTable.update(order = ResourceCategoryTable.order + 1).where(ResourceCategoryTable.order >= order).execute()
+                order = path[0]+1
         else:
             # No path specified, add at start
-            order = ResourceCategoryTable.select().count()
+            order = 0
+            
+        ResourceCategoryTable.update(order = ResourceCategoryTable.order + 1).where(ResourceCategoryTable.order >= order).execute()
             
         new_cat = ResourceCategoryTable(description=category, order=order)
         try:
@@ -1242,14 +1243,17 @@ class ScheduleDatabase:
         if path:
             # Path specified add at path
             cat_len = ScheduleCategoryTable.select().count()
-            if path[0] > cat_len:
+
+            if path[0] >= cat_len:
                 order = cat_len
             else:
-                order = path[0]
-                ScheduleCategoryTable.update(order = ScheduleCategoryTable.order + 1).where(ScheduleCategoryTable.order >= order).execute()
+                order = path[0]+1
         else:
             # No path specified, add at start
-            order = ScheduleCategoryTable.select().count()
+            order = 0
+            
+        # Update order
+        ScheduleCategoryTable.update(order = ScheduleCategoryTable.order + 1).where(ScheduleCategoryTable.order >= order).execute()
             
         new_cat = ScheduleCategoryTable(description=category, order=order)
         try:
