@@ -1964,9 +1964,18 @@ class ScheduleDatabase:
     @database.atomic()
     def get_res_usage(self):
         res_cats = OrderedDict()
+        times_values = dict()
+        
+        # Get sequnces with ANA_TIMES to determine multiplying factor
+        times_items = (SequenceTable.select(SequenceTable.id_sch, SequenceTable.value)
+                                    .where(SequenceTable.itemtype == ScheduleItemModel.ANA_TIMES))
+        for time_item in times_items:
+            times_values[time_item.id_sch.id] = time_item.value
+                                              
         cats = ResourceCategoryTable.select().order_by(ResourceCategoryTable.order)
         for cat in cats:
             res_list_item = OrderedDict()
+            # Get resource items
             res_items = (ResourceItemTable.select(ResourceItemTable, 
                                                       ResourceTable, 
                                                       ResourceCategoryTable)
@@ -1978,7 +1987,13 @@ class ScheduleDatabase:
                 code = res_item.id_res.code
                 res_qty = res_item.qty
                 sch_qty = res_item.id_sch.qty if res_item.id_sch.qty else 0
-                qty = res_qty*sch_qty
+                if res_item.id_sch.id in times_values:
+                    mult_factor = times_values[res_item.id_sch.id]
+                else:
+                    mult_factor = 1
+                    
+                qty = res_qty*sch_qty*mult_factor
+                
                 if code in res_list_item:
                     res_list_item[code][3] = res_list_item[code][3] + qty
                 else:
