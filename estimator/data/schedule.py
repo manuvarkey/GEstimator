@@ -302,11 +302,12 @@ class ScheduleItemModel:
             if len(path) == 1:
                 if not deep:
                     item['resource_list'] = []
-                return item
+                return ['ana_item', item]
             elif len(path) == 2 and item['itemtype'] == self.ANA_GROUP:
                 if path[1] >= 0 and path[1] < len(item['resource_list']):
-                    item = copy.copy(item['resource_list'][path[1]])
-            return item
+                    resource_item = copy.copy(item['resource_list'][path[1]])
+                    resource = self.resources[resource_item[0]]
+                return ['resource_item', resource_item, resource]
                     
     def insert_item(self, item, path):
         if type(item) == dict:
@@ -1996,50 +1997,49 @@ class ScheduleDatabase:
     def assign_auto_item_numbers(self):
         """Assign automatic item numbers to schedule items"""
         # Change all items to prevent uniqueness errors
-        ScheduleTable.update(code = ScheduleTable.code.concat('TEMP')).execute()
+        ScheduleTable.update(code = ScheduleTable.code.concat('_')).execute()
         
         undodict = dict()
-        code_cat = 1
-        code_item = 1
+
+        cat_id = 0
+        code_item = 0
         code_subitem = 1
+        code_cat_dict = dict()
+        
         categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
         for category in categories:
-            items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
-            for item in items:
-                code = str(code_cat) + '.' + str(code_item)
-                undodict[code] = item.code[:-4]
-                item.code = code
-                item.save()
-                children = ScheduleTable.select().where(ScheduleTable.parent == item.id).order_by(ScheduleTable.suborder)
-                for child in children:
-                    code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
-                    undodict[code] = child.code[:-4]
-                    child.code = code
-                    child.save()
-                    code_subitem = code_subitem + 1
-                code_subitem = 1
+            code_cat_dict[category.id] = category.order + 1
+        
+        items = ScheduleTable.select().order_by(category.id, ScheduleTable.order, ScheduleTable.order)
+        for item in items:
+            if item.category.id != cat_id:
+                cat_id = item.category.id
+                code_cat = code_cat_dict[cat_id]
+            if item.parent == None:
                 code_item = code_item + 1
-            code_item = 1
-            code_cat = code_cat + 1
+                code = str(code_cat) + '.' + str(code_item)
+                undodict[code] = item.code[:-1]
+                item.code = code
+                code_subitem = 1
+            else: 
+                code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
+                undodict[code] = item.code[:-1]
+                item.code = code
+                code_subitem = code_subitem + 1
+                
+            item.save()
         
         yield "Assign automatic item numbers"
         
         # Change all items to prevent uniqueness errors
-        ScheduleTable.update(code = ScheduleTable.code.concat('TEMP')).execute()
-        
-        categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
-        for category in categories:
-            items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
-            for item in items:
-                mod_code = item.code[:-4]
-                if mod_code in undodict:
-                    item.code = undodict[mod_code]
-                    item.save()
-                for child in item.children:
-                    mod_code_child = child.code[:-4]
-                    if mod_code_child in undodict:
-                        child.code = undodict[mod_code_child]
-                        child.save()
+        ScheduleTable.update(code = ScheduleTable.code.concat('_')).execute()
+
+        items = ScheduleTable.select()
+        for item in items:
+            mod_code = item.code[:-1]
+            if mod_code in undodict:
+                item.code = undodict[mod_code]
+                item.save()
         
     def get_next_item_code(self, near_item_code=None, nextlevel=False, shift=0):
         if near_item_code:

@@ -136,34 +136,36 @@ class AnalysisView:
                     
                     items = itemlist[1]
                     selection = self.tree.get_selection()
+                    
                     # If selection exists
                     if selection.count_selected_rows() != 0:
                         [model, paths] = selection.get_selected_rows()
                         row = paths[0].get_indices()
                         path = eval(self.store[paths[0]][8])
-                        if path:
-                            # If items are to be appended
-                            if len(path) == 1:
-                                for item in items:
-                                    code = model_copy.insert_item(item, path)
-                                    res_model = self.database.get_resource(code)
-                                    model_copy.resources[code] = res_model
-                            # If items are to be inserted in between
-                            else:
-                                for item in reversed(items):
-                                    code = model_copy.insert_item(item, path)
-                                    res_model = self.database.get_resource(code)
-                                    model_copy.resources[code] = res_model
-                            self.modify_model(model_copy, "Paste items at row:'{}'".format(row))
-                            log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
-                            return
-                    # If no selection exists
+                    # Else add at top
+                    else:
+                        path = [-1]
+                        
+                    insertion_path = path
                     for item in items:
-                        code = model_copy.insert_item(item, [None,None])
-                        res_model = self.database.get_resource(code)
-                        model_copy.resources[code] = res_model
-                    self.modify_model(model_copy, "Paste items at bottom")
-                    log.info('AnalysisView - on_paste - Item appended')
+                        
+                        if item[0] == 'ana_item':
+                            insertion_path[0] = insertion_path[0] + 1
+                            model_copy.insert_item(item[1], insertion_path)
+                        
+                        elif item[0] == 'resource_item' and model_copy.ana_items[insertion_path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
+                            
+                            if len(insertion_path) == 1:
+                                insertion_path = [insertion_path[0], 0]
+                            else:
+                                insertion_path = [insertion_path[0], insertion_path[1]+1]
+                                
+                            code = model_copy.insert_item(item[1], insertion_path)
+                            model_copy.resources[code] = item[2]
+                            
+                    self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
+                    log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
+                    return
             except:
                 log.warning('AnalysisView - paste_at_selection - No valid data in clipboard')
         else:
@@ -246,10 +248,17 @@ class AnalysisView:
                     res_item = [code, Decimal(0), '']
                     model_copy.resources[code] = res_model
                     if len(path) == 1:
-                        model_copy.add_ana_res(res_item, path[0])
+                        model_copy.add_ana_res(res_item, path[0], 0)
+                        selection_path = [path[0], 0]
                     elif len(path) == 2:
-                        model_copy.add_ana_res(res_item, path[0], path[1])
+                        if path[1] is not None:
+                            model_copy.add_ana_res(res_item, path[0], path[1]+1)
+                            selection_path = [path[0], path[1]+1]
+                        else:
+                            model_copy.add_ana_res(res_item, path[0])
+                            selection_path = [path[0], None]
                     self.modify_model(model_copy, "Add resource from library at path:'{}' ".format(path))
+                    self.set_selection(selection_path)
 
     def add_res(self):
         model_copy = copy.deepcopy(self.model)
@@ -270,11 +279,18 @@ class AnalysisView:
                     res_item = [code, '0', '']
                     model_copy.resources[code] = res
                     if len(path) == 1:
-                        model_copy.add_ana_res(res_item, path[0])
+                        model_copy.add_ana_res(res_item, path[0], 0)
+                        selection_path = [path[0], 0]
                     elif len(path) == 2:
-                        model_copy.add_ana_res(res_item, path[0], path[1])
+                        if path[1] is not None:
+                            model_copy.add_ana_res(res_item, path[0], path[1]+1)
+                            selection_path = [path[0], path[1]+1]
+                        else:
+                            model_copy.add_ana_res(res_item, path[0])
+                            selection_path = [path[0], None]
                     self.modify_model(model_copy, "Add new resource at path:'{}' ".format(path), res_code=code)
                     self.custom_items.append(code)
+                    self.set_selection(selection_path)
                     
     def add_res_group(self):
         model_copy = copy.deepcopy(self.model)
@@ -282,12 +298,13 @@ class AnalysisView:
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            pos = path[0] if path is not None else None
+            pos = path[0]+1 if path is not None else 0
         else:
-            pos = None
+            pos = 0
 
         model_copy.add_ana_group('RESOURCE', [], '', pos)
         self.modify_model(model_copy, "Add new resource group at row:'{}' ".format(pos))
+        self.set_selection([pos])
 
     def add_sum(self):
         model_copy = copy.deepcopy(self.model)
@@ -295,12 +312,13 @@ class AnalysisView:
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            pos = path[0] if path is not None else None
+            pos = path[0]+1 if path is not None else 0
         else:
-            pos = None
+            pos = 0
 
         model_copy.add_ana_sum('TOTAL', pos)
         self.modify_model(model_copy, "Add new sum item at row:'{}' ".format(pos))
+        self.set_selection([pos])
 
     def add_weight(self):
         model_copy = copy.deepcopy(self.model)
@@ -308,12 +326,13 @@ class AnalysisView:
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            pos = path[0] if path is not None else None
+            pos = path[0]+1 if path is not None else 0
         else:
-            pos = None
+            pos = 0
 
         model_copy.add_ana_weight('Add x @ x%', 0.01, pos)
         self.modify_model(model_copy, "Add new weight item at row:'{}' ".format(pos))
+        self.set_selection([pos])
 
     def add_times(self):
         model_copy = copy.deepcopy(self.model)
@@ -321,12 +340,13 @@ class AnalysisView:
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            pos = path[0] if path is not None else None
+            pos = path[0]+1 if path is not None else 0
         else:
-            pos = None
+            pos = 0
             
         model_copy.add_ana_times('Rate for unit item', 0.01, pos)
         self.modify_model(model_copy, "Add new times item at row:'{}' ".format(pos))
+        self.set_selection([pos])
 
     def add_round(self):
         model_copy = copy.deepcopy(self.model)
@@ -334,12 +354,13 @@ class AnalysisView:
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            pos = path[0] if path is not None else None
+            pos = path[0]+1 if path is not None else 0
         else:
-            pos = None
+            pos = 0
 
         model_copy.add_ana_round('Say', 0, pos)
         self.modify_model(model_copy, "Add new round item at row:'{}' ".format(pos))
+        self.set_selection([pos])
 
     def delete_selected_row(self):
         """Delete selected rows"""
@@ -401,6 +422,19 @@ class AnalysisView:
             return paths[0].get_indices()
         else:
             return None
+            
+    def set_selection(self, path=None):
+        def search_func(model, path, iterator, data):
+            code = data[0]
+            if model[iterator][8] == code:
+                data[1] = path
+                return True
+                
+        data = [str(path), None]
+        self.store.foreach(search_func, data)
+        if data[1] is not None:
+            self.tree.set_cursor(data[1])
+            self.tree.scroll_to_cell(data[1], None)
 
     def update_store(self):
         """Update GUI of AnalysisView from data model while trying to preserve selection"""
