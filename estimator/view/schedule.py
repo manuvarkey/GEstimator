@@ -410,19 +410,24 @@ class ScheduleView:
             codes.append(code)
         return codes
         
-    def set_selection(self, code):
+    def set_selection(self, code=None, path=None):
 
-        def search_func(model, path, iterator, data):
-            code = data[0]
-            if model[iterator][0] == code:
-                data[1] = path
-                return True
-                
-        data = [code, None]
-        self.store.foreach(search_func, data)
-        if data[1] is not None:
-            self.tree.set_cursor(data[1])
-            self.tree.scroll_to_cell(data[1], None)
+        if code:
+            def search_func(model, path, iterator, data):
+                code = data[0]
+                if model[iterator][0] == code:
+                    data[1] = path
+                    return True
+                    
+            data = [code, None]
+            self.store.foreach(search_func, data)
+            if data[1] is not None:
+                self.tree.set_cursor(data[1])
+                self.tree.scroll_to_cell(data[1], None)
+        elif path:
+            path_iter = Gtk.TreePath.new_from_indices(path)
+            self.tree.set_cursor(path_iter)
+            self.tree.scroll_to_cell(path_iter, None)
             
     def add_category_at_selection(self, newcat):
         """Add category at selection"""
@@ -437,6 +442,7 @@ class ScheduleView:
         if order is not False:
             # Add new item to store
             self.insert_row_from_database([order], newcat)
+            self.set_selection(path=[order])
         
     def add_item_at_selection(self, items):
         """Add items at selection"""
@@ -457,8 +463,8 @@ class ScheduleView:
             self.insert_rows_from_database(items_added)
             
             # Set selection
-            selection_code = list(items_added.items())[-1][1]
-            self.set_selection(code=selection_code)
+            selection_path = list(items_added.items())[-1][0]
+            self.set_selection(path=selection_path)
             
             if net_ress_added:
                 return (True, True)

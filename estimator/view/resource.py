@@ -308,19 +308,24 @@ class ResourceView:
 
         return codes
         
-    def set_selection(self, code):
+    def set_selection(self, code=None, path=None):
 
-        def search_func(model, path, iterator, data):
-            code = data[0]
-            if model[iterator][0] == code:
-                data[1] = path
-                return True
-                
-        data = [code, None]
-        self.store.foreach(search_func, data)
-        if data[1] is not None:
-            self.tree.set_cursor(data[1])
-            self.tree.scroll_to_cell(data[1], None)
+        if code:
+            def search_func(model, path, iterator, data):
+                code = data[0]
+                if model[iterator][0] == code:
+                    data[1] = path
+                    return True
+                    
+            data = [code, None]
+            self.store.foreach(search_func, data)
+            if data[1] is not None:
+                self.tree.set_cursor(data[1])
+                self.tree.scroll_to_cell(data[1], None)
+        elif path:
+            path_iter = Gtk.TreePath.new_from_indices(path)
+            self.tree.set_cursor(path_iter)
+            self.tree.scroll_to_cell(path_iter, None)
             
     def add_category_at_selection(self, newcat):
         """Add category at selection"""
@@ -336,6 +341,7 @@ class ResourceView:
         if order is not False:
             # Add new item to store
             self.insert_row_from_database([order], newcat)
+            self.set_selection(path=[order])
     
     def add_resource_at_selection(self, ress=None):
         """Add items at selection"""
@@ -365,8 +371,7 @@ class ResourceView:
             if inserted:
                 # Add new items to store
                 self.insert_rows_from_database(inserted)
-                
-                self.set_selection(code=res.code)
+                self.set_selection(path=list(inserted.items())[-1][0])
         
     def delete_selected_item(self):
         selected = self.get_selected()
