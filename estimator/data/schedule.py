@@ -659,11 +659,12 @@ class ScheduleDatabase:
         
     @database.atomic()
     def insert_resource_category_atomic(self, category, path=None):
+        """If path is None add as first item; If path[0] = -1, add as last item""" 
         
         if path:
             # Path specified add at path
             cat_len = ResourceCategoryTable.select().count()
-            if path[0] >= cat_len:
+            if path[0] >= cat_len or path[0] == -1:
                 order = cat_len
             else:
                 order = path[0]+1
@@ -954,7 +955,7 @@ class ScheduleDatabase:
                 order = ResourceTable.select().where(ResourceTable.category == category_id).count()
             except ResourceCategoryTable.DoesNotExist:
                 # Add new category at end and add item under it
-                if self.insert_resource_category_atomic(category_name) is not None:
+                if self.insert_resource_category_atomic(category_name, path=[-1]) is not None:
                     category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category_name).get()
                     category_id = category.id
                     res_category_added = category_name
@@ -1239,12 +1240,13 @@ class ScheduleDatabase:
             
     @database.atomic()
     def insert_schedule_category_atomic(self, category, path=None):
+        """If path is None add as first item; If path[0] = -1, add as last item""" 
         
         if path:
             # Path specified add at path
             cat_len = ScheduleCategoryTable.select().count()
 
-            if path[0] >= cat_len:
+            if path[0] >= cat_len or path[0] == -1:
                 order = cat_len
             else:
                 order = path[0]+1
@@ -1511,8 +1513,8 @@ class ScheduleDatabase:
                 category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category_name).get()
                 category_id = category.id
             except ScheduleCategoryTable.DoesNotExist:
-                # Add new category
-                if self.insert_schedule_category_atomic(category_name) is not None:
+                # Add new category at end
+                if self.insert_schedule_category_atomic(category_name, path=[-1]) is not None:
                     category = ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category_name).get()
                     category_id = category.id
                     sch_category_added = category.description
