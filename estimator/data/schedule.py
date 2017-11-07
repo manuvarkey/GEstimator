@@ -2015,32 +2015,27 @@ class ScheduleDatabase:
         ScheduleTable.update(code = ScheduleTable.code.concat('_')).execute()
         
         undodict = dict()
-
-        cat_id = 0
-        code_item = 0
-        code_subitem = 1
         code_cat_dict = dict()
         
         categories = ScheduleCategoryTable.select().order_by(ScheduleCategoryTable.order)
         for category in categories:
             code_cat_dict[category.id] = category.order + 1
         
-        items = ScheduleTable.select().order_by(category.id, ScheduleTable.order, ScheduleTable.order)
+        items = ScheduleTable.select().order_by(category.id, ScheduleTable.order, ScheduleTable.suborder)
         for item in items:
-            if item.category.id != cat_id:
-                cat_id = item.category.id
-                code_cat = code_cat_dict[cat_id]
+            
+            code_cat = code_cat_dict[item.category.id]
+            code_item = item.order + 1
+            
             if item.parent == None:
-                code_item = code_item + 1
                 code = str(code_cat) + '.' + str(code_item)
                 undodict[code] = item.code[:-1]
                 item.code = code
-                code_subitem = 1
             else: 
+                code_subitem = item.suborder + 1
                 code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
                 undodict[code] = item.code[:-1]
                 item.code = code
-                code_subitem = code_subitem + 1
                 
             item.save()
         
