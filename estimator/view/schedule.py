@@ -160,7 +160,7 @@ class ScheduleView:
         old_item = None
         if selection.count_selected_rows() != 0: # if selection exists
             [model, paths] = selection.get_selected_rows()
-            old_item = paths[0].get_indices()
+            old_item = paths[-1].get_indices()
         
         # Clear store
         self.store.clear()
@@ -489,15 +489,8 @@ class ScheduleView:
             else:
                 return False
                 
-        elif codes is not None:
+        elif codes is None:
             return None
-            
-        else:
-            if self.database.update_rates(None):
-                self.update_store()
-                return True
-            else:
-                return False
         
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
         """Undoable function for modifying value of a treeview cell"""

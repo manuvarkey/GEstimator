@@ -577,6 +577,7 @@ class AnalysisView:
         # Setup blank analysis
         if not self.model.ana_items:
             self.model.ana_items = self.program_settings['ana_default_add_items']
+            self.entry_analysis_remarks.set_text('')
         
         # Save undo stack of parent
         self.stack_old = undo.stack()

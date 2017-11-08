@@ -208,6 +208,9 @@ class MainWindow:
             self.sch_database.open_database(self.filename_temp)
             self.project_active = True
             self.update()
+            # Set window title
+            window_title = self.filename + ' - ' + misc.PROGRAM_NAME
+            self.window.set_title(window_title)
             self.display_status(misc.INFO, 'Project opened successfully')
         except:
             log.exception("MainWindow - on_open_project_clicked - Error opening project file - " + self.filename)
@@ -470,6 +473,7 @@ class MainWindow:
     def on_paste_schedule(self, button):
         """Paste rows from clipboard into schedule view"""
         self.schedule_view.paste_at_selection()
+        self.resource_view.update_store()
 
     def on_import_res_clicked(self, button):
         """Imports resources from spreadsheet selected by 'filechooserbutton_res' into resource view"""
@@ -729,10 +733,11 @@ class MainWindow:
                                 self.sch_database, 
                                 select_database_mode=True)
         databasename = dialog.run()
-        self.sch_database.update_resource_from_database(databasename)
-        self.resource_view.update_store()
         
-        self.display_status(misc.INFO, "Rates updated from database")
+        if databasename:
+            self.sch_database.update_resource_from_database(databasename)
+            self.resource_view.update_store()
+            self.display_status(misc.INFO, "Rates updated from database")
 
     def on_res_delete_clicked(self, button):
         """Delete selected rows from schedule view"""
