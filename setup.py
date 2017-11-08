@@ -5,7 +5,7 @@ setup(
     name="GEstimator",
 
     # Version number (initial):
-    version="1.2.0",
+    version="1.4.0",
 
     # Application author details:
     author="Manu Varkey",

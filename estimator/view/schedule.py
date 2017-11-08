@@ -760,7 +760,11 @@ class ScheduleView:
         oldvalue = self.store[iterator][column]
         
         try:  # check whether item evaluates fine
-            evaluated_no = eval(new_text)
+            if column == 3:
+                evaluated_no = float(Currency(eval(new_text)))
+            else:
+                evaluated_no = round(eval(new_text), 4)
+                
             if evaluated_no == 0:
                 evaluated = ''
             else:

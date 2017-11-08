@@ -614,9 +614,13 @@ class ResourceView:
         oldvalue = self.store[iterator][column]
         
         try:  # check whether item evaluates fine
-            evaluated_no = Currency(eval(new_text))
+            if column == 3:
+                evaluated_no = float(Currency(eval(new_text)))
+            else:
+                evaluated_no = round(eval(new_text), 2)
+                
             if evaluated_no == 0:
-                evaluated = ''
+                evaluated = '0'
             else:
                 evaluated = str(evaluated_no)
         except:
@@ -1013,10 +1017,10 @@ class ResourceUsageDialog():
                 description = item[1]
                 unit = item[2]
                 qty = item[3]
-                basicrate = Currency(item[4])
-                vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
-                discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
-                rate = basicrate*(1+vat/100)*(1-discount/100)
+                basicrate = item[4]
+                vat = item[5] if item[5] is not None else 0
+                discount = item[6] if item[6] is not None else 0
+                rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
                 amount = Currency(rate*qty)
                 
                 items_str = [code, description, unit, 

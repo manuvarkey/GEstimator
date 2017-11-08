@@ -180,8 +180,8 @@ class AnalysisView:
         model_copy = copy.deepcopy(self.model)
         path = eval(self.store[pathiter][8])
         
-        try:
-            evaluated = eval(newtext)
+        try:    
+            evaluated = round(eval(newtext), 4)
         except:
             evaluated = 0
         

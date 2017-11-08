@@ -1992,7 +1992,7 @@ class ScheduleDatabase:
                 else:
                     mult_factor = 1
                     
-                qty = res_qty*sch_qty*mult_factor
+                qty = round(res_qty*sch_qty*mult_factor, 4)
                 
                 if code in res_list_item:
                     res_list_item[code][3] = res_list_item[code][3] + qty
@@ -2446,9 +2446,9 @@ class ScheduleDatabase:
                 description = item[1]
                 unit = item[2]
                 qty = item[3]
-                basicrate = Decimal(item[4])
-                vat = Decimal(item[5]) if item[5] is not None else Decimal(0)
-                discount = Decimal(item[6]) if item[6] is not None else Decimal(0)
+                basicrate = Currency(item[4])
+                vat = Currency(item[5]) if item[5] is not None else Decimal(0)
+                discount = Currency(item[6]) if item[6] is not None else Decimal(0)
                 rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
                 amount_formula = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
                 rows = [[code, description, unit, rate, qty, amount_formula]]
