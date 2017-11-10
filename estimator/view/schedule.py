@@ -901,7 +901,7 @@ class SelectScheduleDialog:
                         remarks = proj_code + ' ' + item.code
                         item.remarks = remarks
                         
-                        log.info('SelectScheduleDialog - run - Selected - ' + selected_code)
+                        log.info('SelectScheduleDialog - run - Selected with modification - ' + selected_code)
                         selected_items.append(item)
                                          
                 if selected_items:
@@ -916,18 +916,17 @@ class SelectScheduleDialog:
             if selected_codes:
                 for selected_code in selected_codes:
                     # Get current name
-                    index = self.library_combo.get_active()
-                    name = self.libraries[index-1]
+                    name = self.library_combo.get_active_text()
                     # Get item from selected library
                     with self.database.using_library(name):
                         item = self.database.get_item(selected_code)
                         proj_code = self.database.get_project_settings()['project_item_code']
                     if item:
-                        # Modify item remarks
+                        # Modify item reference
                         remarks = proj_code + ' ' + item.code
                         item.remarks = remarks
                         
-                        log.info('SelectScheduleDialog - run - Selected - ' + selected_code)
+                        log.info('SelectScheduleDialog - run - Selected without modification - ' + selected_code)
                         selected_items.append(item)
                                          
                 if selected_items:
