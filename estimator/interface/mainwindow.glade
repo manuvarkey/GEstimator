@@ -306,7 +306,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">center</property>
-                        <property name="hexpand">True</property>
                         <property name="stack">stack_main</property>
                       </object>
                     </child>
@@ -1175,7 +1174,9 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <property name="tooltip_markup" translatable="yes">Cencel analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
                     <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
+                    <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                     <style>
                       <class name="destructive-action"/>
                     </style>

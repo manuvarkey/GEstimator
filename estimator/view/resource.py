@@ -382,17 +382,33 @@ class ResourceView:
                 Gtk.ButtonsType.OK_CANCEL , "Are you sure you want to delete ?")
             dialog.format_secondary_text(
                 "Analysis of items will be affected by this action and cannot be undone. Undo stack will be cleared.")
+            dialog.add_button('Delete Unused', Gtk.ResponseType.APPLY)
             ret_code = dialog.run()
             dialog.destroy()
             
-            if ret_code != Gtk.ResponseType.OK:
-                return
-
-        self.database.delete_resource(selected)
+            # If user chooses to delete unused remove used from selected
+            if ret_code == Gtk.ResponseType.APPLY:
+                affected_paths = []
+                for path, code in selected.items():
+                    # Dont delete categories
+                    if len(path) == 1:
+                        affected_paths.append(path)
+                    if code in affected_items:
+                        affected_paths.append(path)
+                # Delete linked items from selected
+                for path in affected_paths:
+                    del selected[path]
                 
-        if affected_items:
-            # Clear stack since action cannot be undone
-            undo.stack().clear()
+                # Delete resources
+                self.database.delete_resource(selected)
+            elif ret_code == Gtk.ResponseType.OK:
+                # Delete resources
+                self.database.delete_resource(selected)
+                # Clear stack since action cannot be undone
+                undo.stack().clear()
+            # If user cancels
+            else:
+                return
         
         # Update store
         self.delete_rows_from_database(selected.keys())
@@ -712,6 +728,9 @@ class SelectResourceDialog:
                                             read_only=True)
             # Overide functions of default resource view
             res_view.select_action = self.select_action
+            # Set selection mode to single
+            res_view.tree.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+            
             self.resourceviews['Current'] = res_view
             
         for library in self.libraries:
@@ -729,6 +748,9 @@ class SelectResourceDialog:
             # Disable selection in database selection mode
             if select_database_mode:
                 res_view.tree.get_selection().set_mode(Gtk.SelectionMode.NONE)
+            # Single item selection in select resource mode
+            else:
+                res_view.tree.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
                 
         if not select_database_mode:
             self.resourceview = self.resourceviews['Current']

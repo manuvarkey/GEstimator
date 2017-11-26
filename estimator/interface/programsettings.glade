@@ -19,15 +19,16 @@
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can_focus">False</property>
+        <property name="margin_left">6</property>
+        <property name="margin_right">6</property>
+        <property name="margin_top">6</property>
+        <property name="margin_bottom">6</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area1">
             <property name="can_focus">False</property>
-            <property name="margin_left">12</property>
-            <property name="margin_right">12</property>
-            <property name="margin_top">18</property>
-            <property name="margin_bottom">12</property>
+            <property name="margin_top">12</property>
             <property name="hexpand">True</property>
             <property name="layout_style">end</property>
             <child>
@@ -72,10 +73,8 @@
           <object class="GtkBox" id="box1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">12</property>
-            <property name="margin_right">12</property>
-            <property name="margin_top">18</property>
-            <property name="margin_bottom">18</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkFrame">
@@ -149,17 +148,23 @@
               <object class="GtkFrame">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
                   <object class="GtkAlignment">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
                     <property name="left_padding">12</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
                         <property name="orientation">vertical</property>
                         <property name="spacing">12</property>
                         <child>
@@ -211,6 +216,8 @@ when modifying analysis</property>
                           <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
                             <property name="orientation">vertical</property>
                             <child>
                               <object class="GtkStackSwitcher">
@@ -359,6 +366,8 @@ when modifying analysis</property>
                                       <object class="GtkTreeView" id="treeview_modify_settings">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
+                                        <property name="hexpand">True</property>
+                                        <property name="vexpand">True</property>
                                         <property name="enable_grid_lines">both</property>
                                         <child internal-child="selection">
                                           <object class="GtkTreeSelection"/>

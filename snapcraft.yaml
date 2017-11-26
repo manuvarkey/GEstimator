@@ -1,5 +1,5 @@
 name: gestimator
-version: 1.1.0
+version: 1.4.0
 summary: GEstimator is a simple civil estimation software written in Python and GTK+
 description: |
   GEstimator is a simple civil estimation software written in Python and GTK+. GEstimator can prepare estimates along with rate analysis and supports multiple databases.
@@ -7,12 +7,23 @@ description: |
 grade: devel
 confinement: devmode
 
+build-packages:
+    - python3
+    - python3-gi
+    - gir1.2-gtk-3.0
+
 parts:
   gestimator:
     source: .
     plugin: python
     python-version: python3
-    after: []
+    after: [gtkconf]
+    
+    stage-packages:
+      - python3
+      - python3-gi
+      - gir1.2-gtk-3.0
+      
 apps:
   gestimator:
     command: bin/GEstimator.py
