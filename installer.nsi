@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win32-1-4-1.exe"
+outFile "GEstimator-win32-1-4-2.exe"
  
 !include LogicLib.nsh
  
