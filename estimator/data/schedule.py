@@ -2028,12 +2028,20 @@ class ScheduleDatabase:
             code_item = item.order + 1
             
             if item.parent == None:
-                code = str(code_cat) + '.' + str(code_item)
+                # If only one category reduce level of item numbering
+                if len(code_cat_dict) == 1:
+                    code = str(code_item)
+                else:
+                    code = str(code_cat) + '.' + str(code_item)
                 undodict[code] = item.code[:-1]
                 item.code = code
             else: 
                 code_subitem = item.suborder + 1
-                code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
+                # If only one category reduce level of item numbering
+                if len(code_cat_dict) == 1:
+                    code = str(code_item) + '.' + str(code_subitem)
+                else:
+                    code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
                 undodict[code] = item.code[:-1]
                 item.code = code
                 
