@@ -301,6 +301,62 @@
                         <property name="position">1</property>
                       </packing>
                     </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkButton" id="project_undo_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
+                            <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">edit-undo-symbolic</property>
+                              </object>
+                            </child>
+                            <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="project_redo_button">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
+                            <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
+                            <child>
+                              <object class="GtkImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="icon_name">edit-redo-symbolic</property>
+                              </object>
+                            </child>
+                            <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <style>
+                          <class name="linked"/>
+                        </style>
+                      </object>
+                      <packing>
+                        <property name="position">6</property>
+                      </packing>
+                    </child>
                     <child type="title">
                       <object class="GtkStackSwitcher" id="stack_switcher">
                         <property name="visible">True</property>
@@ -585,51 +641,6 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator2">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_schedule_undo">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Undo</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-undo-symbolic</property>
-                                <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
-                                <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_schedule_redo">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Redo</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-redo-symbolic</property>
-                                <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
-                                <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem2">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
@@ -858,51 +869,6 @@
                                 <property name="icon_name">view-refresh-symbolic</property>
                                 <signal name="clicked" handler="on_res_load_rates_clicked" swapped="no"/>
                                 <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator3">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="halign">start</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">True</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_res_undo">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Undo</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-undo-symbolic</property>
-                                <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
-                                <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_res_redo">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Redo</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-redo-symbolic</property>
-                                <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
-                                <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
