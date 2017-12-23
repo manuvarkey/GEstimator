@@ -409,6 +409,9 @@ class ResourceView:
             # If user cancels
             else:
                 return
+        else:
+            # Delete resources
+            self.database.delete_resource(selected)
         
         # Update store
         self.delete_rows_from_database(selected.keys())
