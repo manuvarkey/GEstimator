@@ -230,7 +230,8 @@ class ScheduleItemModel:
 
     def __init__(self, code, description, unit = None, rate = None,
                  qty = None, category = None,
-                 parent = None, remarks = None, ana_remarks = None):
+                 parent = None, remarks = None, ana_remarks = None,
+                 colour = None):
         # Database fields
         self.code = code
         self.description = description
@@ -241,6 +242,7 @@ class ScheduleItemModel:
         self.ana_remarks = ana_remarks
         self.category = category
         self.parent = parent
+        self.colour = colour
         # Additional fields
         self.ana_items = []
         self.resources = dict()
@@ -511,6 +513,7 @@ class ScheduleTable(BaseModelSch):
     parent = peewee.ForeignKeyField('self', on_delete = 'CASCADE', null=True, related_name='children')
     order = peewee.IntegerField()
     suborder = peewee.IntegerField(null = True)
+    colour = peewee.CharField(null = True)
 
 class ResourceTable(BaseModelSch):
     code = peewee.CharField(unique = True)
@@ -751,7 +754,7 @@ class ScheduleDatabase:
             if category is not None:
                 try:
                     categories = [ResourceCategoryTable.select().where(ResourceCategoryTable.description == category).get()]
-                except ScheduleTable.DoesNotExist:
+                except ResourceCategoryTable.DoesNotExist:
                     log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
                     return res
             else:
@@ -781,7 +784,7 @@ class ScheduleDatabase:
             if category:
                 try:
                     category_model = ResourceCategoryTable.select().where(ResourceCategoryTable.description == category).get()
-                except ScheduleTable.DoesNotExist:
+                except ResourceCategoryTable.DoesNotExist:
                     log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
                     return res
                 res_cat = ResourceTable.select().where(ResourceTable.category == category_model.id).order_by(ResourceTable.order)
@@ -1325,7 +1328,8 @@ class ScheduleDatabase:
                                       remarks = item.remarks,
                                       ana_remarks = item.ana_remarks,
                                       category = item.category.description,
-                                      parent = parent)
+                                      parent = parent,
+                                      colour = item.colour)
         
         if copy_ana:
             for seq in item.sequences:
@@ -1365,7 +1369,7 @@ class ScheduleDatabase:
             if category is not None:
                 try:
                     categories = [ScheduleCategoryTable.select().where(ScheduleCategoryTable.description == category).get()]
-                except ScheduleTable.DoesNotExist:
+                except ScheduleCategoryTable.DoesNotExist:
                     log.error('ScheduleDatabase - get_resource_table - Category not found - ' + category)
                     return
             else:
@@ -1376,11 +1380,11 @@ class ScheduleDatabase:
                 items = ScheduleTable.select().where((ScheduleTable.category == category.id) & (ScheduleTable.parent == None)).order_by(ScheduleTable.order)
                 for item in items:
                     child_list = []
-                    parent_list = [item.code, item.description, item.unit, item.rate, item.qty, item.remarks]
+                    parent_list = [item.code, item.description, item.unit, item.rate, item.qty, item.remarks, item.colour]
                     children = ScheduleTable.select().where(ScheduleTable.parent == item.id).order_by(ScheduleTable.suborder)
                     for child in children:
                         child_list.append([child.code, child.description, child.unit,
-                                      child.rate, child.qty, child.remarks])
+                                      child.rate, child.qty, child.remarks, child.colour])
                     cat_dict[item.code] = (parent_list, child_list,)
                 category_name = category.description
                 if category_name is None or category_name == '':
@@ -1400,7 +1404,7 @@ class ScheduleDatabase:
             for item in items:
                 item_list = [item.code, item.description, item.unit, 
                                item.rate, item.qty, item.remarks, 
-                               item.category.description]
+                               item.category.description, item.colour]
                 sch_table[item.code] = item_list
                 
         return sch_table
@@ -1486,6 +1490,34 @@ class ScheduleDatabase:
         
         sch.save()
         
+    @undoable
+    @database.atomic()
+    def update_item_colour(self, codes, colour):
+        """Updates schedule item colour"""
+        
+        old_values = dict()
+        
+        for code in codes:
+            try:
+                sch = ScheduleTable.select().where(ScheduleTable.code == code).get()
+            except ScheduleTable.DoesNotExist:
+                return False
+
+            old_values[code] = sch.colour
+            sch.colour = colour
+        
+            try:
+                sch.save()
+            except:
+                return False
+            
+        yield "Update schedule item colour '{}'".format(str(code)), True
+
+        for code, old_value in old_values.items():
+            sch = ScheduleTable.select().where(ScheduleTable.code == code).get()
+            sch.colour = old_value        
+            sch.save()
+        
     def update_item_atomic(self, sch_model):
         """Updates schedule item i/c analysis"""
         return self.insert_item_atomic(sch_model, path=None, update=True)
@@ -1549,6 +1581,7 @@ class ScheduleDatabase:
             sch.ana_remarks = item.ana_remarks
             sch.category = category_id
             sch.parent = parent_id
+            sch.colour = item.colour
 
             # Delete old analysis items
             for sequence in sch.sequences:
@@ -1667,7 +1700,8 @@ class ScheduleDatabase:
                                 category = category_id,
                                 parent = parent_id,
                                 order = order,
-                                suborder = suborder)
+                                suborder = suborder,
+                                colour = item.colour)
                                 
             path_added = [sch.category.order, sch.order]
             if sch.suborder is not None:
@@ -2178,6 +2212,7 @@ class ScheduleDatabase:
                 item = item_list[0]
                 item_desc = item[1]
                 item_unit = item[2]
+                item_colour = item[6]
                 
                 # If item has multiple lines split up lines
                 item_desc_parts = item_desc.split('\n')
@@ -2185,7 +2220,7 @@ class ScheduleDatabase:
                     for part in item_desc_parts[0:-1]:
                         item_row = [code, part, None, None, None, None, None]
                         code = None
-                        spreadsheet.append_data([item_row])
+                        spreadsheet.append_data([item_row], fill=item_colour)
                         spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                         s_row = s_row + 1
                     item_desc = item_desc_parts[-1]
@@ -2201,7 +2236,7 @@ class ScheduleDatabase:
                 item_remarks = item[5]
                     
                 item_row = [code, item_desc, item_unit, item_rate, item_qty, item_amount, item_remarks]
-                spreadsheet.append_data([item_row])
+                spreadsheet.append_data([item_row], fill=item_colour)
                 spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                 s_row = s_row + 1
                 # Set data of 2nd level items
@@ -2212,6 +2247,7 @@ class ScheduleDatabase:
                     rate = sub_item[3]
                     qty = sub_item[4]
                     remarks = sub_item[5]
+                    colour = item[6]
                     
                     # If item has multiple lines split up lines
                     item_desc_parts = desc.split('\n')
@@ -2219,7 +2255,7 @@ class ScheduleDatabase:
                         for part in item_desc_parts[0:-1]:
                             item_row = [code, part, None, None, None, None, None]
                             code = None
-                            spreadsheet.append_data([item_row])
+                            spreadsheet.append_data([item_row], fill=colour)
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
                         desc = item_desc_parts[-1]
@@ -2227,7 +2263,7 @@ class ScheduleDatabase:
                     amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
                         
                     row = [code, desc, unit, rate, qty, amount, remarks]
-                    spreadsheet.append_data([row])
+                    spreadsheet.append_data([row], fill=colour)
                     spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                     s_row = s_row + 1
         # Add sum of amount

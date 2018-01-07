@@ -444,6 +444,15 @@ class MainWindow:
         self.schedule_view.update_store(mark=True)
         self.display_status(misc.INFO, "Items with rate mismatch marked")
         
+    def on_sch_colour_clicked(self, button):
+        """Mark selection of schedule view with colour"""
+        
+        sch_select_colour = self.builder.get_object("sch_select_colour")
+        colour_obj = sch_select_colour.get_rgba()
+        colour = '#%02X%02X%02X' % (int(colour_obj.red*255), int(colour_obj.green*255), int(colour_obj.blue*255))
+        
+        self.schedule_view.update_colour(colour)
+        
     def on_sch_refresh_clicked(self, button):
         ret_code = self.schedule_view.update_selected_rates()
         if ret_code:

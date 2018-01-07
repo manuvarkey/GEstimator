@@ -185,6 +185,7 @@ class ScheduleView:
                 item_qty = str(item[4]) if item[4] != 0 else ''
                 item_amount = str(Currency(item[3]*item[4])) if item[3]*item[4] != 0 else ''
                 item_remarks = item[5]
+                item_colour = item[6]
                 
                 sum_total = sum_total + Currency(item[3]*item[4])
                 
@@ -194,7 +195,11 @@ class ScheduleView:
                     bools = [False] + [False] + [False]*5
                 else:
                     bools = [True] + [True] + [True]*3 + [False,True]
-                colour = misc.MEAS_COLOR_NORMAL
+                    
+                if item_colour:
+                    colour = item_colour
+                else:
+                    colour = misc.MEAS_COLOR_NORMAL
                 full_description = item[1]
                 
                 # If mark, check rates with analysed rate
@@ -217,6 +222,7 @@ class ScheduleView:
                     qty = str(sub_item[4]) if sub_item[4] != 0 else ''
                     amount = str(Currency(sub_item[3]*sub_item[4])) if sub_item[3]*sub_item[4] != 0 else ''
                     remarks = sub_item[5]
+                    sub_item_colour = sub_item[6]
                     
                     sum_total = sum_total + Currency(sub_item[3]*sub_item[4])
                     
@@ -225,7 +231,12 @@ class ScheduleView:
                         bools = [False] + [False] + [False]*5
                     else:
                         bools = [True] + [True] + [True]*3 + [False,True]
-                    colour = misc.MEAS_COLOR_NORMAL
+                        
+                    if sub_item_colour:
+                        colour = sub_item_colour
+                    else:
+                        colour = misc.MEAS_COLOR_NORMAL
+                    
                     full_description = sub_item[1]
                     
                     # If mark, check rates with analysed rate
@@ -491,6 +502,15 @@ class ScheduleView:
                 
         elif codes is None:
             return None
+            
+    def update_colour(self, colour):
+        codes = self.get_selected_codes()
+        if codes:
+            if self.database.update_item_colour(codes, colour):
+                self.update_store()
+                return True
+            else:
+                return False
         
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
         """Undoable function for modifying value of a treeview cell"""

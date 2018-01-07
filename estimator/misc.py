@@ -611,12 +611,17 @@ class Spreadsheet:
         elif sheetno is not None and sheetno < len(self.sheets()):
             self.sheet = self.spreadsheet[self.sheets()[sheetno]]
     
-    def set_style(self, row, col, bold=False, wrap_text=True, horizontal='general', vertical='bottom'):
+    def set_style(self, row, col, bold=False, wrap_text=True, horizontal='general', vertical='bottom', fill=None):
         """Set style of individual cell"""
         font = openpyxl.styles.Font(bold=bold)
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
+
         self.sheet.cell(row=row, column=col).font = font
         self.sheet.cell(row=row, column=col).alignment = alignment
+        
+        if fill:
+            patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
+            self.sheet.cell(row=row, column=col).fill = patternfill
         
     # Data addition functions
             
@@ -629,21 +634,26 @@ class Spreadsheet:
                 self.sheet.cell(row=row_no+rowcount, column=col_no).value = cell.value
                 self.sheet.cell(row=row_no+rowcount, column=col_no).style = cell.style
                 
-    def append_data(self, data, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom'):
+    def append_data(self, data, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom', fill = None):
         """Append data to current sheet"""
         rowcount = self.length()
-        self.insert_data(data, rowcount+1, 1, bold, italic,wrap_text, horizontal, vertical)
+        self.insert_data(data, rowcount+1, 1, bold, italic,wrap_text, horizontal, vertical, fill)
     
-    def insert_data(self, data, start_row=1, start_col=1, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom'):
+    def insert_data(self, data, start_row=1, start_col=1, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom', fill=None):
         """Insert data to current sheet"""
         # Setup styles
         font = openpyxl.styles.Font(bold=bold, italic=italic)
+        if fill:
+            patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
+            
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
         # Apply data and styles
         for row_no, row in enumerate(data, start_row):
             for col_no, value in enumerate(row, start_col):
                 self.sheet.cell(row=row_no, column=col_no).value = value
                 self.sheet.cell(row=row_no, column=col_no).font = font
+                if fill:
+                    self.sheet.cell(row=row_no, column=col_no).fill = patternfill
                 self.sheet.cell(row=row_no, column=col_no).alignment = alignment
                 
     def add_merged_cell(self, value, row=None, width=2, bold=False, wrap_text=True, horizontal='center', start_column=1):
