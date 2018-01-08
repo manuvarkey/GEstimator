@@ -2247,7 +2247,7 @@ class ScheduleDatabase:
                     rate = sub_item[3]
                     qty = sub_item[4]
                     remarks = sub_item[5]
-                    colour = item[6]
+                    colour = sub_item[6]
                     
                     # If item has multiple lines split up lines
                     item_desc_parts = desc.split('\n')

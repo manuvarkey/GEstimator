@@ -619,7 +619,10 @@ class Spreadsheet:
         self.sheet.cell(row=row, column=col).font = font
         self.sheet.cell(row=row, column=col).alignment = alignment
         
-        if fill:
+        if fill == '#FFFFFF':
+            patternfill = openpyxl.styles.PatternFill()
+            self.sheet.cell(row=row, column=col).fill = patternfill
+        elif fill is not None:
             patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
             self.sheet.cell(row=row, column=col).fill = patternfill
         
@@ -643,7 +646,10 @@ class Spreadsheet:
         """Insert data to current sheet"""
         # Setup styles
         font = openpyxl.styles.Font(bold=bold, italic=italic)
-        if fill:
+        
+        if fill == '#FFFFFF':
+            patternfill = openpyxl.styles.PatternFill()
+        elif fill is not None:
             patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
             
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
@@ -652,8 +658,10 @@ class Spreadsheet:
             for col_no, value in enumerate(row, start_col):
                 self.sheet.cell(row=row_no, column=col_no).value = value
                 self.sheet.cell(row=row_no, column=col_no).font = font
+                
                 if fill:
                     self.sheet.cell(row=row_no, column=col_no).fill = patternfill
+                    
                 self.sheet.cell(row=row_no, column=col_no).alignment = alignment
                 
     def add_merged_cell(self, value, row=None, width=2, bold=False, wrap_text=True, horizontal='center', start_column=1):
