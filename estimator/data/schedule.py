@@ -24,6 +24,7 @@
 
 import logging, copy
 import peewee, sqlite3
+from playhouse.migrate import migrate, SqliteMigrator
 from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -587,25 +588,39 @@ class ScheduleDatabase:
         return True
         
     def validate_database(self, filename):
-        
         # Try to open database and check database compatibility
         try:
             connection = sqlite3.connect(filename)
             cursor = connection.cursor()
-            cursor.execute('''SELECT value FROM ProjectTable where key=?''', ('file_version'))
-            (proj_version) = cursor.fetchone()
+            cursor.execute('''SELECT value FROM ProjectTable where key="file_version"''')
+            proj_version = cursor.fetchone()
+            
+            if proj_version[0] > misc.PROJECT_FILE_VER:
+                return [False, "Newer project file version found. Please use the latest application version."]
+            elif proj_version[0] == 'GESTIMATOR_FILE_REFERENCE_VER_1':
+                self.migrate_from_ver_1(filename)
+                
+            cursor.execute('''UPDATE ProjectTable SET value = ? WHERE key = "file_version"''', (misc.PROJECT_FILE_VER,))
+            connection.commit()
+            connection.close()
         except:
-            return [False, 'Error opening file. unknown/corrupt file.']
-        
-        if proj_version > misc.PROJECT_FILE_VER:
-            return [False, "Newer project file version found. Please use the latest application version."]
-        elif proj_version == 'GESTIMATOR_FILE_REFERENCE_VER_1':
-            self.migrate_from_ver_1(filename)
+            return [False, 'Error validating file. unknown/corrupt file.']
         
         return [True]
         
     def migrate_from_ver_1(self, filename):
-        print('Migrate from 1 called')
+        log.info('ScheduleDatabase - migrate_from_ver_1 called - ' + filename)
+        
+        # Open database
+        my_db = peewee.SqliteDatabase(filename)
+        migrator = SqliteMigrator(my_db)
+        
+        colour = peewee.CharField(null = True)
+        
+        with my_db.transaction():
+            migrate(migrator.add_column('ScheduleTable', 'colour', colour))
+            
+        log.info('ScheduleDatabase - database migrated - ' + filename)
         
     def close_database(self):
         global database_filename
@@ -2526,4 +2541,4 @@ class ScheduleDatabase:
         spreadsheet.set_page_settings(font='Georgia')
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
-        
+        

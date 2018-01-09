@@ -205,23 +205,25 @@ class MainWindow:
             # Copy selected file to temporary location
             shutil.copy(self.filename, self.filename_temp)
             
-            # Open temp file
-            ret_code = self.sch_database.open_database(self.filename_temp)
+            # Validate database
+            ret_code = self.sch_database.validate_database(self.filename_temp)
             
             if ret_code[0] == False:
                 log.exception("MainWindow - on_open_project_clicked - " + self.filename + " - " + ret_code[1])
-                self.display_status(misc.ERROR, "Project could not be opened: Error opening file")
-            else:
+                self.display_status(misc.ERROR, ret_code[1])
+            elif ret_code[0] == True:
+                # Open database
+                self.sch_database.open_database(self.filename_temp)
                 self.project_active = True
                 self.update()
                 # Set window title
                 window_title = self.filename + ' - ' + misc.PROGRAM_NAME
                 self.window.set_title(window_title)
                 self.display_status(misc.INFO, 'Project opened successfully')
-        
         except:
             log.exception("MainWindow - on_open_project_clicked - Error opening project file - " + self.filename)
             self.display_status(misc.ERROR, "Project could not be opened: Error opening file")
+        
         self.builder.get_object('popup_open_project').hide()
         
     def on_open_project_selected(self, recent):
