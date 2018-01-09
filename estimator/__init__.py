@@ -204,14 +204,21 @@ class MainWindow:
             self.sch_database.close_database()
             # Copy selected file to temporary location
             shutil.copy(self.filename, self.filename_temp)
-            # Opn temp file
-            self.sch_database.open_database(self.filename_temp)
-            self.project_active = True
-            self.update()
-            # Set window title
-            window_title = self.filename + ' - ' + misc.PROGRAM_NAME
-            self.window.set_title(window_title)
-            self.display_status(misc.INFO, 'Project opened successfully')
+            
+            # Open temp file
+            ret_code = self.sch_database.open_database(self.filename_temp)
+            
+            if ret_code[0] == False:
+                log.exception("MainWindow - on_open_project_clicked - " + self.filename + " - " + ret_code[1])
+                self.display_status(misc.ERROR, "Project could not be opened: Error opening file")
+            else:
+                self.project_active = True
+                self.update()
+                # Set window title
+                window_title = self.filename + ' - ' + misc.PROGRAM_NAME
+                self.window.set_title(window_title)
+                self.display_status(misc.INFO, 'Project opened successfully')
+        
         except:
             log.exception("MainWindow - on_open_project_clicked - Error opening project file - " + self.filename)
             self.display_status(misc.ERROR, "Project could not be opened: Error opening file")
