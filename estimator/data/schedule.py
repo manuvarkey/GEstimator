@@ -634,10 +634,14 @@ class ScheduleDatabase:
     def add_library(self, filename):
         """Add a new library to database model"""
         try:
-            library = peewee.SqliteDatabase(filename)
-            with peewee.Using(library, [ProjectTable]):
-                name = self.get_project_settings()['project_name']
-            log.info('ScheduleDatabase - add_library - library added - ' + name)
+            # Migrate database to latest format
+            ret_code = self.validate_database(filename)
+            if ret_code[0] == True:
+                # Add library
+                library = peewee.SqliteDatabase(filename)
+                with peewee.Using(library, [ProjectTable]):
+                    name = self.get_project_settings()['project_name']
+                log.info('ScheduleDatabase - add_library - library added - ' + name)
         except:
             log.error('ScheduleDatabase - add_library - Error opening file')
             return False
