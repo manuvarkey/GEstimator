@@ -27,8 +27,8 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 # Rates rounding function
-def Currency(x):
-    return Decimal(x).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
+def Currency(x, places=2):
+    return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
 
 from gi.repository import Gtk, Gdk, GLib
 
@@ -819,7 +819,7 @@ class SelectResourceDialog:
 
 
 class ResourceEntryDialog():
-    """Creates a dialog box for entry of custom data fields
+    """ Creates a dialog box for entry of custom data fields
     
         Arguments:
             parent: Parent Window
@@ -831,6 +831,7 @@ class ResourceEntryDialog():
         self.toplevel = parent
         self.database = database
         self.custom_items = custom_items
+        self.item = item
         
         self.entrys = {}
         captions = ['Code', 'Description', 'Unit', 'Rate', 'Tax', 'Discount', 'Reference']
@@ -886,13 +887,18 @@ class ResourceEntryDialog():
         
         # Add data
         if item:
+            self.entrys['Code'].set_sensitive(False)
+        
             self.entrys['Code'].set_text(item.code)
             self.entrys['Description'].set_text(item.description)
             self.entrys['Unit'].set_text(item.unit)
-            self.entrys['Rate'].set_text(item.rate)
-            self.entrys['Tax'].set_text(item.vat)
-            self.entrys['Discount'].set_text(item.discount)
-            self.entrys['Reference'].set_text(item.reference)
+            self.entrys['Rate'].set_text(str(item.rate))
+            self.entrys['Tax'].set_text(str(item.vat))
+            self.entrys['Discount'].set_text(str(item.discount))
+            if item.reference:
+                self.entrys['Reference'].set_text(item.reference)
+            else:
+                self.entrys['Reference'].set_text('')
             self.category_combo_entry.set_text(item.category)
         else:
             code_def = self.database.get_new_resource_code(exclude=self.custom_items)
@@ -923,17 +929,17 @@ class ResourceEntryDialog():
         if response == Gtk.ResponseType.OK:
             # Get formated text and update item_values
             try:
-                rate = Decimal(eval(self.entrys['Rate'].get_text()))
+                rate = Currency(eval(self.entrys['Rate'].get_text()))
             except:
                 self.entrys['Rate'].set_text('0')
                 return self.run()
             try:
-                tax = Decimal(eval(self.entrys['Tax'].get_text()))
+                tax = Currency(eval(self.entrys['Tax'].get_text()))
             except:
                 self.entrys['Tax'].set_text('0')
                 return self.run()
             try:
-                discount = Decimal(eval(self.entrys['Discount'].get_text()))
+                discount = Currency(eval(self.entrys['Discount'].get_text()))
             except:
                 self.entrys['Discount'].set_text('0')
                 return self.run()
@@ -948,20 +954,24 @@ class ResourceEntryDialog():
                                             reference = self.entrys['Reference'].get_text(),
                                             category = category)
             
-            if self.database.check_insert_resource(resource):
+            if self.item:
                 self.dialog_window.destroy()
-                return [True,resource]
+                return [True, resource]
             else:
-                # Show error message
-                message = 'Error inserting item'
-                dialogError = Gtk.MessageDialog(self.dialog_window,
-                                     Gtk.DialogFlags.MODAL,
-                                     Gtk.MessageType.ERROR,
-                                     Gtk.ButtonsType.CLOSE,
-                                     message)
-                dialogError.run()
-                dialogError.destroy()
-                return self.run()
+                if self.database.check_insert_resource(resource):
+                    self.dialog_window.destroy()
+                    return [True, resource]
+                else:
+                    # Show error message
+                    message = 'Error inserting item'
+                    dialogError = Gtk.MessageDialog(self.dialog_window,
+                                         Gtk.DialogFlags.MODAL,
+                                         Gtk.MessageType.ERROR,
+                                         Gtk.ButtonsType.CLOSE,
+                                         message)
+                    dialogError.run()
+                    dialogError.destroy()
+                    return self.run()
         else:
             self.dialog_window.destroy()
             return False

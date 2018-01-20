@@ -42,183 +42,183 @@ log = logging.getLogger()
 # Module functions
 
 def parse_analysis(models, item, index, set_code=False):
-        """Parses first instance of analysis of rates into item starting from index"""
+    """Parses first instance of analysis of rates into item starting from index"""
 
-        def string_has(string, values):
-            """Check if string has one of the values in values"""
-            string_formated = string.lower()
-            for value in values:
-                if value in string_formated:
-                    return True
-            return False
+    def string_has(string, values):
+        """Check if string has one of the values in values"""
+        string_formated = string.lower()
+        for value in values:
+            if value in string_formated:
+                return True
+        return False
 
-        def search_for_values(models, indexes, cols, values=None):
-            """Search up or down in model columns from index for value in list"""
-            for index in indexes:
-                if index >= 0:
-                    for col in cols:
-                        if values is None:
-                            if models[index][col] != '':
-                                return [models[index][col], index, col]
-                        elif string_has(models[index][col], values):
+    def search_for_values(models, indexes, cols, values=None):
+        """Search up or down in model columns from index for value in list"""
+        for index in indexes:
+            if index >= 0:
+                for col in cols:
+                    if values is None:
+                        if models[index][col] != '':
                             return [models[index][col], index, col]
-            return None
+                    elif string_has(models[index][col], values):
+                        return [models[index][col], index, col]
+        return None
 
-        [SEARCHING, ITEM, GROUP] = [0,1,2]
-        RES_KEYS = ['material', 'labour','tool','plant','a1','a2','a3','a4','b1','b2','b3','b4']
-        ANA_REMARK_KEYS = ['cost of','cost per','cost for', 'rate of','rate per','rate for']
-        SUM_KEYS = ['total', 'rate per', 'cost per', 'cost for', 'rate for', 'cost of', 'rate of']
-        WEIGHT_KEYS = ['@','%']
-        TIMES_KEYS = ['rate per', 'rate for', 'cost per', 'cost for','cost of', 'rate of']
-        ROUND_KEYS = ['say']
+    [SEARCHING, ITEM, GROUP] = [0,1,2]
+    RES_KEYS = ['material', 'labour','tool','plant','a1','a2','a3','a4','b1','b2','b3','b4']
+    ANA_REMARK_KEYS = ['cost of','cost per','cost for', 'rate of','rate per','rate for']
+    SUM_KEYS = ['total', 'rate per', 'cost per', 'cost for', 'rate for', 'cost of', 'rate of']
+    WEIGHT_KEYS = ['@','%']
+    TIMES_KEYS = ['rate per', 'rate for', 'cost per', 'cost for','cost of', 'rate of']
+    ROUND_KEYS = ['say']
 
-        state = SEARCHING
-        group = None
+    state = SEARCHING
+    group = None
 
-        while index < len(models):
-            model = models[index]
+    while index < len(models):
+        model = models[index]
 
-            # Search for item
-            if state == SEARCHING:
-                if 'description' in model[1].lower() and 'unit' in model[2].lower():
-                    code_query = search_for_values(models, range(index-1,index-5,-1), [0])
+        # Search for item
+        if state == SEARCHING:
+            if 'description' in model[1].lower() and 'unit' in model[2].lower():
+                code_query = search_for_values(models, range(index-1,index-5,-1), [0])
 
-                    if code_query:
-                        state = ITEM
-                        if set_code:
-                            item.code = code_query[0]
-                        if index+2 < len(models):  # Hack to prevent failures in bad files
-                            ana_query = search_for_values(models, range(index-2,index+2), [0,1,2], ANA_REMARK_KEYS)
-                            if ana_query:
-                                item.ana_remarks = ana_query[0]
-                                if ana_query[1] > index:
-                                    index = ana_query[1]
+                if code_query:
+                    state = ITEM
+                    if set_code:
+                        item.code = code_query[0]
+                    if index+2 < len(models):  # Hack to prevent failures in bad files
+                        ana_query = search_for_values(models, range(index-2,index+2), [0,1,2], ANA_REMARK_KEYS)
+                        if ana_query:
+                            item.ana_remarks = ana_query[0]
+                            if ana_query[1] > index:
+                                index = ana_query[1]
+
+            index = index + 1
+            continue
+
+        # Handle different classes of items
+        elif state == ITEM:
+            # If group add group
+            if(model[2] == ''
+               and model[3] == model[4] == model[5] == 0
+               and string_has(model[1], RES_KEYS)):
+                if model[0] != '':
+                    code = model[0]
+                else:
+                    code = None
+                item.add_ana_group(model[1], code=code)
+                state = GROUP
+                group = len(item.ana_items)-1
 
                 index = index + 1
                 continue
 
-            # Handle different classes of items
-            elif state == ITEM:
-                # If group add group
-                if(model[2] == ''
-                   and model[3] == model[4] == model[5] == 0
-                   and string_has(model[1], RES_KEYS)):
-                    if model[0] != '':
-                        code = model[0]
-                    else:
-                        code = None
-                    item.add_ana_group(model[1], code=code)
-                    state = GROUP
-                    group = len(item.ana_items)-1
+            # If resource item, add blank group
+            elif model[0] != '' and model[1] != '' and model[2] != '' and model[4] != 0:
+                # Setup generic resource group for item
+                item.add_ana_group('RESOURCE')
+                state = GROUP
+                group = len(item.ana_items)-1
 
-                    index = index + 1
-                    continue
+                # Re-evaluate item under group
+                index = index
+                continue
 
-                # If resource item, add blank group
-                elif model[0] != '' and model[1] != '' and model[2] != '' and model[4] != 0:
-                    # Setup generic resource group for item
-                    item.add_ana_group('RESOURCE')
-                    state = GROUP
-                    group = len(item.ana_items)-1
+            # If total item, add total
+            elif(model[2] == ''and model[3] == 0
+                 and model[4] == 0 and model[5] != 0
+                 and string_has(model[1], SUM_KEYS)
+                 and model[5] >= models[index-1][5]):
+                item.add_ana_sum(model[1])
 
-                    # Re-evaluate item under group
-                    index = index
-                    continue
+                index = index + 1
+                continue
 
-                # If total item, add total
-                elif(model[2] == ''and model[3] == 0
-                     and model[4] == 0 and model[5] != 0
-                     and string_has(model[1], SUM_KEYS)
-                     and model[5] >= models[index-1][5]):
-                    item.add_ana_sum(model[1])
+            # If weight item, add weight
+            elif(model[2] == ''and model[3] == 0
+                 and model[4] == 0 and model[5] != 0
+                 and string_has(model[1], WEIGHT_KEYS)
+                 and model[5] < models[index-1][5]):
+                item.add_ana_weight(model[1], Currency(model[5]/models[index-1][5], 3))
 
-                    index = index + 1
-                    continue
+                index = index + 1
+                continue
 
-                # If weight item, add weight
-                elif(model[2] == ''and model[3] == 0
-                     and model[4] == 0 and model[5] != 0
-                     and string_has(model[1], WEIGHT_KEYS)
-                     and model[5] < models[index-1][5]):
-                    item.add_ana_weight(model[1], Currency(model[5]/models[index-1][5], 3))
+            # If times item, add times
+            elif(model[2] == '' and model[3] == 0
+                 and model[4] == 0 and model[5] != 0
+                 and string_has(model[1], TIMES_KEYS)
+                 and model[5] < models[index-1][5]):
+                item.add_ana_times(model[1], Currency(model[5]/models[index-1][5], 6))
 
-                    index = index + 1
-                    continue
+                index = index + 1
+                continue
 
-                # If times item, add times
-                elif(model[2] == '' and model[3] == 0
-                     and model[4] == 0 and model[5] != 0
-                     and string_has(model[1], TIMES_KEYS)
-                     and model[5] < models[index-1][5]):
-                    item.add_ana_times(model[1], Currency(model[5]/models[index-1][5], 6))
+            # If round item, add round
+            elif(model[0] == '', model[2] == '' and model[3] == 0
+                 and model[4] == 0 and model[5] != 0
+                 and string_has(model[1], ROUND_KEYS)
+                 and abs(model[5] - models[index-1][5]) < 1):
 
-                    index = index + 1
-                    continue
-
-                # If round item, add round
-                elif(model[0] == '', model[2] == '' and model[3] == 0
-                     and model[4] == 0 and model[5] != 0
-                     and string_has(model[1], ROUND_KEYS)
-                     and abs(model[5] - models[index-1][5]) < 1):
-
-                    decimal1 = model[5]-int(model[5])
-                    decimal2 = model[5]*10 - int(model[5]*10)
-                    if decimal1 > 0:
-                        pos = 1
-                    elif decimal2 > 0:
-                        pos = 2
-                    else:
-                        pos = 0
-                    item.add_ana_round(model[1], pos)
-
-                    index = index + 1
-                    break
-
-            # Handle resource group
-            elif state == GROUP:
-                # If resource item
-                if model[0] != '' and model[1] != '' and model[2] != ''  and model[4] != 0:
-                    # Setup resource item
-                    code = model[0]
-                    qty = model[3]
-                    remarks = None
-                    # Search if there is a remarks item to be added
-                    if index+1 < len(models):  # Hack to prevent failures in bad files
-                        nxt = models[index+1]
-                        if nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0 and nxt[1] != '':
-                            remarks = nxt[1]
-                            index = index + 1
-                        
-                    # Set resource model
-                    res = ResourceItemModel(code = code,
-                                            description = model[1], 
-                                            unit = model[2],
-                                            rate = model[4])
-                    item.resources[code] = res
-                    
-                    res_items = [code, qty, remarks]
-                    item.ana_items[group]['resource_list'].append(res_items)
-
-                    index = index + 1
-                    continue
-
-                # Sum of group item
-                elif string_has(model[1], RES_KEYS) and 'total' in model[1].lower():
-                    group = None
-                    state = ITEM
-
-                    index = index + 1
-                    continue
-
-                # Any other item
+                decimal1 = model[5]-int(model[5])
+                decimal2 = model[5]*10 - int(model[5]*10)
+                if decimal1 > 0:
+                    pos = 1
+                elif decimal2 > 0:
+                    pos = 2
                 else:
-                    group = None
-                    state = ITEM
+                    pos = 0
+                item.add_ana_round(model[1], pos)
 
-                    continue
+                index = index + 1
+                break
 
-            index = index + 1
-        return index
+        # Handle resource group
+        elif state == GROUP:
+            # If resource item
+            if model[0] != '' and model[1] != '' and model[2] != ''  and model[4] != 0:
+                # Setup resource item
+                code = model[0]
+                qty = model[3]
+                remarks = None
+                # Search if there is a remarks item to be added
+                if index+1 < len(models):  # Hack to prevent failures in bad files
+                    nxt = models[index+1]
+                    if nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0 and nxt[1] != '':
+                        remarks = nxt[1]
+                        index = index + 1
+                    
+                # Set resource model
+                res = ResourceItemModel(code = code,
+                                        description = model[1], 
+                                        unit = model[2],
+                                        rate = model[4])
+                item.resources[code] = res
+                
+                res_items = [code, qty, remarks]
+                item.ana_items[group]['resource_list'].append(res_items)
+
+                index = index + 1
+                continue
+
+            # Sum of group item
+            elif string_has(model[1], RES_KEYS) and 'total' in model[1].lower():
+                group = None
+                state = ITEM
+
+                index = index + 1
+                continue
+
+            # Any other item
+            else:
+                group = None
+                state = ITEM
+
+                continue
+
+        index = index + 1
+    return index
         
         
 # Data definition classes
@@ -642,6 +642,9 @@ class ScheduleDatabase:
                 with peewee.Using(library, [ProjectTable]):
                     name = self.get_project_settings()['project_name']
                 log.info('ScheduleDatabase - add_library - library added - ' + name)
+            else:
+                log.error('ScheduleDatabase - add_library - Error validating file')
+                return False
         except:
             log.error('ScheduleDatabase - add_library - Error opening file')
             return False
@@ -1082,60 +1085,111 @@ class ScheduleDatabase:
             
     @undoable
     @database.atomic()
-    def update_resource(self, code, newvalue, column):
+    def update_resource(self, code, newvalue=None, column=None, res_model=None):
+        
+        # Obtain resource item
         try:
             res = ResourceTable.select().where(ResourceTable.code == code).get()
         except ResourceTable.DoesNotExist:
             return False
-            
-        if column == 0:
-            oldvalue = res.code
-            res.code = newvalue
-        elif column == 1:
-            oldvalue = res.description
-            res.description = newvalue
-        elif column == 2:
-            oldvalue = res.unit
-            res.unit = newvalue
-        elif column == 3:
-            oldvalue = res.rate
-            res.rate = newvalue
-        elif column == 4:
-            oldvalue = res.vat
-            res.vat = newvalue
-        elif column == 5:
-            oldvalue = res.discount
-            res.discount = newvalue
-        elif column == 6:
-            oldvalue = res.reference
-            res.reference = newvalue
         
+        # Individual column update
+        if column is not None:
+            if column == 0:
+                oldvalue = res.code
+                res.code = newvalue
+            elif column == 1:
+                oldvalue = res.description
+                res.description = newvalue
+            elif column == 2:
+                oldvalue = res.unit
+                res.unit = newvalue
+            elif column == 3:
+                oldvalue = res.rate
+                res.rate = newvalue
+            elif column == 4:
+                oldvalue = res.vat
+                res.vat = newvalue
+            elif column == 5:
+                oldvalue = res.discount
+                res.discount = newvalue
+            elif column == 6:
+                oldvalue = res.reference
+                res.reference = newvalue
+        
+        # Resource model update
+        elif res_model:
+            try:
+                category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == res_model.category).get()
+                category_id = category.id
+                order = res.order
+            except:
+                # Add new category at end and add resource under it
+                if self.insert_resource_category_atomic(res_model.category, path=[-1]) is not None:
+                    category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == res_model.category).get()
+                    category_id = category.id
+                    order = 0
+                else:
+                    log.error('ScheduleDatabase - update_resource - category could not be set - ' + str(category_name))
+                    return False
+            
+            # Undo values
+            old_model = copy.copy(res_model)
+            category_id_old = res.category
+            
+            res.code = res_model.code
+            res.description = res_model.description
+            res.unit = res_model.unit
+            res.rate = res_model.rate
+            res.vat = res_model.vat
+            res.discount = res_model.discount
+            res.reference = res_model.reference
+            res.category = category_id
+            res.order = order
+            
+        # Save resource
         try:
             res.save()
         except:
+            log.error('ScheduleDatabase - update_resource - Error saving resource')
             return False
-        
-        yield "Update resource '{}'".format(str(code)), True
-        if column != 0:
-            res = ResourceTable.select().where(ResourceTable.code == code).get()
-        else:
-            res = ResourceTable.select().where(ResourceTable.code == newvalue).get()
             
-        if column == 0:
-            res.code = oldvalue
-        elif column == 1:
-            res.description = oldvalue
-        elif column == 2:
-            res.unit = oldvalue
-        elif column == 3:
-            res.rate = oldvalue
-        elif column == 4:
-            res.vat = oldvalue
-        elif column == 5:
-            res.discount = oldvalue
-        elif column == 6:
-            res.reference = oldvalue
+        yield "Update resource '{}'".format(str(code)), True
         
+        # Individual column update
+        if column is not None:
+            if column != 0:
+                res = ResourceTable.select().where(ResourceTable.code == code).get()
+            else:
+                res = ResourceTable.select().where(ResourceTable.code == newvalue).get()
+                
+            if column == 0:
+                res.code = oldvalue
+            elif column == 1:
+                res.description = oldvalue
+            elif column == 2:
+                res.unit = oldvalue
+            elif column == 3:
+                res.rate = oldvalue
+            elif column == 4:
+                res.vat = oldvalue
+            elif column == 5:
+                res.discount = oldvalue
+            elif column == 6:
+                res.reference = oldvalue
+        
+        # Resource model update
+        elif res_model:
+            res.code = old_model.code
+            res.description = old_model.description
+            res.unit = old_model.unit
+            res.rate = old_model.rate
+            res.vat = old_model.vat
+            res.discount = old_model.discount
+            res.reference = old_model.reference
+            res.category = category_id_old
+            
+        # Save resource
         res.save()
         
     def get_new_resource_category_name(self):

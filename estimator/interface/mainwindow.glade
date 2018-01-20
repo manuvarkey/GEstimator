@@ -385,22 +385,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_project_save">
-                        <property name="label">gtk-save</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                        <property name="use_stock">True</property>
-                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkButton" id="button_refresh_project">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -440,6 +424,22 @@
                       <packing>
                         <property name="pack_type">end</property>
                         <property name="position">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button_project_save">
+                        <property name="label">gtk-save</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
@@ -1258,6 +1258,34 @@
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkToolButton" id="toolbutton_schedule_editana1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_markup" translatable="yes">Edit resource &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
+                    <property name="halign">start</property>
+                    <property name="label" translatable="yes">Edit</property>
+                    <property name="use_underline">True</property>
+                    <property name="icon_name">document-properties-symbolic</property>
+                    <signal name="clicked" handler="ana_edit_res" swapped="no"/>
+                    <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator3">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_res_group">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
@@ -1270,6 +1298,17 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="halign">start</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
                   </packing>
                 </child>
                 <child>

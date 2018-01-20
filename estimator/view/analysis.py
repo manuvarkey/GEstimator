@@ -288,10 +288,51 @@ class AnalysisView:
                         else:
                             model_copy.add_ana_res(res_item, path[0])
                             selection_path = [path[0], None]
-                    self.modify_model(model_copy, "Add new resource at path:'{}' ".format(path), res_code=code)
+                    self.modify_model(model_copy, "Add new resource at path:'{}' ".format(path))
                     self.custom_items.append(code)
                     self.set_selection(selection_path)
                     
+    def edit_res(self):
+        model_copy = copy.deepcopy(self.model)
+        
+        row = self.get_selected_row()
+        if row:
+            path = eval(self.store[row][8])
+            
+            if path is not None and len(path) == 2:
+                res_item_model = model_copy.get_item(path)
+                
+                if res_item_model[0] == 'resource_item':
+                    # Get current item
+                    res_item = res_item_model[1]
+                    res = res_item_model[2]
+                    # Setup resource data dialog
+                    resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items, res)
+                    # Run resource data dialog
+                    ret_code = resource_entry_dialog.run()
+                    
+                    if ret_code:
+                        res = ret_code[1]
+                        code = res.code
+                        # Modify model
+                        if code in self.custom_items:
+                            model_copy.resources[code] = res
+                            model_copy.delete_item(path)
+                            model_copy.insert_item(res_item, path)
+                            self.modify_model(model_copy, "Modify resource at path:'{}' ".format(path))
+                        else:
+                            # Momemtarily change undo stack
+                            stack_old = undo.stack()
+                            undo.setstack(self.stack_old)
+                            
+                            if self.database.update_resource(code=code, res_model=res):
+                                model_copy.resources[code] = res
+                                print(res.rate)
+                                self.modify_model(model_copy, "Modify resource at path:'{}' ".format(path))
+                            
+                            # Initialise saved undo/redo stack
+                            undo.setstack(stack_old)
+                        
     def add_res_group(self):
         model_copy = copy.deepcopy(self.model)
         
@@ -381,7 +422,7 @@ class AnalysisView:
     # Class Methods
     
     @undoable
-    def modify_model(self, newval, message, res_code=None):
+    def modify_model(self, newval, message):
         oldvalue = self.model
         self.model = newval
         self.update_store()
@@ -390,8 +431,6 @@ class AnalysisView:
         # Undo action
         self.model = oldvalue
         self.update_store()
-        if res_code:
-            self.database.delete_resource(res_code)
     
     def cell_editing_started(self, widget, editable, path, column):
         """Fill in text from schedule when schedule view column get edited

@@ -686,6 +686,9 @@ class MainWindow:
 
     def ana_add_res(self, widget):
         self.analysis_view.add_res()
+        
+    def ana_edit_res(self, widget):
+        self.analysis_view.edit_res()
 
     def ana_add_res_group(self, widget):
         self.analysis_view.add_res_group()
