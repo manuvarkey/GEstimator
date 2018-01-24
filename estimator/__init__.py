@@ -545,23 +545,43 @@ class MainWindow:
 
         spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
         models = spreadsheet_dialog.run()
+        
+        def is_child(parent, child, immediate=True):
+            parent_list = parent.split('.')
+            child_list = child.split('.')
+            
+            if len(child_list) == 1:
+                return True
+            elif immediate == True and len(child_list) > 1 and child_list[:-1] == parent_list:
+                return True
+            elif immediate == False and len(child_list) > len(parent_list) and child_list[0:len(parent_list)] == parent_list:
+                return True
+            else:
+                return False
 
         category = None
         id_parent = None
-        id_cur_item = None
+        accum_desc = ''
+        accum_code = ''
+        cat_code = ''
+        cat_desc = ''
         items = []
         
         if models:
             for index, model in enumerate(models):
-                
+
                 # If category
                 if model[0] != '' and model[1] != '' and model[2] == '' and model[0].count('.') == 0 and model[1].upper() == model[1]:
-                    code = model[0]
-                    desc = model[1]
-                    category = desc
+                    cat_code = model[0]
+                    cat_desc = model[1]
+                    category = cat_desc
+                    
+                    id_parent = None
+                    accum_desc = ''
+                    accum_code = ''
                 
                 # If parent item
-                elif model[0] != '' and model[1] != '' and model[0].count('.') in [0,1]:
+                elif model[0] != '' and model[1] != '' and model[0].count('.') in [0,1] and is_child(cat_code, model[0]):
                     code = model[0]
                     try:
                         rate = Decimal(model[3])
@@ -579,12 +599,44 @@ class MainWindow:
                                                           category = category,
                                                           parent = None)
                     id_parent = code
-                    id_cur_item = code
+                    accum_desc = ''
+                    accum_code = code
+                    
                     items.append(sch)
                 
-                # If sub item
-                elif model[0] != '' and model[1] != '' and model[0].count('.') in [1, 2] and id_parent is not None:
+                # If intermediate sub item
+                elif model[0] != '' and model[1] != '' and model[2] == '' and model[0].count('.') > 0 and id_parent is not None:
+                    
+                    # Initial item
+                    if is_child(accum_code, model[0]):
+                        if accum_desc:
+                            accum_desc = accum_desc + '\n' + model[1]
+                        else:
+                            accum_desc = model[1]
+                        accum_code = model[0]
+                    # Changeover b/w items
+                    elif is_child(id_parent, model[0], immediate=False):
+                        accum_desc = model[1]
+                        accum_code = model[0]
+                
+                # If final sub item
+                elif model[0] != '' and model[1] != '' and model[2] != '' and model[0].count('.') > 0 and id_parent is not None:
+                
+                    # Continuing item
+                    if is_child(accum_code, model[0]):
+                        if accum_desc:
+                            description = accum_desc + '\n' + model[1]
+                        else:
+                            description = model[1]
+                    # Changeover b/w items
+                    elif is_child(id_parent, model[0], immediate=False):
+                        description = model[1]
+                    else:
+                        continue
+                
+                
                     code = model[0]
+                        
                     try:
                         rate = Decimal(model[3])
                         qty = Decimal(model[4])
@@ -593,14 +645,14 @@ class MainWindow:
                         rate = Decimal(0)
                         qty = Decimal(0)
                     sch = data.schedule.ScheduleItemModel(code = code,
-                                                          description = model[1],
+                                                          description = description,
                                                           unit = model[2],
                                                           rate = rate,
                                                           qty = qty,
                                                           remarks = model[5],
                                                           category = category,
                                                           parent = id_parent)
-                    id_cur_item = code
+                    
                     items.append(sch)
                         
             self.sch_database.insert_item_multiple(items, preserve_structure=True)
