@@ -304,7 +304,6 @@ class AnalysisView:
                 
                 if res_item_model[0] == 'resource_item':
                     # Get current item
-                    res_item = res_item_model[1]
                     res = res_item_model[2]
                     # Setup resource data dialog
                     resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items, res)
@@ -317,21 +316,19 @@ class AnalysisView:
                         # Modify model
                         if code in self.custom_items:
                             model_copy.resources[code] = res
-                            model_copy.delete_item(path)
-                            model_copy.insert_item(res_item, path)
-                            self.modify_model(model_copy, "Modify resource at path:'{}' ".format(path))
+                            self.modify_model(model_copy, "Modify resource '{}' ".format(code))
                         else:
                             # Momemtarily change undo stack
                             stack_old = undo.stack()
                             undo.setstack(self.stack_old)
-                            
-                            if self.database.update_resource(code=code, res_model=res):
-                                model_copy.resources[code] = res
-                                print(res.rate)
-                                self.modify_model(model_copy, "Modify resource at path:'{}' ".format(path))
-                            
+                            # Set main resource
+                            res_mod_status = self.database.update_resource(code=code, res_model=res)
                             # Initialise saved undo/redo stack
                             undo.setstack(stack_old)
+                            
+                            if res_mod_status:
+                                model_copy.resources[code] = res
+                                self.modify_model(model_copy, "Modify main database resource '{}' ".format(code), undo_main_database=True)
                         
     def add_res_group(self):
         model_copy = copy.deepcopy(self.model)
@@ -422,14 +419,17 @@ class AnalysisView:
     # Class Methods
     
     @undoable
-    def modify_model(self, newval, message):
-        oldvalue = self.model
+    def modify_model(self, newval, message, undo_main_database=False):
+        oldmodel = self.model
         self.model = newval
         self.update_store()
         
         yield message
+        # Undo main database
+        if undo_main_database:
+            self.stack_old.undo()
         # Undo action
-        self.model = oldvalue
+        self.model = oldmodel
         self.update_store()
     
     def cell_editing_started(self, widget, editable, path, column):

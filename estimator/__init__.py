@@ -33,7 +33,6 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Gio, GdkPixbuf
 
 # local files import
 from . import undo, misc, data, view
-from . undo import undoable, group
 
 # Get logger object
 log = logging.getLogger()
@@ -714,20 +713,18 @@ class MainWindow:
         filename = self.builder.get_object("filechooserbutton_ana").get_filename()
         self.analysis_view.on_import_clicked(filename)
         
-    @undoable
     def on_ana_save(self, button):
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
         model_ret = self.analysis_view.exit()
-        old_item = self.sch_database.get_item(model_ret.code)
+        # Update item
         self.sch_database.update_item(model_ret)
         # Refresh resource view to update any items that may be added
         self.resource_view.update_store()
         
-        yield "Modify schedule item of code:'{}'".format(str(old_item.code))
-        self.sch_database.update_item(old_item)
-        
     def on_ana_cancel(self, button):
+        # Refresh resource view to update any items that may be added
+        self.resource_view.update_store()
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
             
