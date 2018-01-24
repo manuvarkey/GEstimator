@@ -709,7 +709,7 @@ class MainWindow:
                 
                 # Clear undo stack
                 self.stack.clear()
-                self.resource_view.update_store()
+                GLib.idle_add(self.resource_view.update_store)
             
             self.run_command(exec_func, models)
         

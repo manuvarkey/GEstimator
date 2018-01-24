@@ -163,10 +163,10 @@ def parse_analysis(models, item, index, set_code=False):
 
                 decimal1 = model[5]-int(model[5])
                 decimal2 = model[5]*10 - int(model[5]*10)
-                if decimal1 > 0:
-                    pos = 1
-                elif decimal2 > 0:
+                if decimal2 > 0:
                     pos = 2
+                elif decimal1 > 0:
+                    pos = 1
                 else:
                     pos = 0
                 item.add_ana_round(model[1], pos)
