@@ -66,7 +66,7 @@ def parse_analysis(models, item, index, set_code=False):
 
     [SEARCHING, ITEM, GROUP] = [0,1,2]
     RES_KEYS = ['material', 'labour','tool','plant','a1','a2','a3','a4','b1','b2','b3','b4']
-    ANA_REMARK_KEYS = ['cost of','cost per','cost for', 'rate of','rate per','rate for']
+    ANA_REMARK_KEYS = ['cost of','cost per','cost for', 'rate of','rate per','rate for', 'details of']
     SUM_KEYS = ['total', 'rate per', 'cost per', 'cost for', 'rate for', 'cost of', 'rate of']
     WEIGHT_KEYS = ['@','%']
     TIMES_KEYS = ['rate per', 'rate for', 'cost per', 'cost for','cost of', 'rate of']
@@ -87,8 +87,9 @@ def parse_analysis(models, item, index, set_code=False):
                     state = ITEM
                     if set_code:
                         item.code = code_query[0]
+                        item_code_index = code_query[1]
                     if index+2 < len(models):  # Hack to prevent failures in bad files
-                        ana_query = search_for_values(models, range(index-2,index+2), [0,1,2], ANA_REMARK_KEYS)
+                        ana_query = search_for_values(models, range(item_code_index+1,index+2), [0,1,2], ANA_REMARK_KEYS)
                         if ana_query:
                             item.ana_remarks = ana_query[0]
                             if ana_query[1] > index:
