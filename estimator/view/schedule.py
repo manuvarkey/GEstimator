@@ -523,6 +523,8 @@ class ScheduleView:
                 log.warning('ScheduleView - cell_renderer_text - category not updated - ' + str(oldvalue) + ':' + str(newvalue))
             else:
                 self.store[iterator][column] = newvalue
+                if column == 1:  # For custom cellrenderercustomtext
+                    self.store[iterator][15] = newvalue
                 self.evaluate_amount(iterator)
         
         # Update items     
