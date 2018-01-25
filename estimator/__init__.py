@@ -768,15 +768,17 @@ class MainWindow:
     def on_ana_save(self, button):
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
-        model_ret = self.analysis_view.exit()
+        (model_ret, res_needs_refresh) = self.analysis_view.exit()
         # Update item
         self.sch_database.update_item(model_ret)
         # Refresh resource view to update any items that may be added
-        self.resource_view.update_store()
+        if res_needs_refresh:
+            self.resource_view.update_store()
         
     def on_ana_cancel(self, button):
         # Refresh resource view to update any items that may be added
-        self.resource_view.update_store()
+        if self.analysis_view.res_needs_refresh:
+            self.resource_view.update_store()
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
             

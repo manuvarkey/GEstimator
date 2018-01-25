@@ -327,8 +327,11 @@ class AnalysisView:
                             undo.setstack(stack_old)
                             
                             if res_mod_status:
+                                # Update model
                                 model_copy.resources[code] = res
                                 self.modify_model(model_copy, "Modify main database resource '{}' ".format(code), undo_main_database=True)
+                                # Set flag
+                                self.res_needs_refresh = True
                         
     def add_res_group(self):
         model_copy = copy.deepcopy(self.model)
@@ -600,14 +603,16 @@ class AnalysisView:
         # Reset undo stack of parent
         undo.setstack(self.stack_old)
 
-        # Evaluate response
+        # Set flags
+        if self.custom_items:
+            self.res_needs_refresh = True
 
         # Set analysis remarks in model
         if self.entry_analysis_remarks:
             self.model.ana_remarks = self.entry_analysis_remarks.get_text()
         
         log.info('AnalysisView - exit')
-        return self.model
+        return (self.model, self.res_needs_refresh)
         
     def init(self, model):
         """Set new model"""
@@ -626,6 +631,9 @@ class AnalysisView:
         
         # Clear custom items
         self.custom_items.clear()
+        
+        # Clear flags
+        self.res_needs_refresh = False
         
         # Update GUI elements according to data
         self.update_store()

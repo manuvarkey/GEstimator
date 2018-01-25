@@ -157,7 +157,7 @@ def parse_analysis(models, item, index, set_code=False):
                 continue
 
             # If round item, add round
-            elif(model[0] == '', model[2] == '' and model[3] == 0
+            elif(model[0] == '' and model[2] == '' and model[3] == 0
                  and model[4] == 0 and model[5] != 0
                  and string_has(model[1], ROUND_KEYS)
                  and abs(model[5] - models[index-1][5]) < 1):
@@ -194,7 +194,9 @@ def parse_analysis(models, item, index, set_code=False):
                 res = ResourceItemModel(code = code,
                                         description = model[1], 
                                         unit = model[2],
-                                        rate = model[4])
+                                        rate = model[4],
+                                        vat = 0,
+                                        discount = 0)
                 item.resources[code] = res
                 
                 res_items = [code, qty, remarks]
