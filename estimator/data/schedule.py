@@ -28,9 +28,15 @@ from playhouse.migrate import migrate, SqliteMigrator
 from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
-# Rates rounding function
+# Rate rounding function with support for ro
 def Currency(x, places=2):
-    return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
+    if int(places) == places:
+        return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
+    else:
+        precision = int(places)
+        base = int((places - int(places))*10)
+        mod_x = Decimal(base/(10**precision))*Decimal(x*(10**precision)/base).quantize(Decimal('1.'), rounding=ROUND_HALF_UP)
+        return Decimal(mod_x).quantize(Decimal(str(10**(-precision))), rounding=ROUND_HALF_UP)
 
 # Local files import
 from .. import misc, undo
@@ -397,7 +403,7 @@ class ScheduleItemModel:
                 sum_item = sum_total
                 self.results.append(result)
             elif item['itemtype'] == self.ANA_ROUND:
-                sum_total = Currency(sum_total, int(item['value']))
+                sum_total = Currency(sum_total, item['value'])
                 self.results.append(sum_total)
     
     def get_ana_rate(self):
@@ -2512,7 +2518,12 @@ class ScheduleDatabase:
                 elif item['itemtype'] == ScheduleItemModel.ANA_ROUND:
                     desc = item['description']
                     value = item['value']
-                    total = '=ROUND(' + sum_total + ',' + str(value) + ')'
+                    if int(value) == value:
+                        total = '=ROUND(' + sum_total + ',' + str(value) + ')'
+                    else:
+                        precision = int(value)
+                        base = int((value - int(value))*10)
+                        total = '=MROUND(' + sum_total + ',' + str(base*10**-precision) + ')'
                     spreadsheet.append_data([[None, desc, None, None, None, total]], bold=True)
                     sum_item = sum_total = 'F' + str(s_row)
                     s_row = s_row + 1
