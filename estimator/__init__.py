@@ -676,42 +676,46 @@ class MainWindow:
         # Setup spreadsheet dialog
         spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
         models = spreadsheet_dialog.run()
-
+        
         if models:
-            
-            # Import Analysis in external thread
-            def exec_func(progress, models):
-                index = 0
+            # Get settings from user
+            ana_settings = view.analysissettings.get_analysis_settings(self.window)
+
+            if ana_settings:
                 
-                while index < len(models):
-                    item = data.schedule.ScheduleItemModel(None,None)
-                    index = data.schedule.parse_analysis(models, item, index, True)
-                    # Get item with corresponding code from database
-                    sch_item = self.sch_database.get_item(item.code)
-                    if sch_item:
-                        # Copy values to imported item
-                        item.description = sch_item.description
-                        item.unit = sch_item.unit
-                        item.rate = sch_item.rate
-                        item.qty = sch_item.qty
-                        item.category = sch_item.category
-                        item.remarks = sch_item.remarks
-                        item.parent = sch_item.parent
-                        # Update item in database
-                        self.sch_database.update_item_atomic(item)
-                        progress.add_message('Analysis for Item No.' + item.code + ' imported')
-                        log.info('MainWindow - on_import_ana_clicked - analysis added - ' + str(item.code))
-                    else:
-                        progress.add_message("<span foreground='#FF0000'>Item No." + str(item.code) + ' not found in schedule items</span>')
-                        log.warning('MainWindow - on_import_ana_clicked - analysis not added - code not found - ' + str(item.code))
-                    # Update fraction
-                    progress.set_fraction(index/len(models))
+                # Import Analysis in external thread
+                def exec_func(progress, models):
+                    index = 0
+                    
+                    while index < len(models):
+                        item = data.schedule.ScheduleItemModel(None,None)
+                        index = data.schedule.parse_analysis(models, item, index, True, ana_settings)
+                        # Get item with corresponding code from database
+                        sch_item = self.sch_database.get_item(item.code)
+                        if sch_item:
+                            # Copy values to imported item
+                            item.description = sch_item.description
+                            item.unit = sch_item.unit
+                            item.rate = sch_item.rate
+                            item.qty = sch_item.qty
+                            item.category = sch_item.category
+                            item.remarks = sch_item.remarks
+                            item.parent = sch_item.parent
+                            # Update item in database
+                            self.sch_database.update_item_atomic(item)
+                            progress.add_message('Analysis for Item No.' + item.code + ' imported')
+                            log.info('MainWindow - on_import_ana_clicked - analysis added - ' + str(item.code))
+                        else:
+                            progress.add_message("<span foreground='#FF0000'>Item No." + str(item.code) + ' not found in schedule items</span>')
+                            log.warning('MainWindow - on_import_ana_clicked - analysis not added - code not found - ' + str(item.code))
+                        # Update fraction
+                        progress.set_fraction(index/len(models))
+                    
+                    # Clear undo stack
+                    self.stack.clear()
+                    GLib.idle_add(self.resource_view.update_store)
                 
-                # Clear undo stack
-                self.stack.clear()
-                GLib.idle_add(self.resource_view.update_store)
-            
-            self.run_command(exec_func, models)
+                self.run_command(exec_func, models)
         
             
     # Analysis signal handler methods

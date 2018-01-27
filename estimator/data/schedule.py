@@ -22,7 +22,7 @@
 #
 #
 
-import logging, copy
+import logging, copy, re
 import peewee, sqlite3
 from playhouse.migrate import migrate, SqliteMigrator
 from collections import OrderedDict
@@ -47,7 +47,7 @@ log = logging.getLogger()
 
 # Module functions
 
-def parse_analysis(models, item, index, set_code=False):
+def parse_analysis(models, item, index, set_code=False, settings=None):
     """Parses first instance of analysis of rates into item starting from index"""
 
     def string_has(string, values):
@@ -70,6 +70,7 @@ def parse_analysis(models, item, index, set_code=False):
                         return [models[index][col], index, col]
         return None
 
+    [UP, DOWN] = [0,1]
     [SEARCHING, ITEM, GROUP] = [0,1,2]
     RES_KEYS = ['material', 'labour','tool','plant','a1','a2','a3','a4','b1','b2','b3','b4']
     ANA_REMARK_KEYS = ['cost of','cost per','cost for', 'rate of','rate per','rate for', 'details of']
@@ -78,12 +79,19 @@ def parse_analysis(models, item, index, set_code=False):
     TIMES_KEYS = ['rate per', 'rate for', 'cost per', 'cost for','cost of', 'rate of']
     ROUND_KEYS = ['say']
 
+    if settings:
+        (comment_loc, round_val) = settings
+    else:
+        (comment_loc, round_val) = (DOWN, -1)
+        
+    # Initialise and start state machine
+    
     state = SEARCHING
+    item_start = 0
     group = None
 
     while index < len(models):
         model = models[index]
-
         # Search for item
         if state == SEARCHING:
             if 'description' in model[1].lower() and 'unit' in model[2].lower():
@@ -100,7 +108,8 @@ def parse_analysis(models, item, index, set_code=False):
                             item.ana_remarks = ana_query[0]
                             if ana_query[1] > index:
                                 index = ana_query[1]
-
+            
+                    item_start = index
             index = index + 1
             continue
 
@@ -109,7 +118,8 @@ def parse_analysis(models, item, index, set_code=False):
             # If group add group
             if(model[2] == ''
                and model[3] == model[4] == model[5] == 0
-               and string_has(model[1], RES_KEYS)):
+               and string_has(model[1], RES_KEYS)
+               and model[1].isupper()):
                 if model[0] != '':
                     code = model[0]
                 else:
@@ -168,15 +178,19 @@ def parse_analysis(models, item, index, set_code=False):
                  and string_has(model[1], ROUND_KEYS)
                  and abs(model[5] - models[index-1][5]) < 1):
 
-                decimal1 = model[5]-int(model[5])
-                decimal2 = model[5]*10 - int(model[5]*10)
-                if decimal2 > 0:
-                    pos = 2
-                elif decimal1 > 0:
-                    pos = 1
+                # Check if settigns override enabled
+                if round_val == -1:
+                    decimal1 = model[5]-int(model[5])
+                    decimal2 = model[5]*10 - int(model[5]*10)
+                    if decimal2 > 0:
+                        pos = 2
+                    elif decimal1 > 0:
+                        pos = 1
+                    else:
+                        pos = 0
+                    item.add_ana_round(model[1], pos)
                 else:
-                    pos = 0
-                item.add_ana_round(model[1], pos)
+                    item.add_ana_round(model[1], round_val)
 
                 index = index + 1
                 break
@@ -190,11 +204,36 @@ def parse_analysis(models, item, index, set_code=False):
                 qty = model[3]
                 remarks = None
                 # Search if there is a remarks item to be added
-                if index+1 < len(models):  # Hack to prevent failures in bad files
-                    nxt = models[index+1]
-                    if nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0 and nxt[1] != '':
-                        remarks = nxt[1]
-                        index = index + 1
+                if comment_loc == DOWN:
+                    for rem_index in range(1,15):
+                        if index+1 < len(models):  # Hack to prevent failures in bad files
+                            nxt = models[index+1]
+                            if(nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0 
+                               and nxt[1] != '' and (not nxt[1].isupper() or not string_has(nxt[1], RES_KEYS))):
+                                if remarks:
+                                    remarks = remarks + '\n' + nxt[1]
+                                else:
+                                    remarks = nxt[1]
+                                index = index + 1
+                            else:
+                                break
+                        else:
+                            break
+                elif comment_loc == UP:
+                    for rem_index in range(1,15):
+                        if index-rem_index > 0:  # Hack to prevent failures in bad files
+                            prv = models[index-rem_index]
+                            if(prv[0] == prv[2] == '' and prv[3] == prv[4] == prv[5] == 0
+                               and prv[1] != '' and (not prv[1].isupper() or not string_has(prv[1], RES_KEYS))
+                               and index-rem_index > item_start):
+                                if remarks:
+                                    remarks = prv[1] + '\n' + remarks
+                                else:
+                                    remarks = prv[1]
+                            else:
+                                break
+                        else:
+                            break
                     
                 # Set resource model
                 res = ResourceItemModel(code = code,
@@ -218,7 +257,20 @@ def parse_analysis(models, item, index, set_code=False):
 
                 index = index + 1
                 continue
-
+            
+            # If remark item, skip
+            elif (model[0] == model[2] == '' and model[3] == model[4] == model[5] == 0
+                  and model[1] != '' 
+                  and (not model[1].isupper() or not string_has(model[1], RES_KEYS))):
+                index = index + 1
+                continue
+            
+            # If blank line, skip
+            elif (model[0] == model[1] == model[2] == ''
+                  and model[3] == model[4] == model[5] == 0):
+                index = index + 1
+                continue
+            
             # Any other item
             else:
                 group = None
