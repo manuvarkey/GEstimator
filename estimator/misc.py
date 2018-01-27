@@ -840,7 +840,7 @@ class ProgressWindow:
                 return False
             GLib.idle_add(callback)
         else:
-            self.label.set_markup(message)
+            GLib.idle_add(self.label.set_markup, message)
         
 
 class Command(object):
