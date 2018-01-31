@@ -165,6 +165,11 @@ class ScheduleView:
         # Clear store
         self.store.clear()
         
+        # Metrics to be returned on mark
+        with_mismatch = 0
+        without_analysis = 0
+        item_count = 0
+        
         # Fill in data in treeview
         sum_total = 0
         sch_table = self.database.get_item_table()
@@ -208,8 +213,11 @@ class ScheduleView:
                     if sch_item.results:
                         if sch_item.get_ana_rate() != Currency(item[3]):
                             colour = misc.MEAS_COLOR_LOCKED
+                            with_mismatch = with_mismatch + 1
                     else:
                         colour = misc.MEAS_COLOR_LOCKED
+                        without_analysis = without_analysis + 1
+                    item_count = item_count + 1
                 
                 item_row = data + bools + [colour, full_description]
                 item_iter = self.store.append(category_iter, item_row)
@@ -245,8 +253,11 @@ class ScheduleView:
                         if sch_item.results:
                             if sch_item.get_ana_rate() != Currency(sub_item[3]):
                                 colour = misc.MEAS_COLOR_LOCKED
+                                with_mismatch = with_mismatch + 1
                         else:
                             colour = misc.MEAS_COLOR_LOCKED
+                            without_analysis = without_analysis + 1
+                        item_count = item_count + 1
                     
                     row = data + bools + [colour, full_description]
                     self.store.append(item_iter, row)
@@ -298,6 +309,10 @@ class ScheduleView:
                         return
             path = Gtk.TreePath.new_from_indices(select_item)
             self.tree.set_cursor(path)
+            
+        # Return metrics
+        if mark:
+            return [item_count, with_mismatch, without_analysis]
             
     def insert_row_from_database(self, path, code):
         

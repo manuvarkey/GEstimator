@@ -449,8 +449,9 @@ class MainWindow:
             
     def on_sch_mark_clicked(self, button):
         """Add empty row to schedule view"""
-        self.schedule_view.update_store(mark=True)
-        self.display_status(misc.INFO, "Items with rate mismatch marked")
+        [item_count, with_mismatch, without_analysis] = self.schedule_view.update_store(mark=True)
+        message = "Items with rates differing from anaysis rates marked. Total: {}, Mismatch: {}, Missing: {}". format(item_count, with_mismatch, without_analysis)
+        self.display_status(misc.INFO, message)
         
     def on_sch_colour_clicked(self, button):
         """Mark selection of schedule view with colour"""
