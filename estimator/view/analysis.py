@@ -181,7 +181,7 @@ class AnalysisView:
         path = eval(self.store[pathiter][8])
         
         try:    
-            evaluated = round(eval(newtext), 4)
+            evaluated = round(eval(newtext), 6)
         except:
             evaluated = 0
         
