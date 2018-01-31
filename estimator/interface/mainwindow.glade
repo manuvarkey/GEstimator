@@ -1431,7 +1431,7 @@
                   <object class="GtkToolButton" id="toolbutton_ana_copy">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Copy item</property>
+                    <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Copy</property>
                     <property name="use_underline">True</property>
@@ -1448,7 +1448,7 @@
                   <object class="GtkToolButton" id="toolbutton_ana_paste">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Paste Item</property>
+                    <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Paste</property>
                     <property name="use_underline">True</property>
@@ -1521,7 +1521,7 @@
                   <object class="GtkToolButton" id="toolbutton_ana_delete">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Delete Selected Items</property>
+                    <property name="tooltip_markup" translatable="yes">Delete Selected Items  &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Delete</property>
                     <property name="use_underline">True</property>
