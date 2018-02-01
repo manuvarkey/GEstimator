@@ -980,6 +980,21 @@ def open_file(filename):
         subprocess.call(('xdg-open', abs_path(filename)))
     elif platform.system() == 'Windows':
         os.startfile(abs_path(filename))
+        
+def get_file_path_from_dnd_dropped_uri(uri):
+    # Get the path to file
+    path = ""
+    if uri.startswith('file:\\\\\\'): # windows
+        path = uri[8:] # 8 is len('file:///')
+    elif uri.startswith('file://'): # nautilus, rox
+        path = uri[7:] # 7 is len('file://')
+    elif uri.startswith('file:'): # xffm
+        path = uri[5:] # 5 is len('file:')
+
+    path = url2pathname(path) # escape special chars
+    path = path.strip('\r\n\x00') # remove \r\n and NULL
+
+    return path
 
 def human_code(code):
     """Returns a weighted value for sorting codes"""

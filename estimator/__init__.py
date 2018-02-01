@@ -214,10 +214,15 @@ class MainWindow:
                 # Open database
                 self.sch_database.open_database(self.filename_temp)
                 self.project_active = True
-                self.update()
+                # Clear stack
+                self.stack.clear()
+                self.stack.savepoint()
                 # Set window title
                 window_title = self.filename + ' - ' + misc.PROGRAM_NAME
                 self.window.set_title(window_title)
+                # Refresh
+                self.update()
+                # Display message
                 self.display_status(misc.INFO, 'Project opened successfully')
         except:
             log.exception("MainWindow - on_open_project_clicked - Error opening project file - " + self.filename)
@@ -844,7 +849,39 @@ class MainWindow:
             self.schedule_view.start_search()
         else:
             self.resource_view.start_search()
-        
+            
+    def drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
+        if target_type == 80:
+            data_str = selection.get_data().decode('utf-8')
+            uri = data_str.strip('\r\n\x00')
+            file_uri = uri.split()[0] # we may have more than one file dropped
+            filename = misc.get_file_path_from_dnd_dropped_uri(file_uri)
+            
+            if os.path.isfile(filename):
+                # Ask confirmation from user
+                if self.stack.haschanged():
+                    message = 'You have unsaved changes which will be lost if you continue.\n Are you sure you want to discard these changes ?'
+                    title = 'Confirm Open'
+                    dialogWindow = Gtk.MessageDialog(self.window,
+                                             Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                             Gtk.MessageType.QUESTION,
+                                             Gtk.ButtonsType.YES_NO,
+                                             message)
+                    dialogWindow.set_transient_for(self.window)
+                    dialogWindow.set_title(title)
+                    dialogWindow.set_default_response(Gtk.ResponseType.NO)
+                    dialogWindow.show_all()
+                    response = dialogWindow.run()
+                    dialogWindow.destroy()
+                    if response != Gtk.ResponseType.YES:
+                        # Do not open file
+                        log.info('MainWindow - drag_data_received - Cancelled by user')
+                        return
+                        
+                # Open file
+                self.on_open_project_clicked(None, filename)
+                log.info('MainApp - drag_data_received  - opnened file ' + filename)
+                    
 
     def __init__(self, id=0):
         log.info('MainWindow - Initialising')
@@ -946,6 +983,12 @@ class MainWindow:
                                                         
         # Main stack
         self.stack_main = self.builder.get_object("stack_main")
+        
+        # Darg-Drop support for files
+        self.window.drag_dest_set( Gtk.DestDefaults.DROP,
+                  [Gtk.TargetEntry.new("text/uri-list", 0, 80)], 
+                  Gdk.DragAction.COPY)
+        self.window.connect('drag-data-received', self.drag_data_received)
         
         self.window.show_all()
         
