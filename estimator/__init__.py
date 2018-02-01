@@ -985,7 +985,7 @@ class MainWindow:
         self.stack_main = self.builder.get_object("stack_main")
         
         # Darg-Drop support for files
-        self.window.drag_dest_set( Gtk.DestDefaults.DROP,
+        self.window.drag_dest_set( Gtk.DestDefaults.MOTION | Gtk.DestDefaults.HIGHLIGHT | Gtk.DestDefaults.DROP,
                   [Gtk.TargetEntry.new("text/uri-list", 0, 80)], 
                   Gdk.DragAction.COPY)
         self.window.connect('drag-data-received', self.drag_data_received)
