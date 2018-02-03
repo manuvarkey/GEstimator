@@ -130,8 +130,8 @@ class ProgramSettings:
         response = dialog.run()
         
         # Retreive values
-        model_ret_modify = self.analysis_view_modify.exit()
-        model_ret_default = self.analysis_view_default.exit()
+        (model_ret_modify, update_flag) = self.analysis_view_modify.exit()
+        (model_ret_default, update_flag) = self.analysis_view_default.exit()
         
         if response == 1:
             # Set settings

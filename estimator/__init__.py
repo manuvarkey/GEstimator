@@ -990,12 +990,12 @@ class MainWindow:
                   Gdk.DragAction.COPY)
         self.window.connect('drag-data-received', self.drag_data_received)
         
-        self.window.show_all()
-        
         # Setup schedule dialog for selecting database items
         log.info('Setting up Dialog windows')
         self.sch_dialog = view.schedule.SelectScheduleDialog(self.window, self.sch_database, self.program_settings)
         self.res_select_dialog = view.resource.SelectResourceDialog(self.window, self.sch_database)
+        
+        self.window.show_all()
         log.info('Dialog windows initialised')
         
         
