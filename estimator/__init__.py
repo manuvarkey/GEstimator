@@ -881,14 +881,8 @@ class MainWindow:
                 # Open file
                 self.on_open_project_clicked(None, filename)
                 log.info('MainApp - drag_data_received  - opnened file ' + filename)
-                    
-
-    def __init__(self, id=0):
-        log.info('MainWindow - Initialising')
-
-        # Check for project active status
-        self.project_active = False
-        self.id = id
+                
+    def initialise(self):
         # Open temporary file for database
         (temp_fpointer, self.filename_temp) = tempfile.mkstemp(prefix=misc.PROGRAM_NAME+'_tempproj_' +str(self.id) + '_')
         
@@ -956,12 +950,6 @@ class MainWindow:
 
         # Other variables
         self.filename = None
-
-        # Setup main window
-        self.builder = Gtk.Builder()
-        self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
-        self.window = self.builder.get_object("window_main")
-        self.builder.connect_signals(self)
         
         # Initialise resource view
         box_res = self.builder.get_object("box_res")
@@ -996,7 +984,24 @@ class MainWindow:
         self.res_select_dialog = view.resource.SelectResourceDialog(self.window, self.sch_database)
         
         self.window.show_all()
-        log.info('Dialog windows initialised')
+        self.splash.exit()
+        log.info('Dialog windows initialised')            
+
+    def __init__(self, id=0):
+        log.info('MainWindow - Initialising')
+        
+        # Setup main window
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
+        self.window = self.builder.get_object("window_main")
+        self.builder.connect_signals(self)
+
+        # Check for project active status
+        self.project_active = False
+        self.id = id
+        
+        # Start splash screen
+        self.splash = misc.SplashScreen(self.initialise, misc.abs_path("interface", "splash.png"))
         
         
 class MainApp(Gtk.Application):
@@ -1053,7 +1058,6 @@ class MainApp(Gtk.Application):
         self.window = MainWindow(len(self.windows))
         self.windows.append(self.window)
         self.add_window(self.window.window)
-        self.window.window.show()
         
         log.info('MainApp - do_activate - End')
         
