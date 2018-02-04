@@ -983,8 +983,8 @@ class MainWindow:
         self.sch_dialog = view.schedule.SelectScheduleDialog(self.window, self.sch_database, self.program_settings)
         self.res_select_dialog = view.resource.SelectResourceDialog(self.window, self.sch_database)
         
-        self.window.show_all()
         self.splash.exit()
+        self.window.show_all()
         log.info('Dialog windows initialised')            
 
     def __init__(self, id=0):

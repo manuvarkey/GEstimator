@@ -846,10 +846,11 @@ class ProgressWindow:
 class SplashScreen:
     def __init__(self, callback, image_filename, min_splash_time=0 ):
         self.image = Gtk.Image.new_from_file(image_filename )
-        self.window = Gtk.ApplicationWindow(Gtk.WindowType.TOPLEVEL)
+        self.window = Gtk.Window(Gtk.WindowType.TOPLEVEL)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.set_type_hint(Gdk.WindowTypeHint.SPLASHSCREEN)
         self.window.set_gravity(Gdk.Gravity.CENTER)
+        self.window.set_auto_startup_notification(False)
         self.window.set_decorated(False)
         self.window.add(self.image)
         self.min_splash_time   = time.time() + min_splash_time
