@@ -983,7 +983,9 @@ class MainWindow:
         self.sch_dialog = view.schedule.SelectScheduleDialog(self.window, self.sch_database, self.program_settings)
         self.res_select_dialog = view.resource.SelectResourceDialog(self.window, self.sch_database)
         
-        self.splash.exit()
+        if self.id == 0:
+            self.splash.exit()
+            
         self.window.show_all()
         log.info('Dialog windows initialised')            
 
@@ -1000,8 +1002,11 @@ class MainWindow:
         self.project_active = False
         self.id = id
         
-        # Start splash screen
-        self.splash = misc.SplashScreen(self.initialise, misc.abs_path("interface", "splash.png"))
+        if id == 0:
+            # Start splash screen
+            self.splash = misc.SplashScreen(self.initialise, misc.abs_path("interface", "splash.png"))
+        else:
+            self.initialise()
         
         
 class MainApp(Gtk.Application):

@@ -1055,7 +1055,7 @@ class ResourceUsageDialog():
                 basicrate = item[4]
                 vat = item[5] if item[5] is not None else 0
                 discount = item[6] if item[6] is not None else 0
-                rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
+                rate = Currency(Decimal(basicrate)*(1+Decimal(vat)/100)*(1-Decimal(discount)/100))
                 amount = Currency(rate*qty)
                 
                 items_str = [code, description, unit, 

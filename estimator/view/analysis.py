@@ -282,6 +282,9 @@ class AnalysisView:
                             model_copy.add_ana_res(res_item, path[0])
                             selection_path = [path[0], None]
                     self.modify_model(model_copy, "Add resource from library at path:'{}' ".format(path))
+                    # Set flag
+                    self.res_needs_refresh = True
+                    
                     self.set_selection(selection_path)
 
     def add_res(self):
