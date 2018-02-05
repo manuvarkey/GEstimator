@@ -9,13 +9,16 @@
     <property name="version">1.4</property>
     <property name="copyright" translatable="yes">Copyright © 2017 Manu Varkey</property>
     <property name="comments" translatable="yes">
-GEstimator is a simple civil estimation software written in Python and GTK+. GEstimator can prepare estimates along with rate analysis and supports multiple databases.
+GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.
 </property>
     <property name="website">https://github.com/manuvarkey/GEstimator</property>
     <property name="authors">Manu Varkey
 (manuvarkey@gmail.com)
 Executive Engineer (Electrical)
-Central Public Works Department</property>
+Central Public Works Department
+MoUDH, Govt of India</property>
+    <property name="documenters">Anupama Varghese T
+(anupama264@gmail.com)</property>
     <property name="logo_icon_name">applications-engineering-symbolic</property>
     <property name="license_type">gpl-3-0</property>
     <child internal-child="vbox">

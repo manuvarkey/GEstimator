@@ -387,22 +387,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_project_save">
-                        <property name="label">gtk-save</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                        <property name="use_stock">True</property>
-                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkButton" id="button_refresh_project">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -442,6 +426,22 @@
                       <packing>
                         <property name="pack_type">end</property>
                         <property name="position">5</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="button_project_save">
+                        <property name="label">gtk-save</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                      <packing>
+                        <property name="pack_type">end</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
@@ -1188,7 +1188,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Cencel analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
+                    <property name="tooltip_markup" translatable="yes">Cancel changes to analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
                     <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
                     <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                     <style>
@@ -1198,11 +1198,11 @@
                 </child>
                 <child>
                   <object class="GtkButton">
-                    <property name="label" translatable="yes">Save</property>
+                    <property name="label" translatable="yes">Apply</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Save analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
+                    <property name="tooltip_markup" translatable="yes">Apply changes to analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
                     <property name="image_position">right</property>
                     <signal name="clicked" handler="on_ana_save" swapped="no"/>
                     <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
