@@ -167,6 +167,9 @@ class ScheduleView:
         
         # Metrics to be returned on mark
         with_mismatch = 0
+        delta1 = 0
+        delta2 = 0
+        delta3 = 0
         without_analysis = 0
         item_count = 0
         
@@ -211,12 +214,25 @@ class ScheduleView:
                 if mark and item_unit !='':
                     sch_item = self.database.get_item(code)
                     if sch_item.results:
-                        if sch_item.get_ana_rate() != Currency(item[3]):
+                        delta = abs(Currency(sch_item.get_ana_rate()) - Currency(item[3]))
+                        if delta == 0:
+                            colour = misc.MEAS_COLOR_NORMAL
+                        elif delta <= 0.1:
                             colour = misc.MEAS_COLOR_LOCKED
                             with_mismatch = with_mismatch + 1
+                            delta1 = delta1 + 1
+                        elif delta <= 1:
+                            colour = misc.MEAS_COLOR_LOCKED_L1
+                            with_mismatch = with_mismatch + 1
+                            delta2 = delta2 + 1
+                        else:
+                            colour = misc.MEAS_COLOR_LOCKED_L2
+                            with_mismatch = with_mismatch + 1
+                            delta3 = delta3 + 1
                     else:
-                        colour = misc.MEAS_COLOR_LOCKED
+                        colour = misc.MEAS_COLOR_MISSING
                         without_analysis = without_analysis + 1
+                        
                     item_count = item_count + 1
                 
                 item_row = data + bools + [colour, full_description]
@@ -251,11 +267,23 @@ class ScheduleView:
                     if mark and unit !='':
                         sch_item = self.database.get_item(code)
                         if sch_item.results:
-                            if sch_item.get_ana_rate() != Currency(sub_item[3]):
+                            delta = abs(Currency(sch_item.get_ana_rate()) - Currency(sub_item[3]))
+                            if delta == 0:
+                                colour = misc.MEAS_COLOR_NORMAL
+                            elif delta <= 0.1:
                                 colour = misc.MEAS_COLOR_LOCKED
                                 with_mismatch = with_mismatch + 1
+                                delta1 = delta1 + 1
+                            elif delta <= 1:
+                                colour = misc.MEAS_COLOR_LOCKED_L1
+                                with_mismatch = with_mismatch + 1
+                                delta2 = delta2 + 1
+                            else:
+                                colour = misc.MEAS_COLOR_LOCKED_L2
+                                with_mismatch = with_mismatch + 1
+                                delta3 = delta3 + 1
                         else:
-                            colour = misc.MEAS_COLOR_LOCKED
+                            colour = misc.MEAS_COLOR_MISSING
                             without_analysis = without_analysis + 1
                         item_count = item_count + 1
                     
@@ -312,7 +340,7 @@ class ScheduleView:
             
         # Return metrics
         if mark:
-            return [item_count, with_mismatch, without_analysis]
+            return [item_count, with_mismatch, delta1, delta2, delta3, without_analysis]
             
     def insert_row_from_database(self, path, code):
         
@@ -522,7 +550,10 @@ class ScheduleView:
         codes = self.get_selected_codes()
         if codes:
             if self.database.update_item_colour(codes, colour):
-                self.update_store()
+                selected = self.get_selected(include_category=False)
+                for path, code in selected.items():
+                    iterator = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
+                    self.store[iterator][14] = colour
                 return True
             else:
                 return False

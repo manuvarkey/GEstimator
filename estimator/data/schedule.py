@@ -1659,9 +1659,14 @@ class ScheduleDatabase:
                 sch = ScheduleTable.select().where(ScheduleTable.code == code).get()
             except ScheduleTable.DoesNotExist:
                 return False
-
+                
             old_values[code] = sch.colour
-            sch.colour = colour
+            
+            # If white clear colour
+            if colour != '#FFFFFF':
+                sch.colour = colour
+            else:
+                sch.colour = None
         
             try:
                 sch.save()
