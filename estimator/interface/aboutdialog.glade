@@ -11,7 +11,7 @@
     <property name="comments" translatable="yes">
 GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.
 </property>
-    <property name="website">https://github.com/manuvarkey/GEstimator</property>
+    <property name="website">https://manuvarkey.github.io/GEstimator/</property>
     <property name="authors">Manu Varkey
 (manuvarkey@gmail.com)
 Executive Engineer (Electrical)

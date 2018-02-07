@@ -4,8 +4,8 @@ block_cipher = None
 
 added_files = [
          ( 'estimator/interface/*.glade', 'estimator/interface' ),
-         ( 'estimator/database/*.eproj', 'estimator/database' ),
-         ( 'estimator/documentation/*.pdf', 'estimator/documentation' )
+         ( 'estimator/interface/*.png', 'estimator/interface' ),
+         ( 'estimator/database/*.eproj', 'estimator/database' )
 		 ]
 
 a = Analysis(['run.py'],

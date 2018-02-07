@@ -660,10 +660,9 @@ class ScheduleDatabase:
                 return [False, "Newer project file version found. Please use the latest application version."]
             elif proj_version[0] == 'GESTIMATOR_FILE_REFERENCE_VER_1':
                 self.migrate_from_ver_1(filename)
-                
-            cursor.execute('''UPDATE ProjectTable SET value = ? WHERE key = "file_version"''', (misc.PROJECT_FILE_VER,))
-            connection.commit()
-            connection.close()
+                cursor.execute('''UPDATE ProjectTable SET value = ? WHERE key = "file_version"''', (misc.PROJECT_FILE_VER,))
+                connection.commit()
+                connection.close()
         except:
             return [False, 'Error validating file. unknown/corrupt file.']
         

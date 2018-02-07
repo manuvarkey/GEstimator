@@ -1002,11 +1002,16 @@ def posix_path(*args):
         else:
             return path
             
-def open_file(filename):
+def open_file(filename, abs=True):
+    if abs:
+        filename_mod = abs_path(filename)
+    else:
+        filename_mod = filename
+        
     if platform.system() == 'Linux':
-        subprocess.call(('xdg-open', abs_path(filename)))
+        subprocess.call(('xdg-open', filename_mod))
     elif platform.system() == 'Windows':
-        os.startfile(abs_path(filename))
+        os.startfile(filename_mod)
         
 def get_file_path_from_dnd_dropped_uri(uri):
     # Get the path to file

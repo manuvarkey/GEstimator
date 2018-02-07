@@ -1102,7 +1102,7 @@ class MainApp(Gtk.Application):
     def on_help(self, action, param):
         """Launch help file"""
         log.info('onHelpClick - Launch Help file')
-        misc.open_file(misc.abs_path('documentation', 'manual.pdf'))
+        misc.open_file('https://manuvarkey.github.io/GEstimator/', abs=False)
         
     def on_new(self, action, param):
         """Launch a new instance of the application"""
