@@ -987,6 +987,8 @@ class MainWindow:
             self.splash.exit()
             
         self.window.show_all()
+        # Set flag for other processes
+        self.finished_setting_up = True
         log.info('Dialog windows initialised')            
 
     def __init__(self, id=0):
@@ -1001,6 +1003,9 @@ class MainWindow:
         # Check for project active status
         self.project_active = False
         self.id = id
+        
+        # Set flag for other processes
+        self.finished_setting_up = False
         
         if id == 0:
             # Start splash screen
@@ -1067,21 +1072,38 @@ class MainApp(Gtk.Application):
         log.info('MainApp - do_activate - End')
         
     def do_open(self, files, hint):
+        
+        def call_open(window, filename):
+            if window.finished_setting_up:
+                window.on_open_project_clicked(None, filename)
+                log.info('MainApp - do_open  - opened file ' + filename)
+                return False
+            else:
+                return True
+        
         log.info('MainApp - do_open - Start')
         self.activate()
         if len(files) > 1:
             filename = files[0].get_path()
-            self.window.on_open_project_clicked(None, filename)
-            log.info('MainApp - do_open  - opnened file ' + filename)
+            GLib.timeout_add(500, call_open, self.window, filename)
         log.info('MainApp - do_open  - End')
         return 0
     
     def do_command_line(self, command_line):
+        
+        def call_open(window, filename):
+            if window.finished_setting_up:
+                window.on_open_project_clicked(None, filename)
+                log.info('MainApp - do_command_line  - opened file ' + filename)
+                return False
+            else:
+                return True
+                
         log.info('MainApp - do_command_line - Start')
         options = command_line.get_arguments()
         self.activate()
         if len(options) > 1:
-            self.window.on_open_project_clicked(None, options[1])
+            GLib.timeout_add(500, call_open, self.window, options[1])
         log.info('MainApp - do_command_line - End')
         return 0
         
