@@ -4,11 +4,11 @@
   <head>
     <meta charset='utf-8'>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <meta name="description" content="CMB Automiser : Computerised quantity accounting and cost billing application for use in public works organisations.">
+    <meta name="description" content="GEstimator : Computerised quantity accounting and cost billing application for use in public works organisations.">
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>CMB Automiser</title>
+    <title>GEstimator</title>
   </head>
 
   <body>
@@ -16,15 +16,14 @@
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
         <header class="inner">
-          <a id="forkme_banner" href="https://github.com/manuvarkey/cmbautomiser">View on GitHub</a>
+          <a id="forkme_banner" href="https://github.com/manuvarkey/GEstimator">View on GitHub</a>
 
-          <h1 id="project_title">CMB Automiser</h1>
-          <h2 id="project_tagline">Computerised quantity accounting and cost billing application for use in public works organisations.</h2>
+          <h1 id="project_title">GEstimator</h1>
+          <h2 id="project_tagline">A civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.</h2>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/manuvarkey/cmbautomiser/archive/v3.1.3.zip">Download this project as a .zip file</a>
               <a class="tar_download_link" href="https://github.com/manuvarkey/cmbautomiser/archive/v3.1.3.tar.gz">Download this project as a tar.gz file</a>
-              <a class="rpm_download_link" href="https://drive.google.com/file/d/0B_3LTmw_-U5fNVVZZVR3TElHY3c/view?usp=sharing">Download Fedora RPM</a>
               <a class="exe_download_link" href="https://drive.google.com/file/d/0B_3LTmw_-U5fUWphaTlHVVpReW8/view?usp=sharing">Download Windows Installer</a>
             </section>
         </header>
@@ -33,25 +32,22 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <p>CMB Automiser is a computerised quantity accounting and cost billing application for use in public works organisations. It allows the user to perform these objectives with an intuitive interface and logical work flow. The results are presented in fully formatted, cross referenced pdf documents.</p>
+        <p>GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.</p>
 
-<p>The program is organised in three tabs/views - schedule, measurement and bill views. Schedule view implements an interface to input the agreement schedule/import the schedule from a .xlsx file. Measurement view allows input/manipulation of details of CMBs and includes a number of convenient measurement item patterns. The Bill view module allows billing of selected measurement items and implements part rates, excess rates for deviated items, custom previous bill support etc.</p>
+<p>The program is organised in two tabs - <em>Schedule Items</em> and <em>Resource Items</em>. <em>Schedule Items</em> implements an interface to input the estimate schedule/import the schedule from a .xlsx file. On editing (<code>Edit</code>) any schedule item an <em>Analysis View</em> is displayed allowing edit of the rate analysis. <em>Resource Items</em> allows input/manipulation of the resources like material, labour and tools/plants upon which the rate analysis will be framed.</p>
 
-<p>Both CMBs and Bills can be rendered into a pdf /.xlsx document from the respective modules. In addition Bill view also allows the generation of the deviation statement as a .xlsx file.</p>
+<p>The estimates can be rendered into a .xlsx document from <code>Menu->Export...</code>. The exported sheet includes - the schedule of rates for the work,  schedule of resources, resource usage for the work and analysis of rates for various items of work.</p>
 
 <h2>
 <a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
 
-<p><strong>CMB Automiser</strong> binaries can be downloaded from the following website
-<a href="http://manuiisc.blogspot.in/p/blog-page.html">CMB Automiser</a></p>
-
-<p>Source code can be downloaded from the following website
-<a href="https://github.com/manuvarkey/cmbautomiser/">GitHub</a></p>
+<p>Latest source code and binaries for <strong>GEstimator</strong> can be downloaded from this page. Older versions can be obtained from 
+<a href="https://github.com/manuvarkey/gestimator/">GitHub</a></p>
 
 <h3>
 <a id="source-installation" class="anchor" href="#source-installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Source installation</h3>
 
-<p>Application can be installed using <code>python setup.py install</code>. It has been tested with Python 3.4 and TeX Live 2014, and has the following extra dependencies.</p>
+<p>Application can be installed using <code>python setup.py install</code>. It has been tested with Python 3.4 and Gtk 3.18, and has the following extra dependencies.</p>
 
 <h4>
 <a id="python-modules" class="anchor" href="#python-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Python Modules</h4>
@@ -60,24 +56,23 @@
 <li>
 <em>undo</em> - Included along with distribution.</li>
 <li>
-<em>openpyxl</em> - Included along with distribution.</li>
+<em>openpyxl (v2.4.9)</em> - Not included</li>
 <li>
-<em>jdcal</em> - Included along with distribution.</li>
+<em>appdirs (v1.4.3)</em> - Not included</li>
 <li>
-<em>libxml</em> - Not included</li>
+<em>jdcal</em> - Not included</li>
+<li>
+<em>et_xmlfile</em> - Not included</li>
+<li>
+<em>peewee (v2.10.2)</em> - Not included</li>
 </ol>
-
-<h4>
-<a id="latex-modules" class="anchor" href="#latex-modules" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Latex Modules</h4>
-
-<p><em>xr-hyper, hyperref, longtable, tabu, lastpage, geometry, hyphenat, xstring, forloop, fancyhdr</em></p>
       </section>
     </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">CMB Automiser maintained by <a href="https://github.com/manuvarkey">manuvarkey</a></p>
+        <p class="copyright">GEstimator maintained by <a href="https://github.com/manuvarkey">manuvarkey</a></p>
         <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
