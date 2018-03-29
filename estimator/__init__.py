@@ -511,33 +511,36 @@ class MainWindow:
         spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
         models = spreadsheet_dialog.run()
         
-        items = []
-        resources = []
-        for index, model in enumerate(models):
-            if model[0] != '' and model[1] != '' and model[2] != '':
-                reference = model[6] if model[6] != '' else None
-                category = model[7] if model[7] != '' else None
-                try:
-                    rate = Decimal(model[3])
-                    vat = Decimal(model[4])
-                    discount = Decimal(model[5])
-                    res = data.schedule.ResourceItemModel(code = model[0],
-                                        description = model[1],
-                                        unit = model[2],
-                                        rate = rate,
-                                        vat = vat,
-                                        discount = discount,
-                                        reference = reference,
-                                        category = category)
-                    resources.append(res)
-                except:
-                    log.warning('MainWindow - on_import_res_clicked - Error in data' + str(index))
-        self.sch_database.insert_resource_multiple(resources, preserve_structure=True)
-        self.display_status(misc.INFO, str(index)+' records processed')
-        log.info('MainWindow - on_import_res_clicked - data added - ' + str(index) + ' records')
-        
-        self.update()
-        self.display_status(misc.INFO, str(index) + " resource items inserted")
+        if models:
+            items = []
+            resources = []
+            for index, model in enumerate(models):
+                if model[0] != '' and model[1] != '' and model[2] != '':
+                    reference = model[6] if model[6] != '' else None
+                    category = model[7] if model[7] != '' else None
+                    try:
+                        rate = Decimal(model[3])
+                        vat = Decimal(model[4])
+                        discount = Decimal(model[5])
+                        res = data.schedule.ResourceItemModel(code = model[0],
+                                            description = model[1],
+                                            unit = model[2],
+                                            rate = rate,
+                                            vat = vat,
+                                            discount = discount,
+                                            reference = reference,
+                                            category = category)
+                        resources.append(res)
+                    except:
+                        log.warning('MainWindow - on_import_res_clicked - Error in data' + str(index))
+            self.sch_database.insert_resource_multiple(resources, preserve_structure=True)
+            self.display_status(misc.INFO, str(index)+' records processed')
+            log.info('MainWindow - on_import_res_clicked - data added - ' + str(index) + ' records')
+            
+            self.update()
+            self.display_status(misc.INFO, str(index) + " resource items inserted")
+        else:
+            log.info('MainWindow - on_import_res_clicked - cancelled')
 
     def on_import_sch_clicked(self, button):
         """Imports schedule from spreadsheet selected by 'filechooserbutton_schedule' into schedule view"""
