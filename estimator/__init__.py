@@ -164,7 +164,7 @@ class MainWindow:
         """Open project selected by  the user"""
         
         if filename:
-            self.filename = misc.posix_path(filename)
+            self.filename = filename
         else:
             # Create a filechooserdialog to open:
             # The arguments are: title of the window, parent_window, action,
@@ -187,7 +187,7 @@ class MainWindow:
             # If response is "ACCEPT" (the button "Save" has been clicked)
             if response_id == Gtk.ResponseType.ACCEPT:
                 # get filename and set project as active
-                self.filename = misc.posix_path(open_dialog.get_filename())
+                self.filename = open_dialog.get_filename()
                 # Destroy dialog
                 open_dialog.destroy()
             # If response is "CANCEL" (the button "Cancel" has been clicked)

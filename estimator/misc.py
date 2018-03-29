@@ -978,7 +978,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         return None
         
 def uri_to_file(uri):
-    return posix_path(url2pathname(urlparse(uri).path))
+    return url2pathname(urlparse(uri).path)
 
 def abs_path(*args):
     """Returns absolute path to the relative path provided"""
