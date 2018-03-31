@@ -571,8 +571,8 @@ class ScheduleTable(BaseModelSch):
     qty = peewee.DecimalField(null = True)
     remarks = peewee.CharField(null = True)
     ana_remarks = peewee.CharField(null = True)
-    category = peewee.ForeignKeyField(ScheduleCategoryTable, null = True, on_delete = 'CASCADE', related_name='scheduleitems')
-    parent = peewee.ForeignKeyField('self', on_delete = 'CASCADE', null=True, related_name='children')
+    category = peewee.ForeignKeyField(ScheduleCategoryTable, null = True, on_delete = 'CASCADE', backref='scheduleitems')
+    parent = peewee.ForeignKeyField('self', on_delete = 'CASCADE', null=True, backref='children')
     order = peewee.IntegerField()
     suborder = peewee.IntegerField(null = True)
     colour = peewee.CharField(null = True)
@@ -585,12 +585,12 @@ class ResourceTable(BaseModelSch):
     vat = peewee.DecimalField(decimal_places = 2, auto_round = True, null = True)
     discount = peewee.DecimalField(decimal_places = 2, auto_round = True, null = True)
     reference = peewee.CharField(null = True)
-    category = peewee.ForeignKeyField(ResourceCategoryTable, null = True, on_delete = 'CASCADE', related_name='resources')
+    category = peewee.ForeignKeyField(ResourceCategoryTable, null = True, on_delete = 'CASCADE', backref='resources')
     order = peewee.IntegerField()
 
 class SequenceTable(BaseModelSch):
     id_seq = peewee.IntegerField()
-    id_sch = peewee.ForeignKeyField(ScheduleTable, on_delete = 'CASCADE', related_name='sequences')
+    id_sch = peewee.ForeignKeyField(ScheduleTable, on_delete = 'CASCADE', backref='sequences')
     itemtype = peewee.IntegerField()
     value = peewee.DecimalField(null = True)
     code = peewee.CharField(null = True)
@@ -600,13 +600,27 @@ class SequenceTable(BaseModelSch):
         indexes = ((('id_seq', 'id_sch'),True),)
 
 class ResourceItemTable(BaseModelSch):
-    id_sch = peewee.ForeignKeyField(ScheduleTable, on_delete = 'CASCADE', related_name='resourceitems')
-    id_seq = peewee.ForeignKeyField(SequenceTable, on_delete = 'CASCADE', related_name='resourceitems')
-    id_res = peewee.ForeignKeyField(ResourceTable, on_delete = 'CASCADE', related_name='resourceitems')
+    id_sch = peewee.ForeignKeyField(ScheduleTable, on_delete = 'CASCADE', backref='resourceitems')
+    id_seq = peewee.ForeignKeyField(SequenceTable, on_delete = 'CASCADE', backref='resourceitems')
+    id_res = peewee.ForeignKeyField(ResourceTable, on_delete = 'CASCADE', backref='resourceitems')
     qty = peewee.DecimalField()
     remarks = peewee.CharField(null = True)
 
+    
+class Using(object):
+    """Dynamically swapout databases"""
 
+    def __init__(self, db, tables):
+        self.db = db
+        self.tables = tables
+
+    def __enter__(self):
+        self.db.bind(self.tables)
+
+    def __exit__(self, *args):
+        global database
+        database.bind(self.tables)
+            
 # Data base handler
 
 class ScheduleDatabase:
@@ -699,25 +713,26 @@ class ScheduleDatabase:
             if ret_code[0] == True:
                 # Add library
                 library = peewee.SqliteDatabase(filename)
-                with peewee.Using(library, [ProjectTable]):
+                with Using(library, [ProjectTable]):
                     name = self.get_project_settings()['project_name']
                 log.info('ScheduleDatabase - add_library - library added - ' + name)
             else:
                 log.error('ScheduleDatabase - add_library - Error validating file')
                 return False
-        except:
-            log.error('ScheduleDatabase - add_library - Error opening file')
+        except Exception as e:
+            log.error('ScheduleDatabase - add_library - Error opening file - ' + str(e))
             return False
         self.libraries[name] = library
         return True
         
     def using_library(self, name):
         """Return context manager for using database name"""
-        if name in self.libraries:
-            tables = [ProjectTable, ScheduleTable, ResourceTable, 
+        tables = [ProjectTable, ScheduleTable, ResourceTable, 
                   ScheduleCategoryTable, ResourceCategoryTable,
                   SequenceTable, ResourceItemTable]
-            return peewee.Using(self.libraries[name], tables)
+                  
+        if name in self.libraries:
+            return Using(self.libraries[name], tables)
         else:
             return None
             

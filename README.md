@@ -21,10 +21,10 @@ Application can be installed using `python setup.py install`. It has been tested
 Python Modules:
 
 * undo - Included along with distribution.
-* openpyxl (v2.4.9) - Not included
+* openpyxl (v2.5.1) - Not included
 * appdirs (v1.4.3) - Not included
 * jdcal - Not included
 * et_xmlfile - Not included
-* peewee (v2.10.2) - Not included
+* peewee (v3.2.0) - Not included
 
 ### GTK3  (v3.18)
