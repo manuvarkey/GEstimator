@@ -2562,7 +2562,8 @@ class ScheduleDatabase:
                     code = item['code']
                     description = item['description']
                     spreadsheet.append_data([[code, description]], bold=True)
-                    s_row_start = s_row = s_row + 1
+                    s_row_start = s_row
+                    s_row = s_row + 1
                     # Add resources
                     for resource_item in item['resource_list']:
                         res_code = resource_item[0]
@@ -2597,7 +2598,7 @@ class ScheduleDatabase:
                         if remarks:
                             spreadsheet.append_data([[None," " + remarks]], italic=True)
                             s_row = s_row + 1
-                    total_desc = ('TOTAL of ' + description) if code is None else 'TOTAL of ' + code
+                    total_desc = ('TOTAL of ' + description) if code in [None,''] else 'TOTAL of ' + code
                     total_total = '=SUM(F' + str(s_row_start) + ':F' + str(s_row-1) + ')'
                     spreadsheet.append_data([[None,total_desc,None,None,None,total_total]])
                     sum_item = 'F' + str(s_row)
