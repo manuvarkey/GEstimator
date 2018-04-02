@@ -178,7 +178,9 @@ class MainWindow:
             # Dialog always on top of the textview window
             open_dialog.set_modal(True)
             # Set filters
-            open_dialog.set_filter(self.builder.get_object("Project"))
+            file_filter = self.builder.get_object("Project")
+            open_dialog.add_filter(file_filter)
+            open_dialog.set_filter(file_filter)
             # Set window position
             open_dialog.set_gravity(Gdk.Gravity.CENTER)
             open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
@@ -268,12 +270,13 @@ class MainWindow:
         # Dialog always on top of the textview window
         open_dialog.set_modal(True)
         # Set filters
-        open_dialog.set_filter(self.builder.get_object("Project"))
+        file_filter = self.builder.get_object("Project")
+        open_dialog.add_filter(file_filter)
+        open_dialog.set_filter(file_filter)
         # Set window position
         open_dialog.set_gravity(Gdk.Gravity.CENTER)
         open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        # Set overwrite confirmation
-        # open_dialog.set_do_overwrite_confirmation(True)  # Disabled due to bug in GTK+
+        # open_dialog.set_do_overwrite_confirmation(True)  # Set overwrite confirmation (Disabled due to bug in GTK+) #TODO
         # Set default name
         open_dialog.set_current_name("newproject")
         response_id = open_dialog.run()
@@ -356,6 +359,8 @@ class MainWindow:
         file_filter = self.builder.get_object("Spreadsheet")
         dialog.set_current_name('untitled.xlsx')
         dialog.add_filter(file_filter)
+        dialog.set_filter(file_filter)
+        # dialog.set_do_overwrite_confirmation(True)  # Set overwrite confirmation (Disabled due to bug in GTK+) #TODO
         
         # Run dialog and evaluate code
         response = dialog.run()
