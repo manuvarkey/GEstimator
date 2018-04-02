@@ -910,15 +910,15 @@ class SelectScheduleDialog:
             box_res = Gtk.Box.new(Gtk.Orientation.VERTICAL,0)
             self.stack.add_named(box_res, library)
             with self.database.using_library(library):
-                res_view = ScheduleView(self.dialog_window,
+                sch_view = ScheduleView(self.dialog_window,
                                         self.database, 
                                         box_res,
                                         compact = True,
                                         read_only = True)
-                self.scheduleviews[library] = res_view
+                self.scheduleviews[library] = sch_view
                 # Overide functions of schedule view
-                res_view.select_action = self.select_action
-                res_view.select_action_alt = self.select_action_alt
+                sch_view.select_action = self.select_action
+                sch_view.select_action_alt = self.select_action_alt
         if self.scheduleviews:
             self.scheduleview = self.scheduleviews[self.libraries[0]]
             self.scheduleview.tree.grab_focus()
