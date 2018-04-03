@@ -30,7 +30,7 @@ from decimal import Decimal, ROUND_HALF_UP
 def Currency(x, places=2):
     return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
 
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
 from .. import misc, data, undo
@@ -64,7 +64,7 @@ class ResourceView:
                     'Discount', 'Reference']
         expands = [False, True, False, False, False, False, False]
         if compact:
-            widths = [150, 300, 80, 80, 80, 80, 50]
+            widths = [150, 300, 80, 50, 80, 80, 80]
         else:
             widths = [150, 400, 80, 80, 80, 80, 200]            
         columntypes = [str, str, str, float, float, float, str]
@@ -106,10 +106,16 @@ class ResourceView:
             self.tree.append_column(column)
             self.columns[caption] = column
             self.cells[caption] = cell
-            column.pack_start(cell, expand)
+            column.pack_start(cell, True)
+            column.set_expand(expand)
             column.add_attribute(cell, "text", slno)
             column.set_fixed_width(width)
-            column.set_resizable(True)
+            
+            if caption in ['Description', 'Reference']:
+                column.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
+                column.connect("notify", self.on_wrap_column_resized, cell)
+            else:
+                column.set_resizable(True)
             
             if not read_only:
                 column.add_attribute(cell, "editable", 7+slno)
@@ -122,10 +128,13 @@ class ResourceView:
                 cell.connect("editing_started", self.on_cell_edit_started, slno)
         
         if compact:
-            self.cells['Description'].props.wrap_width = 300
+            self.cells['Description'].props.wrap_width = 145
+            self.cells['Reference'].props.ellipsize = Pango.EllipsizeMode.END
         else:
-            self.cells['Description'].props.wrap_width = 400
-        self.cells['Description'].props.wrap_mode = 2
+            self.cells['Description'].props.wrap_width = 395
+            self.cells['Reference'].props.wrap_width = 195
+            self.cells['Reference'].props.wrap_mode =  Pango.WrapMode.WORD_CHAR 
+        self.cells['Description'].props.wrap_mode = Pango.WrapMode.WORD_CHAR
         self.cells['Rate'].props.xalign = 1
         self.cells['Tax'].props.xalign = 1
         self.cells['Discount'].props.xalign = 1
@@ -657,6 +666,17 @@ class ResourceView:
         """
         # Blockout uneditable columns
         editable.props.width_chars = 1
+        
+    def on_wrap_column_resized(self, column, pspec, cell):
+        """ Automatically adjust wrapwidth to column width"""
+        
+        width = column.get_width() - 5
+        oldwidth = cell.props.wrap_width
+        
+        if width > 0 and width != oldwidth:
+            cell.props.wrap_width = width
+            # Force redraw of treeview
+            GLib.idle_add(column.queue_resize)
         
 
 class SelectResourceDialog:

@@ -29,7 +29,7 @@ from decimal import Decimal, ROUND_HALF_UP
 def Currency(x):
     return Decimal(x).quantize(Decimal(".01"), rounding=ROUND_HALF_UP)
     
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
 from .. import misc, data
@@ -66,7 +66,7 @@ class ScheduleView:
         if compact:
             widths = [150, 300, 80, 80, 80, 80, 80]
         else:
-            widths = [150, 500, 80, 80, 80, 100, 80]
+            widths = [150, 400, 80, 80, 80, 100, 150]
         columntypes = [str, str, str, float, float, None, str]
 
         # Setup treestore and filter
@@ -123,22 +123,30 @@ class ScheduleView:
             self.tree.append_column(column)
             self.columns[caption] = column
             self.cells[caption] = cell
-            column.pack_start(cell, expand)
+            column.pack_start(cell, True)
+            column.set_expand(expand)
             column.add_attribute(cell, "text", slno)
             
             if caption == 'Description' and not self.read_only:
                 column.add_attribute(cell, "full_text", 15)
             else:
                 column.add_attribute(cell, "editable", 7+slno)
-            
+                
+            if caption == 'Description':
+                column.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
+                column.connect("notify", self.on_wrap_column_resized, cell)
+            else:
+                column.set_resizable(True)
+                
             column.add_attribute(cell, "cell_background", 14)
             column.set_fixed_width(width)
-            column.set_resizable(True)
+              
         if compact:
-            self.cells['Description'].props.wrap_width = 300
+            self.cells['Description'].props.wrap_width = 295
         else:
-            self.cells['Description'].props.wrap_width = 500
-        self.cells['Description'].props.wrap_mode = 2
+            self.cells['Description'].props.wrap_width = 395
+            
+        self.cells['Description'].props.wrap_mode = Pango.WrapMode.WORD_CHAR
         self.cells['Rate'].props.xalign = 1
         self.cells['Qty'].props.xalign = 1
         self.cells['Amount'].props.xalign = 1
@@ -853,6 +861,17 @@ class ScheduleView:
                 column: column in ListStore being edited
         """
         editable.props.width_chars = 1
+        
+    def on_wrap_column_resized(self, column, pspec, cell):
+        """ Automatically adjust wrapwidth to column width"""
+
+        width = column.get_width() - 5
+        oldwidth = cell.props.wrap_width
+        
+        if width > 0 and width != oldwidth:
+            cell.props.wrap_width = width
+            # Force redraw of treeview
+            GLib.idle_add(column.queue_resize)
         
 
 class SelectScheduleDialog:

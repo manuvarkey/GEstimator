@@ -91,6 +91,17 @@ class AnalysisView:
                                     path = Gtk.TreePath.new_from_indices([row])
                                     GLib.timeout_add(50, treeview.set_cursor, path, next_column, True)
                                     return
+                                    
+    def on_wrap_column_resized(self, column, pspec, cell):
+        """ Automatically adjust wrapwidth to column width"""
+        
+        width = column.get_width() - 5
+        oldwidth = cell.props.wrap_width
+        
+        if width > 0 and width != oldwidth:
+            cell.props.wrap_width = width
+            # Force redraw of treeview
+            GLib.idle_add(column.queue_resize)
 
     def on_undo(self):
         """Undo action from stack"""
@@ -703,12 +714,10 @@ class AnalysisView:
         self.column_desc.props.expand = True
         self.column_desc.props.fixed_width = 200
         self.column_desc.props.min_width = 200
-        self.column_code.set_resizable(True)
         
         self.column_remarks = Gtk.TreeViewColumn('Remarks')
         self.column_remarks.props.fixed_width = 200
         self.column_remarks.props.min_width = 200
-        self.column_remarks.set_resizable(True)
 
         self.column_unit = Gtk.TreeViewColumn('Unit')
         self.column_unit.props.fixed_width = 80
@@ -729,7 +738,7 @@ class AnalysisView:
         self.column_amount.props.fixed_width = 100
         self.column_amount.props.min_width = 100
         self.column_amount.set_resizable(True)
-        
+
         # Pack Columns
         self.tree.append_column(self.column_code)
         self.tree.append_column(self.column_desc)
@@ -781,10 +790,12 @@ class AnalysisView:
         self.column_amount.add_attribute(self.renderer_amount, "editable", 15)
 
         # Add other properties
+        self.column_desc.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
         self.renderer_desc.props.wrap_width = 300
-        self.renderer_desc.props.wrap_mode = 2
+        self.renderer_desc.props.wrap_mode = Pango.WrapMode.WORD_CHAR
+        self.column_remarks.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
         self.renderer_remarks.props.wrap_width = 200
-        self.renderer_remarks.props.wrap_mode = 2
+        self.renderer_remarks.props.wrap_mode = Pango.WrapMode.WORD_CHAR
         self.renderer_remarks.props.style = Pango.Style.ITALIC
         self.renderer_code.props.xalign = 1
         self.renderer_qty.props.xalign = 1
@@ -803,6 +814,8 @@ class AnalysisView:
         self.renderer_qty.connect("editing_started", self.cell_editing_started, 4)
         self.renderer_amount.connect("edited", self.cell_renderer, 6)
         self.renderer_amount.connect("editing_started", self.cell_editing_started, 6)
+        self.column_desc.connect("notify", self.on_wrap_column_resized, self.renderer_desc)
+        self.column_remarks.connect("notify", self.on_wrap_column_resized, self.renderer_remarks)
 
         # Set model for store
         self.tree.set_model(self.store)
