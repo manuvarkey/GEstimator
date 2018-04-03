@@ -786,6 +786,7 @@ class MainWindow:
     def on_ana_save(self, button):
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
+        # Clean exit from analysis view
         (model_ret, res_needs_refresh) = self.analysis_view.exit()
         # Update item
         self.sch_database.update_item(model_ret)
@@ -794,11 +795,13 @@ class MainWindow:
             self.resource_view.update_store()
         
     def on_ana_cancel(self, button):
+        # Show stack default page
+        self.hidden_stack.set_visible_child_name('Default')
+        # Clean exit from analysis view
+        self.analysis_view.exit()
         # Refresh resource view to update any items that may be added
         if self.analysis_view.res_needs_refresh:
             self.resource_view.update_store()
-        # Show stack default page
-        self.hidden_stack.set_visible_child_name('Default')
             
     # Resource signal handler methods
     
