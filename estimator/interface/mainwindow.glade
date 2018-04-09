@@ -181,6 +181,7 @@
             <property name="filter">recent_project_filter</property>
             <property name="limit">10</property>
             <property name="show_icons">False</property>
+            <property name="show_not_found">False</property>
             <property name="sort_type">mru</property>
             <signal name="item-activated" handler="on_open_project_selected" swapped="no"/>
           </object>
