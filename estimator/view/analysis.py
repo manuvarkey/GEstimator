@@ -196,7 +196,10 @@ class AnalysisView:
                                     insertion_path = [insertion_path[0], insertion_path[1]+1]
                                     
                                 code = model_copy.insert_item(item[1], insertion_path)
-                                model_copy.resources[code] = item[2]
+                                
+                                # Add resource if resource does not exist in model
+                                if code not in model_copy.resources:
+                                    model_copy.resources[code] = item[2]
                                 
                         self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
                         log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
@@ -295,7 +298,9 @@ class AnalysisView:
                     self.modify_model(model_copy, "Add resource from library at path:'{}' ".format(path))
                     # Set flag
                     self.res_needs_refresh = True
-                    
+                    # Add item to custom items
+                    self.custom_items.append(code)
+                    # Set selection
                     self.set_selection(selection_path)
 
     def add_res(self):
@@ -533,8 +538,10 @@ class AnalysisView:
         self.model.evaluate_results()
 
         # Update analysis remarks
-        if self.entry_analysis_remarks and self.model.ana_remarks:
+        if self.entry_analysis_remarks.get_text() == "" and self.model.ana_remarks is not None:
             self.entry_analysis_remarks.set_text(self.model.ana_remarks)
+        else:
+            self.model.ana_remarks = self.entry_analysis_remarks.get_text()
 
         # Update StoreView
         self.store.clear()
@@ -647,8 +654,7 @@ class AnalysisView:
             self.res_needs_refresh = True
 
         # Set analysis remarks in model
-        if self.entry_analysis_remarks:
-            self.model.ana_remarks = self.entry_analysis_remarks.get_text()
+        self.model.ana_remarks = self.entry_analysis_remarks.get_text()
         
         log.info('AnalysisView - exit')
         return (self.model, self.res_needs_refresh)
@@ -660,13 +666,15 @@ class AnalysisView:
         # Setup blank analysis
         if not self.model.ana_items:
             self.model.ana_items = self.program_settings['ana_default_add_items']
-            self.entry_analysis_remarks.set_text('')
         
         # Save undo stack of parent
         self.stack_old = undo.stack()
         # Initialise undo/redo stack
         self.stack = undo.Stack()
         undo.setstack(self.stack)
+        
+        # Clear analysis remarks
+        self.entry_analysis_remarks.set_text('')
         
         # Clear custom items
         self.custom_items.clear()

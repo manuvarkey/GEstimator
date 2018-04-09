@@ -363,6 +363,9 @@ class ResourceView:
             if len(path) == 2:
                 path_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
                 selected_code = self.store[path_iter][0]
+                # If library item itemcode should not be derived from selected code
+                if ':' in selected_code:
+                    selected_code = None
             else:
                 selected_code = None
         else:
