@@ -934,7 +934,16 @@ class ScheduleDatabase:
                              rate, vat, discount, reference, category]
                 
         return res
-    
+        
+    @database.atomic()
+    def get_res_library_codes(self):
+        """Get unique library codes in the resource list"""
+        unique = set()
+        rows = ResourceTable.select(ResourceTable.code).where(ResourceTable.code.contains(':'))
+        for row in rows:
+            unique.add(row.code.split(':')[0])
+        return tuple(unique)
+        
     @database.atomic()
     def get_resource_dependency(self, itemdict):
         """Get schedule items depending on resource category"""
@@ -2308,6 +2317,50 @@ class ScheduleDatabase:
                 if mod_code in undodict:
                     item.code = undodict[mod_code]
                     item.save(only=[ScheduleTable.code])
+                    
+    @undoable
+    def assign_auto_item_numbers_res(self, exclude):
+        """Assign automatic item numbers to schedule items"""
+        with database.atomic():
+            # Change all items to prevent uniqueness errors
+            ResourceTable.update(code = ResourceTable.code.concat('_')).execute()
+            
+            undodict = dict()
+            counter_cat = 1
+            counter = 1
+            
+            # Calculate and modify item codes
+            cats = ResourceCategoryTable.select().order_by(ResourceCategoryTable.order)
+            for cat in cats:
+                items = ResourceTable.select().where(ResourceTable.category == cat.id).order_by(ResourceTable.order)
+                for item in items:
+                    parts = item.code.split(':')
+                    if not(len(parts) > 1 and parts[0] in exclude):
+                        code = str(counter_cat) + '.' + str(counter)
+                        counter = counter + 1
+                    else:
+                        code = item.code[:-1]
+                        
+                    undodict[code] = item.code[:-1]
+                    item.code = code
+                    
+                    item.save(only=[ResourceTable.code])
+                counter_cat = counter_cat + 1
+                counter = 1
+            
+        yield "Assign automatic item numbers"
+        
+        with database.atomic():
+            # Change all items to prevent uniqueness errors
+            ResourceTable.update(code = ResourceTable.code.concat('_')).execute()
+
+            items = ResourceTable.select()
+        
+            for item in items:
+                mod_code = item.code[:-1]
+                if mod_code in undodict:
+                    item.code = undodict[mod_code]
+                    item.save(only=[ResourceTable.code])
         
     def get_next_item_code(self, near_item_code=None, nextlevel=False, shift=0):
         if near_item_code:

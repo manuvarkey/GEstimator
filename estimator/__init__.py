@@ -835,6 +835,45 @@ class MainWindow:
             self.sch_database.update_resource_from_database(databasename)
             self.resource_view.update_store()
             self.display_status(misc.INFO, "Rates updated from database")
+            
+    def on_res_renumber_clicked(self, button):
+        """Renumber resource items"""
+        exclude_list = []  # Libraries to be excluded from renumber
+        
+        # Setup dialog window
+        dialog_window = Gtk.Dialog("Select libraries to be renumbered", self.window, Gtk.DialogFlags.MODAL,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        dialog_window.set_title("Select libraries to be renumbered")
+        dialog_window.set_border_width(5)
+        dialog_window.set_size_request(400,-1)
+        dialog_window.set_default_response(Gtk.ResponseType.OK)
+
+        # Pack Dialog
+        dialog_box = dialog_window.get_content_area()
+        box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        dialog_box.add(box)
+        check_dict = dict()
+        for code in self.sch_database.get_res_library_codes():
+            checkbox = Gtk.ToggleButton.new_with_label(code)
+            checkbox.set_active(False)
+            check_dict[code] = checkbox
+            box.pack_start(checkbox, True, True, 3)
+        
+        # Run dialog
+        dialog_window.show_all()
+        response = dialog_window.run()
+        if response == Gtk.ResponseType.OK:
+            for code in check_dict:
+                if check_dict[code].get_active() == False:
+                    exclude_list.append(code)
+            # Do renumbering
+            self.sch_database.assign_auto_item_numbers_res(exclude=exclude_list)
+            self.resource_view.update_store()
+            self.display_status(misc.INFO, "Resource items re-numbered")
+            
+        # Destroy dialog
+        dialog_window.destroy()
 
     def on_res_delete_clicked(self, button):
         """Delete selected rows from schedule view"""
