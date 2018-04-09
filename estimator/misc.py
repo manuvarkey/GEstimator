@@ -22,7 +22,7 @@
 #  
 #  
 
-import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time
+import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time, pathlib
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -977,6 +977,18 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
     else:
         return None
         
+def file_to_uri(filename):
+    if platform.system() == 'Windows':
+        path = pathlib.PureWindowsPath(filename)
+        uri = path.as_uri()
+        # If network path
+        if filename.startswith(r'\\'):
+            uri = uri[0:7] + '//' + uri[7:]
+    else:
+        path = pathlib.Path(filename)
+        uri = path.as_uri()
+    return uri
+    
 def uri_to_file(uri):
     return url2pathname(urlparse(uri).path)
 
@@ -986,12 +998,7 @@ def abs_path(*args):
 
 def posix_path(*args):
     """Returns platform independent filename"""
-    if platform.system() == 'Linux': 
-        if len(args) > 1:
-            return posixpath.join(*args)
-        else:
-            return args[0]
-    elif platform.system() == 'Windows':
+    if platform.system() == 'Windows':
         if len(args) > 1:
             path = os.path.normpath(posixpath.join(*args))
         else:
@@ -1001,6 +1008,11 @@ def posix_path(*args):
             return path[1:]
         else:
             return path
+    else:
+        if len(args) > 1:
+            return posixpath.join(*args)
+        else:
+            return args[0]
             
 def open_file(filename, abs=True):
     if abs:

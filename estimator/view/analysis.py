@@ -538,10 +538,11 @@ class AnalysisView:
         self.model.evaluate_results()
 
         # Update analysis remarks
-        if self.entry_analysis_remarks.get_text() == "" and self.model.ana_remarks is not None:
-            self.entry_analysis_remarks.set_text(self.model.ana_remarks)
-        else:
-            self.model.ana_remarks = self.entry_analysis_remarks.get_text()
+        if self.entry_analysis_remarks:
+            if self.entry_analysis_remarks.get_text() == "" and self.model.ana_remarks is not None:
+                self.entry_analysis_remarks.set_text(self.model.ana_remarks)
+            else:
+                self.model.ana_remarks = self.entry_analysis_remarks.get_text()
 
         # Update StoreView
         self.store.clear()
@@ -654,7 +655,8 @@ class AnalysisView:
             self.res_needs_refresh = True
 
         # Set analysis remarks in model
-        self.model.ana_remarks = self.entry_analysis_remarks.get_text()
+        if self.entry_analysis_remarks:
+            self.model.ana_remarks = self.entry_analysis_remarks.get_text()
         
         log.info('AnalysisView - exit')
         return (self.model, self.res_needs_refresh)
@@ -674,7 +676,8 @@ class AnalysisView:
         undo.setstack(self.stack)
         
         # Clear analysis remarks
-        self.entry_analysis_remarks.set_text('')
+        if self.entry_analysis_remarks:
+            self.entry_analysis_remarks.set_text('')
         
         # Clear custom items
         self.custom_items.clear()

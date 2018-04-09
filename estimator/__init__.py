@@ -226,6 +226,10 @@ class MainWindow:
                 self.update()
                 # Display message
                 self.display_status(misc.INFO, 'Project opened successfully')
+                # Add opened file to recent manager
+                recent = Gtk.RecentManager.get_default()
+                uri = misc.file_to_uri(self.filename)
+                recent.add_item(uri)
         except:
             log.exception("MainWindow - on_open_project_clicked - Error opening project file - " + self.filename)
             self.display_status(misc.ERROR, "Project could not be opened: Error opening file")
