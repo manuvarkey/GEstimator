@@ -2546,7 +2546,7 @@ class ScheduleDatabase:
         # General formating
         spreadsheet.set_title('Schedule')
         spreadsheet.set_column_widths([10,50,10,10,10,15,15])
-        spreadsheet.set_page_settings(font='Georgia')
+        spreadsheet.set_page_settings(font='Calibri')
         log.info('ScheduleDatabase - export_sch_spreadsheet - Schedule exported')
         
     def export_res_spreadsheet(self, spreadsheet):
@@ -2579,7 +2579,7 @@ class ScheduleDatabase:
         
         # General formating
         spreadsheet.set_column_widths([10,40,10,10,10,15,25,25])
-        spreadsheet.set_page_settings(font='Georgia')
+        spreadsheet.set_page_settings(font='Calibri')
         log.info('ScheduleDatabase - export_res_spreadsheet - Schedule exported')
 
     def export_ana_item_spreadsheet(self, code, spreadsheet, parent=None):
@@ -2605,7 +2605,7 @@ class ScheduleDatabase:
             spreadsheet.add_merged_cell(sch_item.ana_remarks, width=5, start_column=2, horizontal='left')
             s_row = s_row + 1
             # Add header row
-            header = [['Code', 'Description', 'Unit', 'Rate', 'Qty', 'Amount']]
+            header = [['Code', 'Description', 'Unit', 'Qty', 'Rate', 'Amount']]
             spreadsheet.append_data(header, bold=True, horizontal='center')
             s_row = s_row + 1
 
@@ -2647,7 +2647,7 @@ class ScheduleDatabase:
                         else:
                             net_description = res_description
                         
-                        row = [res_code, net_description, res_unit, rate_formula, qty, amount]
+                        row = [res_code, net_description, res_unit, qty, rate_formula, amount]
                         spreadsheet.append_data([row])
                         spreadsheet.set_style(s_row, 1, horizontal='center')
                         s_row = s_row + 1
@@ -2742,7 +2742,7 @@ class ScheduleDatabase:
             log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported - ' + category)
 
         spreadsheet.set_column_widths([10, 50, 10, 15, 10, 15])
-        spreadsheet.set_page_settings(font='Georgia')
+        spreadsheet.set_page_settings(font='Calibri')
         log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported')
         
             
@@ -2778,7 +2778,7 @@ class ScheduleDatabase:
                 s_row = s_row + 1
             
         spreadsheet.set_column_widths([10, 50, 10, 10, 15, 15])
-        spreadsheet.set_page_settings(font='Georgia')
+        spreadsheet.set_page_settings(font='Calibri')
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
         

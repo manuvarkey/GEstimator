@@ -395,6 +395,8 @@ class SpreadsheetDialog:
         for c_no, caption  in enumerate(self.captions,1):
             cell = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(caption, cell)
+            column.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
+            column.connect("notify", self.on_wrap_column_resized, cell)
             column.add_attribute(cell, "text", c_no)
             self.cells.append(cell)
             self.columns.append(column)
@@ -501,6 +503,17 @@ class SpreadsheetDialog:
             if word.lower() not in search_string:
                 return True
         return False
+        
+    def on_wrap_column_resized(self, column, pspec, cell):
+        """ Automatically adjust wrapwidth to column width"""
+
+        width = column.get_width() - 5
+        oldwidth = cell.props.wrap_width
+        
+        if width > 0 and width != oldwidth:
+            cell.props.wrap_width = width
+            # Force redraw of treeview
+            GLib.idle_add(column.queue_resize)
     
     # Callbacks
     
@@ -559,7 +572,7 @@ class Spreadsheet:
             
     def sheets(self):
         """Returns a list of sheetnames"""
-        return self.spreadsheet.get_sheet_names()
+        return self.spreadsheet.sheetnames
         
     def length(self):
         """Get number of rows in sheet"""

@@ -556,7 +556,7 @@ class MainWindow:
         filename = self.builder.get_object("filechooserbutton_schedule").get_filename()
 
         columntypes = [str, str, str, float, float, float, str]
-        captions = ['Code.', 'Description', 'Unit', 'Rate', 'Qty', 'Amount',
+        captions = ['Code.', 'Description', 'Unit', 'Qty', 'Rate', 'Amount',
                     'Remarks']
         widths = [80, 200, 80, 80, 80, 80, 100]
         expandables = [False, True, False, False, False, False, False]
