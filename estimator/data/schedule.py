@@ -2336,7 +2336,10 @@ class ScheduleDatabase:
                 for item in items:
                     parts = item.code.split(':')
                     if not(len(parts) > 1 and parts[0] in exclude):
-                        code = str(counter_cat) + '.' + str(counter)
+                        if len(cats) == 1:
+                            code = str(counter).rjust(3, '0')
+                        else:
+                            code = str(counter_cat) + '.' + str(counter).rjust(3, '0')
                         counter = counter + 1
                     else:
                         code = item.code[:-1]
