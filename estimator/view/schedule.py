@@ -345,6 +345,20 @@ class ScheduleView:
         # Return metrics
         if mark:
             return [item_count, with_mismatch, delta1, delta2, delta3, without_analysis]
+    
+    def update_sum(self):
+        """Update sum of amounts"""
+        sum_total = [0]
+
+        def sumfunc(model, path, iter, sum_total):
+            row = model[iter]
+            if row[3] != '' and row[4] != '':
+                sum_total[0] = sum_total[0] + float(row[5])
+            elif row[0] == '' and row[1] == 'SUM TOTAL':
+                model[iter][5] = str(Currency(sum_total[0]))
+                return True
+                
+        self.store.foreach(sumfunc, sum_total)
             
     def insert_row_from_database(self, path, code):
         
@@ -388,11 +402,13 @@ class ScheduleView:
     def insert_rows_from_database(self, item_dict):
         for path, code in sorted(item_dict.items()):
             self.insert_row_from_database(path, code)
+        self.update_sum()
             
     def delete_rows_from_database(self, paths):
         for path in sorted(paths, reverse=True):
             item_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
             self.store.remove(item_iter)
+        self.update_sum()
     
     def get_selected_paths(self):
         path_indices = []
@@ -589,6 +605,7 @@ class ScheduleView:
                 else:
                     self.store[iterator][column] = newvalue
                 self.evaluate_amount(iterator)
+            self.update_sum()
         
     def copy_selection(self):
         """Copy selected row to clipboard"""
