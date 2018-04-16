@@ -35,6 +35,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 # local files import
 from .. import misc, data, undo
 from ..undo import undoable, group
+from .cellrenderercustomtext import CellRendererTextView
 
 # Setup logger object
 log = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class ResourceView:
         self.tree.set_level_indentation(30)
         self.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         self.tree.set_rubber_banding(True)
-        self.tree.connect("key-press-event", self.on_key_press_treeview)
+        self.tree.connect("key-press-event", self.on_key_press_treeview, self.tree)
         self.tree.connect("button-press-event", self.on_click_event)
         self.search_field.connect("search-changed", self.on_search)
         
@@ -102,7 +103,7 @@ class ResourceView:
         self.cells = dict()
         for slno, [caption, expand, width, columntype] in enumerate(zip(captions, expands, widths, columntypes)):
             column = Gtk.TreeViewColumn(caption)
-            cell = Gtk.CellRendererText()
+            cell = CellRendererTextView()
             self.tree.append_column(column)
             self.columns[caption] = column
             self.cells[caption] = cell
@@ -555,7 +556,7 @@ class ResourceView:
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             self.select_action()
 
-    def on_key_press_treeview(self, treeview, event):
+    def on_key_press_treeview(self, widget, event, treeview):
         """Handle keypress event"""
         keyname = event.get_keyval()[1]
         state = event.get_state()
@@ -667,8 +668,7 @@ class ResourceView:
             User Data:
                 column: column in ListStore being edited
         """
-        # Blockout uneditable columns
-        editable.props.width_chars = 1
+        editable.editor.connect("key-press-event", self.on_key_press_treeview, self.tree)
         
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""

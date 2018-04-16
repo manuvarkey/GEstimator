@@ -31,6 +31,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 from . import resource
 from .. import misc, data, undo
 from ..undo import undoable
+from .cellrenderercustomtext import CellRendererTextView
 
 # Setup logger object
 log = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class AnalysisView:
 
     # Callback functions
 
-    def on_key_press_treeview(self, treeview, event):
+    def on_key_press_treeview(self, widget, event, treeview):
         """Handle keypress event"""
         keyname = event.get_keyval()[1]
         state = event.get_state()
@@ -484,7 +485,7 @@ class AnalysisView:
             User Data:
                 column: column in ListStore being edited
         """
-        editable.props.width_chars = 1
+        editable.editor.connect("key-press-event", self.on_key_press_treeview, self.tree)
         self.editable = editable
 
     def set_colour(self, path, color):
@@ -759,13 +760,13 @@ class AnalysisView:
         self.tree.append_column(self.column_rate)
         self.tree.append_column(self.column_amount)
         # Treeview renderers
-        self.renderer_code = Gtk.CellRendererText()
-        self.renderer_desc = Gtk.CellRendererText()
-        self.renderer_remarks = Gtk.CellRendererText()
-        self.renderer_unit = Gtk.CellRendererText()
-        self.renderer_qty = Gtk.CellRendererText()
-        self.renderer_rate = Gtk.CellRendererText()
-        self.renderer_amount = Gtk.CellRendererText()
+        self.renderer_code = CellRendererTextView()
+        self.renderer_desc = CellRendererTextView()
+        self.renderer_remarks = CellRendererTextView()
+        self.renderer_unit = CellRendererTextView()
+        self.renderer_qty = CellRendererTextView()
+        self.renderer_rate = CellRendererTextView()
+        self.renderer_amount = CellRendererTextView()
         # Pack renderers
         self.column_code.pack_start(self.renderer_code, True)
         self.column_desc.pack_start(self.renderer_desc, True)
@@ -814,7 +815,7 @@ class AnalysisView:
         self.renderer_amount.props.xalign = 0.8
 
         # Connect callbacks
-        self.tree.connect("key_press_event", self.on_key_press_treeview)
+        self.tree.connect("key_press_event", self.on_key_press_treeview, self.tree)
         self.renderer_code.connect("edited", self.cell_renderer, 0)
         self.renderer_code.connect("editing_started", self.cell_editing_started, 0)
         self.renderer_desc.connect("edited", self.cell_renderer, 1)

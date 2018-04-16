@@ -34,7 +34,7 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 # local files import
 from .. import misc, data
 from . import analysis
-from .cellrenderercustomtext import CellRendererCustomText
+from .cellrenderercustomtext import CellRendererTextView
 
 # Setup logger object
 log = logging.getLogger(__name__)
@@ -98,24 +98,18 @@ class ScheduleView:
         self.tree.set_rubber_banding(True)
         self.tree.props.activate_on_single_click = False
         self.tree.connect("button-press-event", self.on_click_event)
-        self.tree.connect("key-press-event", self.on_key_press_treeview)
-        self.tree.connect("row-activated", self.on_row_activated)
+        self.tree.connect("key-press-event", self.on_key_press_treeview, self.tree)
         self.search_field.connect("search-changed", self.on_search)
 
         self.columns = dict()
         self.cells = dict()
         for slno, [caption, expand, width, columntype] in enumerate(zip(captions, expands, widths, columntypes)):
-            column = Gtk.TreeViewColumn(caption)
+            column = Gtk.TreeViewColumn(caption)            
+            cell = CellRendererTextView()
             
-            if caption == 'Description':
-                cell = CellRendererCustomText()
-            else:
-                cell = Gtk.CellRendererText()
-                
             if columntype is str:
                 cell.connect("edited", self.on_cell_edited_text, slno)
-                if caption != 'Description':
-                    cell.connect("editing_started", self.on_cell_edit_started, slno)
+                cell.connect("editing_started", self.on_cell_edit_started, slno)
             elif columntype is float:
                 cell.connect("edited", self.on_cell_edited_num, slno)
                 cell.connect("editing_started", self.on_cell_edit_started, slno)
@@ -129,6 +123,7 @@ class ScheduleView:
             
             if caption == 'Description' and not self.read_only:
                 column.add_attribute(cell, "full_text", 15)
+                column.add_attribute(cell, "editable", 7+slno)
             else:
                 column.add_attribute(cell, "editable", 7+slno)
                 
@@ -710,19 +705,8 @@ class ScheduleView:
         # Handle double clicks
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             self.select_action()
-            
-    def on_row_activated(self, treeview, path, column):
-        """User activates row by double click"""
-        if not self.read_only:
-            columns = [c for c in treeview.get_columns()]
-            colnum = columns.index(column)
-            if colnum == 1:  # If description selected
-                cell = self.cells['Description']
-                background_area = treeview.get_background_area(path, column)
-                cell_area = treeview.get_cell_area(path, column)
-                cell.do_activate(None, treeview, path, background_area, cell_area, None, 15)
 
-    def on_key_press_treeview(self, treeview, event):
+    def on_key_press_treeview(self, widget, event, treeview):
         """Handle keypress event"""
         keyname = event.get_keyval()[1]
         state = event.get_state()
@@ -771,8 +755,8 @@ class ScheduleView:
                             for col in range(end,6,-1):
                                 if self.store[row_path][col] == True:
                                     prev_column = columns[col-7]
-                                    edit = False if col-7 == 1 else True
-                                    activate = True if col-7 == 1 else False
+                                    edit = True
+                                    activate = False
                                     GLib.idle_add(select_func, treeview, row_path, prev_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=True)
@@ -789,8 +773,8 @@ class ScheduleView:
                             for col in range(start, 14):
                                 if self.store[row_path][col] == True:
                                     next_column = columns[col-7]
-                                    edit = False if col-7 == 1 else True
-                                    activate = True if col-7 == 1 else False
+                                    edit = True
+                                    activate = False
                                     GLib.idle_add(select_func, treeview, row_path, next_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=False)
@@ -860,7 +844,7 @@ class ScheduleView:
             User Data:
                 column: column in ListStore being edited
         """
-        editable.props.width_chars = 1
+        editable.editor.connect("key-press-event", self.on_key_press_treeview, self.tree)
         
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
