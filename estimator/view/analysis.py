@@ -201,6 +201,10 @@ class AnalysisView:
                                 # Add resource if resource does not exist in model
                                 if code not in model_copy.resources:
                                     model_copy.resources[code] = item[2]
+                                    # Set flag
+                                    self.res_needs_refresh = True
+                                    # Add item to custom items
+                                    self.custom_items.append(code)
                                 
                         self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
                         log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
@@ -333,6 +337,9 @@ class AnalysisView:
                             model_copy.add_ana_res(res_item, path[0])
                             selection_path = [path[0], None]
                     self.modify_model(model_copy, "Add new resource at path:'{}' ".format(path))
+                    # Set flag
+                    self.res_needs_refresh = True
+                    # Add item to custom items
                     self.custom_items.append(code)
                     self.set_selection(selection_path)
                     
@@ -833,6 +840,7 @@ class AnalysisView:
         self.tree.set_model(self.store)
 
         # Intialise clipboard
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
+        atom = Gdk.Atom.intern(misc.PROGRAM_NAME+'.'+misc.PROGRAM_AUTHOR+'.'+'ANALYSIS', False)
+        self.clipboard = Gtk.Clipboard.get(atom)
         
         

@@ -141,7 +141,8 @@ class ResourceView:
         self.cells['Discount'].props.xalign = 1
         
         # Intialise clipboard
-        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
+        atom = Gdk.Atom.intern(misc.PROGRAM_NAME+'.'+misc.PROGRAM_AUTHOR+'.'+'RESOURCE', False)
+        self.clipboard = Gtk.Clipboard.get(atom)
         
         self.update_store()
 
