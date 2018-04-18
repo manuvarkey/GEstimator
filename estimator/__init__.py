@@ -564,119 +564,115 @@ class MainWindow:
         spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
         models = spreadsheet_dialog.run()
         
-        def is_child(parent, child, immediate=True):
-            parent_list = parent.split('.')
-            child_list = child.split('.')
-            
-            if len(child_list) == 1:
+        def is_child(codes, child):
+            if len(codes) == 0:
                 return True
-            elif immediate == True and len(child_list) > 1 and child_list[:-1] == parent_list:
-                return True
-            elif immediate == False and len(child_list) > len(parent_list) and child_list[0:len(parent_list)] == parent_list:
-                return True
+            elif len(codes) > 0:
+                parent_list = codes[-1].split('.')
+                child_list = child.split('.')
+                if len(child_list) > 1 and child_list[:-1] == parent_list:
+                    return True
+            return False
+                
+        def accumulate(models, index):
+            desc = models[index][1]
+            # If multiline item
+            if models[index][2] == '':
+                i = index + 1
+                while (i < len(models) 
+                        and ((models[i][0] == '' and models[i][2] == '') 
+                              or (models[i][0] == '' and models[i][2] != ''))
+                        and models[i][1].upper() != models[i][1]):
+                    desc = desc + '\n' + models[i][1]
+                    i = i + 1
+                return desc, i-1
+            # If single line item
             else:
-                return False
+                return desc, index
 
         category = None
-        id_parent = None
-        accum_desc = ''
-        accum_code = ''
-        cat_code = ''
-        cat_desc = ''
+        codes = []
+        descs = []
+        parent = None
         items = []
         
         if models:
-            for index, model in enumerate(models):
-
-                # If category
-                if model[0] != '' and model[1] != '' and model[2] == '' and model[0].count('.') == 0 and model[1].upper() == model[1]:
-                    cat_code = model[0]
-                    cat_desc = model[1]
-                    category = cat_desc
-                    
-                    id_parent = None
-                    accum_desc = ''
-                    accum_code = ''
+            index = 1
+            while index < len(models):
+                model = models[index]
                 
-                # If parent item
-                elif model[0] != '' and model[1] != '' and model[0].count('.') in [0,1] and is_child(cat_code, model[0]):
-                    code = model[0]
-                    try:
-                        rate = Decimal(model[3])
-                        qty = Decimal(model[4])
-                    except:
-                        log.warning('MainWindow - on_import_sch_clicked - Error in data - ' + str(index))
-                        rate = Decimal(0)
-                        qty = Decimal(0)
-                    sch = data.schedule.ScheduleItemModel(code = code,
-                                                          description = model[1],
-                                                          unit = model[2],
-                                                          rate = rate,
-                                                          qty = qty,
-                                                          remarks = model[5],
+                # If category
+                if model[1] != '' and model[2] == '' and model[1].upper() == model[1]:
+                    category = model[1]
+                    
+                    codes.clear()
+                    descs.clear()
+                    parent = None
+                
+                # If item with code
+                elif model[0] != '' and model[1] != '':
+                    code = model[0].strip()
+                    desc, index = accumulate(models, index)
+                    
+                    # If item/sub item changed
+                    if not is_child(codes, code):
+                        codes.pop()
+                        descs.pop()
+                        parent = None
+                    
+                    # If blank item
+                    if  models[index][2] == '' and is_child(codes, code):
+                        codes.append(code)
+                        descs.append(desc)
+                        parent = None
+                    
+                    # If final item
+                    elif models[index][2] != '' and is_child(codes, code):
+                        if parent is None and len(codes) > 0:
+                            # Add parent item
+                            sch = data.schedule.ScheduleItemModel(code = codes[-1],
+                                                          description = '\n'.join(descs),
+                                                          unit = '',
+                                                          rate = 0,
+                                                          qty = 0,
+                                                          remarks = '',
                                                           category = category,
                                                           parent = None)
-                    id_parent = code
-                    accum_desc = ''
-                    accum_code = code
-                    
-                    items.append(sch)
-                
-                # If intermediate sub item
-                elif model[0] != '' and model[1] != '' and model[2] == '' and model[0].count('.') > 0 and id_parent is not None:
-                    
-                    # Initial item
-                    if is_child(accum_code, model[0]):
-                        if accum_desc:
-                            accum_desc = accum_desc + '\n' + model[1]
-                        else:
-                            accum_desc = model[1]
-                        accum_code = model[0]
-                    # Changeover b/w items
-                    elif is_child(id_parent, model[0], immediate=False):
-                        accum_desc = model[1]
-                        accum_code = model[0]
-                
-                # If final sub item
-                elif model[0] != '' and model[1] != '' and model[2] != '' and model[0].count('.') > 0 and id_parent is not None:
-                
-                    # Continuing item
-                    if is_child(accum_code, model[0]):
-                        if accum_desc:
-                            description = accum_desc + '\n' + model[1]
-                        else:
-                            description = model[1]
-                    # Changeover b/w items
-                    elif is_child(id_parent, model[0], immediate=False):
-                        description = model[1]
-                    else:
-                        continue
-                
-                
-                    code = model[0]
+                            parent = codes[-1]
+                            items.append(sch)
                         
-                    try:
-                        rate = Decimal(model[3])
-                        qty = Decimal(model[4])
-                    except:
-                        log.warning('MainWindow - on_import_sch_clicked - Error in data - ' + str(index))
-                        rate = Decimal(0)
-                        qty = Decimal(0)
-                    sch = data.schedule.ScheduleItemModel(code = code,
-                                                          description = description,
-                                                          unit = model[2],
-                                                          rate = rate,
-                                                          qty = qty,
-                                                          remarks = model[5],
+                        # Add item
+                        sch = data.schedule.ScheduleItemModel(code = code,
+                                                          description = desc,
+                                                          unit = models[index][2],
+                                                          rate = Decimal(models[index][3]),
+                                                          qty = Decimal(models[index][4]),
+                                                          remarks = models[index][6],
                                                           category = category,
-                                                          parent = id_parent)
-                    
-                    items.append(sch)
+                                                          parent = parent)
+                        items.append(sch)
                         
+                    # If error item
+                    else:
+                        codes.clear()
+                        descs.clear()
+                        parent = None
+                        
+                        sch = data.schedule.ScheduleItemModel(code = code,
+                                                          description = desc,
+                                                          unit = models[index][2],
+                                                          rate = Decimal(models[index][3]),
+                                                          qty = Decimal(models[index][4]),
+                                                          remarks = models[index][6],
+                                                          category = category,
+                                                          parent = None)
+                        items.append(sch)
+                    
+                index = index + 1
+            
             self.sch_database.insert_item_multiple(items, preserve_structure=True)
             self.display_status(misc.INFO, str(index)+' records processed')
             log.info('MainWindow - on_import_sch_clicked - data added - ' + str(index) + ' records')
-
             self.update()
             self.display_status(misc.INFO, str(index) + " schedule items inserted")
         else:
