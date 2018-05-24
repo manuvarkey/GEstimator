@@ -567,13 +567,24 @@ class ResourceView:
         if keyname in [Gdk.KEY_Escape]:  # Unselect all
             self.tree.get_selection().unselect_all()
             return
-        elif keyname in [Gdk.KEY_Return, Gdk.KEY_KP_Enter]:  # Select element
+        
+        if keyname in [Gdk.KEY_Return, Gdk.KEY_KP_Enter]:  # Select element
             if control_pressed:
                 self.select_action_alt()
             else:
                 self.select_action()
-        elif keyname == Gdk.KEY_f and control_pressed:  # Search keycode
+            return
+            
+        if keyname == Gdk.KEY_f and control_pressed:  # Search keycode
             self.search_bar.set_search_mode(True)
+            return
+        
+        if bool(state & Gdk.ModifierType.CONTROL_MASK):
+            if keyname in (Gdk.KEY_c, Gdk.KEY_C):
+                self.copy_selection()
+            elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
+                self.paste_at_selection()
+            return
         
         path, col = treeview.get_cursor()
         if path != None:

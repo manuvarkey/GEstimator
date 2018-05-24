@@ -735,13 +735,24 @@ class ScheduleView:
         if keyname in [Gdk.KEY_Escape]:  # Unselect all
             self.tree.get_selection().unselect_all()
             return
-        elif keyname in [Gdk.KEY_Return, Gdk.KEY_KP_Enter]:  # Select element
+        
+        if keyname in [Gdk.KEY_Return, Gdk.KEY_KP_Enter]:  # Select element
             if control_pressed:
                 self.select_action_alt()
             else:
                 self.select_action()
-        elif keyname == Gdk.KEY_f and control_pressed:  # Search keycode
+            return
+        
+        if keyname == Gdk.KEY_f and control_pressed:  # Search keycode
             self.search_bar.set_search_mode(True)
+            return
+        
+        if bool(state & Gdk.ModifierType.CONTROL_MASK):
+            if keyname in (Gdk.KEY_c, Gdk.KEY_C):
+                self.copy_selection()
+            elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
+                self.paste_at_selection()
+            return
         
         path, col = treeview.get_cursor()
         if path != None:
@@ -775,7 +786,7 @@ class ScheduleView:
                                     prev_column = columns[col-7]
                                     edit = True
                                     activate = False
-                                    GLib.idle_add(select_func, treeview, row_path, prev_column, edit, activate)
+                                    GLib.timeout_add(50, select_func, treeview, row_path, prev_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=True)
                     else:
@@ -793,7 +804,7 @@ class ScheduleView:
                                     next_column = columns[col-7]
                                     edit = True
                                     activate = False
-                                    GLib.idle_add(select_func, treeview, row_path, next_column, edit, activate)
+                                    GLib.timeout_add(50, select_func, treeview, row_path, next_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=False)
                             
@@ -816,16 +827,6 @@ class ScheduleView:
         # Call undoable function only if there is a change in value
         if new_text != oldvalue:
             self.cell_renderer_text(path, column, oldvalue, new_text)
-        
-        if column == 1:
-            # Select path if description column
-            col = self.columns['Description']
-            def select_func(tree, path, col):
-                tree.grab_focus()
-                tree.set_cursor(path, col, False)
-                return False
-                
-            GLib.idle_add(select_func, self.tree, path, col)
 
     def on_cell_edited_num(self, widget, path_str, new_text, column):
         """Treeview cell renderer for editable number field

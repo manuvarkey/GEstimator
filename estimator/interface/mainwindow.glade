@@ -704,7 +704,7 @@
                               <object class="GtkToolButton" id="toolbutton_schedule_copy">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy item</property>
+                                <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Copy</property>
                                 <property name="use_underline">True</property>
@@ -720,7 +720,7 @@
                               <object class="GtkToolButton" id="toolbutton_schedule_paste">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Item</property>
+                                <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Paste</property>
                                 <property name="use_underline">True</property>
@@ -955,7 +955,7 @@
                               <object class="GtkToolButton" id="toolbutton_res_copy">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy item</property>
+                                <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Copy</property>
                                 <property name="use_underline">True</property>
@@ -971,7 +971,7 @@
                               <object class="GtkToolButton" id="toolbutton_res_paste">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Item</property>
+                                <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Paste</property>
                                 <property name="use_underline">True</property>
@@ -1456,7 +1456,6 @@
                     <property name="use_underline">True</property>
                     <property name="icon_name">edit-copy-symbolic</property>
                     <signal name="clicked" handler="on_ana_copy" swapped="no"/>
-                    <accelerator key="c" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1473,7 +1472,6 @@
                     <property name="use_underline">True</property>
                     <property name="icon_name">edit-paste-symbolic</property>
                     <signal name="clicked" handler="on_ana_paste" swapped="no"/>
-                    <accelerator key="v" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

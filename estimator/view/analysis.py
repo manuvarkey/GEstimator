@@ -52,6 +52,13 @@ class AnalysisView:
             self.tree.get_selection().unselect_all()
             return
         
+        if bool(state & Gdk.ModifierType.CONTROL_MASK):
+            if keyname in (Gdk.KEY_c, Gdk.KEY_C):
+                self.on_copy()
+            elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
+                self.on_paste()
+            return
+        
         path, col = treeview.get_cursor()
         if path != None:
             columns = [c for c in treeview.get_columns()]
@@ -117,102 +124,80 @@ class AnalysisView:
     def on_copy(self):
         """Copy selected row to clipboard"""
         
-        # If cell renderer being edited, copy text inside the editable
-        if ((self.renderer_code.props.editing or 
-                self.renderer_desc.props.editing or 
-                self.renderer_remarks.props.editing or
-                self.renderer_qty.props.editing) and
-                self.editable is not None):
-            self.editable.copy_clipboard()
-            log.info('AnalysisView - on_copy - Text from editable copied to clipboard')
-            return
-        else:
-            # Else copy rows
-            selection = self.tree.get_selection()
-            if selection.count_selected_rows() != 0: # if selection exists
-                test_string = "AnalysisView"
-                
-                items = []
-                [model, paths] = selection.get_selected_rows()
-                for pathiter in paths:
-                    row = pathiter.get_indices()[0]
-                    path = eval(self.store[pathiter][8])
-                    if None not in path:
-                        item = self.model.get_item(path, deep=False)
-                        items.append(item)
-                if items:
-                    text = codecs.encode(pickle.dumps([test_string, items]), "base64").decode() # dump item as text
-                    self.clipboard.set_text(text,-1) # push to clipboard
-                    log.info('AnalysisView - on_copy - Item copied to clipboard - ' + str(path))
-                    return
+        selection = self.tree.get_selection()
+        if selection.count_selected_rows() != 0: # if selection exists
+            test_string = "AnalysisView"
+            
+            items = []
+            [model, paths] = selection.get_selected_rows()
+            for pathiter in paths:
+                row = pathiter.get_indices()[0]
+                path = eval(self.store[pathiter][8])
+                if None not in path:
+                    item = self.model.get_item(path, deep=False)
+                    items.append(item)
+            if items:
+                text = codecs.encode(pickle.dumps([test_string, items]), "base64").decode() # dump item as text
+                self.clipboard.set_text(text,-1) # push to clipboard
+                log.info('AnalysisView - on_copy - Item copied to clipboard - ' + str(path))
+                return
         # if no selection
         log.warning("AnalysisView - copy_selection - No items selected to copy")
     
     def on_paste(self):
         """Paste copied item at selected row"""
-        
-        # If cell renderer being edited, copy text inside the editable
-        if ((self.renderer_code.props.editing or 
-                self.renderer_desc.props.editing or 
-                self.renderer_remarks.props.editing or
-                self.renderer_qty.props.editing) and
-                self.editable is not None):
-            self.editable.paste_clipboard()
-            log.info('AnalysisView - on_paste - Text from clipboard copied to editable')
-            return
+
+        text = self.clipboard.wait_for_text() # get text from clipboard
+        if text != None:
+            test_string = "AnalysisView"
+            try:
+                itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
+                if itemlist[0] == test_string:
+                    model_copy = copy.deepcopy(self.model)
+                    
+                    items = itemlist[1]
+                    selection = self.tree.get_selection()
+                    
+                    # If selection exists
+                    if selection.count_selected_rows() != 0:
+                        [model, paths] = selection.get_selected_rows()
+                        row = paths[0].get_indices()
+                        path = eval(self.store[paths[0]][8])
+                    # Else add at top
+                    else:
+                        path = [-1]
+                        
+                    insertion_path = path
+                    for item in items:
+                        
+                        if item[0] == 'ana_item':
+                            insertion_path[0] = insertion_path[0] + 1
+                            model_copy.insert_item(item[1], insertion_path)
+                        
+                        elif item[0] == 'resource_item' and model_copy.ana_items[insertion_path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
+                            
+                            if len(insertion_path) == 1:
+                                insertion_path = [insertion_path[0], 0]
+                            else:
+                                insertion_path = [insertion_path[0], insertion_path[1]+1]
+                                
+                            code = model_copy.insert_item(item[1], insertion_path)
+                            
+                            # Add resource if resource does not exist in model
+                            if code not in model_copy.resources:
+                                model_copy.resources[code] = item[2]
+                                # Set flag
+                                self.res_needs_refresh = True
+                                # Add item to custom items
+                                self.custom_items.append(code)
+                            
+                    self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
+                    log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
+                    return
+            except:
+                log.warning('AnalysisView - paste_at_selection - No valid data in clipboard')
         else:
-            # Else copy rows
-            text = self.clipboard.wait_for_text() # get text from clipboard
-            if text != None:
-                test_string = "AnalysisView"
-                try:
-                    itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
-                    if itemlist[0] == test_string:
-                        model_copy = copy.deepcopy(self.model)
-                        
-                        items = itemlist[1]
-                        selection = self.tree.get_selection()
-                        
-                        # If selection exists
-                        if selection.count_selected_rows() != 0:
-                            [model, paths] = selection.get_selected_rows()
-                            row = paths[0].get_indices()
-                            path = eval(self.store[paths[0]][8])
-                        # Else add at top
-                        else:
-                            path = [-1]
-                            
-                        insertion_path = path
-                        for item in items:
-                            
-                            if item[0] == 'ana_item':
-                                insertion_path[0] = insertion_path[0] + 1
-                                model_copy.insert_item(item[1], insertion_path)
-                            
-                            elif item[0] == 'resource_item' and model_copy.ana_items[insertion_path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
-                                
-                                if len(insertion_path) == 1:
-                                    insertion_path = [insertion_path[0], 0]
-                                else:
-                                    insertion_path = [insertion_path[0], insertion_path[1]+1]
-                                    
-                                code = model_copy.insert_item(item[1], insertion_path)
-                                
-                                # Add resource if resource does not exist in model
-                                if code not in model_copy.resources:
-                                    model_copy.resources[code] = item[2]
-                                    # Set flag
-                                    self.res_needs_refresh = True
-                                    # Add item to custom items
-                                    self.custom_items.append(code)
-                                
-                        self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
-                        log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
-                        return
-                except:
-                    log.warning('AnalysisView - paste_at_selection - No valid data in clipboard')
-            else:
-                log.warning('AnalysisView - paste_at_selection - No text in clipboard')
+            log.warning('AnalysisView - paste_at_selection - No text in clipboard')
             
     def cell_renderer(self, cell, pathiter, newtext, column):
         """Treeview cell renderer for editable text field
@@ -493,7 +478,6 @@ class AnalysisView:
                 column: column in ListStore being edited
         """
         editable.editor.connect("key-press-event", self.on_key_press_treeview, self.tree)
-        self.editable = editable
 
     def set_colour(self, path, color):
         """Sets the colour of item selected by path"""
@@ -714,7 +698,6 @@ class AnalysisView:
         self.tree = tree
         self.entry_analysis_remarks = remarks_entry
         self.program_settings = program_settings
-        self.editable = None
         
         # Track custom items added into view
         self.custom_items = []
