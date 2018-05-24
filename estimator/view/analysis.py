@@ -103,7 +103,7 @@ class AnalysisView:
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
         
-        width = column.get_width() - 5
+        width = column.get_width()
         oldwidth = cell.props.wrap_width
         
         if width > 0 and width != oldwidth:
@@ -709,36 +709,31 @@ class AnalysisView:
         # Treeview columns
         self.column_code = Gtk.TreeViewColumn('Code')
         self.column_code.props.fixed_width = 100
-        self.column_code.props.min_width = 100
         self.column_code.set_resizable(True)
 
         self.column_desc = Gtk.TreeViewColumn('Item Description')
         self.column_desc.props.expand = True
         self.column_desc.props.fixed_width = 200
-        self.column_desc.props.min_width = 200
+        self.column_desc.set_resizable(True)
         
         self.column_remarks = Gtk.TreeViewColumn('Remarks')
         self.column_remarks.props.fixed_width = 200
-        self.column_remarks.props.min_width = 200
+        self.column_remarks.set_resizable(True)
 
         self.column_unit = Gtk.TreeViewColumn('Unit')
         self.column_unit.props.fixed_width = 80
-        self.column_unit.props.min_width = 80
         self.column_unit.set_resizable(True)
 
         self.column_qty = Gtk.TreeViewColumn('Qty')
         self.column_qty.props.fixed_width = 80
-        self.column_qty.props.min_width = 80
         self.column_qty.set_resizable(True)
 
         self.column_rate = Gtk.TreeViewColumn('Rate')
         self.column_rate.props.fixed_width = 80
-        self.column_rate.props.min_width = 80
         self.column_rate.set_resizable(True)
 
         self.column_amount = Gtk.TreeViewColumn('Amount')
         self.column_amount.props.fixed_width = 100
-        self.column_amount.props.min_width = 100
         self.column_amount.set_resizable(True)
 
         # Pack Columns
@@ -792,10 +787,9 @@ class AnalysisView:
         self.column_amount.add_attribute(self.renderer_amount, "editable", 15)
 
         # Add other properties
-        self.column_desc.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
+        self.renderer_code.props.wrap_width = 100
         self.renderer_desc.props.wrap_width = 300
         self.renderer_desc.props.wrap_mode = Pango.WrapMode.WORD_CHAR
-        self.column_remarks.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
         self.renderer_remarks.props.wrap_width = 200
         self.renderer_remarks.props.wrap_mode = Pango.WrapMode.WORD_CHAR
         self.renderer_remarks.props.style = Pango.Style.ITALIC

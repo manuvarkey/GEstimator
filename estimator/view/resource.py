@@ -113,10 +113,9 @@ class ResourceView:
             column.set_fixed_width(width)
             
             if caption in ['Description', 'Reference']:
-                column.props.sizing = Gtk.TreeViewColumnSizing.AUTOSIZE
                 column.connect("notify", self.on_wrap_column_resized, cell)
-            else:
-                column.set_resizable(True)
+            
+            column.set_resizable(True)
             
             if not read_only:
                 column.add_attribute(cell, "editable", 7+slno)
@@ -129,12 +128,15 @@ class ResourceView:
                 cell.connect("editing_started", self.on_cell_edit_started, slno)
         
         if compact:
-            self.cells['Description'].props.wrap_width = 145
+            self.cells['Code'].props.wrap_width = 150
+            self.cells['Description'].props.wrap_width = 300
             self.cells['Reference'].props.ellipsize = Pango.EllipsizeMode.END
         else:
-            self.cells['Description'].props.wrap_width = 395
-            self.cells['Reference'].props.wrap_width = 195
+            self.cells['Code'].props.wrap_width = 150
+            self.cells['Description'].props.wrap_width = 400
+            self.cells['Reference'].props.wrap_width = 200
             self.cells['Reference'].props.wrap_mode =  Pango.WrapMode.WORD_CHAR 
+        self.cells['Code'].props.wrap_mode = Pango.WrapMode.CHAR
         self.cells['Description'].props.wrap_mode = Pango.WrapMode.WORD_CHAR
         self.cells['Rate'].props.xalign = 1
         self.cells['Tax'].props.xalign = 1
@@ -685,7 +687,7 @@ class ResourceView:
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
         
-        width = column.get_width() - 5
+        width = column.get_width()
         oldwidth = cell.props.wrap_width
         
         if width > 0 and width != oldwidth:
