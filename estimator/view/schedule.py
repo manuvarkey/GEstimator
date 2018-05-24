@@ -330,7 +330,7 @@ class ScheduleView:
                             path = Gtk.TreePath.new_from_indices(select_item[0:2])
                             try:
                                 store_row_2 = self.store.get_iter(path)
-                                store_row_2_len = self.store.iter_n_children(store_row)
+                                store_row_2_len = self.store.iter_n_children(store_row_2)
                                 if store_row_2_len == 0:
                                     select_item = [select_item[0],select_item[1]]
                                 elif select_item[2] >= store_row_2_len:
@@ -648,13 +648,12 @@ class ScheduleView:
         rate = self.store[iterator][3]
         qty = self.store[iterator][4]
         unit = self.store[iterator][2]
-        if unit != '':
-            try:
-                amount = str(Currency(float(rate)*float(qty)))
-            except ValueError:
-                amount = ''
-                log.warning("ScheduleView - evaluate_amount - evaluation of amount failed")
-            self.store[iterator][5] = amount
+        amount = ''
+        try:
+            amount = str(Currency(float(rate)*float(qty)))
+        except ValueError:
+            log.warning("ScheduleView - evaluate_amount - evaluation of amount failed")
+        self.store[iterator][5] = amount
             
     def start_search(self):
         self.search_bar.set_search_mode(True)

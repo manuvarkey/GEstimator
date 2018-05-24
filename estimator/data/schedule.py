@@ -1220,7 +1220,12 @@ class ScheduleDatabase:
                 try:
                     category = ResourceCategoryTable.select().where(ResourceCategoryTable.description == res_model.category).get()
                     category_id = category.id
-                    order = res.order
+                    # If there is no change in category
+                    if res_model.category == res.category:
+                        order = res.order
+                    # If there is a change in category, recalculate order
+                    else:
+                        order = ResourceTable.select().where(ResourceTable.category == category_id).count()
                 except:
                     # Add new category at end and add resource under it
                     if self.insert_resource_category_atomic(res_model.category, path=[-1]) is not None:
@@ -1331,15 +1336,18 @@ class ScheduleDatabase:
         code_list = []
         for res in ress:
             split_up = misc.human_code(res.code)
-            if len(split_up) == 2 and split_up[0] == 'MR.' and type(split_up[-1]) is int:
+            if len(split_up) == 2 and split_up[0] == 'MR.' and type(split_up[1]) is int:
                 code_list.append(split_up)
         
         # Add items specified by exclude
         if exclude:
             for code in exclude:
-                code_list.append(misc.human_code(code))
+                human_code = misc.human_code(code)
+                if len(human_code) == 2 and human_code[0] == 'MR.' and type(human_code[1]) is int:
+                    code_list.append(human_code)
             
         if code_list:
+            print(code_list, exclude)
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
                 new_code = 'MR.' + str(int(last_code[-1])+1+shift)
@@ -2546,7 +2554,7 @@ class ScheduleDatabase:
         # General formating
         spreadsheet.set_title('Schedule')
         spreadsheet.set_column_widths([10,50,10,10,10,15,15])
-        spreadsheet.set_page_settings(font='Calibri')
+        spreadsheet.set_page_settings(font='Trebuchet MS', print_title_rows='6:7')
         log.info('ScheduleDatabase - export_sch_spreadsheet - Schedule exported')
         
     def export_res_spreadsheet(self, spreadsheet):
@@ -2579,7 +2587,7 @@ class ScheduleDatabase:
         
         # General formating
         spreadsheet.set_column_widths([10,40,10,10,10,15,25,25])
-        spreadsheet.set_page_settings(font='Calibri')
+        spreadsheet.set_page_settings(font='Trebuchet MS')
         log.info('ScheduleDatabase - export_res_spreadsheet - Schedule exported')
 
     def export_ana_item_spreadsheet(self, code, spreadsheet, parent=None):
@@ -2742,7 +2750,7 @@ class ScheduleDatabase:
             log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported - ' + category)
 
         spreadsheet.set_column_widths([10, 50, 10, 15, 10, 15])
-        spreadsheet.set_page_settings(font='Calibri')
+        spreadsheet.set_page_settings(font='Trebuchet MS')
         log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported')
         
             
@@ -2778,7 +2786,7 @@ class ScheduleDatabase:
                 s_row = s_row + 1
             
         spreadsheet.set_column_widths([10, 50, 10, 10, 15, 15])
-        spreadsheet.set_page_settings(font='Calibri')
+        spreadsheet.set_page_settings(font='Trebuchet MS')
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
         

@@ -582,7 +582,7 @@ class Spreadsheet:
         """Set title of sheet"""
         self.sheet.title = title
         
-    def set_page_settings(self, orientation='portrait', papersize='A4', font=None):
+    def set_page_settings(self, orientation='portrait', papersize='A4', font=None, print_title_rows = None):
         # Orientation
         if orientation == 'portrait':
             self.sheet.page_setup.orientation = openpyxl.worksheet.Worksheet.ORIENTATION_PORTRAIT
@@ -592,6 +592,9 @@ class Spreadsheet:
         # Paper size
         if papersize == 'A4':
             self.sheet.page_setup.paperSize = openpyxl.worksheet.Worksheet.PAPERSIZE_A4
+            
+        # Print title rows
+        self.sheet.print_title_rows = print_title_rows
             
         # General settings
         self.sheet.page_setup.fitToPage = True
