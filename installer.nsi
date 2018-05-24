@@ -8,7 +8,7 @@
 # These three must be integers
 !define VERSIONMAJOR 1
 !define VERSIONMINOR 5
-!define VERSIONBUILD 1
+!define VERSIONBUILD 2
 # These will be displayed by the "Click here for support information" link in "Add/Remove Programs"
 # It is possible to use "mailto:" links in here to open the email client
 !define HELPURL "mailto:manuvarkey@gmail.com" # "Support Information" link
@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win32-1-5-1.exe"
+outFile "GEstimator-win32-1-5-2.exe"
  
 !include LogicLib.nsh
  
