@@ -32,7 +32,8 @@ def Currency(x):
 from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
-from .. import misc, data
+from .. import misc, data, undo
+from ..undo import undoable, group
 from . import analysis
 from .cellrenderercustomtext import CellRendererTextView
 
@@ -630,20 +631,39 @@ class ScheduleView:
         # if no selection
         log.warning("ScheduleView - copy_selection - No items selected to copy")
     
-    def paste_at_selection(self):
+    def paste_at_selection(self, insert_into=True):
         """Paste copied item at selected row"""
-        text = self.clipboard.wait_for_text() # get text from clipboard
-        if text != None:
-            test_string = "ScheduleView"
-            try:
-                itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
-                if itemlist[0] == test_string:
-                    items = itemlist[1]
-                    self.add_item_at_selection(items)
-            except:
-                log.warning('ScheduleView - paste_at_selection - No valid data in clipboard')
+        if insert_into:
+            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            text = clipboard.wait_for_text() # get text from clipboard
+            if text != None:
+                selected = self.get_selected()
+                (treepath, focus_column) = self.tree.get_cursor()
+                if focus_column and selected:
+                    focus_col_num = self.tree.get_columns().index(focus_column)
+                    if focus_col_num in (3,4):
+                        with group('Paste into schedule column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
+                    elif focus_col_num in (1,2,6):
+                        with group('Paste into schedule column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
+            else:
+                log.warning('ScheduleView - paste_at_selection - No text in clipboard')
         else:
-            log.warning('ScheduleView - paste_at_selection - No text in clipboard')
+            text = self.clipboard.wait_for_text() # get text from clipboard
+            if text != None:
+                test_string = "ScheduleView"
+                try:
+                    itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
+                    if itemlist[0] == test_string:
+                        items = itemlist[1]
+                        self.add_item_at_selection(items)
+                except:
+                    log.warning('ScheduleView - paste_at_selection - No valid data in clipboard')
+            else:
+                log.warning('ScheduleView - paste_at_selection - No text in clipboard')
             
     def evaluate_amount(self, iterator):
         rate = self.store[iterator][3]
@@ -747,11 +767,16 @@ class ScheduleView:
             self.search_bar.set_search_mode(True)
             return
         
-        if bool(state & Gdk.ModifierType.CONTROL_MASK):
+        if control_pressed and not shift_pressed:
             if keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.copy_selection()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection()
+            return
+            
+        if shift_pressed and control_pressed:
+            if keyname in (Gdk.KEY_v, Gdk.KEY_V):
+                self.paste_at_selection(insert_into=True)
             return
         
         path, col = treeview.get_cursor()

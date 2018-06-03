@@ -872,16 +872,20 @@ class MainWindow:
         dialog_window.destroy()
 
     def on_res_delete_clicked(self, button):
-        """Delete selected rows from schedule view"""
+        """Delete selected rows from resource view"""
         self.resource_view.delete_selected_item()
         log.info('MainWindow - on_schedule_delete_clicked - Selected items deleted')
+        
+    def on_cut_res(self, button):
+        """Cut selected rows from resource view to clipboard"""
+        self.resource_view.cut_selection()
 
     def on_copy_res(self, button):
-        """Copy selected rows from schedule view to clipboard"""
+        """Copy selected rows from resource view to clipboard"""
         self.resource_view.copy_selection()
 
     def on_paste_res(self, button):
-        """Paste rows from clipboard into schedule view"""
+        """Paste rows from clipboard into resource view"""
         self.resource_view.paste_at_selection()
 
     # General signal handler methods

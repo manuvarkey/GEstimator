@@ -952,10 +952,26 @@
                               </packing>
                             </child>
                             <child>
+                              <object class="GtkToolButton" id="toolbutton_res_cut">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_markup" translatable="yes">Cut Item  &lt;i&gt;(Ctrl+x)&lt;/i&gt;</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Cut</property>
+                                <property name="use_underline">True</property>
+                                <property name="icon_name">edit-cut-symbolic</property>
+                                <signal name="clicked" handler="on_cut_res" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">False</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkToolButton" id="toolbutton_res_copy">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
+                                <property name="tooltip_markup" translatable="yes">Copy Item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Copy</property>
                                 <property name="use_underline">True</property>

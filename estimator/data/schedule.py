@@ -777,7 +777,8 @@ class ScheduleDatabase:
             try:
                 ResourceCategoryTable.update(description = value).where(ResourceCategoryTable.description == category).execute()
             except:
-                return False
+                yield "Update resource category '{}' to '{}' failed".format(category, value), False
+                return
             
         yield "Update resource category '{}' to '{}'".format(category, value), True
         
@@ -1180,6 +1181,51 @@ class ScheduleDatabase:
         with database.atomic():
             # Delete added item
             self.delete_resource_atomic(inserted)
+    
+    @undoable
+    def update_resource_path(self, code, path=None):
+        
+        with database.atomic():
+            # Obtain resource item
+            try:
+                res = ResourceTable.select().where(ResourceTable.code == code).get()
+            except ResourceTable.DoesNotExist:
+                yield False
+                return
+            
+            # Get new category
+            try:
+                category = ResourceCategoryTable.select().where(ResourceCategoryTable.order == path[0]).get()
+                new_category_id = category.id
+            except ResourceCategoryTable.DoesNotExist:
+                yield False
+                return
+            
+            old_order = res.order
+            old_category_id = res.category.id
+            old_category_order = res.category.order
+            new_order = path[1]+1 if len(path) == 2 else 0
+            if new_category_id == old_category_id and old_order < new_order:
+                new_order = new_order - 1
+            
+            # Remove resource from old path
+            ResourceTable.update(order = ResourceTable.order - 1).where((ResourceTable.category == old_category_id) & (ResourceTable.order > old_order)).execute()
+            
+            # Add at new path
+            ResourceTable.update(order = ResourceTable.order + 1).where((ResourceTable.category == new_category_id) & (ResourceTable.order >= new_order)).execute()
+            
+            res.order = new_order
+            res.category = new_category_id
+            
+            res.save()
+            
+        yield "Update resource '{}'".format(str(code)), True
+        
+        if new_category_id == old_category_id and new_order < old_order:
+            oldpath = [old_category_order, old_order]
+        else:
+            oldpath = [old_category_order, old_order-1] if old_order > 0 else [old_category_order]
+        self.update_resource_path(code, oldpath)
             
     @undoable
     def update_resource(self, code, newvalue=None, column=None, res_model=None):
@@ -1239,6 +1285,7 @@ class ScheduleDatabase:
                 # Undo values
                 old_model = copy.copy(res_model)
                 category_id_old = res.category
+                old_order = res.order
                 
                 res.code = res_model.code
                 res.description = res_model.description
@@ -1292,6 +1339,7 @@ class ScheduleDatabase:
                 res.discount = old_model.discount
                 res.reference = old_model.reference
                 res.category = category_id_old
+                res.order = old_order
                 
             # Save resource
             res.save()
@@ -1347,7 +1395,6 @@ class ScheduleDatabase:
                     code_list.append(human_code)
             
         if code_list:
-            print(code_list, exclude)
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
                 new_code = 'MR.' + str(int(last_code[-1])+1+shift)
@@ -1443,7 +1490,8 @@ class ScheduleDatabase:
             try:
                 ScheduleCategoryTable.update(description = value).where(ScheduleCategoryTable.description == category).execute()
             except:
-                return False
+                yield "Update schedule category '{}' to '{}' failed".format(category, value), False
+                return
             
         yield "Update schedule category '{}' to '{}'".format(category, value), True
         
