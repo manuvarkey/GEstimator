@@ -6,7 +6,7 @@
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
     <property name="program_name">GEstimator</property>
-    <property name="version">1.5</property>
+    <property name="version">1.6</property>
     <property name="copyright" translatable="yes">Copyright © 2017 Manu Varkey</property>
     <property name="comments" translatable="yes">
 GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.

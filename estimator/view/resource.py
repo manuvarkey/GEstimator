@@ -506,6 +506,8 @@ class ResourceView:
                                     self.database.update_resource_path(code, insertion_path[:])
                                     if path[0] != insertion_path[0]:
                                         insertion_path[1] = insertion_path[1] + 1
+                                    elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
+                                        insertion_path[1] = insertion_path[1] + 1
                         elif len(insertion_path) == 1:
                             with group('Paste cut items in resource view'):
                                 for path, code in reversed(list(items.items())):
