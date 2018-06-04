@@ -887,6 +887,10 @@ class MainWindow:
     def on_paste_res(self, button):
         """Paste rows from clipboard into resource view"""
         self.resource_view.paste_at_selection()
+        
+    def on_paste_spl_res(self, button):
+        """Paste rows from clipboard into resource view cell"""
+        self.resource_view.paste_at_selection(insert_into=True)
 
     # General signal handler methods
 
