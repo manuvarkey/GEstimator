@@ -252,6 +252,15 @@ class ResourceView:
         for path in sorted(paths, reverse=True):
             item_iter = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
             self.store.remove(item_iter)
+            
+    def delete_code_from_database(self, code):
+        
+        def delete_code(store, path, treeiter, code):
+            if store[treeiter][0] == code:
+                store.remove(treeiter)
+                return True
+
+        self.store.foreach(delete_code, code)
         
     def get_next_path(self, iter_path, reverse=False):
         if iter_path is None:
@@ -503,20 +512,35 @@ class ResourceView:
                         if len(insertion_path) == 2:
                             with group('Paste cut items in resource view'):
                                 for path, code in items.items():
-                                    self.database.update_resource_path(code, insertion_path[:])
+                                    ret = self.database.update_resource_path(code, insertion_path[:])
+                                    
+                                    # Mirror modification in treeview
+                                    if ret:
+                                        treeview_path = insertion_path[:]
+                                        if path[0] != insertion_path[0]:
+                                            treeview_path[1] = treeview_path[1] + 1
+                                        elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
+                                            treeview_path[1] = treeview_path[1] + 1
+                                        self.delete_code_from_database(code)
+                                        self.insert_row_from_database(treeview_path, code)
+                                        
                                     if path[0] != insertion_path[0]:
                                         insertion_path[1] = insertion_path[1] + 1
                                     elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
                                         insertion_path[1] = insertion_path[1] + 1
+                                    
                         elif len(insertion_path) == 1:
                             with group('Paste cut items in resource view'):
                                 for path, code in reversed(list(items.items())):
-                                    self.database.update_resource_path(code, insertion_path[:])
+                                    ret = self.database.update_resource_path(code, insertion_path[:])
+                                    
+                                    # Mirror modification in treeview
+                                    if ret:
+                                        self.delete_code_from_database(code)
+                                        self.insert_row_from_database(insertion_path + [0], code)
                         
                         # Clear clipboard
                         self.clipboard.set_text('',-1)
-                        # Refresh display
-                        self.update_store()
                 except:
                     log.warning('ResourceView - paste_at_selection - No valid data in clipboard: ')
             else:
@@ -635,7 +659,9 @@ class ResourceView:
             return
         
         if control_pressed and not shift_pressed:
-            if keyname in (Gdk.KEY_c, Gdk.KEY_C):
+            if keyname in (Gdk.KEY_x, Gdk.KEY_X):
+                self.cut_selection()
+            elif keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.copy_selection()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection()
