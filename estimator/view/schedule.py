@@ -631,7 +631,7 @@ class ScheduleView:
         # if no selection
         log.warning("ScheduleView - copy_selection - No items selected to copy")
     
-    def paste_at_selection(self, insert_into=True):
+    def paste_at_selection(self, insert_into=False):
         """Paste copied item at selected row"""
         if insert_into:
             clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
