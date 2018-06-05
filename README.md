@@ -6,6 +6,8 @@ The program is organised in two tabs - Schedule Items and Resource Items. Schedu
 
 The estimates can be rendered into a .xlsx document from `Menu->Export...`. The exported sheet includes - the schedule of rates for the work, schedule of resources, resource usage for the work and analysis of rates for various items of work.
 
+Homepage: https://manuvarkey.github.io/GEstimator/
+
 ## Installation
 
 Latest source code and binaries for GEstimator can be downloaded from this page under `Releases`.
