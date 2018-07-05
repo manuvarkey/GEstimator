@@ -59,7 +59,8 @@ PROJECT_EXTENSION = '.eproj'
 # Limiting values
 MAX_DESC_LEN = 1000
 
-ana_copy_add_items = [{"itemtype": 2, "value": 0.12, "description": "Add GST @ 12%"},
+ana_copy_add_items = [{"itemtype": 2, "value": 0.1405, "description": "Add GST @ 12% by reverse calculation"},
+                      {"itemtype": 1, "description": "TOTAL"}, 
                       {"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"}, 
                       {"itemtype": 1, "description": "TOTAL"}, 
                       {"itemtype": 4, "value": 0, "description": "Say"}]
@@ -69,7 +70,8 @@ ana_default_add_items = [{'description': 'MATERIALS', 'code': '', 'itemtype': 0,
                          {'description': 'TOTAL', 'itemtype': 1}, 
                          {'description': 'Add COHP @ 15%', 'value': 0.15, 'itemtype': 2}, 
                          {'description': 'TOTAL', 'itemtype': 1}, 
-                         {'description': 'Add GST @12%', 'value': 0.12, 'itemtype': 2}, 
+                         {'description': 'Add GST @ 12% by reverse calculation', 'value': 0.1405, 'itemtype': 2},
+                         {'description': 'TOTAL', 'itemtype': 1},
                          {'description': 'Add LC @ 1%', 'value': 0.01, 'itemtype': 2}, 
                          {'description': 'TOTAL', 'itemtype': 1}, 
                          {'description': 'Say', 'value': 0, 'itemtype': 4}]

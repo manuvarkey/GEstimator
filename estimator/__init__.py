@@ -899,14 +899,6 @@ class MainWindow:
         log.info('on_refresh called')
         self.update()
         self.display_status(misc.INFO, "Project Refreshed")
-        
-    def on_search(self, widget):
-        """Refresh display of views"""
-        log.info('on_search called')
-        if self.stack_main.get_visible_child_name() == "Schedule Items":
-            self.schedule_view.start_search()
-        else:
-            self.resource_view.start_search()
             
     def drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
         if target_type == 80:

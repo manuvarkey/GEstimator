@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.18"/>
   <object class="GtkFileFilter" id="Project">
@@ -223,6 +223,9 @@
     <signal name="delete-event" handler="on_delete_window" swapped="no"/>
     <signal name="window-state-event" handler="on_focus_window" swapped="no"/>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkStack" id="hidden_stack">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -388,22 +391,6 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_project_save">
-                        <property name="label">gtk-save</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                        <property name="use_stock">True</property>
-                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkButton" id="button_refresh_project">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -425,24 +412,19 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton" id="button_search">
+                      <object class="GtkButton" id="button_project_save">
+                        <property name="label">gtk-save</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Search for item  &lt;i&gt;(Ctrl+f)&lt;/i&gt;</property>
-                        <signal name="clicked" handler="on_search" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">edit-find-symbolic</property>
-                          </object>
-                        </child>
-                        <accelerator key="f" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                        <property name="use_stock">True</property>
+                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                       <packing>
                         <property name="pack_type">end</property>
-                        <property name="position">5</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

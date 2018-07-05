@@ -763,7 +763,7 @@ class ScheduleView:
                 self.select_action()
             return
         
-        if keyname == Gdk.KEY_f and control_pressed:  # Search keycode
+        if self.read_only and keyname == Gdk.KEY_f and control_pressed:  # Search keycode
             self.search_bar.set_search_mode(True)
             return
         
