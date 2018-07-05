@@ -274,7 +274,15 @@ class AnalysisView:
                 if res_model:
                     code = res_model.code
                     res_item = [code, Decimal(0), '']
-                    model_copy.resources[code] = res_model
+                    
+                    resource_db = self.database.get_resource(code)
+                    # Add received resource model if item exist in database
+                    if resource_db:
+                         model_copy.resources[code] = resource_db
+                    # Else add the returned resource 
+                    else:
+                        model_copy.resources[code] = res_model
+                    
                     if len(path) == 1:
                         model_copy.add_ana_res(res_item, path[0], 0)
                         selection_path = [path[0], 0]
