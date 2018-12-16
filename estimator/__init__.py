@@ -404,6 +404,11 @@ class MainWindow:
             self.update()
         else:
             self.display_status(misc.INFO, "Nothing left to Undo")
+            
+    def on_reorder_key_pressed(self, button):
+        """Undo action from stack [Ctrl]+[Shift]+[R]"""
+        self.sch_database.reorder_items()
+        self.display_status(misc.INFO, "Database items reordered")
 
     # Schedule signal handler methods
 
