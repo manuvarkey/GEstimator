@@ -236,13 +236,274 @@
     <property name="show_menubar">False</property>
     <signal name="delete-event" handler="on_delete_window" swapped="no"/>
     <signal name="window-state-event" handler="on_focus_window" swapped="no"/>
-    <child>
-      <placeholder/>
+    <child type="titlebar">
+      <object class="GtkStack" id="hidden_stack_header">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="transition_type">crossfade</property>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="title" translatable="yes">GEstimator</property>
+            <property name="show_close_button">True</property>
+            <child>
+              <object class="GtkMenuButton" id="draw_open_menu">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Open a project</property>
+                <property name="popover">popup_open_project</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Open</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkArrow">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="arrow_type">down</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <accelerator key="o" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_new_project">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Open new project</property>
+                <property name="action_name">app.new</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">document-new-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkButton" id="project_undo_button">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
+                    <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="icon_name">edit-undo-symbolic</property>
+                      </object>
+                    </child>
+                    <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="project_redo_button">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
+                    <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="icon_name">edit-redo-symbolic</property>
+                      </object>
+                    </child>
+                    <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <style>
+                  <class name="linked"/>
+                </style>
+              </object>
+              <packing>
+                <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton" id="project_menu">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="popover">popup_document_menu</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">open-menu-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_project_save">
+                <property name="label">gtk-save</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_refresh_project">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Refresh project &lt;i&gt;(F5)&lt;/i&gt;</property>
+                <signal name="clicked" handler="on_refresh" swapped="no"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">view-refresh-symbolic</property>
+                  </object>
+                </child>
+                <accelerator key="F5" signal="clicked"/>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkStackSwitcher" id="stack_switcher">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">center</property>
+                <property name="stack">stack_main</property>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">Default</property>
+            <property name="title" translatable="yes">Default</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header_ana">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="title">Edit Analysis</property>
+            <property name="has_subtitle">False</property>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Cancel changes to analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
+                <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
+                <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Apply changes to analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
+                <property name="image_position">right</property>
+                <signal name="clicked" handler="on_ana_save" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">Analysis</property>
+            <property name="title" translatable="yes">Analysis</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header_progress">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="title" translatable="yes">GEstimator</property>
+            <property name="spacing">0</property>
+            <property name="show_close_button">True</property>
+          </object>
+          <packing>
+            <property name="name">Progress</property>
+            <property name="title" translatable="yes">Progress</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
     </child>
     <child>
       <object class="GtkStack" id="hidden_stack">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
         <property name="transition_type">crossfade</property>
         <child>
           <object class="GtkBox" id="stack_default">
@@ -258,196 +519,6 @@
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkHeaderBar" id="gtk_header">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkMenuButton" id="draw_open_menu">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Open a project</property>
-                        <property name="popover">popup_open_project</property>
-                        <child>
-                          <object class="GtkBox">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <child>
-                              <object class="GtkLabel">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="label" translatable="yes">Open</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkArrow">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="arrow_type">down</property>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                        </child>
-                        <accelerator key="o" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button_new_project">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_text" translatable="yes">Open new project</property>
-                        <property name="action_name">app.new</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">document-new-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkBox">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <child>
-                          <object class="GtkButton" id="project_undo_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
-                            <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">edit-undo-symbolic</property>
-                              </object>
-                            </child>
-                            <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkButton" id="project_redo_button">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
-                            <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
-                            <child>
-                              <object class="GtkImage">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="icon_name">edit-redo-symbolic</property>
-                              </object>
-                            </child>
-                            <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">True</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <style>
-                          <class name="linked"/>
-                        </style>
-                      </object>
-                      <packing>
-                        <property name="position">6</property>
-                      </packing>
-                    </child>
-                    <child type="title">
-                      <object class="GtkStackSwitcher" id="stack_switcher">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="halign">center</property>
-                        <property name="stack">stack_main</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuButton" id="project_menu">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="popover">popup_document_menu</property>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">open-menu-symbolic</property>
-                          </object>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button_refresh_project">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Refresh project &lt;i&gt;(F5)&lt;/i&gt;</property>
-                        <signal name="clicked" handler="on_refresh" swapped="no"/>
-                        <child>
-                          <object class="GtkImage">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="icon_name">view-refresh-symbolic</property>
-                          </object>
-                        </child>
-                        <accelerator key="F5" signal="clicked"/>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="button_project_save">
-                        <property name="label">gtk-save</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                        <property name="use_stock">True</property>
-                        <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                        <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                      </object>
-                      <packing>
-                        <property name="pack_type">end</property>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
                 <child>
                   <object class="GtkStack" id="stack_main">
                     <property name="visible">True</property>
@@ -845,6 +916,7 @@
                       <packing>
                         <property name="name">Schedule Items</property>
                         <property name="title" translatable="yes">Schedule Items</property>
+                        <property name="icon_name">view-list-symbolic</property>
                       </packing>
                     </child>
                     <child>
@@ -1115,6 +1187,7 @@
                       <packing>
                         <property name="name">Resource Items</property>
                         <property name="title" translatable="yes">Resource Items</property>
+                        <property name="icon_name">preferences-system-details-symbolic</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -1221,52 +1294,6 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkHeaderBar" id="gtk_header_ana">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="title">Edit Analysis</property>
-                <property name="has_subtitle">False</property>
-                <child>
-                  <object class="GtkButton">
-                    <property name="label" translatable="yes">Cancel</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Cancel changes to analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
-                    <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
-                    <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                    <style>
-                      <class name="destructive-action"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkButton">
-                    <property name="label" translatable="yes">Apply</property>
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Apply changes to analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
-                    <property name="image_position">right</property>
-                    <signal name="clicked" handler="on_ana_save" swapped="no"/>
-                    <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
-                    <style>
-                      <class name="suggested-action"/>
-                    </style>
-                  </object>
-                  <packing>
-                    <property name="pack_type">end</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
             <child>
               <object class="GtkToolbar" id="toolbar_ana">
                 <property name="visible">True</property>
@@ -1681,8 +1708,8 @@
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_left">300</property>
-                <property name="margin_right">300</property>
+                <property name="margin_left">50</property>
+                <property name="margin_right">50</property>
                 <property name="margin_top">200</property>
                 <property name="margin_bottom">200</property>
                 <property name="orientation">vertical</property>
@@ -1690,8 +1717,6 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">18</property>
-                    <property name="margin_right">18</property>
                     <property name="margin_top">18</property>
                     <property name="margin_bottom">9</property>
                     <property name="pixel_size">50</property>
@@ -1708,8 +1733,6 @@
                   <object class="GtkLabel" id="progress_label">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="margin_left">18</property>
-                    <property name="margin_right">18</property>
                     <property name="margin_top">9</property>
                     <property name="margin_bottom">18</property>
                     <property name="label" translatable="yes">Progress</property>

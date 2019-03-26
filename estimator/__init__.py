@@ -70,11 +70,21 @@ class MainWindow:
         log.info('display_status - ' + message)
         infobar_revealer.set_reveal_child(True)
         
+    def set_title(self, title):
+        self.gtk_header = self.builder.get_object("gtk_header")
+        self.gtk_header_progress = self.builder.get_object("gtk_header_progress")
+        self.gtk_header_ana = self.builder.get_object("gtk_header_ana")
+        
+        self.gtk_header.set_subtitle(title)
+        self.gtk_header_progress.set_subtitle(title)
+        self.gtk_header_ana.set_subtitle(title)
+        
     def run_command(self, exec_func, data=None):
         """Return progress object"""
         
         # Show progress page
         self.hidden_stack.set_visible_child_name('Progress')
+        self.hidden_stack_header.set_visible_child_name('Progress')
         
         # Setup progress object
         progress_label = self.builder.get_object("progress_label")
@@ -83,7 +93,7 @@ class MainWindow:
                                        label=progress_label, 
                                        progress=progress_bar)
         
-        def callback_combined(progress, data, stack):
+        def callback_combined(progress, data, stack, stack_header):
             # End progress
             progress.pulse(end=True)
             # Run process
@@ -100,12 +110,13 @@ class MainWindow:
             # Change page
             def show_default():
                 stack.set_visible_child_name('Default')
+                stack_header.set_visible_child_name('Default')
             
             GLib.timeout_add_seconds(1, show_default)
         
         # Run process in seperate thread
         que = queue.Queue()
-        thread = threading.Thread(target=lambda q, arg: q.put(callback_combined(progress, data, self.hidden_stack)), args=(que, 2))
+        thread = threading.Thread(target=lambda q, arg: q.put(callback_combined(progress, data, self.hidden_stack, self.hidden_stack_header)), args=(que, 2))
         thread.daemon = True
         thread.start()
     
@@ -220,8 +231,8 @@ class MainWindow:
                 self.stack.clear()
                 self.stack.savepoint()
                 # Set window title
-                window_title = self.filename + ' - ' + misc.PROGRAM_NAME
-                self.window.set_title(window_title)
+                window_title = self.filename
+                self.set_title(window_title)
                 # Refresh
                 self.update()
                 # Display message
@@ -240,8 +251,8 @@ class MainWindow:
         uri = recent.get_current_uri()
         filename = misc.uri_to_file(uri)
         self.on_open_project_clicked(None, filename)
-        window_title = self.filename + ' - ' + misc.PROGRAM_NAME
-        self.window.set_title(window_title)
+        window_title = self.filename
+        self.set_title(window_title)
         self.builder.get_object('popup_open_project').hide()
 
     def on_save_project_clicked(self, button):
@@ -280,7 +291,7 @@ class MainWindow:
         # Set window position
         open_dialog.set_gravity(Gdk.Gravity.CENTER)
         open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
-        # open_dialog.set_do_overwrite_confirmation(True)  # Set overwrite confirmation (Disabled due to bug in GTK+) #TODO
+        open_dialog.set_do_overwrite_confirmation(True)
         # Set default name
         open_dialog.set_current_name("newproject")
         response_id = open_dialog.run()
@@ -297,8 +308,8 @@ class MainWindow:
             # Call save project
             self.on_save_project_clicked(button)
             # Setup window name
-            window_title = self.filename + ' - ' + misc.PROGRAM_NAME
-            self.window.set_title(window_title)
+            window_title = self.filename
+            self.set_title(window_title)
             # Save point in stack for checking change state
             self.stack.savepoint()
 
@@ -364,7 +375,7 @@ class MainWindow:
         dialog.set_current_name('untitled.xlsx')
         dialog.add_filter(file_filter)
         dialog.set_filter(file_filter)
-        # dialog.set_do_overwrite_confirmation(True)  # Set overwrite confirmation (Disabled due to bug in GTK+) #TODO
+        dialog.set_do_overwrite_confirmation(True)
         
         # Run dialog and evaluate code
         response = dialog.run()
@@ -462,6 +473,7 @@ class MainWindow:
                 dialog_ana = self.analysis_view.init(model)
                 # Show stack page
                 self.hidden_stack.set_visible_child_name('Analysis')
+                self.hidden_stack_header.set_visible_child_name('Analysis')
                 self.analysis_view.tree.grab_focus()
                 return
         self.display_status(misc.WARNING, "No valid item selected for editing")
@@ -791,6 +803,7 @@ class MainWindow:
     def on_ana_save(self, button):
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
+        self.hidden_stack_header.set_visible_child_name('Default')
         # Clean exit from analysis view
         (model_ret, res_needs_refresh) = self.analysis_view.exit()
         # Update item
@@ -802,6 +815,7 @@ class MainWindow:
     def on_ana_cancel(self, button):
         # Show stack default page
         self.hidden_stack.set_visible_child_name('Default')
+        self.hidden_stack_header.set_visible_child_name('Default')
         # Clean exit from analysis view
         self.analysis_view.exit()
         # Refresh resource view to update any items that may be added
@@ -997,6 +1011,10 @@ class MainWindow:
 
         log.info('Library initialisation complete')
         
+        # Initialise window variables
+        self.hidden_stack = self.builder.get_object("hidden_stack")
+        self.hidden_stack_header = self.builder.get_object("hidden_stack_header")
+        
         # Initialise undo/redo stack
         self.stack = undo.Stack()
         undo.setstack(self.stack)
@@ -1015,7 +1033,6 @@ class MainWindow:
         self.schedule_view = view.schedule.ScheduleView(self.window, self.sch_database, box_sch, show_sum=True)
         
         # Initialise analysis view
-        self.hidden_stack = self.builder.get_object("hidden_stack")
         self.analysis_tree = self.builder.get_object("treeview_analysis")
         self.analysis_remark_entry = self.builder.get_object("entry_analysis_remarks")
         self.analysis_view = view.analysis.AnalysisView(self.window, 
