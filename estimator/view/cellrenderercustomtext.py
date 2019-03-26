@@ -207,7 +207,7 @@ class CellRendererTextView(Gtk.CellRendererText):
         editable = CustomEditable()
         editable.connect('editing-done', self.editing_done, tree, path)
         editable.set_text(text)
-        editable.set_size_request(cell_area.width-5, cell_area.height-5)
+        editable.scrolled.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.EXTERNAL)
         return editable
 
     def editing_done(self, editable, tree, path):
