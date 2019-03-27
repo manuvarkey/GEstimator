@@ -81,7 +81,11 @@ class AnalysisView:
                                 if self.store[row][col] == True:
                                     prev_column = columns[col-9]
                                     path = Gtk.TreePath.new_from_indices([row])
-                                    GLib.timeout_add(50, treeview.set_cursor, path, prev_column, True)
+                                    treeview.scroll_to_cell(path, prev_column, False)
+                                    if row == rownum:
+                                        GLib.idle_add(treeview.set_cursor, path, prev_column, True)
+                                    else:    
+                                        GLib.timeout_add(200, treeview.set_cursor, path, prev_column, True)
                                     return
                     else:
                         # Search over editable states
@@ -97,7 +101,11 @@ class AnalysisView:
                                 if self.store[row][col] == True:
                                     next_column = columns[col-9]
                                     path = Gtk.TreePath.new_from_indices([row])
-                                    GLib.timeout_add(50, treeview.set_cursor, path, next_column, True)
+                                    treeview.scroll_to_cell(path, next_column, False)
+                                    if row == rownum:
+                                        GLib.idle_add(treeview.set_cursor, path, next_column, True)
+                                    else:    
+                                        GLib.timeout_add(200, treeview.set_cursor, path, next_column, True)
                                     return
                                     
     def on_wrap_column_resized(self, column, pspec, cell):

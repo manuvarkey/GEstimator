@@ -65,9 +65,9 @@ class ResourceView:
                     'Discount', 'Reference']
         expands = [False, True, False, False, False, False, False]
         if compact:
-            widths = [150, 300, 80, 50, 80, 80, 80]
+            widths = [100, 300, 60, 80, 50, 50, 80]
         else:
-            widths = [150, 400, 80, 80, 80, 80, 200]            
+            widths = [130, 400, 80, 80, 70, 70, 200]            
         columntypes = [str, str, str, float, float, float, str]
         
         # Setup treestore and filter
@@ -695,7 +695,11 @@ class ResourceView:
                             for col in range(end,6,-1):
                                 if self.store[row_path][col] == True:
                                     prev_column = columns[col-7]
-                                    GLib.timeout_add(50, treeview.set_cursor, row_path, prev_column, True)
+                                    treeview.scroll_to_cell(row_path, prev_column, False)
+                                    if row_path == path:
+                                        GLib.idle_add(treeview.set_cursor, row_path, prev_column, True)
+                                    else:
+                                        GLib.timeout_add(200, treeview.set_cursor, row_path, prev_column, True)
                                     return
                             row_path = self.get_next_path(row_path, reverse=True)
                     else:
@@ -711,7 +715,11 @@ class ResourceView:
                             for col in range(start, 14):
                                 if self.store[row_path][col] == True:
                                     next_column = columns[col-7]
-                                    GLib.timeout_add(50, treeview.set_cursor, row_path, next_column, True)
+                                    treeview.scroll_to_cell(row_path, next_column, False)
+                                    if row_path == path:
+                                        GLib.idle_add(treeview.set_cursor, row_path, next_column, True)
+                                    else:
+                                        GLib.timeout_add(200, treeview.set_cursor, row_path, next_column, True)
                                     return
                             row_path = self.get_next_path(row_path, reverse=False)
                             

@@ -811,7 +811,11 @@ class ScheduleView:
                                     prev_column = columns[col-7]
                                     edit = True
                                     activate = False
-                                    GLib.timeout_add(50, select_func, treeview, row_path, prev_column, edit, activate)
+                                    treeview.scroll_to_cell(row_path, prev_column, False)
+                                    if row_path == path:
+                                        GLib.idle_add(select_func, treeview, row_path, prev_column, edit, activate)
+                                    else:
+                                        GLib.timeout_add(200, select_func, treeview, row_path, prev_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=True)
                     else:
@@ -829,7 +833,11 @@ class ScheduleView:
                                     next_column = columns[col-7]
                                     edit = True
                                     activate = False
-                                    GLib.timeout_add(50, select_func, treeview, row_path, next_column, edit, activate)
+                                    treeview.scroll_to_cell(row_path, next_column, False)
+                                    if row_path == path:
+                                        GLib.idle_add(select_func, treeview, row_path, next_column, edit, activate)
+                                    else:
+                                        GLib.timeout_add(200, select_func, treeview, row_path, next_column, edit, activate)
                                     return
                             row_path = self.get_next_path(row_path, reverse=False)
                             
