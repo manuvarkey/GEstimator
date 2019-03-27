@@ -372,7 +372,11 @@ class MainWindow:
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
              Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT))
         file_filter = self.builder.get_object("Spreadsheet")
-        dialog.set_current_name('untitled.xlsx')
+        if self.filename:
+            directory = misc.dir_from_path(self.filename)
+            if directory:
+                dialog.set_current_folder(directory)
+        dialog.set_current_name('BOQ.xlsx')
         dialog.add_filter(file_filter)
         dialog.set_filter(file_filter)
         dialog.set_do_overwrite_confirmation(True)
