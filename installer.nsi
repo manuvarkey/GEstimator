@@ -6,8 +6,8 @@
 !define COMPANYNAME "CPWD"
 !define DESCRIPTION "Civil estimation program for civil/electrical works"
 # These three must be integers
-!define VERSIONMAJOR 1
-!define VERSIONMINOR 6
+!define VERSIONMAJOR 2
+!define VERSIONMINOR 0
 !define VERSIONBUILD 1
 # These will be displayed by the "Click here for support information" link in "Add/Remove Programs"
 # It is possible to use "mailto:" links in here to open the email client
@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win32-1-6-1.exe"
+outFile "GEstimator-win32-2-0-1.exe"
  
 !include LogicLib.nsh
  

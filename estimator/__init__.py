@@ -127,20 +127,6 @@ class MainWindow:
         self.schedule_view.update_store()
             
     # Main Window
-    
-    def on_focus_window(self, *args):
-        log.info('Window state changed :' + str(self.id))
-        # Setup correct database model
-        if self.sch_database.get_database_name() != self.filename_temp:
-            # Reassign database
-            self.sch_database.close_database()
-            self.sch_database.open_database(self.filename_temp)
-            # Reassign undo stack
-            if self.hidden_stack.get_visible_child_name() == "Analysis":
-                undo.setstack(self.analysis_view.stack)
-            else:
-                undo.setstack(self.stack)
-            log.info('Database changed to :' + str(self.filename_temp))
 
     def on_delete_window(self, *args):
         """Callback called on pressing the close button of main window"""
@@ -959,9 +945,14 @@ class MainWindow:
         # Open temporary file for database
         (temp_fpointer, self.filename_temp) = tempfile.mkstemp(prefix=misc.PROGRAM_NAME+'_tempproj_' +str(self.id) + '_')
         
+        # Initialise undo/redo stack
+        self.stack = undo.Stack()
+        # Save point in stack for checking change state
+        self.stack.savepoint()
+        
         log.info('Setting up main Database')
         # Setup schedule database    
-        self.sch_database = data.schedule.ScheduleDatabase()
+        self.sch_database = data.schedule.ScheduleDatabase(self.stack)
         self.sch_database.create_new_database(self.filename_temp)
         log.info('Database initialised')
         
@@ -1006,7 +997,7 @@ class MainWindow:
         for f in file_names:
             if f[-len(misc.PROJECT_EXTENSION):].lower() == misc.PROJECT_EXTENSION:
                 library_names.append(misc.posix_path(self.user_library_dir,f))
-                
+        
         for library_name in library_names:
             if self.sch_database.add_library(library_name):
                 log.info('MainWindow - ' + library_name + ' - added')
@@ -1018,12 +1009,6 @@ class MainWindow:
         # Initialise window variables
         self.hidden_stack = self.builder.get_object("hidden_stack")
         self.hidden_stack_header = self.builder.get_object("hidden_stack_header")
-        
-        # Initialise undo/redo stack
-        self.stack = undo.Stack()
-        undo.setstack(self.stack)
-        # Save point in stack for checking change state
-        self.stack.savepoint()
 
         # Other variables
         self.filename = None
