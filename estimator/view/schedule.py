@@ -661,7 +661,7 @@ class ScheduleView:
                     if itemlist[0] == test_string:
                         check_instance_code = itemlist[1]
                         items = itemlist[2]
-                        if self.instance_code_callback() == check_instance_code:
+                        if check_instance_code == self.instance_code_callback():
                             self.add_item_at_selection(items)
                         else:
                             self.add_item_at_selection(items, local_res_code=check_instance_code)

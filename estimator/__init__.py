@@ -1025,7 +1025,7 @@ class MainWindow:
         
         # Initialise resource view
         box_res = self.builder.get_object("box_res")
-        self.resource_view = view.resource.ResourceView(self.window, self.sch_database, box_res)
+        self.resource_view = view.resource.ResourceView(self.window, self.sch_database, box_res, instance_code_callback=self.get_instance_code)
 
         # Initialise schedule view
         box_sch = self.builder.get_object("box_sch")
@@ -1038,7 +1038,8 @@ class MainWindow:
                                                         self.analysis_tree, 
                                                         self.analysis_remark_entry, 
                                                         self.sch_database,
-                                                        self.program_settings)
+                                                        self.program_settings,
+                                                        instance_code_callback=self.get_instance_code)
                                                         
         # Main stack
         self.stack_main = self.builder.get_object("stack_main")

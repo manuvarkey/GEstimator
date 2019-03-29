@@ -145,7 +145,7 @@ class AnalysisView:
                     item = self.model.get_item(path, deep=False)
                     items.append(item)
             if items:
-                text = codecs.encode(pickle.dumps([test_string, items]), "base64").decode() # dump item as text
+                text = codecs.encode(pickle.dumps([test_string, self.instance_code_callback(), items]), "base64").decode() # dump item as text
                 self.clipboard.set_text(text,-1) # push to clipboard
                 log.info('AnalysisView - on_copy - Item copied to clipboard - ' + str(path))
                 return
@@ -163,7 +163,8 @@ class AnalysisView:
                 if itemlist[0] == test_string:
                     model_copy = copy.deepcopy(self.model)
                     
-                    items = itemlist[1]
+                    check_instance_code = itemlist[1]
+                    items = itemlist[2]
                     selection = self.tree.get_selection()
                     
                     # If selection exists
@@ -188,9 +189,14 @@ class AnalysisView:
                                 insertion_path = [insertion_path[0], 0]
                             else:
                                 insertion_path = [insertion_path[0], insertion_path[1]+1]
-                                
-                            code = model_copy.insert_item(item[1], insertion_path)
                             
+                            # If resource not a library item and from different document, get modified code
+                            if check_instance_code != self.instance_code_callback() and len((item[1][0]).split(':')) == 1:
+                                item[1][0] = check_instance_code + '.' + item[1][0]
+                                item[2].code = item[1][0]
+                            
+                            code = model_copy.insert_item(item[1], insertion_path)
+
                             # Add resource if resource does not exist in model
                             if code not in model_copy.resources:
                                 model_copy.resources[code] = item[2]
@@ -697,7 +703,7 @@ class AnalysisView:
         self.update_store()
         log.info('AnalysisView - init - ' + str(model.code))
 
-    def __init__(self, parent, tree, remarks_entry, database, program_settings):
+    def __init__(self, parent, tree, remarks_entry, database, program_settings, instance_code_callback=None):
         """Initialise AnalysisView class
 
             Arguments:
@@ -714,6 +720,7 @@ class AnalysisView:
         self.tree = tree
         self.entry_analysis_remarks = remarks_entry
         self.program_settings = program_settings
+        self.instance_code_callback = instance_code_callback
         
         # Track custom items added into view
         self.custom_items = []

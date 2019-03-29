@@ -44,7 +44,7 @@ log = logging.getLogger(__name__)
 class ResourceView:
     """Implement resource view"""
         
-    def __init__(self, parent, database, box, compact=False, read_only=False):
+    def __init__(self, parent, database, box, compact=False, read_only=False, instance_code_callback=None):
         """Setup resource view and connect signals
         
             Arguments:
@@ -59,6 +59,7 @@ class ResourceView:
         self.database = database
         self.read_only = read_only
         self.box = box
+        self.instance_code_callback = instance_code_callback
         
         # Additional data
         captions = ['Code', 'Description', 'Unit', 'Rate', 'Tax',
@@ -469,7 +470,7 @@ class ResourceView:
         
         if selected: # if selection exists
             test_string = "ResourceViewReference"
-            text = codecs.encode(pickle.dumps([test_string, selected]), "base64").decode() # dump item as text
+            text = codecs.encode(pickle.dumps([test_string, self.instance_code_callback(), selected]), "base64").decode() # dump item as text
             self.clipboard.set_text(text,-1) # push to clipboard
             log.info('ResourceView - cut_selection - Item reference copied to clipboard - ' + str(selected.keys()))
             return
@@ -506,41 +507,46 @@ class ResourceView:
                         items = itemlist[1]
                         self.add_resource_at_selection(items)
                     elif itemlist[0] == "ResourceViewReference":
-                        items = itemlist[1]
+                        check_instance_code = itemlist[1]
+                        items = itemlist[2]
                         insertion_path = paths[-1]
                         
-                        if len(insertion_path) == 2:
-                            with group('Paste cut items in resource view'):
-                                for path, code in items.items():
-                                    ret = self.database.update_resource_path(code, insertion_path[:])
-                                    
-                                    # Mirror modification in treeview
-                                    if ret:
-                                        treeview_path = insertion_path[:]
-                                        if path[0] != insertion_path[0]:
-                                            treeview_path[1] = treeview_path[1] + 1
-                                        elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
-                                            treeview_path[1] = treeview_path[1] + 1
-                                        self.delete_code_from_database(code)
-                                        self.insert_row_from_database(treeview_path, code)
+                        # Only handle paste if cut is from same instance
+                        if check_instance_code == self.instance_code_callback():
+                            if len(insertion_path) == 2:
+                                with group('Paste cut items in resource view'):
+                                    for path, code in items.items():
+                                        ret = self.database.update_resource_path(code, insertion_path[:])
                                         
-                                    if path[0] != insertion_path[0]:
-                                        insertion_path[1] = insertion_path[1] + 1
-                                    elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
-                                        insertion_path[1] = insertion_path[1] + 1
-                                    
-                        elif len(insertion_path) == 1:
-                            with group('Paste cut items in resource view'):
-                                for path, code in reversed(list(items.items())):
-                                    ret = self.database.update_resource_path(code, insertion_path[:])
-                                    
-                                    # Mirror modification in treeview
-                                    if ret:
-                                        self.delete_code_from_database(code)
-                                        self.insert_row_from_database(insertion_path + [0], code)
-                        
-                        # Clear clipboard
-                        self.clipboard.set_text('',-1)
+                                        # Mirror modification in treeview
+                                        if ret:
+                                            treeview_path = insertion_path[:]
+                                            if path[0] != insertion_path[0]:
+                                                treeview_path[1] = treeview_path[1] + 1
+                                            elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
+                                                treeview_path[1] = treeview_path[1] + 1
+                                            self.delete_code_from_database(code)
+                                            self.insert_row_from_database(treeview_path, code)
+                                            
+                                        if path[0] != insertion_path[0]:
+                                            insertion_path[1] = insertion_path[1] + 1
+                                        elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
+                                            insertion_path[1] = insertion_path[1] + 1
+                                        
+                            elif len(insertion_path) == 1:
+                                with group('Paste cut items in resource view'):
+                                    for path, code in reversed(list(items.items())):
+                                        ret = self.database.update_resource_path(code, insertion_path[:])
+                                        
+                                        # Mirror modification in treeview
+                                        if ret:
+                                            self.delete_code_from_database(code)
+                                            self.insert_row_from_database(insertion_path + [0], code)
+                            
+                            # Clear clipboard
+                            self.clipboard.set_text('',-1)
+                        else:
+                            log.warning('ResourceView - paste_at_selection - Connot cut between documents')
                 except:
                     log.warning('ResourceView - paste_at_selection - No valid data in clipboard: ')
             else:
