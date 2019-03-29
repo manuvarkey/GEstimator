@@ -1903,7 +1903,7 @@ class ScheduleDatabase:
         """Updates schedule item i/c analysis"""
         return self.insert_item(sch_model, path=None, update=True)
     
-    def insert_item_atomic(self, item, path=None, update=False, number_with_path=False):
+    def insert_item_atomic(self, item, path=None, update=False, number_with_path=False, local_res_code=None):
         with self.database.atomic():
             sch_category_added = None
             code = item.code
@@ -2102,12 +2102,24 @@ class ScheduleDatabase:
                                         description = anaitem['description'])
                     seq.save()
                     for resource in anaitem['resource_list']:
+                        # Get resource corresponding to resource_list
+                        res_item = item.resources[resource[0]]
+                        # If not a library item and local_res_code given, get modified code
+                        if local_res_code is not None and len((res_item.code).split(':')) == 1:
+                            derived_code = local_res_code + '.' + res_item.code
+                        else:
+                            derived_code = res_item.code
+                        
+                        # Check if resource exists
                         try:
-                            res = self.ResourceTable.select().where(self.ResourceTable.code == resource[0]).get()
+                            res = self.ResourceTable.select().where(self.ResourceTable.code == derived_code).get()
+                        # If resource does not exist, add resource
                         except peewee.DoesNotExist:
-                            [res_path, res_cat] = self.insert_resource_atomic(item.resources[resource[0]])
-                            res = self.ResourceTable.select().where(self.ResourceTable.code == resource[0]).get()
-                            
+                            # Modify resource item code
+                            res_item.code = derived_code
+                            # Add resource
+                            [res_path, res_cat] = self.insert_resource_atomic(res_item)
+                            res = self.ResourceTable.select().where(self.ResourceTable.code == derived_code).get()
                             ress_added[tuple(res_path)] = res.code
                             if res_cat:
                                 ress_added[(res_path[0],)] = res_cat
@@ -2190,14 +2202,14 @@ class ScheduleDatabase:
             # Delete resources
             self.delete_resource_atomic(ress_added)
             
-    def insert_item_multiple_atomic(self, items, path=None, number_with_path=False, preserve_structure=False):
+    def insert_item_multiple_atomic(self, items, path=None, number_with_path=False, preserve_structure=False, local_res_code=None):
         """Function to add multiple schedule items into schedule"""
         with self.database.atomic():
             items_added = OrderedDict()
             net_ress_added = OrderedDict()
             
             for item in items:
-                ret = self.insert_item_atomic(item, path=path, number_with_path=number_with_path)
+                ret = self.insert_item_atomic(item, path=path, number_with_path=number_with_path, local_res_code=local_res_code)
                 if ret:
                     [code_added, path_added, category_added, ress_added] = ret
                     
@@ -2216,11 +2228,11 @@ class ScheduleDatabase:
             return [items_added, net_ress_added]
             
     @undoable
-    def insert_item_multiple(self, items, path=None, number_with_path=False, preserve_structure=False):
+    def insert_item_multiple(self, items, path=None, number_with_path=False, preserve_structure=False, local_res_code=None):
         """Undoable function to add multiple schedule items into schedule"""
         
         with self.database.atomic():
-            [items_added, net_ress_added] = self.insert_item_multiple_atomic(items, path, number_with_path, preserve_structure)
+            [items_added, net_ress_added] = self.insert_item_multiple_atomic(items, path, number_with_path, preserve_structure, local_res_code)
 
         yield "Add schedule items at path:'{}'".format(path), [items_added, net_ress_added]
         

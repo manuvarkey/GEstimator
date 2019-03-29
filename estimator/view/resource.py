@@ -658,7 +658,7 @@ class ResourceView:
             self.search_bar.set_search_mode(True)
             return
         
-        if control_pressed and not shift_pressed:
+        if not self.read_only and control_pressed and not shift_pressed:
             if keyname in (Gdk.KEY_x, Gdk.KEY_X):
                 self.cut_selection()
             elif keyname in (Gdk.KEY_c, Gdk.KEY_C):
@@ -667,13 +667,14 @@ class ResourceView:
                 self.paste_at_selection()
             return
             
-        if shift_pressed and control_pressed:
+        if not self.read_only and shift_pressed and control_pressed:
             if keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection(insert_into=True)
             return
         
+        # Handle tabs
         path, col = treeview.get_cursor()
-        if path != None:
+        if not self.read_only and path != None:
             columns = [c for c in treeview.get_columns()]
             colnum = columns.index(col)
             store = treeview.get_model()

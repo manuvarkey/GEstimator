@@ -26,6 +26,7 @@ import subprocess, os, ntpath, platform, sys, logging, queue, threading, pickle,
 import tempfile, shutil, appdirs
 from decimal import Decimal
 from collections import OrderedDict
+from hashlib import blake2b
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -125,6 +126,15 @@ class MainWindow:
         log.info('MainWindow update called')
         self.resource_view.update_store()
         self.schedule_view.update_store()
+        
+    def get_instance_code(self):
+        """ Return unique code per document"""
+        if self.filename:
+            data = bytes(self.filename, 'utf-8')
+        else:
+            data = bytes(str(hash(self.window)), 'utf-8')
+        hasher = blake2b(data, digest_size = 2)
+        return hasher.hexdigest().upper()
             
     # Main Window
 
@@ -1019,7 +1029,7 @@ class MainWindow:
 
         # Initialise schedule view
         box_sch = self.builder.get_object("box_sch")
-        self.schedule_view = view.schedule.ScheduleView(self.window, self.sch_database, box_sch, show_sum=True)
+        self.schedule_view = view.schedule.ScheduleView(self.window, self.sch_database, box_sch, show_sum=True, instance_code_callback=self.get_instance_code)
         
         # Initialise analysis view
         self.analysis_tree = self.builder.get_object("treeview_analysis")

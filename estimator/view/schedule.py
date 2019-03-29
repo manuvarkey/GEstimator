@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 class ScheduleView:
     """Implement Schedule view"""
 
-    def __init__(self, parent, database, box, compact=False, show_sum=False, read_only=False):
+    def __init__(self, parent, database, box, compact=False, show_sum=False, read_only=False, instance_code_callback=None):
         """Setup schedule view and connect signals
 
             Arguments:
@@ -59,6 +59,7 @@ class ScheduleView:
         self.box = box
         self.show_sum = show_sum
         self.read_only = read_only
+        self.instance_code_callback = instance_code_callback
 
         # Additional data
         captions = ['Code', 'Description', 'Unit', 'Rate', 'Qty',
@@ -520,7 +521,7 @@ class ScheduleView:
             self.insert_row_from_database([order], newcat)
             self.set_selection(path=[order])
         
-    def add_item_at_selection(self, items):
+    def add_item_at_selection(self, items, local_res_code=None):
         """Add items at selection"""
         
         selected = self.get_selected()
@@ -532,7 +533,7 @@ class ScheduleView:
         else:
             path = None
 
-        [items_added, net_ress_added] = self.database.insert_item_multiple(items, path=path, number_with_path=True)
+        [items_added, net_ress_added] = self.database.insert_item_multiple(items, path=path, number_with_path=True, local_res_code=local_res_code)
         
         if items_added:
             # Add new items to store
@@ -624,7 +625,7 @@ class ScheduleView:
                     if item:
                         items.append(item)
             if items:
-                text = codecs.encode(pickle.dumps([test_string, items]), "base64").decode() # dump item as text
+                text = codecs.encode(pickle.dumps([test_string, self.instance_code_callback(), items]), "base64").decode() # dump item as text
                 self.clipboard.set_text(text,-1) # push to clipboard
                 log.info('ScheduleView - copy_selection - Item copied to clipboard - ' + str(path))
                 return
@@ -658,8 +659,12 @@ class ScheduleView:
                 try:
                     itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
                     if itemlist[0] == test_string:
-                        items = itemlist[1]
-                        self.add_item_at_selection(items)
+                        check_instance_code = itemlist[1]
+                        items = itemlist[2]
+                        if self.instance_code_callback() == check_instance_code:
+                            self.add_item_at_selection(items)
+                        else:
+                            self.add_item_at_selection(items, local_res_code=check_instance_code)
                 except:
                     log.warning('ScheduleView - paste_at_selection - No valid data in clipboard')
             else:
@@ -767,18 +772,19 @@ class ScheduleView:
             self.search_bar.set_search_mode(True)
             return
         
-        if control_pressed and not shift_pressed:
+        if not self.read_only and control_pressed and not shift_pressed:
             if keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.copy_selection()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection()
             return
             
-        if shift_pressed and control_pressed:
+        if not self.read_only and shift_pressed and control_pressed:
             if keyname in (Gdk.KEY_v, Gdk.KEY_V):
-                self.paste_at_selection(insert_into=True)
+                self.paste_at_selection(None, insert_into=True)
             return
         
+        # Handle tabs
         path, col = treeview.get_cursor()
         if path != None:
             columns = [c for c in treeview.get_columns()]
