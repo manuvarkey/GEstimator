@@ -308,6 +308,10 @@ class MainWindow:
             self.set_title(window_title)
             # Save point in stack for checking change state
             self.stack.savepoint()
+            # Add saved file to recent manager
+            recent = Gtk.RecentManager.get_default()
+            uri = misc.file_to_uri(self.filename)
+            recent.add_item(uri)
 
         # If response is "CANCEL" (the button "Cancel" has been clicked)
         elif response_id == Gtk.ResponseType.CANCEL:
