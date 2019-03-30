@@ -12,7 +12,7 @@ setup(
     author_email="manuvarkey@gmail.com",
 
     # Packages
-    packages = ['estimator'],
+    packages = ['estimator', 'estimator.data', 'estimator.view'],
     include_package_data = True, # Include additional files into the package
     
     data_files=[('usr/share/applications', ['applications/GEstimator.desktop']),
