@@ -1,5 +1,4 @@
 recursive-include estimator/interface *.glade
 recursive-include estimator/database *.eproj
 recursive-include bin *
-recursive-include applications *
-recursive-include pixmaps *
+recursive-include gui *
