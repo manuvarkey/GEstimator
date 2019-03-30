@@ -8,11 +8,28 @@ grade: devel
 confinement: devmode
 base: core18
 
+slots:
+  gestimator-svc:
+    interface: dbus
+    bus: session
+    name: org.estimator.mainapp
 
 apps:
   gestimator:
-    command: bin/GEstimator.py
-    desktop: share/applications/GEstimator.desktop
+    command: desktop-launch bin/GEstimator.py
+    desktop: usr/share/applications/GEstimator.desktop
+    
+    plugs:
+      - desktop
+      - desktop-legacy
+      - x11
+      - unity7
+      - wayland
+      - home
+      - fuse-support
+      - removable-media
+    slots:
+      - gestimator-svc
 
 
 parts:
@@ -20,8 +37,8 @@ parts:
     source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
     source-depth: 1
     source-subdir: gtk
-
     plugin: make
+    make-parameters: ["FLAVOR=gtk3"]
     build-packages:
     - build-essential
     - libgtk-3-dev
@@ -30,18 +47,14 @@ parts:
       mkdir -pv $SNAPCRAFT_PART_INSTALL/gnome-platform
       
   gestimator:
-    source: https://github.com/manuvarkey/GEstimator.git
+    source: .
     plugin: python
     python-version: python3
+    build-packages: [libgirepository1.0-dev, gcc, libcairo2-dev, pkg-config, python3-dev, gir1.2-gtk-3.0]
+    stage-packages: [libgirepository-1.0-1, gir1.2-gtk-3.0, libcairo-gobject2]
     
-    
+
 plugs:
-  desktop:
-  desktop-legacy:
-  x11:
-  unity7:
-  wayland:
-  
   # GNOME and Gtk runtime via content sharing
   gnome-3-28-1804:
     interface: content
