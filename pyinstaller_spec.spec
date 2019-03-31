@@ -8,7 +8,7 @@ added_files = [
          ( 'estimator/database/*.eproj', 'estimator/database' )
 		 ]
 
-a = Analysis(['run.py'],
+a = Analysis(['gestimator.py'],
              pathex=['C:\\Users\\User\\Desktop\\GEstimator'],
              binaries=None,
              datas=added_files,
