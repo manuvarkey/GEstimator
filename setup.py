@@ -24,7 +24,7 @@ setup(
 
     long_description= 'GEstimator is a simple civil estimation software written in Python and GTK+. GEstimator can prepare estimates along with rate analysis and supports multiple databases.',
     
-    install_requires=["appdirs", "openpyxl", "peewee", "pycairo", "PyGObject"],
+    install_requires=["appdirs", "openpyxl", "peewee", "pyblake2", "pycairo", "PyGObject"],
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',

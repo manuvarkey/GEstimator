@@ -587,13 +587,13 @@ class Spreadsheet:
     def set_page_settings(self, orientation='portrait', papersize='A4', font=None, print_title_rows = None):
         # Orientation
         if orientation == 'portrait':
-            self.sheet.page_setup.orientation = openpyxl.worksheet.Worksheet.ORIENTATION_PORTRAIT
+            self.sheet.page_setup.orientation = openpyxl.worksheet.worksheet.Worksheet.ORIENTATION_PORTRAIT
         elif orientation == 'landscape':
-            self.sheet.page_setup.orientation = openpyxl.worksheet.Worksheet.ORIENTATION_LANDSCAPE
+            self.sheet.page_setup.orientation = openpyxl.worksheet.worksheet.Worksheet.ORIENTATION_LANDSCAPE
             
         # Paper size
         if papersize == 'A4':
-            self.sheet.page_setup.paperSize = openpyxl.worksheet.Worksheet.PAPERSIZE_A4
+            self.sheet.page_setup.paperSize = openpyxl.worksheet.worksheet.Worksheet.PAPERSIZE_A4
             
         # Print title rows
         self.sheet.print_title_rows = print_title_rows

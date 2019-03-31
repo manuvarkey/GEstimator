@@ -26,7 +26,7 @@ import subprocess, os, ntpath, platform, sys, logging, queue, threading, pickle,
 import tempfile, shutil, appdirs
 from decimal import Decimal
 from collections import OrderedDict
-from hashlib import blake2b
+from pyblake2 import blake2b
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -105,8 +105,8 @@ class MainWindow:
                     exec_func(progress, data)
                 else:
                     exec_func(progress)
-            except:
-                pass
+            except Exception as e:
+                log.error('run_command - callback_combined' + str(e))
 
             # Change page
             def show_default():

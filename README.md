@@ -28,5 +28,8 @@ Python Modules:
 * jdcal - Not included
 * et_xmlfile - Not included
 * peewee (v3.2.0) - Not included
+* pyblake2 - Not included
+* pycairo - Not included
+* PyGObject - Not included
 
-### GTK3  (v3.18)
+### GTK3  (v3.28)

@@ -32,7 +32,7 @@
 ​      </screenshot>
 ​    </screenshots>
 ​    <provides>
-​      <binary>gestimator</binary>
+​      <binary>gestimator.py</binary>
 ​    </provides>
 ​  </component>
 ​  <!-- more components here! -->

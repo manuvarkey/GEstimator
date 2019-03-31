@@ -1,5 +1,6 @@
 recursive-include estimator/interface *.glade
 recursive-include estimator/interface *.svg
+recursive-include estimator/interface *.png
 recursive-include estimator/database *.eproj
 recursive-include bin *
 recursive-include gui *

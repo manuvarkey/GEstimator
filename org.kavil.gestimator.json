@@ -9,7 +9,11 @@
            "--socket=wayland",
            "--socket=fallback-x11",
            "--share=network",
-           "--filesystem=host"
+           "--filesystem=host",
+           "--filesystem=xdg-run/dconf",
+           "--filesystem=~/.config/dconf:ro",
+           "--talk-name=ca.desrt.dconf",
+           "--env=DCONF_USER_CONFIG_DIR=.config/dconf"
     ],
     "modules": [
         {
@@ -25,7 +29,7 @@
                     "sha256": "9e5896d1372858f8dd3344faf4e5014d21849c756c8d5701f78f8a103b372d92"
                 }
             ]
-        }
+        },
         {
             "name": "python3-openpyxl",
             "buildsystem": "simple",
@@ -49,7 +53,7 @@
                     "sha256": "1d2af392cef8c8227bd2ac3ebe3a28b25aba74fd4fa473ce106065f0b73bfe2e"
                 }
             ]
-        }
+        },
         {
             "name": "python3-peewee",
             "buildsystem": "simple",
@@ -63,13 +67,54 @@
                     "sha256": "603337153536b85c3c5b5e84df4ae0f9cbaff09163a3739451d167e0ad3fe1f7"
                 }
             ]
-        }
+        },
+        {
+            "name": "python3-pyblake2",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} pyblake2"
+            ],
+            "sources": [
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/a6/ea/559658f48713567276cabe1344a9ef918adcb34a9da417dbf0a2f7477d8e/pyblake2-1.1.2.tar.gz",
+                    "sha256": "5ccc7eb02edb82fafb8adbb90746af71460fbc29aa0f822526fc976dff83e93f"
+                }
+            ]
+        },
         {
             "name": "gestimator",
             "buildsystem": "simple",
             "build-commands": [
+              "install -D gestimator.py /app/bin/gestimator.py",
+              "cp -r app /app",
               "/usr/bin/pip3 install --ignore-installed --no-deps --prefix=/app ."
             ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "estimator",
+                    "dest": "estimator"
+                },
+                {
+                    "type": "dir",
+                    "path": "app",
+                    "dest": "app"
+                },
+                {
+                    "type": "file",
+                    "path": "setup.py"
+                },
+                {
+                    "type": "file",
+                    "path": "MANIFEST.in"
+                },
+                {
+                    "type": "file",
+                    "path": "gestimator.py"
+                }
+                
+            ]
         }
     ]
 }
