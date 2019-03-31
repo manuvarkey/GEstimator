@@ -14,10 +14,6 @@ setup(
     # Packages
     packages = ['estimator', 'estimator.data', 'estimator.view'],
     include_package_data = True, # Include additional files into the package
-    
-    data_files=[('usr/share/applications', ['gui/GEstimator.desktop']),
-                ('usr/share/pixmaps', ['gui/GEstimator.svg']),
-                ('bin', ['bin/GEstimator.py'])],
 
     # Details
     maintainer="Manu Varkey",

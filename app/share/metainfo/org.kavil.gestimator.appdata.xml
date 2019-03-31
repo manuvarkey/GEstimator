@@ -1,0 +1,39 @@
+​<?xml version="1.0"?>
+​<components version="0.10">
+​  <component type="desktop-application">
+​    <id>org.kavil.gestimator</id>
+​    <pkgname>gestimator</pkgname>
+​    <name>GEstimator</name>
+​    <summary>Civil Estimation Software</summary>
+​    <project_license>GPL-3.0</project_license>
+​    <keywords>
+​      <keyword>estimation</keyword>
+​      <keyword>civil</keyword>
+​      <keyword>electrical</keyword>
+​      <keyword>construction</keyword>
+      <keyword>rate analysis</keyword>
+      <keyword>rate estimation</keyword>
+​    </keywords>
+​    <icon type="remote">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/estimator/interface/GEstimator.svg</icon>
+​    <categories>
+​      <category>office</category>
+​      <category>science</category>
+​    </categories>
+​    <mimetypes>
+​      <mimetype>application/eproj</mimetype>
+​    </mimetypes>
+​    <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
+​    <screenshots>
+​      <screenshot type="default">
+​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png</image>
+​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png</image>
+​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png</image>
+​        <image type="source" width="1047" height="570">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png</image>
+​      </screenshot>
+​    </screenshots>
+​    <provides>
+​      <binary>gestimator</binary>
+​    </provides>
+​  </component>
+​  <!-- more components here! -->
+​</components>
