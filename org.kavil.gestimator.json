@@ -87,7 +87,9 @@
             "buildsystem": "simple",
             "build-commands": [
               "install -D gestimator.py /app/bin/gestimator.py",
-              "cp -r app /app",
+              "install -D app/share/applications/org.kavil.gestimator.desktop /app/share/applications/org.kavil.gestimator.desktop",
+              "install -D app/share/metainfo/org.kavil.gestimator.appdata.xml /app/share/metainfo/org.kavil.gestimator.appdata.xml",
+              "install -D app/share/icons/hicolor/scalable/apps/org.kavil.gestimator.svg /app/share/icons/hicolor/scalable/apps/org.kavil.gestimator.svg",
               "/usr/bin/pip3 install --ignore-installed --no-deps --prefix=/app ."
             ],
             "sources": [

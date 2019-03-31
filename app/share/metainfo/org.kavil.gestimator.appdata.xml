@@ -1,39 +1,30 @@
-​<?xml version="1.0"?>
-​<components version="0.10">
-​  <component type="desktop-application">
-​    <id>org.kavil.gestimator</id>
-​    <pkgname>gestimator</pkgname>
-​    <name>GEstimator</name>
-​    <summary>Civil Estimation Software</summary>
-​    <project_license>GPL-3.0</project_license>
-​    <keywords>
-​      <keyword>estimation</keyword>
-​      <keyword>civil</keyword>
-​      <keyword>electrical</keyword>
-​      <keyword>construction</keyword>
-      <keyword>rate analysis</keyword>
-      <keyword>rate estimation</keyword>
-​    </keywords>
-​    <icon type="remote">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/estimator/interface/GEstimator.svg</icon>
-​    <categories>
-​      <category>office</category>
-​      <category>science</category>
-​    </categories>
-​    <mimetypes>
-​      <mimetype>application/eproj</mimetype>
-​    </mimetypes>
-​    <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
-​    <screenshots>
-​      <screenshot type="default">
-​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png</image>
-​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png</image>
-​        <image type="source" width="1048" height="571">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png</image>
-​        <image type="source" width="1047" height="570">https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png</image>
-​      </screenshot>
-​    </screenshots>
-​    <provides>
-​      <binary>gestimator.py</binary>
-​    </provides>
-​  </component>
-​  <!-- more components here! -->
-​</components>
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>org.kavil.gestimator.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <name>GEstimator</name>
+  <summary>Civil Estimation Software</summary>
+  <description>
+    <p>
+      GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with DSR 2016 (Civil) and DSR 2016 (E and M). Final estimate including the schedule of rates, schedule of resources, resource usage and analysis of rates for various items of work can be exported to a spreadsheet for further manipulation.
+    </p>
+  </description>
+  <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png</image>
+    </screenshot>
+    <screenshot type="source">
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png</image>
+    </screenshot>
+    <screenshot type="source">   
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png</image>
+    </screenshot>
+    <screenshot type="source"> 
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png</image>
+    </screenshot>
+  </screenshots>
+  <update_contact>manuvarkey@gmail.com</update_contact>
+  <project_group>Office</project_group>
+</component>

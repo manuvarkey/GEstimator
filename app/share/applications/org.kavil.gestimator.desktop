@@ -2,7 +2,7 @@
 Type=Application
 Name=GEstimator
 Comment=GEstimator is a simple civil estimation software written in Python and GTK+
-Exec=org.kavil.gestimator %U
+Exec=/app/bin/gestimator.py %U
 StartupNotify=true
 Icon=org.kavil.gestimator
 MimeType=application/eproj;
