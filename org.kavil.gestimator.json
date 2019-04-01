@@ -1,7 +1,7 @@
 {
     "app-id": "org.kavil.gestimator",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "3.28",
+    "runtime-version": "3.30",
     "sdk": "org.gnome.Sdk",
     "command": "gestimator.py",
     "finish-args": [
@@ -85,6 +85,7 @@
         {
             "name": "gestimator",
             "buildsystem": "simple",
+            "cleanup": [ "/Other databases", "/spreadsheets", "/sources", "/screenshots", "/GEstimator.ico", "/pyinstaller_spec.spec", "/installer.nsi", "/build_flatpak.sh"],
             "build-commands": [
               "install -D gestimator.py /app/bin/gestimator.py",
               "install -D app/share/applications/org.kavil.gestimator.desktop /app/share/applications/org.kavil.gestimator.desktop",
@@ -95,27 +96,8 @@
             "sources": [
                 {
                     "type": "dir",
-                    "path": "estimator",
-                    "dest": "estimator"
-                },
-                {
-                    "type": "dir",
-                    "path": "app",
-                    "dest": "app"
-                },
-                {
-                    "type": "file",
-                    "path": "setup.py"
-                },
-                {
-                    "type": "file",
-                    "path": "MANIFEST.in"
-                },
-                {
-                    "type": "file",
-                    "path": "gestimator.py"
+                    "path": "."
                 }
-                
             ]
         }
     ]

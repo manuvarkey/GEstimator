@@ -27,4 +27,8 @@
   </screenshots>
   <update_contact>manuvarkey@gmail.com</update_contact>
   <project_group>Office</project_group>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release date="2019-04-01" version="2.0.0" />
+  </releases>
 </component>

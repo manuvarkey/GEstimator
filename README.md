@@ -32,4 +32,4 @@ Python Modules:
 * pycairo - Not included
 * PyGObject - Not included
 
-### GTK3  (v3.28)
+### GTK3  (v3.30)
