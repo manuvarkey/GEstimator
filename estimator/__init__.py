@@ -1096,7 +1096,7 @@ class MainApp(Gtk.Application):
     def __init__(self, *args, **kwargs):
         log.info('MainApp - Start initialisation')
         
-        super().__init__(*args, application_id="org.kavil.gestimator",
+        super().__init__(*args, application_id="com.kavilgroup.gestimator",
                          flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
                          **kwargs)
                          
