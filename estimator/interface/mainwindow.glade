@@ -2,16 +2,6 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.18"/>
-  <object class="GtkFileFilter" id="Project">
-    <patterns>
-      <pattern>*.eproj</pattern>
-    </patterns>
-  </object>
-  <object class="GtkFileFilter" id="Spreadsheet">
-    <mime-types>
-      <mime-type>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</mime-type>
-    </mime-types>
-  </object>
   <object class="GtkPopoverMenu" id="popup_document_menu">
     <property name="can_focus">False</property>
     <child>
@@ -817,7 +807,6 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                                    <property name="filter">Spreadsheet</property>
                                     <property name="preview_widget_active">False</property>
                                     <property name="use_preview_label">False</property>
                                     <property name="title" translatable="yes">Select a spreadsheet file to import data</property>
@@ -1101,7 +1090,6 @@
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                                    <property name="filter">Spreadsheet</property>
                                     <property name="preview_widget_active">False</property>
                                     <property name="use_preview_label">False</property>
                                     <property name="title" translatable="yes">Select a spreadsheet file to import data</property>
@@ -1551,7 +1539,6 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                        <property name="filter">Spreadsheet</property>
                         <property name="local_only">False</property>
                       </object>
                     </child>

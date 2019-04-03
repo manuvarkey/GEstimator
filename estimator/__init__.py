@@ -176,21 +176,24 @@ class MainWindow:
             # Create a filechooserdialog to open:
             # The arguments are: title of the window, parent_window, action,
             # (buttons, response)
-            open_dialog = Gtk.FileChooserDialog("Open project File", self.window,
+            open_dialog = Gtk.FileChooserNative.new("Open project File", self.window,
                                                 Gtk.FileChooserAction.OPEN,
-                                                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                                 Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT))
+                                                "Open", "Cancel")
             # Remote files can be selected in the file selector
             open_dialog.set_local_only(True)
             # Dialog always on top of the textview window
             open_dialog.set_modal(True)
             # Set filters
-            file_filter = self.builder.get_object("Project")
-            open_dialog.add_filter(file_filter)
-            open_dialog.set_filter(file_filter)
-            # Set window position
-            open_dialog.set_gravity(Gdk.Gravity.CENTER)
-            open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+            file_filter_1 = Gtk.FileFilter()
+            file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION)
+            file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION.upper())
+            file_filter_1.set_name("All Project Files")
+            open_dialog.add_filter(file_filter_1)
+            file_filter_2 = Gtk.FileFilter()
+            file_filter_2.add_pattern("*.*")
+            file_filter_2.set_name("All files")
+            open_dialog.add_filter(file_filter_2)
+            open_dialog.set_filter(file_filter_1)
 
             response_id = open_dialog.run()
             # If response is "ACCEPT" (the button "Save" has been clicked)
@@ -211,7 +214,7 @@ class MainWindow:
             # Close existing database
             self.sch_database.close_database()
             # Copy selected file to temporary location
-            shutil.copy(self.filename, self.filename_temp)
+            shutil.copyfile(self.filename, self.filename_temp)
             
             # Validate database
             ret_code = self.sch_database.validate_database(self.filename_temp)
@@ -258,7 +261,7 @@ class MainWindow:
         else:            
             try:
                 # Copy current temporary file to filename
-                shutil.copy(self.filename_temp, self.filename)
+                shutil.copyfile(self.filename_temp, self.filename)
                 self.display_status(misc.INFO, "Project successfully saved")
                 log.info('MainWindow - on_save_project_clicked -  Project successfully saved')
                 # Save point in stack for checking change state
@@ -272,33 +275,35 @@ class MainWindow:
         # Create a filechooserdialog to open:
         # The arguments are: title of the window, parent_window, action,
         # (buttons, response)
-        open_dialog = Gtk.FileChooserDialog("Save project as...", self.window,
+        open_dialog = Gtk.FileChooserNative.new("Save project as...", self.window,
                                             Gtk.FileChooserAction.SAVE,
-                                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                                             Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT))
+                                            "Save", "Cancel")
         # Remote files can be selected in the file selector
         open_dialog.set_local_only(False)
         # Dialog always on top of the textview window
         open_dialog.set_modal(True)
         # Set filters
-        file_filter = self.builder.get_object("Project")
-        open_dialog.add_filter(file_filter)
-        open_dialog.set_filter(file_filter)
-        # Set window position
-        open_dialog.set_gravity(Gdk.Gravity.CENTER)
-        open_dialog.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
+        file_filter_1 = Gtk.FileFilter()
+        file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION)
+        file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION.upper())
+        file_filter_1.set_name("All Project Files")
+        open_dialog.add_filter(file_filter_1)
+        open_dialog.set_filter(file_filter_1)
         open_dialog.set_do_overwrite_confirmation(True)
         # Set default name
-        open_dialog.set_current_name("newproject")
+        open_dialog.set_current_name("newproject" + misc.PROJECT_EXTENSION)
         response_id = open_dialog.run()
         # If response is "ACCEPT" (the button "Save" has been clicked)
         if response_id == Gtk.ResponseType.ACCEPT:
             # Get filename and set project as active
-            filename = open_dialog.get_filename()
-            if misc.PROJECT_EXTENSION not in filename.lower():
-                self.filename = misc.posix_path(filename + misc.PROJECT_EXTENSION)
-            else:
-                self.filename = misc.posix_path(filename)
+            self.filename = open_dialog.get_filename()
+            
+            # Disabled as not supporting sandboxing
+            # if misc.PROJECT_EXTENSION not in filename.lower():
+            #     self.filename = misc.posix_path(filename + misc.PROJECT_EXTENSION)
+            # else:
+            #     self.filename = misc.posix_path(filename)
+                
             self.project_active = True
             log.info('MainWindow - on_saveas_project_clicked -  Project set as active')
             # Call save project
@@ -367,15 +372,19 @@ class MainWindow:
             progress.pulse(end=True)
             
         # Setup file save dialog
-        dialog = Gtk.FileChooserDialog("Save spreadsheet as...", self.window,
-            Gtk.FileChooserAction.SAVE,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT))
-        file_filter = self.builder.get_object("Spreadsheet")
-        if self.filename:
-            directory = misc.dir_from_path(self.filename)
-            if directory:
-                dialog.set_current_folder(directory)
+        dialog = Gtk.FileChooserNative.new("Save spreadsheet as...", self.window,
+            Gtk.FileChooserAction.SAVE, "Save", "Cancel")
+        file_filter = Gtk.FileFilter()
+        file_filter.add_pattern("*.xlsx")
+        file_filter.add_pattern("*.XLSX")
+        file_filter.set_name("All Spreadsheet Files")
+        
+        # Removed for not supporting sandbox
+        # if self.filename:
+        #    directory = misc.dir_from_path(self.filename)
+        #    if directory:
+        #        dialog.set_current_folder(directory)
+        
         dialog.set_current_name('BOQ.xlsx')
         dialog.add_filter(file_filter)
         dialog.set_filter(file_filter)
