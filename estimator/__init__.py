@@ -1160,15 +1160,16 @@ class MainApp(Gtk.Application):
         
         def call_open(window, filename):
             if window.finished_setting_up:
+                log.info('MainApp - do_open - call_open - Start')
                 window.on_open_project_clicked(None, filename)
-                log.info('MainApp - do_open  - opened file ' + filename)
+                log.info('MainApp - do_open - call_open - opened file ' + filename)
                 return False
             else:
                 return True
         
         log.info('MainApp - do_open - Start')
         self.activate()
-        if len(files) > 1:
+        if len(files) > 0:
             filename = files[0].get_path()
             GLib.timeout_add(500, call_open, self.window, filename)
         log.info('MainApp - do_open  - End')
@@ -1178,8 +1179,9 @@ class MainApp(Gtk.Application):
         
         def call_open(window, filename):
             if window.finished_setting_up:
+                log.info('MainApp - do_command_line - call_open - Start')
                 window.on_open_project_clicked(None, filename)
-                log.info('MainApp - do_command_line  - opened file ' + filename)
+                log.info('MainApp - do_command_line - call_open - opened file ' + filename)
                 return False
             else:
                 return True
@@ -1188,7 +1190,8 @@ class MainApp(Gtk.Application):
         options = command_line.get_arguments()
         self.activate()
         if len(options) > 1:
-            GLib.timeout_add(500, call_open, self.window, options[1])
+            filename = misc.uri_to_file(options[1])
+            GLib.timeout_add(500, call_open, self.window, filename)
         log.info('MainApp - do_command_line - End')
         return 0
         
