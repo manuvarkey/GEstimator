@@ -854,7 +854,7 @@ class ScheduleDatabase:
        
         # Modify data
         for code in sch_table:
-            sch_item = self.get_item(code)
+            sch_item = self.get_item(code, modify_res_code=False)
             if sch_item.ana_items and len(sch_item.ana_items) > 1:
                 for slno, item in enumerate(sch_item.ana_items):
                     if item['itemtype'] == ScheduleItemModel.ANA_GROUP:
