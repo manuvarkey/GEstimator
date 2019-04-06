@@ -847,6 +847,36 @@ class ScheduleDatabase:
             
     def get_library_names(self):
         return list(self.libraries.keys())
+        
+    def bulk_modify_analysis(self):
+        """ Draft function for manual manipulation of database"""
+        sch_table = self.get_item_table(flat=True)
+       
+        # Modify data
+        for code in sch_table:
+            sch_item = self.get_item(code)
+            if sch_item.ana_items and len(sch_item.ana_items) > 1:
+                for slno, item in enumerate(sch_item.ana_items):
+                    if item['itemtype'] == ScheduleItemModel.ANA_GROUP:
+                        pass
+
+                    elif item['itemtype'] == ScheduleItemModel.ANA_SUM:
+                        pass
+
+                    elif item['itemtype'] == ScheduleItemModel.ANA_WEIGHT:
+                        desc = item['description']
+                        if "Add COHP @ 15%" in desc:
+                            item['description'] = "OVERHEADS & PROFIT @ 15 %"
+                            sch_item.add_ana_weight("Add 12% GST (MF = 0.1405)", 0.1405, pos = slno)
+                            sch_item.add_ana_sum("TOTAL", pos = slno+1)
+                            self.insert_item_atomic(sch_item, path=None, update=True)
+                            log.info('ScheduleDatabase - bulk_modify_analysis - Item modified: ' + code)
+                            break
+
+                    elif item['itemtype'] == ScheduleItemModel.ANA_TIMES:
+                        pass
+                    elif item['itemtype'] == ScheduleItemModel.ANA_ROUND:
+                        pass
       
         
     ## Project settings
@@ -1765,7 +1795,7 @@ class ScheduleDatabase:
                         return
                     items = self.ScheduleTable.select().where(self.ScheduleTable.category == category_model.id).order_by(self.ScheduleTable.order, self.ScheduleTable.suborder)
                 else:
-                    items = self.ScheduleTable.select().order_by(self.ScheduleTable.category.order, self.ScheduleTable.order, self.ScheduleTable.suborder)
+                    items = self.ScheduleTable.select().join(self.ScheduleCategoryTable).order_by(self.ScheduleCategoryTable.order, self.ScheduleTable.order, self.ScheduleTable.suborder)
                 
                 for item in items:
                     item_list = [item.code, item.description, item.unit, 
