@@ -2201,7 +2201,7 @@ class ScheduleDatabase:
         with self.database.atomic():
             if update:
                 # Get old item model
-                old_item = self.get_item(item.code)
+                old_item = self.get_item(item.code, modify_res_code=False)
                 
             # Insert item
             ret = self.insert_item_atomic(item, path=path, update=update, number_with_path=number_with_path)
@@ -2298,7 +2298,7 @@ class ScheduleDatabase:
     def delete_item(self, code):
         
         with self.database.atomic():
-            old_item_model = self.get_item(code)
+            old_item_model = self.get_item(code, modify_res_code=False)
             path_added = self.delete_item_atomic(code)
         
         yield "Delete schedule item:'{}'".format(code), path_added
@@ -2781,7 +2781,7 @@ class ScheduleDatabase:
         log.info('ScheduleDatabase - export_res_spreadsheet - Schedule exported')
 
     def export_ana_item_spreadsheet(self, code, spreadsheet, parent=None):
-        sch_item = self.get_item(code)
+        sch_item = self.get_item(code, modify_res_code=False)
         if sch_item.ana_items:
             s_row = spreadsheet.length() + 1
 

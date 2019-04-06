@@ -735,7 +735,7 @@ class MainWindow:
                         item = data.schedule.ScheduleItemModel(None,None)
                         index = data.schedule.parse_analysis(models, item, index, True, ana_settings)
                         # Get item with corresponding code from database
-                        sch_item = self.sch_database.get_item(item.code)
+                        sch_item = self.sch_database.get_item(item.code, modify_res_code=False)
                         if sch_item:
                             # Copy values to imported item
                             item.description = sch_item.description
