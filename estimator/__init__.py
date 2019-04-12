@@ -1142,8 +1142,9 @@ class MainApp(Gtk.Application):
         action.connect("activate", self.on_quit)
         self.add_action(action)
 
-        builder = Gtk.Builder.new_from_string(misc.MENU_XML, -1)
-        self.set_app_menu(builder.get_object("app-menu"))
+        # Disable app menu since deprecated
+        # builder = Gtk.Builder.new_from_string(misc.MENU_XML, -1)
+        # self.set_app_menu(builder.get_object("app-menu"))
         
         log.info('MainApp - do_startup - End')
     

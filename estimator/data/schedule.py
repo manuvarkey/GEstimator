@@ -31,12 +31,12 @@ from decimal import Decimal, ROUND_HALF_UP
 # Rate rounding function with support for ro
 def Currency(x, places=2):
     if int(places) == places:
-        return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
+        return Decimal(x).quantize(Decimal(str(Decimal(10)**(-places))), rounding=ROUND_HALF_UP)
     else:
         precision = int(places)
         base = int((places - int(places))*10)
         mod_x = Decimal(base/(10**precision))*Decimal(x*(10**precision)/base).quantize(Decimal('1.'), rounding=ROUND_HALF_UP)
-        return Decimal(mod_x).quantize(Decimal(str(10**(-precision))), rounding=ROUND_HALF_UP)
+        return Decimal(mod_x).quantize(Decimal(str(Decimal(10)**(-precision))), rounding=ROUND_HALF_UP)
 
 # Local files import
 from .. import misc
