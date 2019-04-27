@@ -28,7 +28,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 # Rates rounding function
 def Currency(x, places=2):
-    return Decimal(x).quantize(Decimal(str(10**(-places))), rounding=ROUND_HALF_UP)
+    return Decimal(x).quantize(Decimal(str(Decimal(10)**(-places))), rounding=ROUND_HALF_UP)
 
 from gi.repository import Gtk, Gdk, GLib, Pango
 
