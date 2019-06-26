@@ -176,9 +176,15 @@ class MainWindow:
             # Create a filechooserdialog to open:
             # The arguments are: title of the window, parent_window, action,
             # (buttons, response)
-            open_dialog = Gtk.FileChooserNative.new("Open project File", self.window,
+            if platform.system() == 'Linux':
+                open_dialog = Gtk.FileChooserNative.new("Open project File", self.window,
+                                                    Gtk.FileChooserAction.OPEN,
+                                                    "Open", "Cancel")
+            elif platform.system() == 'Windows':
+                open_dialog = Gtk.FileChooserDialog("Open project File", self.window,
                                                 Gtk.FileChooserAction.OPEN,
-                                                "Open", "Cancel")
+                                                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                                 Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT))
             # Remote files can be selected in the file selector
             open_dialog.set_local_only(True)
             # Dialog always on top of the textview window
@@ -275,9 +281,15 @@ class MainWindow:
         # Create a filechooserdialog to open:
         # The arguments are: title of the window, parent_window, action,
         # (buttons, response)
-        open_dialog = Gtk.FileChooserNative.new("Save project as...", self.window,
+        if platform.system() == 'Linux':
+            open_dialog = Gtk.FileChooserNative.new("Save project as...", self.window,
                                             Gtk.FileChooserAction.SAVE,
                                             "Save", "Cancel")
+        elif platform.system() == 'Windows':
+            open_dialog = Gtk.FileChooserDialog("Save project as...", self.window,
+                                            Gtk.FileChooserAction.SAVE,
+                                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                             Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT))
         # Remote files can be selected in the file selector
         open_dialog.set_local_only(False)
         # Dialog always on top of the textview window
@@ -372,8 +384,14 @@ class MainWindow:
             progress.pulse(end=True)
             
         # Setup file save dialog
-        dialog = Gtk.FileChooserNative.new("Save spreadsheet as...", self.window,
-            Gtk.FileChooserAction.SAVE, "Save", "Cancel")
+        if platform.system() == 'Linux':
+            dialog = Gtk.FileChooserNative.new("Save spreadsheet as...", self.window,
+                                               Gtk.FileChooserAction.SAVE, "Save", "Cancel")
+        elif platform.system() == 'Windows':
+            dialog = Gtk.FileChooserDialog("Save spreadsheet as...", self.window,
+                                           Gtk.FileChooserAction.SAVE,
+                                           (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                            Gtk.STOCK_SAVE, Gtk.ResponseType.ACCEPT))
         file_filter = Gtk.FileFilter()
         file_filter.add_pattern("*.xlsx")
         file_filter.add_pattern("*.XLSX")

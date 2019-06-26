@@ -5,6 +5,7 @@ block_cipher = None
 added_files = [
          ( 'estimator/interface/*.glade', 'estimator/interface' ),
          ( 'estimator/interface/*.png', 'estimator/interface' ),
+         ( 'estimator/interface/*.svg', 'estimator/interface' ),
          ( 'estimator/database/*.eproj', 'estimator/database' )
 		 ]
 
