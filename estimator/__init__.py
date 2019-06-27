@@ -397,11 +397,12 @@ class MainWindow:
         file_filter.add_pattern("*.XLSX")
         file_filter.set_name("All Spreadsheet Files")
         
-        # Removed for not supporting sandbox
-        # if self.filename:
-        #    directory = misc.dir_from_path(self.filename)
-        #    if directory:
-        #        dialog.set_current_folder(directory)
+        # Set directory from project filename (Not supported by sandbox)
+        if platform.system() == 'Windows':
+            if self.filename:
+                directory = misc.dir_from_path(self.filename)
+                if directory:
+                    dialog.set_current_folder(directory)
         
         dialog.set_current_name('BOQ.xlsx')
         dialog.add_filter(file_filter)
@@ -1099,7 +1100,13 @@ class MainWindow:
         
         # Setup main window
         self.builder = Gtk.Builder()
-        self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
+        
+        # Disable CSD for windows
+        if platform.system() == 'Linux':
+            self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
+        elif platform.system() == 'Windows':
+            self.builder.add_from_file(misc.abs_path("interface", "mainwindow_windows.glade"))
+            
         self.window = self.builder.get_object("window_main")
         self.builder.connect_signals(self)
 

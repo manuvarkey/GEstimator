@@ -840,7 +840,6 @@ class AnalysisView:
         self.tree.set_model(self.store)
 
         # Intialise clipboard
-        atom = Gdk.Atom.intern(misc.PROGRAM_NAME+'.'+misc.PROGRAM_AUTHOR+'.'+'ANALYSIS', False)
-        self.clipboard = Gtk.Clipboard.get(atom)
+        self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
         
         
