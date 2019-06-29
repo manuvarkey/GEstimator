@@ -171,7 +171,7 @@ class MainWindow:
         """Open project selected by  the user"""
         
         if filename:
-            self.filename = filename
+            self.filename = os.path.abspath(filename)
         else:
             # Create a filechooserdialog to open:
             # The arguments are: title of the window, parent_window, action,
