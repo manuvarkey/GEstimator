@@ -517,6 +517,7 @@ class ResourceView:
                                     self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
                         elif focus_col_num in (1,2,6):
                             with group('Paste into resource column ' + str(focus_col_num)):
+                                text = text.strip('\n')
                                 for path in selected:
                                     self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
             else:
