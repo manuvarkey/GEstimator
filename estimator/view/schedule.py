@@ -637,18 +637,42 @@ class ScheduleView:
             clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             text = clipboard.wait_for_text() # get text from clipboard
             if text != None:
-                selected = self.get_selected()
-                (treepath, focus_column) = self.tree.get_cursor()
-                if focus_column and selected:
-                    focus_col_num = self.tree.get_columns().index(focus_column)
-                    if focus_col_num in (3,4):
-                        with group('Paste into schedule column ' + str(focus_col_num)):
-                            for path in selected:
-                                self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
-                    elif focus_col_num in (1,2,6):
-                        with group('Paste into schedule column ' + str(focus_col_num)):
-                            for path in selected:
-                                self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
+                text_list = text.split('\n')
+                # For lists of text paste accross multipole rows
+                if len(text_list) > 1:
+                    selected = self.get_selected()
+                    (treepath, focus_column) = self.tree.get_cursor()
+                    if focus_column and selected:
+                        focus_col_num = self.tree.get_columns().index(focus_column)
+                        if focus_col_num in (3,4):
+                            with group('Paste into schedule column ' + str(focus_col_num)):
+                                path = treepath
+                                for text in text_list:
+                                    self.on_cell_edited_num(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
+                                    path = self.get_next_path(path)
+                                    if path is None:
+                                        break
+                        elif focus_col_num in (1,2,6):
+                            with group('Paste into schedule column ' + str(focus_col_num)):
+                                path = treepath
+                                for text in text_list:
+                                    self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
+                                    path = self.get_next_path(path)
+                                    if path is None:
+                                        break
+                else:
+                    selected = self.get_selected()
+                    (treepath, focus_column) = self.tree.get_cursor()
+                    if focus_column and selected:
+                        focus_col_num = self.tree.get_columns().index(focus_column)
+                        if focus_col_num in (3,4):
+                            with group('Paste into schedule column ' + str(focus_col_num)):
+                                for path in selected:
+                                    self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
+                        elif focus_col_num in (1,2,6):
+                            with group('Paste into schedule column ' + str(focus_col_num)):
+                                for path in selected:
+                                    self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
             else:
                 log.warning('ScheduleView - paste_at_selection - No text in clipboard')
         else:
@@ -780,7 +804,7 @@ class ScheduleView:
             
         if not self.read_only and shift_pressed and control_pressed:
             if keyname in (Gdk.KEY_v, Gdk.KEY_V):
-                self.paste_at_selection(None, insert_into=True)
+                self.paste_at_selection(insert_into=True)
             return
         
         # Handle tabs
