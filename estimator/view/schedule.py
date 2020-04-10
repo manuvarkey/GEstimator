@@ -637,7 +637,7 @@ class ScheduleView:
             clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             text = clipboard.wait_for_text() # get text from clipboard
             if text != None:
-                text_list = text.split('\n')
+                text_list = text.strip('\n').split('\n')
                 # For lists of text paste accross multipole rows
                 if len(text_list) > 1:
                     selected = self.get_selected()
@@ -656,6 +656,7 @@ class ScheduleView:
                             with group('Paste into schedule column ' + str(focus_col_num)):
                                 path = treepath
                                 for text in text_list:
+                                    text = text.strip('\n')
                                     self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
                                     path = self.get_next_path(path)
                                     if path is None:
