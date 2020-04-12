@@ -942,6 +942,11 @@ class MainWindow:
     def on_paste_spl_res(self, button):
         """Paste rows from clipboard into resource view cell"""
         self.resource_view.paste_at_selection(insert_into=True)
+        
+    def on_res_sync_rates_clicked(self, button):
+        """Synchronise rates from schedule for subanalysis items"""
+        self.resource_view.update_resource_from_schedule()
+        
 
     # General signal handler methods
 

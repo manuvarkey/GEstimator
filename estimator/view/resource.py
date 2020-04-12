@@ -576,6 +576,16 @@ class ResourceView:
                     log.warning('ResourceView - paste_at_selection - No valid data in clipboard: ')
             else:
                 log.warning('ResourceView - paste_at_selection - No text in clipboard')
+                
+    def update_resource_from_schedule(self):
+        """Synchronise rates from schedule for subanalysis items"""
+        selected = self.get_selected()
+        if selected:
+            with group('Synchronise resource item from schedule'):
+                for path, code in selected.items():
+                    sch = self.database.get_item(code)
+                    if sch:
+                        self.on_cell_edited_num(None, ':'.join(map(str,path)), str(sch.rate), 3)
             
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
         """Function for modifying value of a treeview cell"""
