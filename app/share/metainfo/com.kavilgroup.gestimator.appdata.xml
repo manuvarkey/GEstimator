@@ -7,7 +7,7 @@
   <summary>Civil Estimation Software</summary>
   <description>
     <p>
-      GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with DSR 2016 (Civil) and DSR 2016 (E and M). Final estimate including the schedule of rates, schedule of resources, resource usage and analysis of rates for various items of work can be exported to a spreadsheet for further manipulation.
+      GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with DSR 2018 (Civil) and DSR 2018 (E and M). Final estimate including the schedule of rates, schedule of resources, details of measurements, resource usage and analysis of rates for various items of work can be exported to a spreadsheet for further manipulation.
     </p>
   </description>
   <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
@@ -29,6 +29,7 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+	<release date="2020-04-17" version="2.2.0" />
     <release date="2019-06-27" version="2.1.0" />
     <release date="2019-04-01" version="2.0.0" />
   </releases>
