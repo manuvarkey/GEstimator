@@ -3193,7 +3193,7 @@ class ScheduleDatabase:
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
                         # Sum of quantity
-                        item_row = [None, 'TOTAL', item_unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1)]
+                        item_row = [None, 'TOTAL', item_unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1) + ')']
                         spreadsheet.append_data([item_row, [None]])
                         spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                         s_row = s_row + 2
@@ -3236,7 +3236,7 @@ class ScheduleDatabase:
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
                         # Sum of quantity
-                        item_row = [None, 'TOTAL', unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1)]
+                        item_row = [None, 'TOTAL', unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1) + ')']
                         spreadsheet.append_data([item_row, [None]])
                         spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                         s_row = s_row + 2

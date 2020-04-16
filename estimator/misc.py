@@ -548,7 +548,7 @@ class SpreadsheetDialog:
         """
         new_text = entry.get_text()
         num = ''
-        if new_text is not '':
+        if new_text != '':
             try:  # check whether item evaluates fine
                 num = int(new_text)
                 if num <= 0:

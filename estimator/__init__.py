@@ -1195,12 +1195,8 @@ class MainWindow:
         # Setup main window
         self.builder = Gtk.Builder()
         
-        # Disable CSD for windows
-        if platform.system() == 'Linux':
-            self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
-        elif platform.system() == 'Windows':
-            self.builder.add_from_file(misc.abs_path("interface", "mainwindow_windows.glade"))
-            
+        self.builder.add_from_file(misc.abs_path("interface", "mainwindow.glade"))
+        
         self.window = self.builder.get_object("window_main")
         self.builder.connect_signals(self)
 

@@ -155,6 +155,7 @@ class MeasurementsView:
                         path = paths[0].get_indices()
                     else:
                         path = None
+                        itemlist[1].reverse()
                     # Add items one by one
                     for model in itemlist[1]:
                         if model[0] == 'MeasurementItemCustom':

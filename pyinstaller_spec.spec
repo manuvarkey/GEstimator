@@ -6,7 +6,8 @@ added_files = [
          ( 'estimator/interface/*.glade', 'estimator/interface' ),
          ( 'estimator/interface/*.png', 'estimator/interface' ),
          ( 'estimator/interface/*.svg', 'estimator/interface' ),
-         ( 'estimator/database/*.eproj', 'estimator/database' )
+         ( 'estimator/database/*.eproj', 'estimator/database' ),
+		 ( 'estimator/meas_templates/*.py', 'estimator/meas_templates' )
 		 ]
 
 a = Analysis(['gestimator.py'],
