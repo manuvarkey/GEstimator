@@ -23,7 +23,7 @@
 #  
 
 import subprocess, os, ntpath, platform, sys, logging, queue, threading, pickle, copy
-import tempfile, shutil, appdirs
+import tempfile, shutil, appdirs, importlib
 from decimal import Decimal
 from collections import OrderedDict
 from pyblake2 import blake2b
@@ -33,7 +33,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject, Gio, GdkPixbuf
 
 # local files import
-from . import undo, misc, data, view, meas_templates
+from . import undo, misc, data, view
 
 # Get logger object
 log = logging.getLogger()
@@ -1121,7 +1121,10 @@ class MainWindow:
 
         for module_name in module_names:
             try:
-                module = getattr(meas_templates, module_name)
+                spec = importlib.util.spec_from_file_location(module_name, misc.abs_path('meas_templates', module_name+'.py'))
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = module
+                spec.loader.exec_module(module)
                 custom_object = module.CustomItem()
                 name = custom_object.name
                 menuitem = Gtk.ModelButton(text=name)
