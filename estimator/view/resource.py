@@ -862,7 +862,7 @@ class SelectResourceDialog:
         self.dialog_window.set_transient_for(parent)
         self.dialog_window.set_default_response(Gtk.ResponseType.OK)
         self.dialog_window.set_resizable(True)
-        self.dialog_window.set_size_request(900,500)
+        self.dialog_window.set_size_request(1100,600)
         
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
@@ -1168,7 +1168,7 @@ class ResourceUsageDialog():
         # Setup dialog
         self.dialog_window = Gtk.Dialog(window_caption, parent, Gtk.DialogFlags.MODAL,
             (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
-        self.dialog_window.set_size_request(900,500)
+        self.dialog_window.set_size_request(1100,600)
         self.dialog_window.set_default_response(Gtk.ResponseType.CLOSE)
         self.action_area = self.dialog_window.get_action_area()
         self.action_area.set_border_width(6)

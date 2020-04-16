@@ -22,4 +22,4 @@
 #  
 #  
 
-from . import analysis, resource, schedule, project, analysissettings, cellrenderercustomtext
+from . import analysis, resource, schedule, project, analysissettings, cellrenderercustomtext, measurement, scheduledialog

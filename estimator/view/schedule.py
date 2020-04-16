@@ -479,13 +479,17 @@ class ScheduleView:
 
         return codes
     
-    def get_selected_codes(self):
+    def get_selected_codes(self, get_key=False):
         selected = self.get_selected(include_category=False)
         codes = []
         for path, code in selected.items():
             codes.append(code)
-        return codes
-        
+        if get_key:
+            key = self.database.get_item_key(codes[0])
+            return (codes[0], key)
+        else:
+            return codes
+            
     def set_selection(self, code=None, path=None):
 
         if code:
@@ -565,6 +569,17 @@ class ScheduleView:
             else:
                 return False
                 
+        elif codes is None:
+            return None
+            
+    def update_selected_qty(self):
+        codes = self.get_selected_codes()
+        if codes:
+            if self.database.update_qty(codes):
+                self.update_store()
+                return True
+            else:
+                return False
         elif codes is None:
             return None
             
@@ -944,7 +959,7 @@ class ScheduleView:
 class SelectScheduleDialog:
     """Shows a dialog to select a schedule item """
         
-    def __init__(self, parent, database, settings):
+    def __init__(self, parent, database, settings, simple=False):
         """Setup dialog window and connect signals
         
             Arguments:
@@ -956,61 +971,84 @@ class SelectScheduleDialog:
         # Passed data
         self.database = database
         self.settings = settings
+        self.simple = simple
 
         # Setup dialog
         title = 'Select the schedule item to be added'
-        self.dialog_window = Gtk.Dialog(title, parent, Gtk.DialogFlags.MODAL,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,             
-             Gtk.STOCK_ADD, Gtk.ResponseType.APPLY,
-             'Modify & Add', Gtk.ResponseType.OK))
+        
+        if self.simple:
+            self.dialog_window = Gtk.Dialog(title, parent, Gtk.DialogFlags.MODAL,
+                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,             
+                 Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        else:
+            self.dialog_window = Gtk.Dialog(title, parent, Gtk.DialogFlags.MODAL,
+                (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,             
+                 Gtk.STOCK_ADD, Gtk.ResponseType.APPLY,
+                 'Modify & Add', Gtk.ResponseType.OK))
+                 
         self.dialog_window.set_transient_for(parent)
         self.dialog_window.set_default_response(Gtk.ResponseType.OK)
         self.dialog_window.set_resizable(True)
-        self.dialog_window.set_size_request(900,500)
+        self.dialog_window.set_size_request(1100,600)
         
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
         self.action_area = self.dialog_window.get_action_area()
         self.action_area.set_border_width(6)
         
-        # Combobox for libraries
-        self.library_combo = Gtk.ComboBoxText()
-        self.libraries = self.database.get_library_names()
-        for library in self.libraries:
-            if library:
-                self.library_combo.append_text(str(library))
-        if self.library_combo:
-            self.library_combo.set_active(0)
-                
-        # Pack widgets
-        box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 12)
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
-        dialogBox.pack_start(box, True, True, 0)
-        box.pack_start(self.library_combo, False, False, 0)
-        box.pack_start(self.stack, True, True, 0)
-        
-
-        self.scheduleviews = dict()
-        for library in self.libraries:
-            box_res = Gtk.Box.new(Gtk.Orientation.VERTICAL,0)
-            self.stack.add_named(box_res, library)
-            with self.database.using_library(library):
-                sch_view = ScheduleView(self.dialog_window,
-                                        self.database, 
-                                        box_res,
-                                        compact = True,
-                                        read_only = True)
-                self.scheduleviews[library] = sch_view
-                # Overide functions of schedule view
-                sch_view.select_action = self.select_action
-                sch_view.select_action_alt = self.select_action_alt
-        if self.scheduleviews:
-            self.scheduleview = self.scheduleviews[self.libraries[0]]
+        if self.simple:
+            box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 12)
+            self.scheduleview = ScheduleView(self.dialog_window, 
+                                            self.database, 
+                                            box, 
+                                            compact=True,
+                                            read_only=True)
+            # Overide functions of default resource view
+            self.scheduleview.select_action = self.select_action
+            dialogBox.pack_start(box, True, True, 0)
+            # Set selection mode to single
+            self.scheduleview.tree.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+            # Grab focus
             self.scheduleview.tree.grab_focus()
+        else:
+            # Combobox for libraries
+            self.library_combo = Gtk.ComboBoxText()
+            self.libraries = self.database.get_library_names()
+            for library in self.libraries:
+                if library:
+                    self.library_combo.append_text(str(library))
+            if self.library_combo:
+                self.library_combo.set_active(0)
+                    
+            # Pack widgets
+            box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 12)
+            self.stack = Gtk.Stack()
+            self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+            dialogBox.pack_start(box, True, True, 0)
+            box.pack_start(self.library_combo, False, False, 0)
+            box.pack_start(self.stack, True, True, 0)
+            
+
+            self.scheduleviews = dict()
+            for library in self.libraries:
+                box_res = Gtk.Box.new(Gtk.Orientation.VERTICAL,0)
+                self.stack.add_named(box_res, library)
+                with self.database.using_library(library):
+                    sch_view = ScheduleView(self.dialog_window,
+                                            self.database, 
+                                            box_res,
+                                            compact = True,
+                                            read_only = True)
+                    self.scheduleviews[library] = sch_view
+                    # Overide functions of schedule view
+                    sch_view.select_action = self.select_action
+                    sch_view.select_action_alt = self.select_action_alt
+            if self.scheduleviews:
+                self.scheduleview = self.scheduleviews[self.libraries[0]]
+                self.scheduleview.tree.grab_focus()
         
-        # Connect signals
-        self.library_combo.connect("changed", self.on_combo_changed)
+            # Connect signals
+            self.library_combo.connect("changed", self.on_combo_changed)
         
     def on_combo_changed(self, combo):
         name = combo.get_active_text()
@@ -1030,63 +1068,70 @@ class SelectScheduleDialog:
         
         # Evaluate response
         
-        # Modify and add
-        if response == Gtk.ResponseType.OK:
-            selected_codes = self.scheduleview.get_selected_codes()
-            selected_items = []
-            if selected_codes:
-                # Get settings
-                delete_rows = int(eval(self.settings['ana_copy_delete_rows']))
-                ana_rows = self.settings['ana_copy_add_items']
-                
-                for selected_code in selected_codes:
-                    # Get current name
-                    name = self.library_combo.get_active_text()
-                    # Get item from selected library
-                    with self.database.using_library(name):
-                        item = self.database.get_item(selected_code)
-                        proj_code = self.database.get_project_settings()['project_item_code']
-                    if item:
-                        # Modify current item according to settings
-                        if len(item.ana_items) > delete_rows:
-                            item.ana_items = item.ana_items[:-delete_rows] + ana_rows
-                        
-                        # Modify item reference
-                        remarks = proj_code + ' ' + item.code
-                        item.remarks = remarks
-                        
-                        log.info('SelectScheduleDialog - run - Selected with modification - ' + selected_code)
-                        selected_items.append(item)
-                                         
-                if selected_items:
-                    # Hide and Return
-                    self.dialog_window.hide()
-                    return selected_items
-        
-        # Add without modiying
-        elif response == Gtk.ResponseType.APPLY:
-            selected_codes = self.scheduleview.get_selected_codes()
-            selected_items = []
-            if selected_codes:
-                for selected_code in selected_codes:
-                    # Get current name
-                    name = self.library_combo.get_active_text()
-                    # Get item from selected library
-                    with self.database.using_library(name):
-                        item = self.database.get_item(selected_code)
-                        proj_code = self.database.get_project_settings()['project_item_code']
-                    if item:
-                        # Modify item reference
-                        remarks = proj_code + ' ' + item.code
-                        item.remarks = remarks
-                        
-                        log.info('SelectScheduleDialog - run - Selected without modification - ' + selected_code)
-                        selected_items.append(item)
-                                         
-                if selected_items:
-                    # Hide and Return
-                    self.dialog_window.hide()
-                    return selected_items
+        # Simple select
+        if self.simple:
+            if response == Gtk.ResponseType.OK:
+                self.dialog_window.hide()
+                return self.scheduleview.get_selected_codes(get_key=True)
+        # Standard select
+        else:
+            # Modify and add
+            if response == Gtk.ResponseType.OK:
+                selected_codes = self.scheduleview.get_selected_codes()
+                selected_items = []
+                if selected_codes:
+                    # Get settings
+                    delete_rows = int(eval(self.settings['ana_copy_delete_rows']))
+                    ana_rows = self.settings['ana_copy_add_items']
+                    
+                    for selected_code in selected_codes:
+                        # Get current name
+                        name = self.library_combo.get_active_text()
+                        # Get item from selected library
+                        with self.database.using_library(name):
+                            item = self.database.get_item(selected_code)
+                            proj_code = self.database.get_project_settings()['project_item_code']
+                        if item:
+                            # Modify current item according to settings
+                            if len(item.ana_items) > delete_rows:
+                                item.ana_items = item.ana_items[:-delete_rows] + ana_rows
+                            
+                            # Modify item reference
+                            remarks = proj_code + ' ' + item.code
+                            item.remarks = remarks
+                            
+                            log.info('SelectScheduleDialog - run - Selected with modification - ' + selected_code)
+                            selected_items.append(item)
+                                             
+                    if selected_items:
+                        # Hide and Return
+                        self.dialog_window.hide()
+                        return selected_items
+            
+            # Add without modiying
+            elif response == Gtk.ResponseType.APPLY:
+                selected_codes = self.scheduleview.get_selected_codes()
+                selected_items = []
+                if selected_codes:
+                    for selected_code in selected_codes:
+                        # Get current name
+                        name = self.library_combo.get_active_text()
+                        # Get item from selected library
+                        with self.database.using_library(name):
+                            item = self.database.get_item(selected_code)
+                            proj_code = self.database.get_project_settings()['project_item_code']
+                        if item:
+                            # Modify item reference
+                            remarks = proj_code + ' ' + item.code
+                            item.remarks = remarks
+                            
+                            log.info('SelectScheduleDialog - run - Selected without modification - ' + selected_code)
+                            selected_items.append(item)
+                                             
+                    if selected_items:
+                        # Hide and Return
+                        self.dialog_window.hide()
+                        return selected_items
         
         # Cancel
         # Hide and Return

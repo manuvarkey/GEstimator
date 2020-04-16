@@ -22,7 +22,7 @@
 #
 #
 
-import logging, copy, re
+import logging, copy, re, json
 import peewee, sqlite3
 from playhouse.migrate import migrate, SqliteMigrator
 from collections import OrderedDict
@@ -40,6 +40,7 @@ def Currency(x, places=2):
 
 # Local files import
 from .. import misc
+from . import measurement
 
 # Get logger object
 log = logging.getLogger()
@@ -896,6 +897,122 @@ class ScheduleDatabase:
             # Add settings
             for key, value in settings.items():
                 self.ProjectTable.create(key=key, value=value)
+
+    ## Measurements
+
+    def get_measurement(self):
+        settings = self.get_project_settings()
+        if 'project_measurement' in settings:
+            model = json.loads(settings['project_measurement'])
+        else:
+            # Handle missing field
+            model = json.loads(misc.default_project_settings['project_measurement'])
+        meas = measurement.Measurement()
+        meas.set_model(model)
+        return meas
+
+    def set_measurement(self, measurement):
+        # Get project settings and set measurement
+        settings = self.get_project_settings()
+        model = measurement.get_model()
+        settings['project_measurement'] = json.dumps(model)
+        self.set_project_settings(settings)
+
+    @undoable
+    def add_measurement_item_at_node(self, item, path):
+        """Undoable function for adding a MeasurementItem to model"""
+        if isinstance(item, measurement.MeasurementItem):
+            delete_path = None
+            # Get measurement
+            meas = self.get_measurement()
+
+            if path not in [None, []]:
+                if len(path) == 1: # if a measurement item selected
+                    meas.insert_item(path[0]+1, item)
+                    delete_path = [path[0]+1]
+            else: # if path is None append at top
+                meas.insert_item(0, item)
+                delete_path = [0]
+
+            # Set measurement
+            self.set_measurement(meas)
+
+            yield "Add Measurement item at '{}'".format(path)
+            # Undo action
+            if delete_path != None:
+                self.delete_row_meas(delete_path)
+        else:
+            log.warning('add_measurement_item_at_node - Wrong model loaded')
+            return
+
+    @undoable
+    def edit_measurement_item(self, path, newval, oldval):
+        """Undoable function for editing a MeasurementItem in model"""
+        if len(path) == 1 and isinstance(newval, measurement.MeasurementItem) and isinstance(oldval, measurement.MeasurementItem):
+            # Get measurement
+            meas = self.get_measurement()
+            # Set edited value
+            meas[path[0]] = newval
+            # Set measurement
+            self.set_measurement(meas)
+
+        yield "Edit measurement items at '{}'".format(path)
+        # Undo action
+        if len(path) == 1 and isinstance(newval, measurement.MeasurementItem) and isinstance(oldval, measurement.MeasurementItem):
+            # Get measurement
+            meas = self.get_measurement()
+            # Set edited value
+            meas[path[0]] = oldval
+            # Set measurement
+            self.set_measurement(meas)
+
+    @undoable
+    def delete_row_meas(self, path):
+        """Undoable function for deleting a measurement item from model"""
+        item = None
+
+        if len(path) == 1:
+            # Get measurement
+            meas = self.get_measurement()
+            # Delete value
+            item = meas[path[0]]
+            meas.remove_item(path[0])
+            # Set measurement
+            self.set_measurement(meas)
+
+        yield "Delete measurement items at '{}'".format(path)
+        # Undo action
+        if len(path) == 1 and item:
+            self.add_measurement_item_at_node(item, path)
+
+    @undoable
+    def update_qty(self, codes = None):
+        # Get measurement
+        meas = self.get_measurement()
+        (paths, qtys, sums) = meas.get_net_measurement()
+        with self.database.atomic():
+            old_qtys = dict()
+            if codes is None:
+                sch_rows = self.ScheduleTable.select()
+            else:
+                sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << codes)
+            for sch_row in sch_rows:
+                if sch_row.id in sums:
+                    old_qtys[sch_row.code] = sch_row.qty
+                    sch_row.qty = sums[sch_row.id]
+                    sch_row.save()
+
+        yield "Update schedule item quatities", True
+
+        with self.database.atomic():
+            if codes is None:
+                sch_rows = self.ScheduleTable.select()
+            else:
+                sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << codes)
+            for sch_row in sch_rows:
+                if sch_row.id in sums:
+                    sch_row.qty = old_qtys[sch_row.code]
+                    sch_row.save()
     
             
     ## Resource category methods
@@ -1756,6 +1873,23 @@ class ScheduleDatabase:
                 sch_model.resources = res_models
                 sch_model.evaluate_results()
             return sch_model
+
+    def get_item_key(self, code):
+        with self.database.atomic():
+            try:
+                item = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
+            except self.ScheduleTable.DoesNotExist:
+                return None
+            return item.id
+
+    def get_item_code(self, id):
+        with self.database.atomic():
+            try:
+                item = self.ScheduleTable.select().where(self.ScheduleTable.id == id).get()
+            except self.ScheduleTable.DoesNotExist:
+                return None
+            return item.code
+
 
     def get_item_table(self, category = None, flat=False):
         with self.database.atomic():
@@ -2979,4 +3113,142 @@ class ScheduleDatabase:
         spreadsheet.set_page_settings(font='Trebuchet MS')
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
+        
+    def export_meas_spreadsheet(self, spreadsheet):
+        # Get measurement
+        meas = self.get_measurement()
+        sch_table = self.get_item_table()
+        sch_table_flat = self.get_item_table(flat=True)
+        (netpaths, netqtys, netsums) = meas.get_net_measurement()
+        codes = dict()
+        for key in netqtys:
+            if key is not None:
+                code = self.get_item_code(key)
+                codes[key] = code
+
+        spreadsheet.new_sheet()
+        spreadsheet.set_title('DOM')
+
+        # Header
+        spreadsheet.add_merged_cell('DETAILS OF MEASUREMENTS', width=4, bold=True)
+        rows = [[None]]
+        spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
+        s_row = 4
+
+        measurement_sheet = meas.get_spreadsheet_buffer(sch_table_flat, codes, s_row)
+        spreadsheet.append(measurement_sheet)
+        s_row = s_row + measurement_sheet.length()
+
+        # Insert abstract
+        rows = [[None],[None]]
+        spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
+        spreadsheet.add_merged_cell('ABSTRACT OF MEASUREMENTS', width=4, bold=True)
+        rows = [[None],
+                ['Code', 'Description', 'Unit', 'Qty'],
+                [None]]
+        spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
+        s_row = s_row + 6
+
+        for category, items in sch_table.items():
+            # Add category item
+            rows = [[None, category],[None]]
+            spreadsheet.append_data(rows, bold=True)
+            s_row = s_row + 2
+            # Set data of 1st level items
+            for code, item_list in items.items():
+                item = item_list[0]
+                item_desc = item[1]
+                item_unit = item[2]
+                item_qty = item[4]
+                key = self.get_item_key(code)
+
+                # If item has multiple lines split up lines
+                item_desc_parts = item_desc.split('\n')
+                if len(item_desc_parts) > 1:
+                    for part in item_desc_parts[0:-1]:
+                        item_row = [code, part, None, None]
+                        code = None
+                        spreadsheet.append_data([item_row])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 1
+                    item_desc = item_desc_parts[-1]
+
+                if item_unit == '':
+                    item_row = [code, item_desc, None, None]
+                    spreadsheet.append_data([item_row])
+                    spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                    s_row = s_row + 1
+                else:
+                    # Add detail from measurements
+                    if key in netqtys:
+                        item_qty = item[4]
+                        item_row = [code, item_desc, item_unit]
+                        spreadsheet.append_data([item_row])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 1
+                        s_row_start = s_row
+                        for path, qty in zip(netpaths[key], netqtys[key]):
+                            item_row = [None, 'B/F MEASUREMENT # ' + str(path), item_unit, qty]
+                            spreadsheet.append_data([item_row])
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        # Sum of quantity
+                        item_row = [None, 'TOTAL', item_unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1)]
+                        spreadsheet.append_data([item_row, [None]])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 2
+                    # Add detail from schedule
+                    else:
+                        item_row = [code, item_desc, item_unit, item_qty]
+                        spreadsheet.append_data([item_row, [None]])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 2
+                # Set data of 2nd level items
+                for sub_item in item_list[1]:
+                    code = sub_item[0]
+                    desc = sub_item[1]
+                    unit = sub_item[2]
+                    qty = sub_item[4]
+                    key = self.get_item_key(code)
+
+                    # If item has multiple lines split up lines
+                    item_desc_parts = desc.split('\n')
+                    if len(item_desc_parts) > 1:
+                        for part in item_desc_parts[0:-1]:
+                            item_row = [code, part, None, None]
+                            code = None
+                            spreadsheet.append_data([item_row])
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        desc = item_desc_parts[-1]
+
+                    # Add detail from measurements
+                    if key in netqtys:
+                        item_qty = item[4]
+                        item_row = [code, desc, unit]
+                        spreadsheet.append_data([item_row])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 1
+                        s_row_start = s_row
+                        for path, qty in zip(netpaths[key], netqtys[key]):
+                            item_row = [None, 'B/F MEASUREMENT # ' + str(path), unit, qty]
+                            spreadsheet.append_data([item_row])
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        # Sum of quantity
+                        item_row = [None, 'TOTAL', unit, '=SUM(D' + str(s_row_start) + ':D' + str(s_row-1)]
+                        spreadsheet.append_data([item_row, [None]])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 2
+                    # Add detail from schedule
+                    else:
+                        row = [code, desc, unit, qty]
+                        spreadsheet.append_data([row, [None]])
+                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                        s_row = s_row + 2
+
+        spreadsheet.set_column_widths([10, 50, 20, 10, 10, 10, 10, 10, 10, 10, 10])
+        spreadsheet.set_page_settings(font='Trebuchet MS')
+
+        log.info('ScheduleDatabase - export_meas_spreadsheet - Details of Measurement exported')
         

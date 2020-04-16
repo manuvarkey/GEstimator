@@ -52,6 +52,12 @@ MEAS_COLOR_NORMAL = '#FFFFFF'
 MEAS_COLOR_SELECTED = '#729FCF'
 MEAS_COLOR_HIGHLIGHTED = '#8AE234'
 
+# Item codes for schedule dialog
+MEAS_NO = 1
+MEAS_L = 2
+MEAS_DESC = 3
+MEAS_CUST = 4
+
 # String used for checking file version
 PROJECT_FILE_VER = 'GESTIMATOR_FILE_REFERENCE_VER_2'
 PROJECT_EXTENSION = '.eproj'
@@ -79,7 +85,8 @@ ana_default_add_items = [{'description': 'MATERIALS', 'code': '', 'itemtype': 0,
 default_project_settings = {'file_version':PROJECT_FILE_VER,
                             'project_name':'',
                             'project_item_code':'',
-                            'project_resource_code':''}
+                            'project_resource_code':'',
+                            'project_measurement':'["Measurement", ["", []]]'}
 default_program_settings = {'ana_copy_delete_rows':'1',
                             'ana_copy_add_items': ana_copy_add_items,
                             'ana_default_add_items': ana_default_add_items}
@@ -330,7 +337,7 @@ class UserEntryDialog():
 class SpreadsheetDialog:
     """Dialog for manage input and output of spreadsheets"""
    
-    def __init__(self, parent, filename, columntypes, captions, dimensions = None):
+    def __init__(self, parent, filename, columntypes, captions, dimensions = None, allow_formula=False):
         """Initialise SpreadsheetDialog class
         
             Arguments:
@@ -343,6 +350,7 @@ class SpreadsheetDialog:
                                 misc.MEAS_DESC: String
                                 misc.MEAS_CUST: Value omited
                 dimensions: List of two lists passing column widths and expand properties
+                allow_formula: Reads all values as string
         """
         log.info('SpreadsheetDialog - Initialise')
         # Setup variables
@@ -351,6 +359,7 @@ class SpreadsheetDialog:
         self.captions = captions
         self.columntypes = columntypes
         self.dimensions = dimensions
+        self.allow_formula = allow_formula
         
         self.top = 0
         self.bottom = 0
@@ -365,7 +374,7 @@ class SpreadsheetDialog:
         self.builder.add_from_file(abs_path("interface","spreadsheetdialog.glade"))
         self.window = self.builder.get_object("dialog")
         self.window.set_transient_for(self.parent)
-        self.window.set_default_size(950,500)
+        self.window.set_default_size(1100,600)
         self.builder.connect_signals(self)
 
         # Get required objects
@@ -472,7 +481,7 @@ class SpreadsheetDialog:
         self.entry_right.set_text(str(self.left + len(self.columntypes)))
         
         # Read spreadsheet
-        self.values = self.spreadsheet.read_rows(self.columntypes, start=self.top-1, end=self.bottom-1, left=self.left-1)
+        self.values = self.spreadsheet.read_rows(self.columntypes, start=self.top-1, end=self.bottom-1, left=self.left-1, allow_formula=self.allow_formula)
         
         # Update store
         self.store.clear()
@@ -654,8 +663,14 @@ class Spreadsheet:
         for row_no, row in enumerate(sheet.rows, 1):
             for col_no, cell in enumerate(row, 1):
                 self.sheet.cell(row=row_no+rowcount, column=col_no).value = cell.value
-                self.sheet.cell(row=row_no+rowcount, column=col_no).style = cell.style
-                
+                if cell.has_style:
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).font = copy.copy(cell.font)
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).border = copy.copy(cell.border)
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).fill = copy.copy(cell.fill)
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).number_format = copy.copy(cell.number_format)
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).protection = copy.copy(cell.protection)
+                    self.sheet.cell(row=row_no+rowcount, column=col_no).alignment = copy.copy(cell.alignment)
+
     def append_data(self, data, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom', fill = None):
         """Append data to current sheet"""
         rowcount = self.length()
@@ -703,7 +718,7 @@ class Spreadsheet:
             
     # Bulk read functions
     
-    def read_rows(self, columntypes = [], start=0, end=-1, left=0):
+    def read_rows(self, columntypes = [], start=0, end=-1, left=0, allow_formula=False):
         """Read and validate selected rows from current sheet"""
         # Get count of rows
         rowcount = self.length()
@@ -725,20 +740,49 @@ class Spreadsheet:
                         cell_formated = str(cell)
                 elif columntype == float:
                     if cell is None:
-                        cell_formated = 0
-                    else:
-                        try:  # try evaluating float
-                            cell_formated = float(cell)
-                        except:
+                        if allow_formula:
+                            cell_formated = '0'
+                        else:
                             cell_formated = 0
+                    else:
+                        if allow_formula:
+                            try:  # try evaluating float
+                                if len(str(cell)) > 1 and str(cell)[0] == '=':
+                                    formula = str(cell)[1:]
+                                else:
+                                    formula = str(cell)
+                                evaluated = str(float(eval(formula)))
+                                cell_formated = formula
+                            except:
+                                cell_formated = '0'
+                        else:
+                            try:  # try evaluating float
+                                cell_formated = str(float(cell))
+                            except:
+                                cell_formated = 0
+
                 elif columntype == int:
                     if cell is None:
-                        cell_formated = 0
-                    else:
-                        try:  # try evaluating int
-                            cell_formated = int(cell)
-                        except:
+                        if allow_formula:
+                            cell_formated = '0'
+                        else:
                             cell_formated = 0
+                    else:
+                        if allow_formula:
+                            try:  # try evaluating int
+                                if len(str(cell)) > 1 and str(cell)[0] == '=':
+                                    formula = str(cell)[1:]
+                                else:
+                                    formula = str(cell)
+                                evaluated = str(int(eval(formula)))
+                                cell_formated = formula
+                            except:
+                                cell_formated = '0'
+                        else:
+                            try:  # try evaluating int
+                                cell_formated = str(int(cell))
+                            except:
+                                cell_formated = 0
                 else:
                     cell_formated = ''
                     log.warning("Spreadsheet - Value skipped on import - " + str((row, i)))

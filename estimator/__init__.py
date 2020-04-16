@@ -33,7 +33,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, GObject, Gio, GdkPixbuf
 
 # local files import
-from . import undo, misc, data, view
+from . import undo, misc, data, view, meas_templates
 
 # Get logger object
 log = logging.getLogger()
@@ -126,6 +126,7 @@ class MainWindow:
         log.info('MainWindow update called')
         self.resource_view.update_store()
         self.schedule_view.update_store()
+        self.measurements_view.update_store()
         
     def get_instance_code(self):
         """ Return unique code per document"""
@@ -367,13 +368,17 @@ class MainWindow:
             progress.add_message('Exporting Resource Items...')
             progress.set_fraction(0.1)
             self.sch_database.export_res_spreadsheet(spreadsheet)
+            # Export Measurements
+            progress.add_message('Exporting Resource Items...')
+            progress.set_fraction(0.2)
+            self.sch_database.export_meas_spreadsheet(spreadsheet)
             # Export Resource usage
             progress.add_message('Exporting Resource Usage...')
-            progress.set_fraction(0.2)
+            progress.set_fraction(0.3)
             self.sch_database.export_res_usage_spreadsheet(spreadsheet)
             # Export analysis of rates
             progress.add_message('Exporting Analysis of Rates...')
-            progress.set_fraction(0.3)
+            progress.set_fraction(0.4)
             self.sch_database.export_ana_spreadsheet(spreadsheet, progress, [0.3,0.9])
             # Save spreadsheet
             progress.add_message('Saving spreadsheet...')
@@ -534,6 +539,15 @@ class MainWindow:
         else:
             self.display_status(misc.ERROR, "An error occured while updating rates")
             
+    def on_sch_refresh_meas_clicked(self, button):
+        ret_code = self.schedule_view.update_selected_qty()
+        if ret_code:
+            self.display_status(misc.INFO, "Schedule quantiy updated from details of measurement")
+        elif ret_code is None:
+            self.display_status(misc.WARNING, "No valid items in selection")
+        else:
+            self.display_status(misc.ERROR, "An error occured while updating quantity")
+
     def on_sch_renumber_clicked(self, button):
         self.sch_database.assign_auto_item_numbers()
         self.schedule_view.update_store()
@@ -854,6 +868,49 @@ class MainWindow:
         if self.analysis_view.res_needs_refresh:
             self.resource_view.update_store()
             
+
+    # Measurement signal handler methods
+
+    def on_meas_heading_menu_clicked(self, button):
+        """Add a Heading object to measurement view"""
+        code = self.measurements_view.add_heading()
+        if code is not None:
+            self.display_status(*code)
+
+    def on_meas_custom_menu_clicked(self, button, module):
+        """Callback function for click event of custom measurement item"""
+        code = self.measurements_view.add_custom(None,module)
+        if code is not None:
+            self.display_status(*code)
+
+    def on_meas_delete_clicked(self, button):
+        """Delete selected item from measurement view"""
+        self.measurements_view.delete_selected_row()
+
+    def on_meas_clicked(self, button, event):
+        """Edit measurement view object on double click"""
+        if event.type == Gdk.EventType._2BUTTON_PRESS:
+            self.measurements_view.edit_selected_row()
+
+    def on_meas_edit_clicked(self, button):
+        """Edit selected item in measurement view"""
+        self.measurements_view.edit_selected_row()
+
+    def on_meas_properties_clicked(self, button):
+        """Edit properties of supported items in measurement view"""
+        code = self.measurements_view.edit_selected_properties()
+        if code is not None:
+            self.display_status(*code)
+
+    def on_meas_copy_clicked(self, button):
+        """Copy selected item in measurement view to clipboard"""
+        self.measurements_view.copy_selection()
+
+    def on_meas_paste_clicked(self, button):
+        """Paste item from clipboard to measurement view"""
+        self.measurements_view.paste_at_selection()
+
+
     # Resource signal handler methods
     
     def on_res_add_clicked(self, button):
@@ -1051,6 +1108,31 @@ class MainWindow:
             else:
                 log.warning('MainWindow - ' + library_name + ' - not added')
 
+        # Setup custom measurement items
+        file_names = [f for f in os.listdir(misc.abs_path('meas_templates'))]
+        module_names = []
+        for f in file_names:
+            if f[-3:] == '.py' and f != '__init__.py':
+                module_names.append(f[:-3])
+        self.custom_menus = []
+        module_names.sort()
+
+        popupmenu = self.builder.get_object("popover_meas_box")
+
+        for module_name in module_names:
+            try:
+                module = getattr(meas_templates, module_name)
+                custom_object = module.CustomItem()
+                name = custom_object.name
+                menuitem = Gtk.ModelButton(text=name)
+                popupmenu.pack_start(menuitem, False, False, 0)
+                menuitem.set_visible(True)
+                menuitem.connect("clicked", self.on_meas_custom_menu_clicked, module_name)
+                self.custom_menus.append(menuitem)
+                log.info('Plugin loaded - ' + module_name)
+            except ImportError:
+                log.error('Error Loading plugin - ' + module_name)
+
         log.info('Library initialisation complete')
         
         # Initialise window variables
@@ -1078,6 +1160,10 @@ class MainWindow:
                                                         self.program_settings,
                                                         instance_code_callback=self.get_instance_code)
                                                         
+        # Initialise measurement view
+        treeview_meas = self.builder.get_object("treeview_meas")
+        self.measurements_view = view.measurement.MeasurementsView(self.window, self.sch_database, treeview_meas)
+
         # Main stack
         self.stack_main = self.builder.get_object("stack_main")
         
