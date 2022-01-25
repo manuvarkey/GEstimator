@@ -476,106 +476,96 @@ class ResourceView:
         # if no selection
         log.warning("ResourceView - cut_selection - No items selected to copy")
         
-    def paste_at_selection(self, insert_into=False):
+    def paste_at_selection(self):
         """Paste copied item at selected row"""
-        if insert_into:
-            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            text = clipboard.wait_for_text() # get text from clipboard
-            if text != None:
-                text_list = text.strip('\n').split('\n')
-                # For lists of text paste accross multipole rows
-                if len(text_list) > 1:
-                    selected = self.get_selected()
-                    (treepath, focus_column) = self.tree.get_cursor()
-                    if focus_column and selected:
-                        focus_col_num = self.tree.get_columns().index(focus_column)
-                        if focus_col_num in (3,4,5):
-                            with group('Paste into resource column ' + str(focus_col_num)):
-                                path = treepath
-                                for text in text_list:
-                                    self.on_cell_edited_num(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
-                                    path = self.get_next_path(path)
-                                    if path is None:
-                                        break
-                        elif focus_col_num in (1,2,6):
-                            with group('Paste into resource column ' + str(focus_col_num)):
-                                path = treepath
-                                for text in text_list:
-                                    text = text.strip('\n')
-                                    self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
-                                    path = self.get_next_path(path)
-                                    if path is None:
-                                        break
-                else:
-                    selected = self.get_selected()
-                    (treepath, focus_column) = self.tree.get_cursor()
-                    if focus_column and selected:
-                        focus_col_num = self.tree.get_columns().index(focus_column)
-                        if focus_col_num in (3,4,5):
-                            with group('Paste into resource column ' + str(focus_col_num)):
-                                for path in selected:
-                                    self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
-                        elif focus_col_num in (1,2,6):
-                            with group('Paste into resource column ' + str(focus_col_num)):
-                                text = text.strip('\n')
-                                for path in selected:
-                                    self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
-            else:
-                log.warning('ResourceView - paste_at_selection - No text in clipboard')
-        else:
-            text = self.clipboard.wait_for_text() # get text from clipboard
-            paths = self.get_selected_paths()
-            if text != None and len(paths) > 0:
-                try:
-                    itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
-                    if itemlist[0] == "ResourceView":
-                        items = itemlist[1]
-                        self.add_resource_at_selection(items)
-                    elif itemlist[0] == "ResourceViewReference":
-                        check_instance_code = itemlist[1]
-                        items = itemlist[2]
-                        insertion_path = paths[-1]
-                        
-                        # Only handle paste if cut is from same instance
-                        if check_instance_code == self.instance_code_callback():
-                            if len(insertion_path) == 2:
-                                with group('Paste cut items in resource view'):
-                                    for path, code in items.items():
-                                        ret = self.database.update_resource_path(code, insertion_path[:])
-                                        
-                                        # Mirror modification in treeview
-                                        if ret:
-                                            treeview_path = insertion_path[:]
-                                            if path[0] != insertion_path[0]:
-                                                treeview_path[1] = treeview_path[1] + 1
-                                            elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
-                                                treeview_path[1] = treeview_path[1] + 1
-                                            self.delete_code_from_database(code)
-                                            self.insert_row_from_database(treeview_path, code)
-                                            
+        text = self.clipboard.wait_for_text() # get text from clipboard
+        paths = self.get_selected_paths()
+        if text != None and len(paths) > 0:
+            # Search for valid objects
+            try:
+                itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
+                if itemlist[0] == "ResourceView":
+                    items = itemlist[1]
+                    self.add_resource_at_selection(items)
+                elif itemlist[0] == "ResourceViewReference":
+                    check_instance_code = itemlist[1]
+                    items = itemlist[2]
+                    insertion_path = paths[-1]
+                    
+                    # Only handle paste if cut is from same instance
+                    if check_instance_code == self.instance_code_callback():
+                        if len(insertion_path) == 2:
+                            with group('Paste cut items in resource view'):
+                                for path, code in items.items():
+                                    ret = self.database.update_resource_path(code, insertion_path[:])
+                                    
+                                    # Mirror modification in treeview
+                                    if ret:
+                                        treeview_path = insertion_path[:]
                                         if path[0] != insertion_path[0]:
-                                            insertion_path[1] = insertion_path[1] + 1
+                                            treeview_path[1] = treeview_path[1] + 1
                                         elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
-                                            insertion_path[1] = insertion_path[1] + 1
+                                            treeview_path[1] = treeview_path[1] + 1
+                                        self.delete_code_from_database(code)
+                                        self.insert_row_from_database(treeview_path, code)
                                         
-                            elif len(insertion_path) == 1:
-                                with group('Paste cut items in resource view'):
-                                    for path, code in reversed(list(items.items())):
-                                        ret = self.database.update_resource_path(code, insertion_path[:])
-                                        
-                                        # Mirror modification in treeview
-                                        if ret:
-                                            self.delete_code_from_database(code)
-                                            self.insert_row_from_database(insertion_path + [0], code)
-                            
-                            # Clear clipboard
-                            self.clipboard.set_text('',-1)
-                        else:
-                            log.warning('ResourceView - paste_at_selection - Connot cut between documents')
-                except:
-                    log.warning('ResourceView - paste_at_selection - No valid data in clipboard: ')
-            else:
-                log.warning('ResourceView - paste_at_selection - No text in clipboard')
+                                    if path[0] != insertion_path[0]:
+                                        insertion_path[1] = insertion_path[1] + 1
+                                    elif path[0] == insertion_path[0] and path[1] > insertion_path[1]:
+                                        insertion_path[1] = insertion_path[1] + 1
+                                    
+                        elif len(insertion_path) == 1:
+                            with group('Paste cut items in resource view'):
+                                for path, code in reversed(list(items.items())):
+                                    ret = self.database.update_resource_path(code, insertion_path[:])
+                                    
+                                    # Mirror modification in treeview
+                                    if ret:
+                                        self.delete_code_from_database(code)
+                                        self.insert_row_from_database(insertion_path + [0], code)
+                        # Clear clipboard
+                        self.clipboard.set_text('',-1)
+                    else:
+                        log.warning('ResourceView - paste_at_selection - Cannot cut between documents')
+                else:
+                        log.warning('ResourceView - paste_at_selection - No valid item found')
+            # Revert to plain text paste
+            except:
+                selected = self.get_selected()
+                (treepath, focus_column) = self.tree.get_cursor()
+                # Paste whole content if multiple selection
+                if len(selected) > 1 and focus_column:
+                    focus_col_num = self.tree.get_columns().index(focus_column)
+                    if focus_col_num in (3,4,5):
+                        with group('Paste into resource column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
+                    elif focus_col_num in (1,2,6):
+                        text = text.strip('\n')
+                        with group('Paste into resource column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
+                # Matrix paste across rows and columns if single selection
+                elif len(selected) == 1 and focus_column:
+                    focus_col_num = self.tree.get_columns().index(focus_column)
+                    path = treepath
+                    text_list = text.strip('\n').split('\n')
+                    with group('Paste into resource column ' + str(focus_col_num)):
+                        for text_line in text_list:
+                            text_line_list = text_line.strip('\t').split('\t')
+                            for count, text_element in enumerate(text_line_list):
+                                if focus_col_num + count in (3,4,5):
+                                    self.on_cell_edited_num(None, ':'.join(map(str,path.get_indices())), text_element, focus_col_num + count)
+                                elif focus_col_num + count in (1,2,6):
+                                    text = text.strip('\n')
+                                    self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text_element, focus_col_num + count)
+                            path = self.get_next_path(path)
+                            if path is None:
+                                break
+                else:
+                    log.warning('ResourceView - paste_at_selection - No valid selection')
+        else:
+            log.warning('ResourceView - paste_at_selection - No text in clipboard')
                 
     def update_resource_from_schedule(self):
         """Synchronise rates from schedule for subanalysis items"""
@@ -699,18 +689,13 @@ class ResourceView:
             self.search_bar.set_search_mode(True)
             return
         
-        if not self.read_only and control_pressed and not shift_pressed:
+        if not self.read_only and control_pressed:
             if keyname in (Gdk.KEY_x, Gdk.KEY_X):
                 self.cut_selection()
             elif keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.copy_selection()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection()
-            return
-            
-        if not self.read_only and shift_pressed and control_pressed:
-            if keyname in (Gdk.KEY_v, Gdk.KEY_V):
-                self.paste_at_selection(insert_into=True)
             return
         
         # Handle tabs

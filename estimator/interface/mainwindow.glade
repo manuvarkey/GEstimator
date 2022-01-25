@@ -413,22 +413,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button_project_save">
-                <property name="label">gtk-save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="button_refresh_project">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -443,6 +427,22 @@
                   </object>
                 </child>
                 <accelerator key="F5" signal="clicked"/>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_project_save">
+                <property name="label">gtk-save</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
                 <property name="pack_type">end</property>
@@ -1317,22 +1317,6 @@
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">edit-paste-symbolic</property>
                                 <signal name="clicked" handler="on_paste_res" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_res_paste_spl">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Into Cells  &lt;i&gt;(Ctrl+Shift+v)&lt;/i&gt;</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Paste Into</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">insert-text-symbolic</property>
-                                <signal name="clicked" handler="on_paste_spl_res" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
