@@ -646,69 +646,55 @@ class ScheduleView:
         # if no selection
         log.warning("ScheduleView - copy_selection - No items selected to copy")
     
-    def paste_at_selection(self, insert_into=False): 
+    def paste_at_selection(self): 
         """Paste copied item at selected row"""
-        if insert_into:
-            clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            text = clipboard.wait_for_text() # get text from clipboard
-            if text != None:
-                text_list = text.strip('\n').split('\n')
-                # For lists of text paste accross multipole rows
-                if len(text_list) > 1:
-                    selected = self.get_selected()
-                    (treepath, focus_column) = self.tree.get_cursor()
-                    if focus_column and selected:
-                        focus_col_num = self.tree.get_columns().index(focus_column)
-                        if focus_col_num in (3,4):
-                            with group('Paste into schedule column ' + str(focus_col_num)):
-                                path = treepath
-                                for text in text_list:
-                                    self.on_cell_edited_num(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
-                                    path = self.get_next_path(path)
-                                    if path is None:
-                                        break
-                        elif focus_col_num in (1,2,6):
-                            with group('Paste into schedule column ' + str(focus_col_num)):
-                                path = treepath
-                                for text in text_list:
+
+        text = self.clipboard.wait_for_text() # get text from clipboard
+        if text != None:
+            test_string = "ScheduleView"
+            try:
+                itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
+                if itemlist[0] == test_string:
+                    check_instance_code = itemlist[1]
+                    items = itemlist[2]
+                    if check_instance_code == self.instance_code_callback():
+                        self.add_item_at_selection(items)
+                    else:
+                        self.add_item_at_selection(items, local_res_code=check_instance_code)
+            except:
+                selected = self.get_selected()
+                (treepath, focus_column) = self.tree.get_cursor()
+                # Paste whole content if multiple selection
+                if len(selected) > 1 and focus_column:
+                    focus_col_num = self.tree.get_columns().index(focus_column)
+                    if focus_col_num in (3,4):
+                        with group('Paste into schedule column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
+                    elif focus_col_num in (1,2,6):
+                        text = text.strip('\n')
+                        with group('Paste into schedule column ' + str(focus_col_num)):
+                            for path in selected:
+                                self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
+                # Matrix paste across rows and columns if single selection
+                elif len(selected) == 1 and focus_column:
+                    focus_col_num = self.tree.get_columns().index(focus_column)
+                    path = treepath
+                    text_list = text.strip('\n').split('\n')
+                    with group('Paste into schedule column ' + str(focus_col_num)):
+                        for text_line in text_list:
+                            text_line_list = text_line.strip('\t').split('\t')
+                            for count, text_element in enumerate(text_line_list):
+                                if focus_col_num + count in (3,4):
+                                    self.on_cell_edited_num(None, ':'.join(map(str,path.get_indices())), text_element, focus_col_num + count)
+                                elif focus_col_num + count in (1,2,6):
                                     text = text.strip('\n')
-                                    self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text, focus_col_num)
-                                    path = self.get_next_path(path)
-                                    if path is None:
-                                        break
-                else:
-                    selected = self.get_selected()
-                    (treepath, focus_column) = self.tree.get_cursor()
-                    if focus_column and selected:
-                        focus_col_num = self.tree.get_columns().index(focus_column)
-                        if focus_col_num in (3,4):
-                            with group('Paste into schedule column ' + str(focus_col_num)):
-                                for path in selected:
-                                    self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
-                        elif focus_col_num in (1,2,6):
-                            with group('Paste into schedule column ' + str(focus_col_num)):
-                                text = text.strip('\n')
-                                for path in selected:
-                                    self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
-            else:
-                log.warning('ScheduleView - paste_at_selection - No text in clipboard')
+                                    self.on_cell_edited_text(None, ':'.join(map(str,path.get_indices())), text_element, focus_col_num + count)
+                            path = self.get_next_path(path)
+                            if path is None:
+                                break
         else:
-            text = self.clipboard.wait_for_text() # get text from clipboard
-            if text != None:
-                test_string = "ScheduleView"
-                try:
-                    itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
-                    if itemlist[0] == test_string:
-                        check_instance_code = itemlist[1]
-                        items = itemlist[2]
-                        if check_instance_code == self.instance_code_callback():
-                            self.add_item_at_selection(items)
-                        else:
-                            self.add_item_at_selection(items, local_res_code=check_instance_code)
-                except:
-                    log.warning('ScheduleView - paste_at_selection - No valid data in clipboard')
-            else:
-                log.warning('ScheduleView - paste_at_selection - No text in clipboard')
+            log.warning('ScheduleView - paste_at_selection - No text in clipboard')
             
     def evaluate_amount(self, iterator):
         rate = self.store[iterator][3]
@@ -812,16 +798,11 @@ class ScheduleView:
             self.search_bar.set_search_mode(True)
             return
         
-        if not self.read_only and control_pressed and not shift_pressed:
+        if not self.read_only and control_pressed:
             if keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.copy_selection()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.paste_at_selection()
-            return
-            
-        if not self.read_only and shift_pressed and control_pressed:
-            if keyname in (Gdk.KEY_v, Gdk.KEY_V):
-                self.paste_at_selection(insert_into=True)
             return
         
         # Handle tabs
