@@ -902,8 +902,8 @@ class SelectResourceDialog:
                                             read_only=True)
             # Overide functions of default resource view
             res_view.select_action = self.select_action
-            # Set selection mode to single
-            res_view.tree.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+            # Set selection mode to multiple
+            res_view.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
             
             self.resourceviews['Current'] = res_view
             
@@ -922,9 +922,9 @@ class SelectResourceDialog:
             # Disable selection in database selection mode
             if select_database_mode:
                 res_view.tree.get_selection().set_mode(Gtk.SelectionMode.NONE)
-            # Single item selection in select resource mode
+            # Multiple item selection in select resource mode
             else:
-                res_view.tree.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+                res_view.tree.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
                 
         if not select_database_mode:
             self.resourceview = self.resourceviews['Current']
@@ -961,21 +961,25 @@ class SelectResourceDialog:
             if not self.select_database_mode:
                 selected = self.resourceview.get_selected(include_category=False)
                 if selected:
-                    selected_code = list(selected.items())[-1][1]
+                    selected_codes = selected.values()
                     # Get current name
                     index = self.library_combo.get_active()
-                    if index == 0:
-                        selected_resource = self.database.get_resource(selected_code)
-                    else:
-                        name = self.library_combo.get_active_text()
-                        # Get resource from selected library
-                        with self.database.using_library(name):
-                            selected_resource = self.database.get_resource(selected_code, modify_code=True)
-                            
-                    if selected_resource:
-                        log.info('SelectResourceDialog - run - Selected - ' + selected_code)
+                    selected_resources = []
+                    for selected_code in selected_codes:
+                        if index == 0:
+                            selected_resource = self.database.get_resource(selected_code)
+                        else:
+                            name = self.library_combo.get_active_text()
+                            # Get resource from selected library
+                            with self.database.using_library(name):
+                                selected_resource = self.database.get_resource(selected_code, modify_code=True)
+                        selected_resources.append(selected_resource)
+
+
+                    if selected_resources:
+                        log.info('SelectResourceDialog - run - Selected - ' + str(selected_codes))
                         self.dialog_window.hide()
-                        return selected_resource
+                        return selected_resources
             else:
                 index = self.library_combo.get_active()
                 self.dialog_window.hide()

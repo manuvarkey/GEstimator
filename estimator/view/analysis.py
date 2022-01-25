@@ -282,37 +282,42 @@ class AnalysisView:
             path = eval(self.store[row][8])
             if path is not None and model_copy.ana_items[path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
                 # Show user data dialog
-                res_model = res_select_dialog.run()
+                res_models = res_select_dialog.run()
 
                 # Add data on success
-                if res_model:
-                    code = res_model.code
-                    res_item = [code, Decimal(0), '']
-                    
-                    resource_db = self.database.get_resource(code)
-                    # Add received resource model if item exist in database
-                    if resource_db:
-                         model_copy.resources[code] = resource_db
-                    # Else add the returned resource 
-                    else:
-                        model_copy.resources[code] = res_model
-                    
-                    if len(path) == 1:
-                        model_copy.add_ana_res(res_item, path[0], 0)
-                        selection_path = [path[0], 0]
-                    elif len(path) == 2:
-                        if path[1] is not None:
-                            model_copy.add_ana_res(res_item, path[0], path[1]+1)
-                            selection_path = [path[0], path[1]+1]
+                if res_models:
+                    for res_model in reversed(res_models):
+                        code = res_model.code
+                        res_item = [code, Decimal(0), '']
+
+                        resource_db = self.database.get_resource(code)
+                        # Add received resource model if item exist in database
+                        if resource_db:
+                             model_copy.resources[code] = resource_db
+                        # Else add the returned resource
                         else:
-                            model_copy.add_ana_res(res_item, path[0])
-                            selection_path = [path[0], None]
+                            model_copy.resources[code] = res_model
+
+                        if len(path) == 1:
+                            model_copy.add_ana_res(res_item, path[0], 0)
+                        elif len(path) == 2:
+                            if path[1] is not None:
+                                model_copy.add_ana_res(res_item, path[0], path[1]+1)
+                            else:
+                                model_copy.add_ana_res(res_item, path[0])
+                        # Add item to custom items
+                        self.custom_items.append(code)
                     self.modify_model(model_copy, "Add resource from library at path:'{}' ".format(path))
                     # Set flag
                     self.res_needs_refresh = True
-                    # Add item to custom items
-                    self.custom_items.append(code)
                     # Set selection
+                    if len(path) == 1:
+                        selection_path = [path[0], 0]
+                    elif len(path) == 2:
+                        if path[1] is not None:
+                            selection_path = [path[0], path[1]+1]
+                        else:
+                            selection_path = [path[0], None]
                     self.set_selection(selection_path)
 
     def add_res(self):

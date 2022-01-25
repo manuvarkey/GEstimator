@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.18"/>
   <object class="GtkPopoverMenu" id="popover_meas">
@@ -276,6 +276,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="title" translatable="yes">GEstimator</property>
+            <property name="subtitle" translatable="yes">untitled project</property>
             <property name="show_close_button">True</property>
             <child>
               <object class="GtkMenuButton" id="draw_open_menu">
@@ -412,6 +413,22 @@
               </packing>
             </child>
             <child>
+              <object class="GtkButton" id="button_project_save">
+                <property name="label">gtk-save</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                <property name="use_stock">True</property>
+                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="button_refresh_project">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -426,22 +443,6 @@
                   </object>
                 </child>
                 <accelerator key="F5" signal="clicked"/>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_project_save">
-                <property name="label">gtk-save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
                 <property name="pack_type">end</property>
@@ -558,6 +559,7 @@
                       <object class="GtkBox" id="box_sch_db">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">Schedule of Work</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_schedule">
@@ -961,14 +963,14 @@
                       </object>
                       <packing>
                         <property name="name">Schedule Items</property>
-                        <property name="title" translatable="yes">Schedule Items</property>
-                        <property name="icon_name">view-list-symbolic</property>
+                        <property name="title" translatable="yes">Schedule</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkBox" id="box_meas_db">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">Details of Measurements</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_meas">
@@ -1168,8 +1170,7 @@
                       </object>
                       <packing>
                         <property name="name">Details of Measurements</property>
-                        <property name="title" translatable="yes">Details of Measurements</property>
-                        <property name="icon_name">view-more-horizontal-symbolic</property>
+                        <property name="title" translatable="yes">Measurements</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -1177,6 +1178,7 @@
                       <object class="GtkBox" id="box_res_db">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">Resource Items</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_res">
@@ -1456,8 +1458,7 @@
                       </object>
                       <packing>
                         <property name="name">Resource Items</property>
-                        <property name="title" translatable="yes">Resource Items</property>
-                        <property name="icon_name">preferences-system-details-symbolic</property>
+                        <property name="title" translatable="yes">Resources</property>
                         <property name="position">2</property>
                       </packing>
                     </child>
