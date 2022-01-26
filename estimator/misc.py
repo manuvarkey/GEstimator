@@ -22,7 +22,7 @@
 #  
 #  
 
-import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time, pathlib
+import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time, pathlib, math
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -1140,4 +1140,32 @@ def get_ellipsized_text(text, length):
     else:
         desc = text
     return desc
+
+def round_value(value, rounding='Round to 0'):
+    """Round value using predefined schemes"""
+    if rounding == 'Round within 1%':
+        rounded = round(value, -int(round(math.log10(value*0.01),0)))
+    elif rounding == 'Round within 5%':
+        rounded = round(value, -int(round(math.log10(value*0.05),0)))
+    elif rounding == 'Round within 10%':
+        rounded = round(value, -int(round(math.log10(value*0.1),0)))
+    elif rounding == 'Round to 10000':
+        rounded = round(value, -4)
+    elif rounding == 'Round to 1000':
+        rounded = round(value, -3)
+    elif rounding == 'Round to 100':
+        rounded = round(value, -2)
+    elif rounding == 'Round to 10':
+        rounded = round(value, -1)
+    elif rounding == 'Round to 0':
+        rounded = round(value, 0)
+    elif rounding == 'Round to .0':
+        rounded = round(value, 1)
+    elif rounding == 'Round to .00':
+        rounded = round(value, 2)
+    elif rounding == 'Round to .000':
+        rounded = round(value, 3)
+    else:
+        rounded = value
+    return rounded
     

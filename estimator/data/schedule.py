@@ -986,7 +986,7 @@ class ScheduleDatabase:
             self.add_measurement_item_at_node(item, path)
 
     @undoable
-    def update_qty(self, codes = None):
+    def update_qty(self, codes=None, rounding='Round to 0'):
         # Get measurement
         meas = self.get_measurement()
         (paths, qtys, sums) = meas.get_net_measurement()
@@ -999,7 +999,7 @@ class ScheduleDatabase:
             for sch_row in sch_rows:
                 if sch_row.id in sums:
                     old_qtys[sch_row.code] = sch_row.qty
-                    sch_row.qty = sums[sch_row.id]
+                    sch_row.qty = misc.round_value(sums[sch_row.id], rounding)
                     sch_row.save()
 
         yield "Update schedule item quatities", True

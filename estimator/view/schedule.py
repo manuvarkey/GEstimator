@@ -571,10 +571,10 @@ class ScheduleView:
         elif codes is None:
             return None
             
-    def update_selected_qty(self):
+    def update_selected_qty(self, rounding):
         codes = self.get_selected_codes()
         if codes:
-            if self.database.update_qty(codes):
+            if self.database.update_qty(codes, rounding):
                 self.update_store()
                 return True
             else:

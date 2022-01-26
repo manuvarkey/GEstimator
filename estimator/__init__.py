@@ -540,13 +540,55 @@ class MainWindow:
             self.display_status(misc.ERROR, "An error occured while updating rates")
             
     def on_sch_refresh_meas_clicked(self, button):
-        ret_code = self.schedule_view.update_selected_qty()
-        if ret_code:
-            self.display_status(misc.INFO, "Schedule quantiy updated from details of measurement")
-        elif ret_code is None:
-            self.display_status(misc.WARNING, "No valid items in selection")
-        else:
-            self.display_status(misc.ERROR, "An error occured while updating quantity")
+        
+        # Setup dialog window
+        dialog_window = Gtk.Dialog("Select quantity rounding method", self.window, Gtk.DialogFlags.MODAL,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK))
+        dialog_window.set_border_width(5)
+        dialog_window.get_content_area().set_spacing(15)
+        dialog_window.set_size_request(400,-1)
+        dialog_window.set_default_response(Gtk.ResponseType.OK)
+        
+        # Setup Data model
+        rounding_values = ("Round within 1%",
+                           "Round within 5%",
+                           "Round within 10%",
+                           "Round to 10000",
+                           "Round to 1000",
+                           "Round to 100",
+                           "Round to 10",
+                           "Round to 0",
+                           "Round to .0",
+                           "Round to .00",
+                           "Round to .000")
+        
+        # Pack Dialog
+        dialog_box = dialog_window.get_content_area()
+        box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        dialog_box.add(box)
+        rounding_combo = Gtk.ComboBoxText()
+        for value in rounding_values:
+            rounding_combo.append_text(value)
+        box.pack_start(rounding_combo, True, True, 3)
+        rounding_combo.set_active(7)
+        
+        # Run dialog
+        dialog_window.show_all()
+        response = dialog_window.run()
+        if response == Gtk.ResponseType.OK:
+            # Update quantity
+            selected = rounding_combo.get_active_text()
+            ret_code = self.schedule_view.update_selected_qty(rounding=selected)
+            if ret_code:
+                self.display_status(misc.INFO, "Schedule quantiy updated from details of measurement")
+            elif ret_code is None:
+                self.display_status(misc.WARNING, "No valid items in selection")
+            else:
+                self.display_status(misc.ERROR, "An error occured while updating quantity")
+            
+        # Destroy dialog
+        dialog_window.destroy()
 
     def on_sch_renumber_clicked(self, button):
         self.sch_database.assign_auto_item_numbers()
@@ -950,6 +992,7 @@ class MainWindow:
              Gtk.STOCK_OK, Gtk.ResponseType.OK))
         dialog_window.set_title("Select libraries to be renumbered")
         dialog_window.set_border_width(5)
+        dialog_window.get_content_area().set_spacing(15)
         dialog_window.set_size_request(400,-1)
         dialog_window.set_default_response(Gtk.ResponseType.OK)
 
