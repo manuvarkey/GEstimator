@@ -22,11 +22,11 @@
 #  
 #  
 
-import subprocess, os, ntpath, platform, sys, logging, queue, threading, pickle, copy
+import subprocess, os, ntpath, platform, sys, logging, queue, threading, pickle, copy, hashlib
 import tempfile, shutil, appdirs, importlib
 from decimal import Decimal
 from collections import OrderedDict
-from pyblake2 import blake2b
+from hashlib import blake2b
 
 import gi
 gi.require_version('Gtk', '3.0')

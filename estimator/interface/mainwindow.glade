@@ -753,7 +753,7 @@
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Resource Usage</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">dialog-information</property>
+                                <property name="icon_name">view-list-symbolic</property>
                                 <signal name="clicked" handler="on_sch_res_usage_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1049,7 +1049,7 @@
                                 <property name="tooltip_markup" translatable="yes">Edit parameters for item</property>
                                 <property name="label" translatable="yes">Parameters</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">document-properties</property>
+                                <property name="icon_name">document-page-setup-symbolic</property>
                                 <signal name="clicked" handler="on_meas_properties_clicked" swapped="no"/>
                               </object>
                               <packing>
