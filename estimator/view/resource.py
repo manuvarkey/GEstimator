@@ -34,7 +34,6 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
 from .. import misc, data, undo
-from ..undo import undoable, group
 from .cellrenderercustomtext import CellRendererTextView
 
 # Setup logger object
@@ -495,7 +494,7 @@ class ResourceView:
                     # Only handle paste if cut is from same instance
                     if check_instance_code == self.instance_code_callback():
                         if len(insertion_path) == 2:
-                            with group('Paste cut items in resource view'):
+                            with self.database.group('Paste cut items in resource view'):
                                 for path, code in items.items():
                                     ret = self.database.update_resource_path(code, insertion_path[:])
                                     
@@ -515,7 +514,7 @@ class ResourceView:
                                         insertion_path[1] = insertion_path[1] + 1
                                     
                         elif len(insertion_path) == 1:
-                            with group('Paste cut items in resource view'):
+                            with self.database.group('Paste cut items in resource view'):
                                 for path, code in reversed(list(items.items())):
                                     ret = self.database.update_resource_path(code, insertion_path[:])
                                     
@@ -537,12 +536,12 @@ class ResourceView:
                 if len(selected) > 1 and focus_column:
                     focus_col_num = self.tree.get_columns().index(focus_column)
                     if focus_col_num in (3,4,5):
-                        with group('Paste into resource column ' + str(focus_col_num)):
+                        with self.database.group('Paste into resource column ' + str(focus_col_num)):
                             for path in selected:
                                 self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
                     elif focus_col_num in (1,2,6):
                         text = text.strip('\n')
-                        with group('Paste into resource column ' + str(focus_col_num)):
+                        with self.database.group('Paste into resource column ' + str(focus_col_num)):
                             for path in selected:
                                 self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
                 # Matrix paste across rows and columns if single selection
@@ -550,7 +549,7 @@ class ResourceView:
                     focus_col_num = self.tree.get_columns().index(focus_column)
                     path = treepath
                     text_list = text.strip('\n').split('\n')
-                    with group('Paste into resource column ' + str(focus_col_num)):
+                    with self.database.group('Paste into resource column ' + str(focus_col_num)):
                         for text_line in text_list:
                             text_line_list = text_line.strip('\t').split('\t')
                             for count, text_element in enumerate(text_line_list):
@@ -571,7 +570,7 @@ class ResourceView:
         """Synchronise rates from schedule for subanalysis items"""
         selected = self.get_selected()
         if selected:
-            with group('Synchronise resource item from schedule'):
+            with self.database.group('Synchronise resource item from schedule'):
                 for path, code in selected.items():
                     sch = self.database.get_item(code)
                     if sch:

@@ -2,6 +2,36 @@
 <!-- Generated with glade 3.22.2 -->
 <interface>
   <requires lib="gtk+" version="3.18"/>
+  <object class="GtkLabel" id="buttonlabel_add_new_resource">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">＋&lt;sub&gt;N&lt;/sub&gt;</property>
+    <property name="use_markup">True</property>
+  </object>
+  <object class="GtkLabel" id="buttonlabel_refresh_from_ana">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">⟳&lt;sub&gt;A&lt;/sub&gt;</property>
+    <property name="use_markup">True</property>
+  </object>
+  <object class="GtkLabel" id="buttonlabel_refresh_from_database">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">⟳&lt;sub&gt;D&lt;/sub&gt;</property>
+    <property name="use_markup">True</property>
+  </object>
+  <object class="GtkLabel" id="buttonlabel_refresh_from_meas">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">⟳&lt;sub&gt;M&lt;/sub&gt;</property>
+    <property name="use_markup">True</property>
+  </object>
+  <object class="GtkLabel" id="buttonlabel_refresh_from_sch">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">⟳&lt;sub&gt;S&lt;/sub&gt;</property>
+    <property name="use_markup">True</property>
+  </object>
   <object class="GtkPopoverMenu" id="popover_meas">
     <property name="can_focus">False</property>
     <child>
@@ -83,6 +113,20 @@
           </packing>
         </child>
         <child>
+          <object class="GtkModelButton" id="menubutton_program_refresh">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="text" translatable="yes">Refresh project</property>
+            <signal name="clicked" handler="on_refresh" swapped="no"/>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkModelButton" id="menubutton_program_fix">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -93,7 +137,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -107,7 +151,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -118,7 +162,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -132,7 +176,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -146,7 +190,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
         <child>
@@ -160,7 +204,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">7</property>
+            <property name="position">8</property>
           </packing>
         </child>
         <child>
@@ -171,7 +215,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">8</property>
+            <property name="position">9</property>
           </packing>
         </child>
         <child>
@@ -185,7 +229,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
-            <property name="position">9</property>
+            <property name="position">10</property>
           </packing>
         </child>
       </object>
@@ -413,27 +457,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button_refresh_project">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Refresh project &lt;i&gt;(F5)&lt;/i&gt;</property>
-                <signal name="clicked" handler="on_refresh" swapped="no"/>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">view-refresh-symbolic</property>
-                  </object>
-                </child>
-                <accelerator key="F5" signal="clicked"/>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="button_project_save">
                 <property name="label">gtk-save</property>
                 <property name="visible">True</property>
@@ -571,7 +594,7 @@
                               <object class="GtkToolButton" id="toolbutton_schedule_add">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add item from library &lt;i&gt;(Ctrl+l)&lt;/i&gt;</property>
+                                <property name="tooltip_markup" translatable="yes">Add item from database &lt;i&gt;(Ctrl+l)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="is_important">True</property>
                                 <property name="label" translatable="yes">Add</property>
@@ -671,10 +694,9 @@
                                 <property name="tooltip_markup" translatable="yes">Refresh rates from analysis</property>
                                 <property name="halign">start</property>
                                 <property name="is_important">True</property>
-                                <property name="label" translatable="yes">⟳ₐ</property>
                                 <property name="use_underline">True</property>
+                                <property name="label_widget">buttonlabel_refresh_from_ana</property>
                                 <signal name="clicked" handler="on_sch_refresh_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -685,13 +707,12 @@
                               <object class="GtkToolButton" id="toolbutton_schedule_refresh_meas">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Refresh quatity from details of  measurment</property>
+                                <property name="tooltip_markup" translatable="yes">Refresh quatity from details of measurments</property>
                                 <property name="halign">start</property>
                                 <property name="is_important">True</property>
-                                <property name="label" translatable="yes">⟳ₘ</property>
                                 <property name="use_underline">True</property>
+                                <property name="label_widget">buttonlabel_refresh_from_meas</property>
                                 <signal name="clicked" handler="on_sch_refresh_meas_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -707,7 +728,6 @@
                                 <property name="label" translatable="yes">#</property>
                                 <property name="use_underline">True</property>
                                 <signal name="clicked" handler="on_sch_renumber_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -733,9 +753,8 @@
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Resource Usage</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">view-list-symbolic</property>
+                                <property name="icon_name">dialog-information</property>
                                 <signal name="clicked" handler="on_sch_res_usage_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -752,7 +771,6 @@
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">object-select-symbolic</property>
                                 <signal name="clicked" handler="on_sch_mark_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -792,13 +810,13 @@
                               <object class="GtkToolButton" id="toolbutton_schedule_colour">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Mark items with selected colour</property>
+                                <property name="tooltip_markup" translatable="yes">Mark items with selected colour   &lt;i&gt;(Ctrl+m)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Mark mismatch</property>
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">color-select-symbolic</property>
                                 <signal name="clicked" handler="on_sch_colour_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                                <accelerator key="m" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1015,7 +1033,7 @@
                                 <property name="is_important">True</property>
                                 <property name="label" translatable="yes">Edit</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">document-page-setup-symbolic</property>
+                                <property name="icon_name">document-properties-symbolic</property>
                                 <signal name="clicked" handler="on_meas_edit_clicked" swapped="no"/>
                                 <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -1028,13 +1046,11 @@
                               <object class="GtkToolButton" id="toolbutton_meas_properties">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Edit selected item &lt;i&gt;(Ctrl+p)&lt;/i&gt;</property>
-                                <property name="is_important">True</property>
+                                <property name="tooltip_markup" translatable="yes">Edit parameters for item</property>
                                 <property name="label" translatable="yes">Parameters</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">document-properties-symbolic</property>
+                                <property name="icon_name">document-properties</property>
                                 <signal name="clicked" handler="on_meas_properties_clicked" swapped="no"/>
-                                <accelerator key="p" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1237,11 +1253,25 @@
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_markup" translatable="yes">Load rates from database</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">Load</property>
                                 <property name="use_underline">True</property>
-                                <property name="icon_name">view-refresh-symbolic</property>
+                                <property name="label_widget">buttonlabel_refresh_from_database</property>
                                 <signal name="clicked" handler="on_res_load_rates_clicked" swapped="no"/>
-                                <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">False</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkToolButton" id="toolbutton_res_refreshana">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="tooltip_markup" translatable="yes">Refresh rates from schedule.</property>
+                                <property name="halign">start</property>
+                                <property name="is_important">True</property>
+                                <property name="use_underline">True</property>
+                                <property name="label_widget">buttonlabel_refresh_from_sch</property>
+                                <signal name="clicked" handler="on_res_sync_rates_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1257,7 +1287,6 @@
                                 <property name="label" translatable="yes">#</property>
                                 <property name="use_underline">True</property>
                                 <signal name="clicked" handler="on_res_renumber_clicked" swapped="no"/>
-                                <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1317,23 +1346,6 @@
                                 <property name="use_underline">True</property>
                                 <property name="icon_name">edit-paste-symbolic</property>
                                 <signal name="clicked" handler="on_paste_res" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_res_refreshana">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Synchronise rates from schedule.</property>
-                                <property name="halign">start</property>
-                                <property name="is_important">True</property>
-                                <property name="label" translatable="yes">⇄</property>
-                                <property name="use_underline">True</property>
-                                <signal name="clicked" handler="on_res_sync_rates_clicked" swapped="no"/>
-                                <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1561,7 +1573,9 @@
                     <property name="can_focus">False</property>
                     <property name="tooltip_markup" translatable="yes">Add resource from database &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">＋</property>
+                    <property name="is_important">True</property>
+                    <property name="label" translatable="yes">Add</property>
+                    <property name="icon_name">list-add-symbolic</property>
                     <signal name="clicked" handler="ana_add_res_library" swapped="no"/>
                     <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
@@ -1576,8 +1590,7 @@
                     <property name="can_focus">False</property>
                     <property name="tooltip_markup" translatable="yes">Add new resource &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
-                    <property name="label" translatable="yes">＋n</property>
+                    <property name="icon_name">list-add-symbolic</property>
                     <signal name="clicked" handler="ana_add_res" swapped="no"/>
                     <accelerator key="i" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                   </object>

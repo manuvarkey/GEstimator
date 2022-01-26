@@ -32,8 +32,7 @@ def Currency(x):
 from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
-from .. import misc, data, undo
-from ..undo import undoable, group
+from .. import misc, data
 from . import analysis
 from .cellrenderercustomtext import CellRendererTextView
 
@@ -668,12 +667,12 @@ class ScheduleView:
                 if len(selected) > 1 and focus_column:
                     focus_col_num = self.tree.get_columns().index(focus_column)
                     if focus_col_num in (3,4):
-                        with group('Paste into schedule column ' + str(focus_col_num)):
+                        with self.database.group('Paste into schedule column ' + str(focus_col_num)):
                             for path in selected:
                                 self.on_cell_edited_num(None, ':'.join(map(str,path)), text, focus_col_num)
                     elif focus_col_num in (1,2,6):
                         text = text.strip('\n')
-                        with group('Paste into schedule column ' + str(focus_col_num)):
+                        with self.database.group('Paste into schedule column ' + str(focus_col_num)):
                             for path in selected:
                                 self.on_cell_edited_text(None, ':'.join(map(str,path)), text, focus_col_num)
                 # Matrix paste across rows and columns if single selection
@@ -681,7 +680,7 @@ class ScheduleView:
                     focus_col_num = self.tree.get_columns().index(focus_column)
                     path = treepath
                     text_list = text.strip('\n').split('\n')
-                    with group('Paste into schedule column ' + str(focus_col_num)):
+                    with self.database.group('Paste into schedule column ' + str(focus_col_num)):
                         for text_line in text_list:
                             text_line_list = text_line.strip('\t').split('\t')
                             for count, text_element in enumerate(text_line_list):
