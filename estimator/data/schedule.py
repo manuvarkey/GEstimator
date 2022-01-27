@@ -1721,7 +1721,7 @@ class ScheduleDatabase:
                     res.rate = undodict[res.code][0]
                     res.vat = undodict[res.code][1]
                     res.discount = undodict[res.code][2]
-                    res.remarks = undodict[res.code][3]
+                    res.reference = undodict[res.code][3]
                     res.save()
         
     ## Schedule category methods
