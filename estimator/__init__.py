@@ -655,13 +655,42 @@ class MainWindow:
             self.display_status(misc.INFO, str(index) + " resource items inserted")
         else:
             log.info('MainWindow - on_import_res_clicked - cancelled')
+            
+    def on_update_res_clicked(self, button, column=3):
+        """Updates resource from spreadsheet selected by 'filechooserbutton_res' into resource view"""
+        filename = self.builder.get_object("filechooserbutton_res").get_filename()
+        
+        columntypes = [str, str, str, float, float, float, str, str]
+        captions = ['Code.', 'Description', 'Unit', 'Rate', 'VAT', 'Discount', 
+                    'Remarks', 'Category']
+        widths = [80,200,80,80,80,80,100,100]
+        expandables = [False,True,False,False,False,False,False,False]
+        
+        spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
+        models = spreadsheet_dialog.run()
+        
+        if models:
+            update_dict = dict()
+            for index, model in enumerate(models):
+                if model[0] != '' and model[column] != '':
+                    code = model[0].strip()
+                    if column in (3,):
+                        value = Decimal(model[column])
+                        update_dict[code] = value
+            updated, notfound = self.sch_database.update_resource_multiple(update_dict, column)
+            self.display_status(misc.INFO, str(index)+' records updated')
+            log.info('MainWindow - on_update_res_clicked - data updated - ' + str(updated) + ' items | Not found - ' + str(notfound) + ' items')
+            self.update()
+            self.display_status(misc.INFO, str(updated) + " resource items updated, " + str(notfound) + ' items not found in resource schedule')
+        else:
+            log.info('MainWindow - on_update_res_clicked - cancelled')
 
     def on_import_sch_clicked(self, button):
         """Imports schedule from spreadsheet selected by 'filechooserbutton_schedule' into schedule view"""
         filename = self.builder.get_object("filechooserbutton_schedule").get_filename()
 
         columntypes = [str, str, str, float, float, float, str]
-        captions = ['Code.', 'Description', 'Unit', 'Qty', 'Rate', 'Amount',
+        captions = ['Code.', 'Description', 'Unit', 'Rate', 'Qty', 'Amount',
                     'Remarks']
         widths = [80, 200, 80, 80, 80, 80, 100]
         expandables = [False, True, False, False, False, False, False]
@@ -782,6 +811,40 @@ class MainWindow:
             self.display_status(misc.INFO, str(index) + " schedule items inserted")
         else:
             log.info('MainWindow - on_import_sch_clicked - cancelled')
+            
+    def on_update_sch_clicked(self, button, column=3):
+        """Updates schedule from spreadsheet selected by 'filechooserbutton_schedule' into schedule view"""
+        filename = self.builder.get_object("filechooserbutton_schedule").get_filename()
+
+        columntypes = [str, str, str, float, float, float, str]
+        captions = ['Code.', 'Description', 'Unit', 'Rate', 'Qty', 'Amount',
+                    'Remarks']
+        widths = [80, 200, 80, 80, 80, 80, 100]
+        expandables = [False, True, False, False, False, False, False]
+
+        spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, columntypes, captions, [widths, expandables])
+        models = spreadsheet_dialog.run()
+        
+        if models:
+            update_dict = dict()
+            for index, model in enumerate(models):
+                model = models[index]
+                if model[0] != '' and model[column] != '':
+                    code = model[0].strip()
+                    if column in (3,4):
+                        value = Decimal(model[column])
+                        update_dict[code] = value
+                index = index + 1
+            updated, notfound = self.sch_database.update_item_schedule_multiple(update_dict, column)
+            self.display_status(misc.INFO, str(index)+' records updated')
+            log.info('MainWindow - on_update_sch_clicked - data updated - ' + str(updated) + ' items | Not found - ' + str(notfound) + ' items')
+            self.update()
+            self.display_status(misc.INFO, str(updated) + " schedule items updated, " + str(notfound) + ' items not found in schedule')
+        else:
+            log.info('MainWindow - on_import_sch_clicked - cancelled')
+            
+    def on_update_sch_clicked_qty(self, button):
+        self.on_update_sch_clicked(button, column=4)
         
     def on_import_ana_clicked(self, button):
         """Imports analysis from spreadsheet selected by 'filechooserbutton_schedule' and links it into schedule view"""

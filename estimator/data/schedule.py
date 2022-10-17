@@ -1596,6 +1596,22 @@ class ScheduleDatabase:
                 
             # Save resource
             res.save()
+            
+    def update_resource_multiple(self, update_dict, col):
+        """Updates multiple schedule item data"""
+        updated = 0
+        notfound = 0
+        #with self.database.atomic():
+        with self.group("Update resource column"):
+            for code, value in update_dict.items():
+                query = self.ResourceTable.select().where(self.ResourceTable.code == code)
+                if query.exists():  
+                    self.update_resource(code, value, col)
+                    updated += 1
+                else:
+                    notfound += 1
+                    log.warning('ScheduleDatabase - update_resource_multiple - code not found ' + str(code))
+        return updated, notfound
         
     def get_new_resource_category_name(self):
         categories =  self.ResourceCategoryTable.select(self.ResourceCategoryTable.description).where(self.ResourceCategoryTable.description.startswith('_CATEGORY'))
@@ -2024,6 +2040,23 @@ class ScheduleDatabase:
                 sch.remarks = old_value
             
             sch.save()
+    
+    def update_item_schedule_multiple(self, update_dict, col):
+        """Updates multiple schedule item data"""
+        updated = 0
+        notfound = 0
+        #with self.database.atomic():
+        with self.group("Update schedule column"):
+            for code, value in update_dict.items():
+                query = self.ScheduleTable.select().where(self.ScheduleTable.code == code)
+                if query.exists():  
+                    self.update_item_schedule(code, value, col)
+                    updated += 1
+                else:
+                    notfound += 1
+                    log.warning('ScheduleDatabase - update_item_schedule_multiple - code not found ' + str(code))
+        return updated, notfound
+            
         
     @undoable
     def update_item_colour(self, codes, colour):

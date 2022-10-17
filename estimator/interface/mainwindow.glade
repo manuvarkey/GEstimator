@@ -1,51 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.18"/>
   <object class="GtkLabel" id="buttonlabel_add_new_resource">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="label" translatable="yes">＋&lt;sub&gt;N&lt;/sub&gt;</property>
-    <property name="use_markup">True</property>
+    <property name="use-markup">True</property>
   </object>
   <object class="GtkLabel" id="buttonlabel_refresh_from_ana">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="label" translatable="yes">⟳&lt;sub&gt;A&lt;/sub&gt;</property>
-    <property name="use_markup">True</property>
+    <property name="use-markup">True</property>
   </object>
   <object class="GtkLabel" id="buttonlabel_refresh_from_database">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="label" translatable="yes">⟳&lt;sub&gt;D&lt;/sub&gt;</property>
-    <property name="use_markup">True</property>
+    <property name="use-markup">True</property>
   </object>
   <object class="GtkLabel" id="buttonlabel_refresh_from_meas">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="label" translatable="yes">⟳&lt;sub&gt;M&lt;/sub&gt;</property>
-    <property name="use_markup">True</property>
+    <property name="use-markup">True</property>
   </object>
   <object class="GtkLabel" id="buttonlabel_refresh_from_sch">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="label" translatable="yes">⟳&lt;sub&gt;S&lt;/sub&gt;</property>
-    <property name="use_markup">True</property>
+    <property name="use-markup">True</property>
   </object>
   <object class="GtkPopoverMenu" id="popover_meas">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkBox" id="popover_meas_box">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_top">6</property>
-        <property name="margin_bottom">6</property>
+        <property name="can-focus">False</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkModelButton" id="popovermenuitem_meas_heading">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Heading</property>
             <signal name="clicked" handler="on_meas_heading_menu_clicked" swapped="no"/>
           </object>
@@ -58,7 +58,7 @@
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -74,21 +74,21 @@
     </child>
   </object>
   <object class="GtkPopoverMenu" id="popup_document_menu">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">6</property>
-        <property name="margin_right">6</property>
-        <property name="margin_top">6</property>
-        <property name="margin_bottom">6</property>
+        <property name="can-focus">False</property>
+        <property name="margin-left">6</property>
+        <property name="margin-right">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkModelButton" id="menubutton_saveas">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Save As</property>
             <signal name="clicked" handler="on_saveas_project_clicked" swapped="no"/>
           </object>
@@ -101,8 +101,8 @@
         <child>
           <object class="GtkModelButton" id="menubutton_project_export">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Export</property>
             <signal name="clicked" handler="on_export_project_clicked" swapped="no"/>
           </object>
@@ -115,8 +115,8 @@
         <child>
           <object class="GtkModelButton" id="menubutton_program_refresh">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Refresh project</property>
             <signal name="clicked" handler="on_refresh" swapped="no"/>
           </object>
@@ -129,8 +129,8 @@
         <child>
           <object class="GtkModelButton" id="menubutton_program_fix">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Fix database errors</property>
             <signal name="clicked" handler="on_reorder_key_pressed" swapped="no"/>
           </object>
@@ -143,8 +143,8 @@
         <child>
           <object class="GtkModelButton" id="menubutton_project_settings">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Project Preferences...</property>
             <signal name="clicked" handler="on_project_settings_clicked" swapped="no"/>
           </object>
@@ -157,7 +157,7 @@
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -168,8 +168,8 @@
         <child>
           <object class="GtkModelButton" id="menubutton_program_settings">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <property name="text" translatable="yes">Program Settings...</property>
             <signal name="clicked" handler="on_program_settings_clicked" swapped="no"/>
           </object>
@@ -182,9 +182,9 @@
         <child>
           <object class="GtkModelButton" id="menubutton_project_help">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">app.help</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">app.help</property>
             <property name="text" translatable="yes">Help</property>
           </object>
           <packing>
@@ -196,9 +196,9 @@
         <child>
           <object class="GtkModelButton" id="menubutton_project_about">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">app.about</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">app.about</property>
             <property name="text" translatable="yes">About</property>
           </object>
           <packing>
@@ -210,7 +210,7 @@
         <child>
           <object class="GtkSeparator">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -221,9 +221,9 @@
         <child>
           <object class="GtkModelButton" id="menubutton_project_quit">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="action_name">app.quit</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
+            <property name="action-name">app.quit</property>
             <property name="text" translatable="yes">Quit</property>
           </object>
           <packing>
@@ -251,27 +251,27 @@
     </patterns>
   </object>
   <object class="GtkPopover" id="popup_open_project">
-    <property name="width_request">400</property>
-    <property name="height_request">400</property>
-    <property name="can_focus">False</property>
+    <property name="width-request">400</property>
+    <property name="height-request">400</property>
+    <property name="can-focus">False</property>
     <child>
       <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="margin_left">6</property>
-        <property name="margin_right">6</property>
-        <property name="margin_top">6</property>
-        <property name="margin_bottom">6</property>
+        <property name="can-focus">False</property>
+        <property name="margin-left">6</property>
+        <property name="margin-right">6</property>
+        <property name="margin-top">6</property>
+        <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkRecentChooserWidget" id="recent_chooser">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="filter">recent_project_filter</property>
             <property name="limit">10</property>
-            <property name="show_icons">False</property>
-            <property name="show_not_found">False</property>
-            <property name="sort_type">mru</property>
+            <property name="show-icons">False</property>
+            <property name="show-not-found">False</property>
+            <property name="sort-type">mru</property>
             <signal name="item-activated" handler="on_open_project_selected" swapped="no"/>
           </object>
           <packing>
@@ -285,8 +285,8 @@
           <object class="GtkButton" id="button_open">
             <property name="label" translatable="yes">Other Projects...</property>
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">True</property>
             <signal name="clicked" handler="on_open_project_clicked" swapped="no"/>
           </object>
           <packing>
@@ -301,305 +301,63 @@
   </object>
   <object class="GtkApplicationWindow" id="window_main">
     <property name="name">900</property>
-    <property name="width_request">1400</property>
-    <property name="height_request">750</property>
-    <property name="can_focus">False</property>
+    <property name="width-request">1400</property>
+    <property name="height-request">750</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">GEstimate</property>
-    <property name="window_position">center</property>
+    <property name="window-position">center</property>
     <property name="icon">GEstimator.svg</property>
     <property name="gravity">center</property>
-    <property name="show_menubar">False</property>
+    <property name="show-menubar">False</property>
     <signal name="delete-event" handler="on_delete_window" swapped="no"/>
-    <child type="titlebar">
-      <object class="GtkStack" id="hidden_stack_header">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="transition_type">crossfade</property>
-        <child>
-          <object class="GtkHeaderBar" id="gtk_header">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="title" translatable="yes">GEstimator</property>
-            <property name="subtitle" translatable="yes">untitled project</property>
-            <property name="show_close_button">True</property>
-            <child>
-              <object class="GtkMenuButton" id="draw_open_menu">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Open a project</property>
-                <property name="popover">popup_open_project</property>
-                <child>
-                  <object class="GtkBox">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Open</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkArrow">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="arrow_type">down</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                </child>
-                <accelerator key="o" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_new_project">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Open new project</property>
-                <property name="action_name">app.new</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">document-new-symbolic</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkBox">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkButton" id="project_undo_button">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
-                    <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">edit-undo-symbolic</property>
-                      </object>
-                    </child>
-                    <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="project_redo_button">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="tooltip_markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
-                    <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
-                    <child>
-                      <object class="GtkImage">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="icon_name">edit-redo-symbolic</property>
-                      </object>
-                    </child>
-                    <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <style>
-                  <class name="linked"/>
-                </style>
-              </object>
-              <packing>
-                <property name="position">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkMenuButton" id="project_menu">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="popover">popup_document_menu</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">open-menu-symbolic</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="button_project_save">
-                <property name="label">gtk-save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
-                <property name="use_stock">True</property>
-                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
-                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkStackSwitcher" id="stack_switcher">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">center</property>
-                <property name="stack">stack_main</property>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">6</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="name">Default</property>
-            <property name="title" translatable="yes">Default</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkHeaderBar" id="gtk_header_ana">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="title">Edit Analysis</property>
-            <property name="has_subtitle">False</property>
-            <child>
-              <object class="GtkButton">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Cancel changes to analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
-                <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
-                <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
-                <style>
-                  <class name="destructive-action"/>
-                </style>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton">
-                <property name="label" translatable="yes">Apply</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="tooltip_markup" translatable="yes">Apply changes to analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
-                <property name="image_position">right</property>
-                <signal name="clicked" handler="on_ana_save" swapped="no"/>
-                <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
-                <style>
-                  <class name="suggested-action"/>
-                </style>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="name">Analysis</property>
-            <property name="title" translatable="yes">Analysis</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkHeaderBar" id="gtk_header_progress">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="title" translatable="yes">GEstimator</property>
-            <property name="spacing">0</property>
-            <property name="show_close_button">True</property>
-          </object>
-          <packing>
-            <property name="name">Progress</property>
-            <property name="title" translatable="yes">Progress</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
     <child>
       <object class="GtkStack" id="hidden_stack">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="hexpand">True</property>
         <property name="vexpand">True</property>
-        <property name="transition_type">crossfade</property>
+        <property name="transition-type">crossfade</property>
         <child>
           <object class="GtkBox" id="stack_default">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkBox" id="main_screen">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkStack" id="stack_main">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="transition_type">crossfade</property>
+                    <property name="can-focus">False</property>
+                    <property name="transition-type">crossfade</property>
                     <child>
                       <object class="GtkBox" id="box_sch_db">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Schedule of Work</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Schedule of Work</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_schedule">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="toolbar_style">both-horiz</property>
+                            <property name="can-focus">False</property>
+                            <property name="toolbar-style">both-horiz</property>
                             <property name="icon_size">4</property>
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_add">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add item from database &lt;i&gt;(Ctrl+l)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add item from database &lt;i&gt;(Ctrl+l)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">Add</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-add-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-add-symbolic</property>
                                 <signal name="clicked" handler="on_sch_add_clicked" swapped="no"/>
                                 <accelerator key="l" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -611,12 +369,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_add_item">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add blank item &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add blank item &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Add balnk item</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-add-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-add-symbolic</property>
                                 <signal name="clicked" handler="on_sch_add_item_clicked" swapped="no"/>
                                 <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -628,12 +386,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_add_sub_item">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add blank sub item &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add blank sub item &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">↳+</property>
-                                <property name="use_underline">True</property>
+                                <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_sch_add_sub_item_clicked" swapped="no"/>
                                 <accelerator key="i" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                               </object>
@@ -645,12 +403,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_add_category">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add new category</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add new category</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">[...]</property>
-                                <property name="use_underline">True</property>
+                                <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_sch_add_category_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -661,7 +419,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator8">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -672,13 +430,13 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_editana">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Edit analysis for the selected item &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Edit analysis for the selected item &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">Edit</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">document-properties-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">document-properties-symbolic</property>
                                 <signal name="clicked" handler="on_sch_edit_clicked" swapped="no"/>
                                 <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -690,12 +448,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_refresh">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Refresh rates from analysis</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Refresh rates from analysis</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
-                                <property name="use_underline">True</property>
-                                <property name="label_widget">buttonlabel_refresh_from_ana</property>
+                                <property name="is-important">True</property>
+                                <property name="use-underline">True</property>
+                                <property name="label-widget">buttonlabel_refresh_from_ana</property>
                                 <signal name="clicked" handler="on_sch_refresh_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -706,12 +464,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_refresh_meas">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Refresh quatity from details of measurments</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Refresh quatity from details of measurments</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
-                                <property name="use_underline">True</property>
-                                <property name="label_widget">buttonlabel_refresh_from_meas</property>
+                                <property name="is-important">True</property>
+                                <property name="use-underline">True</property>
+                                <property name="label-widget">buttonlabel_refresh_from_meas</property>
                                 <signal name="clicked" handler="on_sch_refresh_meas_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -722,11 +480,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_renumber">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Assign automatic numbering for items</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Assign automatic numbering for items</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">#</property>
-                                <property name="use_underline">True</property>
+                                <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_sch_renumber_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -737,7 +495,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator7">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -748,12 +506,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_resusage">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Show Total Resource Usage</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Show Total Resource Usage</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Resource Usage</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">view-list-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">view-list-symbolic</property>
                                 <signal name="clicked" handler="on_sch_res_usage_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -764,12 +522,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_mark">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Mark items with rates differing from analysis rates</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Mark items with rates differing from analysis rates</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Mark mismatch</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">object-select-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">object-select-symbolic</property>
                                 <signal name="clicked" handler="on_sch_mark_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -780,7 +538,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem8">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -790,13 +548,13 @@
                             <child>
                               <object class="GtkToolItem" id="sch_select_colour_cont">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <child>
                                   <object class="GtkColorButton" id="sch_select_colour">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="tooltip_text" translatable="yes">Select marker colour</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-text" translatable="yes">Select marker colour</property>
                                     <property name="rgba">rgb(252,233,79)</property>
                                   </object>
                                 </child>
@@ -809,12 +567,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_colour">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Mark items with selected colour   &lt;i&gt;(Ctrl+m)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Mark items with selected colour   &lt;i&gt;(Ctrl+m)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Mark mismatch</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">color-select-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">color-select-symbolic</property>
                                 <signal name="clicked" handler="on_sch_colour_clicked" swapped="no"/>
                                 <accelerator key="m" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -826,7 +584,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem2">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -837,12 +595,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_copy">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Copy</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-copy-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-copy-symbolic</property>
                                 <signal name="clicked" handler="on_copy_schedule" swapped="no"/>
                               </object>
                               <packing>
@@ -853,12 +611,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_paste">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Paste</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-paste-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-paste-symbolic</property>
                                 <signal name="clicked" handler="on_paste_schedule" swapped="no"/>
                               </object>
                               <packing>
@@ -869,7 +627,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem3">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -879,14 +637,14 @@
                             <child>
                               <object class="GtkToolItem" id="toolbutton_schedule_custom">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <child>
                                   <object class="GtkFileChooserButton" id="filechooserbutton_schedule">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                                    <property name="preview_widget_active">False</property>
-                                    <property name="use_preview_label">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Select a spreadsheet file to import data</property>
+                                    <property name="preview-widget-active">False</property>
+                                    <property name="use-preview-label">False</property>
                                     <property name="title" translatable="yes">Select a spreadsheet file to import data</property>
                                   </object>
                                 </child>
@@ -897,41 +655,59 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkToolButton" id="toolbutton_schedule_import_sch">
+                              <object class="GtkMenuToolButton" id="toolbuttonmenu_schedule_import_sch">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Import Schedule Items from selected Spreadsheet</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Schedule</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">insert-object-symbolic</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Import Schedule Items from selected Spreadsheet</property>
+                                <property name="label" translatable="yes">Spreadsheet Actions</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">insert-object-symbolic</property>
                                 <signal name="clicked" handler="on_import_sch_clicked" swapped="no"/>
+                                <child type="menu">
+                                  <object class="GtkMenu">
+                                    <property name="can-focus">False</property>
+                                    <child>
+                                      <object class="GtkMenuItem" id="toolbuttonmenu_import_sch_ana">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Import Analysis from selected Spreadsheet</property>
+                                        <property name="label" translatable="yes">Import Analysis</property>
+                                        <property name="use-underline">True</property>
+                                        <signal name="activate" handler="on_import_ana_clicked" swapped="no"/>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkMenuItem" id="toolbuttonmenu_update_sch_rate">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Update schedule rates from selected spreadsheet</property>
+                                        <property name="label" translatable="yes">Update schedule rates</property>
+                                        <property name="use-underline">True</property>
+                                        <signal name="activate" handler="on_update_sch_clicked" swapped="no"/>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkMenuItem" id="toolbuttonmenu_update_sch_qty">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Update schedule quantity from selected spreadsheet</property>
+                                        <property name="label" translatable="yes">Update schedule quantities</property>
+                                        <property name="use-underline">True</property>
+                                        <signal name="activate" handler="on_update_sch_clicked_qty" swapped="no"/>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkToolButton" id="toolbutton_schedule_import_ana">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Import Analysis from selected Spreadsheet</property>
-                                <property name="halign">start</property>
-                                <property name="label" translatable="yes">Analysis</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">insert-text-symbolic</property>
-                                <signal name="clicked" handler="on_import_ana_clicked" swapped="no"/>
-                              </object>
-                              <packing>
-                                <property name="expand">False</property>
-                                <property name="homogeneous">False</property>
+                                <property name="homogeneous">True</property>
                               </packing>
                             </child>
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator1">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -942,12 +718,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_schedule_delete">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Delete Selected Items &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Delete Selected Items &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Delete</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-remove-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-remove-symbolic</property>
                                 <signal name="clicked" handler="on_schedule_delete_clicked" swapped="no"/>
                                 <accelerator key="Delete" signal="clicked" modifiers="GDK_SHIFT_MASK"/>
                               </object>
@@ -966,7 +742,7 @@
                         <child>
                           <object class="GtkBox" id="box_sch">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
                               <placeholder/>
@@ -987,33 +763,33 @@
                     <child>
                       <object class="GtkBox" id="box_meas_db">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Details of Measurements</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Details of Measurements</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_meas">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="toolbar_style">both-horiz</property>
+                            <property name="can-focus">False</property>
+                            <property name="toolbar-style">both-horiz</property>
                             <property name="icon_size">4</property>
                             <child>
                               <object class="GtkToolItem" id="toolitem_meas_add_menu">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Add item</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Add item</property>
                                 <child>
                                   <object class="GtkMenuButton" id="menubutton_meas_add">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="receives_default">True</property>
-                                    <property name="tooltip_markup" translatable="yes">Measurement type &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="tooltip-markup" translatable="yes">Measurement type &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
                                     <property name="halign">start</property>
                                     <property name="popover">popover_meas</property>
                                     <child>
                                       <object class="GtkImage" id="image1">
                                         <property name="visible">True</property>
-                                        <property name="can_focus">False</property>
-                                        <property name="icon_name">list-add-symbolic</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="icon-name">list-add-symbolic</property>
                                       </object>
                                     </child>
                                     <accelerator key="i" signal="activate" modifiers="GDK_CONTROL_MASK"/>
@@ -1028,12 +804,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_meas_edit">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Edit selected item &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
-                                <property name="is_important">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Edit selected item &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">Edit</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">document-properties-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">document-properties-symbolic</property>
                                 <signal name="clicked" handler="on_meas_edit_clicked" swapped="no"/>
                                 <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -1045,11 +821,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_meas_properties">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Edit parameters for item</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Edit parameters for item</property>
                                 <property name="label" translatable="yes">Parameters</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">document-page-setup-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">document-page-setup-symbolic</property>
                                 <signal name="clicked" handler="on_meas_properties_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1060,7 +836,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator10">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1070,11 +846,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_meas_copy">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy item &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Copy item &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="label" translatable="yes">Copy</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-copy-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-copy-symbolic</property>
                                 <signal name="clicked" handler="on_meas_copy_clicked" swapped="no"/>
                                 <accelerator key="c" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -1086,11 +862,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_meas_paste">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Item &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Paste Item &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                                 <property name="label" translatable="yes">Paste</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-paste-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-paste-symbolic</property>
                                 <signal name="clicked" handler="on_meas_paste_clicked" swapped="no"/>
                                 <accelerator key="v" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -1102,7 +878,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem7">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1112,8 +888,8 @@
                             <child>
                               <object class="GtkToolItem" id="toolbutton_meas_custom">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Select a folder to render files to</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Select a folder to render files to</property>
                                 <child>
                                   <placeholder/>
                                 </child>
@@ -1126,7 +902,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem9">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1136,12 +912,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_meas_delete">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Delete Selected Items &lt;i&gt;(Del)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Delete Selected Items &lt;i&gt;(Del)&lt;/i&gt;</property>
                                 <property name="halign">end</property>
                                 <property name="label" translatable="yes">Delete</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-remove-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-remove-symbolic</property>
                                 <signal name="clicked" handler="on_meas_delete_clicked" swapped="no"/>
                                 <accelerator key="Delete" signal="clicked"/>
                               </object>
@@ -1160,17 +936,17 @@
                         <child>
                           <object class="GtkScrolledWindow" id="scrolledwindow_meas">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="shadow_type">in</property>
-                            <property name="min_content_height">400</property>
+                            <property name="can-focus">True</property>
+                            <property name="shadow-type">in</property>
+                            <property name="min-content-height">400</property>
                             <child>
                               <object class="GtkTreeView" id="treeview_meas">
                                 <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="search_column">1</property>
-                                <property name="rubber_banding">True</property>
-                                <property name="enable_grid_lines">both</property>
-                                <property name="enable_tree_lines">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="search-column">1</property>
+                                <property name="rubber-banding">True</property>
+                                <property name="enable-grid-lines">both</property>
+                                <property name="enable-tree-lines">True</property>
                                 <child internal-child="selection">
                                   <object class="GtkTreeSelection"/>
                                 </child>
@@ -1193,25 +969,25 @@
                     <child>
                       <object class="GtkBox" id="box_res_db">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Resource Items</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Resource Items</property>
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="GtkToolbar" id="toolbar_res">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="toolbar_style">both-horiz</property>
+                            <property name="can-focus">False</property>
+                            <property name="toolbar-style">both-horiz</property>
                             <property name="icon_size">4</property>
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_add">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add item at selected location &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add item at selected location &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">Add</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-add-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-add-symbolic</property>
                                 <signal name="clicked" handler="on_res_add_clicked" swapped="no"/>
                                 <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                               </object>
@@ -1223,12 +999,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_add_category">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Add new category</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Add new category</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
+                                <property name="is-important">True</property>
                                 <property name="label" translatable="yes">[...]</property>
-                                <property name="use_underline">True</property>
+                                <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_res_add_category_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1239,7 +1015,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator9">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -1250,11 +1026,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_loadrates">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Load rates from database</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Load rates from database</property>
                                 <property name="halign">start</property>
-                                <property name="use_underline">True</property>
-                                <property name="label_widget">buttonlabel_refresh_from_database</property>
+                                <property name="use-underline">True</property>
+                                <property name="label-widget">buttonlabel_refresh_from_database</property>
                                 <signal name="clicked" handler="on_res_load_rates_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1265,12 +1041,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_refreshana">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Refresh rates from schedule.</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Refresh rates from schedule.</property>
                                 <property name="halign">start</property>
-                                <property name="is_important">True</property>
-                                <property name="use_underline">True</property>
-                                <property name="label_widget">buttonlabel_refresh_from_sch</property>
+                                <property name="is-important">True</property>
+                                <property name="use-underline">True</property>
+                                <property name="label-widget">buttonlabel_refresh_from_sch</property>
                                 <signal name="clicked" handler="on_res_sync_rates_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1281,11 +1057,11 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_renumber">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Assign automatic numbering for items</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Assign automatic numbering for items</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">#</property>
-                                <property name="use_underline">True</property>
+                                <property name="use-underline">True</property>
                                 <signal name="clicked" handler="on_res_renumber_clicked" swapped="no"/>
                               </object>
                               <packing>
@@ -1296,7 +1072,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem1">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -1307,12 +1083,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_cut">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Cut Item  &lt;i&gt;(Ctrl+x)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Cut Item  &lt;i&gt;(Ctrl+x)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Cut</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-cut-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-cut-symbolic</property>
                                 <signal name="clicked" handler="on_cut_res" swapped="no"/>
                               </object>
                               <packing>
@@ -1323,12 +1099,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_copy">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Copy Item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Copy Item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Copy</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-copy-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-copy-symbolic</property>
                                 <signal name="clicked" handler="on_copy_res" swapped="no"/>
                               </object>
                               <packing>
@@ -1339,12 +1115,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_paste">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Paste</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">edit-paste-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">edit-paste-symbolic</property>
                                 <signal name="clicked" handler="on_paste_res" swapped="no"/>
                               </object>
                               <packing>
@@ -1355,7 +1131,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="separatortoolitem4">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1365,14 +1141,14 @@
                             <child>
                               <object class="GtkToolItem" id="toolbutton_schedule_custom1">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <child>
                                   <object class="GtkFileChooserButton" id="filechooserbutton_res">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                                    <property name="preview_widget_active">False</property>
-                                    <property name="use_preview_label">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Select a spreadsheet file to import data</property>
+                                    <property name="preview-widget-active">False</property>
+                                    <property name="use-preview-label">False</property>
                                     <property name="title" translatable="yes">Select a spreadsheet file to import data</property>
                                   </object>
                                 </child>
@@ -1385,13 +1161,29 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_import">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_text" translatable="yes">Import Items from selected spreadsheet</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Import Items from selected spreadsheet</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Import</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">insert-object-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">insert-object-symbolic</property>
                                 <signal name="clicked" handler="on_import_res_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">False</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkToolButton" id="toolbutton_res_update_rate">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-text" translatable="yes">Update Item rates from selected spreadsheet</property>
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Import</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">insert-object-symbolic</property>
+                                <signal name="clicked" handler="on_update_res_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -1401,7 +1193,7 @@
                             <child>
                               <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator4">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can-focus">False</property>
                                 <property name="halign">start</property>
                               </object>
                               <packing>
@@ -1412,12 +1204,12 @@
                             <child>
                               <object class="GtkToolButton" id="toolbutton_res_delete">
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                                <property name="tooltip_markup" translatable="yes">Delete Selected Items &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Delete Selected Items &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
                                 <property name="halign">start</property>
                                 <property name="label" translatable="yes">Delete</property>
-                                <property name="use_underline">True</property>
-                                <property name="icon_name">list-remove-symbolic</property>
+                                <property name="use-underline">True</property>
+                                <property name="icon-name">list-remove-symbolic</property>
                                 <signal name="clicked" handler="on_res_delete_clicked" swapped="no"/>
                                 <accelerator key="Delete" signal="clicked" modifiers="GDK_SHIFT_MASK"/>
                               </object>
@@ -1436,7 +1228,7 @@
                         <child>
                           <object class="GtkBox" id="box_res">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can-focus">False</property>
                             <property name="orientation">vertical</property>
                             <child>
                               <placeholder/>
@@ -1475,27 +1267,27 @@
             <child>
               <object class="GtkRevealer" id="infobar_revealer">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="transition_type">slide-up</property>
+                <property name="can-focus">False</property>
+                <property name="transition-type">slide-up</property>
                 <child>
                   <object class="GtkInfoBar" id="infobar_main">
                     <property name="visible">True</property>
-                    <property name="app_paintable">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="no_show_all">True</property>
+                    <property name="app-paintable">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="no-show-all">True</property>
                     <property name="hexpand">False</property>
                     <child internal-child="action_area">
                       <object class="GtkButtonBox">
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="spacing">6</property>
-                        <property name="layout_style">end</property>
+                        <property name="layout-style">end</property>
                         <child>
                           <object class="GtkButton">
                             <property name="label" translatable="yes">Hide</property>
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">True</property>
-                            <property name="tooltip_text" translatable="yes">Dismiss Infomation Bar</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">True</property>
+                            <property name="tooltip-text" translatable="yes">Dismiss Infomation Bar</property>
                             <signal name="clicked" handler="on_infobar_close" swapped="no"/>
                           </object>
                           <packing>
@@ -1513,13 +1305,13 @@
                     </child>
                     <child internal-child="content_area">
                       <object class="GtkBox">
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <property name="spacing">16</property>
                         <child>
                           <object class="GtkLabel" id="label_infobar_main">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="no_show_all">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="no-show-all">True</property>
                             <attributes>
                               <attribute name="style" value="normal"/>
                               <attribute name="weight" value="bold"/>
@@ -1559,23 +1351,23 @@
         <child>
           <object class="GtkBox" id="analysis_screen">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkToolbar" id="toolbar_ana">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="toolbar_style">both-horiz</property>
+                <property name="can-focus">False</property>
+                <property name="toolbar-style">both-horiz</property>
                 <property name="icon_size">4</property>
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_lib">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Add resource from database &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Add resource from database &lt;i&gt;(Ctrl+i)&lt;/i&gt;</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">Add</property>
-                    <property name="icon_name">list-add-symbolic</property>
+                    <property name="icon-name">list-add-symbolic</property>
                     <signal name="clicked" handler="ana_add_res_library" swapped="no"/>
                     <accelerator key="i" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
@@ -1587,10 +1379,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_resnew">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Add new resource &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Add new resource &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
                     <property name="halign">start</property>
-                    <property name="icon_name">list-add-symbolic</property>
+                    <property name="icon-name">list-add-symbolic</property>
                     <signal name="clicked" handler="ana_add_res" swapped="no"/>
                     <accelerator key="i" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                   </object>
@@ -1602,12 +1394,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_schedule_editana1">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Edit resource &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Edit resource &lt;i&gt;(Ctrl+e)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Edit</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">document-properties-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">document-properties-symbolic</property>
                     <signal name="clicked" handler="ana_edit_res" swapped="no"/>
                     <accelerator key="e" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
@@ -1619,7 +1411,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator3">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
@@ -1630,10 +1422,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_res_group">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Add resource group</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add resource group</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">[...]</property>
                     <signal name="clicked" handler="ana_add_res_group" swapped="no"/>
                   </object>
@@ -1645,7 +1437,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator2">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
@@ -1656,10 +1448,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_weight">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Add weighted value</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add weighted value</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">∗</property>
                     <signal name="clicked" handler="ana_add_weight" swapped="no"/>
                   </object>
@@ -1671,10 +1463,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_times">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Add weighted sum</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add weighted sum</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">×∑</property>
                     <signal name="clicked" handler="ana_add_times" swapped="no"/>
                   </object>
@@ -1686,10 +1478,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_sum">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Add sum</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add sum</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">∑</property>
                     <signal name="clicked" handler="ana_add_sum" swapped="no"/>
                   </object>
@@ -1701,10 +1493,10 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_add_round">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Add rounding item</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Add rounding item</property>
                     <property name="halign">start</property>
-                    <property name="is_important">True</property>
+                    <property name="is-important">True</property>
                     <property name="label" translatable="yes">≈</property>
                     <signal name="clicked" handler="ana_add_round" swapped="no"/>
                   </object>
@@ -1716,7 +1508,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator5">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
@@ -1727,12 +1519,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_undo">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Undo Action</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Undo Action</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Undo</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">edit-undo-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">edit-undo-symbolic</property>
                     <signal name="clicked" handler="on_ana_undo" swapped="no"/>
                     <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
@@ -1744,12 +1536,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_redo">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Redo Action</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Redo Action</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Redo</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">edit-redo-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">edit-redo-symbolic</property>
                     <signal name="clicked" handler="on_ana_redo" swapped="no"/>
                     <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                   </object>
@@ -1761,7 +1553,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="separatortoolitem5">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
@@ -1772,12 +1564,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_copy">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Copy item  &lt;i&gt;(Ctrl+c)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Copy</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">edit-copy-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">edit-copy-symbolic</property>
                     <signal name="clicked" handler="on_ana_copy" swapped="no"/>
                   </object>
                   <packing>
@@ -1788,12 +1580,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_paste">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Paste Item  &lt;i&gt;(Ctrl+v)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Paste</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">edit-paste-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">edit-paste-symbolic</property>
                     <signal name="clicked" handler="on_ana_paste" swapped="no"/>
                   </object>
                   <packing>
@@ -1804,7 +1596,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="separatortoolitem6">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1814,13 +1606,13 @@
                 <child>
                   <object class="GtkToolItem" id="toolbutton_schedule_custom2">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <child>
                       <object class="GtkFileChooserButton" id="filechooserbutton_ana">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="tooltip_text" translatable="yes">Select a spreadsheet file to import data</property>
-                        <property name="local_only">False</property>
+                        <property name="can-focus">False</property>
+                        <property name="tooltip-text" translatable="yes">Select a spreadsheet file to import data</property>
+                        <property name="local-only">False</property>
                       </object>
                     </child>
                   </object>
@@ -1832,12 +1624,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_import">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Import Items from file</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-text" translatable="yes">Import Items from file</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Import</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">insert-object-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">insert-object-symbolic</property>
                     <signal name="clicked" handler="on_import_clicked" swapped="no"/>
                   </object>
                   <packing>
@@ -1848,7 +1640,7 @@
                 <child>
                   <object class="GtkSeparatorToolItem" id="toolbutton_schedule_seperator6">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">start</property>
                   </object>
                   <packing>
@@ -1859,12 +1651,12 @@
                 <child>
                   <object class="GtkToolButton" id="toolbutton_ana_delete">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="tooltip_markup" translatable="yes">Delete Selected Items  &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Delete Selected Items  &lt;i&gt;(Shift+Del)&lt;/i&gt;</property>
                     <property name="halign">start</property>
                     <property name="label" translatable="yes">Delete</property>
-                    <property name="use_underline">True</property>
-                    <property name="icon_name">list-remove-symbolic</property>
+                    <property name="use-underline">True</property>
+                    <property name="icon-name">list-remove-symbolic</property>
                     <signal name="clicked" handler="ana_delete_selected_row" swapped="no"/>
                     <accelerator key="Delete" signal="clicked" modifiers="GDK_SHIFT_MASK"/>
                   </object>
@@ -1883,21 +1675,21 @@
             <child>
               <object class="GtkListBox" id="listbox_itemnos">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="selection_mode">none</property>
+                <property name="can-focus">False</property>
+                <property name="selection-mode">none</property>
                 <child>
                   <object class="GtkListBoxRow">
-                    <property name="width_request">100</property>
+                    <property name="width-request">100</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
-                        <property name="can_focus">False</property>
+                        <property name="can-focus">False</property>
                         <child>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
-                            <property name="can_focus">False</property>
+                            <property name="can-focus">False</property>
                             <property name="label" translatable="yes">Remarks:</property>
                           </object>
                           <packing>
@@ -1910,7 +1702,7 @@
                         <child>
                           <object class="GtkEntry" id="entry_analysis_remarks">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
+                            <property name="can-focus">True</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -1933,18 +1725,18 @@
             <child>
               <object class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="shadow_type">in</property>
-                <property name="min_content_height">200</property>
+                <property name="can-focus">True</property>
+                <property name="shadow-type">in</property>
+                <property name="min-content-height">200</property>
                 <child>
                   <object class="GtkTreeView" id="treeview_analysis">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
-                    <property name="show_expanders">False</property>
-                    <property name="rubber_banding">True</property>
-                    <property name="enable_grid_lines">both</property>
+                    <property name="show-expanders">False</property>
+                    <property name="rubber-banding">True</property>
+                    <property name="enable-grid-lines">both</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection">
                         <property name="mode">multiple</property>
@@ -1969,25 +1761,25 @@
         <child>
           <object class="GtkBox" id="progress_screen">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_left">50</property>
-                <property name="margin_right">50</property>
-                <property name="margin_top">200</property>
-                <property name="margin_bottom">200</property>
+                <property name="can-focus">False</property>
+                <property name="margin-left">50</property>
+                <property name="margin-right">50</property>
+                <property name="margin-top">200</property>
+                <property name="margin-bottom">200</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkImage">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">18</property>
-                    <property name="margin_bottom">9</property>
-                    <property name="pixel_size">50</property>
-                    <property name="icon_name">utilities-terminal-symbolic</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">18</property>
+                    <property name="margin-bottom">9</property>
+                    <property name="pixel-size">50</property>
+                    <property name="icon-name">utilities-terminal-symbolic</property>
                     <property name="icon_size">6</property>
                   </object>
                   <packing>
@@ -1999,11 +1791,11 @@
                 <child>
                   <object class="GtkLabel" id="progress_label">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">9</property>
-                    <property name="margin_bottom">18</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">9</property>
+                    <property name="margin-bottom">18</property>
                     <property name="label" translatable="yes">Progress</property>
-                    <property name="use_markup">True</property>
+                    <property name="use-markup">True</property>
                     <property name="wrap">True</property>
                   </object>
                   <packing>
@@ -2015,7 +1807,7 @@
                 <child>
                   <object class="GtkProgressBar" id="progress_bar">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -2030,6 +1822,248 @@
                 <property name="position">1</property>
               </packing>
             </child>
+          </object>
+          <packing>
+            <property name="name">Progress</property>
+            <property name="title" translatable="yes">Progress</property>
+            <property name="position">2</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <child type="titlebar">
+      <object class="GtkStack" id="hidden_stack_header">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="transition-type">crossfade</property>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="title" translatable="yes">GEstimator</property>
+            <property name="subtitle" translatable="yes">untitled project</property>
+            <property name="show-close-button">True</property>
+            <child>
+              <object class="GtkMenuButton" id="draw_open_menu">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Open a project</property>
+                <property name="popover">popup_open_project</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Open</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkArrow">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="arrow-type">down</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <accelerator key="o" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_new_project">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Open new project</property>
+                <property name="action-name">app.new</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">document-new-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkMenuButton" id="project_menu">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="popover">popup_document_menu</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="icon-name">open-menu-symbolic</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="pack-type">end</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="button_project_save">
+                <property name="label">gtk-save</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Save current project  &lt;i&gt;(Ctrl+s)&lt;/i&gt;</property>
+                <property name="use-stock">True</property>
+                <signal name="clicked" handler="on_save_project_clicked" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+              <packing>
+                <property name="pack-type">end</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkButton" id="project_undo_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-markup" translatable="yes">Undo Action &lt;i&gt;(Ctrl+z)&lt;/i&gt;</property>
+                    <signal name="clicked" handler="on_undo_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">edit-undo-symbolic</property>
+                      </object>
+                    </child>
+                    <accelerator key="z" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="project_redo_button">
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-markup" translatable="yes">Redo Action &lt;i&gt;(Ctrl+Shift+z)&lt;/i&gt;</property>
+                    <signal name="clicked" handler="on_redo_clicked" swapped="no"/>
+                    <child>
+                      <object class="GtkImage">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="icon-name">edit-redo-symbolic</property>
+                      </object>
+                    </child>
+                    <accelerator key="z" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <style>
+                  <class name="linked"/>
+                </style>
+              </object>
+              <packing>
+                <property name="position">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkStackSwitcher" id="stack_switcher">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="stack">stack_main</property>
+              </object>
+              <packing>
+                <property name="pack-type">end</property>
+                <property name="position">6</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">Default</property>
+            <property name="title" translatable="yes">Default</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header_ana">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="title">Edit Analysis</property>
+            <property name="has-subtitle">False</property>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Cancel</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Cancel changes to analysis  &lt;i&gt;(Ctrl+Esc)&lt;/i&gt;</property>
+                <signal name="clicked" handler="on_ana_cancel" swapped="no"/>
+                <accelerator key="Escape" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Apply</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-markup" translatable="yes">Apply changes to analysis  &lt;i&gt;(Ctrl+Shift+s)&lt;/i&gt;</property>
+                <property name="image-position">right</property>
+                <signal name="clicked" handler="on_ana_save" swapped="no"/>
+                <accelerator key="s" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+              <packing>
+                <property name="pack-type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="name">Analysis</property>
+            <property name="title" translatable="yes">Analysis</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHeaderBar" id="gtk_header_progress">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="title" translatable="yes">GEstimator</property>
+            <property name="spacing">0</property>
+            <property name="show-close-button">True</property>
           </object>
           <packing>
             <property name="name">Progress</property>
