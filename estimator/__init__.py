@@ -674,8 +674,11 @@ class MainWindow:
             for index, model in enumerate(models):
                 if model[0] != '' and model[column] != '':
                     code = model[0].strip()
-                    if column in (3,):
+                    if column in (3,4,5):
                         value = Decimal(model[column])
+                        update_dict[code] = value
+                    elif column in (6,):
+                        value = model[column]
                         update_dict[code] = value
             updated, notfound = self.sch_database.update_resource_multiple(update_dict, column)
             self.display_status(misc.INFO, str(index)+' records updated')
@@ -684,6 +687,15 @@ class MainWindow:
             self.display_status(misc.INFO, str(updated) + " resource items updated, " + str(notfound) + ' items not found in resource schedule')
         else:
             log.info('MainWindow - on_update_res_clicked - cancelled')
+            
+    def on_update_sch_clicked_tax(self, button):
+        self.on_update_res_clicked(button, column=4)
+        
+    def on_update_sch_clicked_discount(self, button):
+        self.on_update_res_clicked(button, column=5)
+        
+    def on_update_sch_clicked_remarks(self, button):
+        self.on_update_res_clicked(button, column=6)
 
     def on_import_sch_clicked(self, button):
         """Imports schedule from spreadsheet selected by 'filechooserbutton_schedule' into schedule view"""

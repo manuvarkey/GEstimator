@@ -1,2 +1,7 @@
 
 *.glade~
+.flatpak-builder/*
+build-dir/*
+repo/*
+gestimator.flatpak
+*.pyc
