@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.10"/>
   <object class="GtkAboutDialog" id="aboutdialog">
-    <property name="can_focus">False</property>
-    <property name="type_hint">dialog</property>
-    <property name="program_name">GEstimator</property>
-    <property name="version">2.3</property>
+    <property name="can-focus">False</property>
+    <property name="type-hint">dialog</property>
+    <property name="program-name">GEstimator</property>
+    <property name="version">2.4</property>
     <property name="copyright" translatable="yes">Copyright © 2017 Manu Varkey</property>
     <property name="comments" translatable="yes">
 GEstimator is a civil estimation software for preparing cost estimates of civil/electrical works along with detailed rate analysis.
@@ -18,21 +18,20 @@ Executive Engineer (Electrical)
 Central Public Works Department
 MoUDH, Govt of India</property>
     <property name="documenters">Anupama Varghese T
-(anupama264@gmail.com)</property>
-    <property name="logo_icon_name">applications-engineering-symbolic</property>
-    <property name="license_type">gpl-3-0</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
+(anupama264@gmail.com)
+A. Ahila Subash 
+(asubash85@yahoo.co.in)</property>
+    <property name="logo-icon-name">applications-engineering-symbolic</property>
+    <property name="license-type">gpl-3-0</property>
     <child internal-child="vbox">
       <object class="GtkBox">
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
             <child>
               <placeholder/>
             </child>
