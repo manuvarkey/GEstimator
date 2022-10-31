@@ -7,12 +7,6 @@
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
   </object>
-  <object class="GtkListStore" id="liststore_combo">
-    <columns>
-      <!-- column-name sheet -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
   <object class="GtkDialog" id="settings_dialog">
     <property name="name">dialog</property>
     <property name="width-request">1000</property>
@@ -101,6 +95,66 @@
                         <property name="width-request">250</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Break item description across
+multiple lines</property>
+                        <property name="xalign">1</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">0</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="export_break_items_switch">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="valign">center</property>
+                      </object>
+                      <packing>
+                        <property name="left-attach">1</property>
+                        <property name="top-attach">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                </child>
+                <child type="label">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Export options</property>
+                    <attributes>
+                      <attribute name="weight" value="bold"/>
+                    </attributes>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFrame">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label-xalign">0</property>
+                <property name="shadow-type">none</property>
+                <child>
+                  <!-- n-columns=2 n-rows=1 -->
+                  <object class="GtkGrid">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">6</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="hexpand">True</property>
+                    <property name="row-spacing">6</property>
+                    <property name="column-spacing">12</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="width-request">250</property>
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
                         <property name="label" translatable="yes">Database Location</property>
                         <property name="xalign">1</property>
                       </object>
@@ -115,6 +169,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
+                        <property name="valign">center</property>
                         <property name="hexpand">True</property>
                         <signal name="clicked" handler="show_database_folder" swapped="no"/>
                       </object>
@@ -139,7 +194,7 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
             <child>
@@ -186,6 +241,7 @@ when modifying analysis</property>
                           <object class="GtkSpinButton" id="ana_delete_spin">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
+                            <property name="valign">center</property>
                             <property name="hexpand">True</property>
                             <property name="max-width-chars">1</property>
                             <property name="text" translatable="yes">0</property>
@@ -426,7 +482,7 @@ when modifying analysis</property>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -442,5 +498,11 @@ when modifying analysis</property>
       <action-widget response="0">button_cancel</action-widget>
       <action-widget response="1">button_apply</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkListStore" id="liststore_combo">
+    <columns>
+      <!-- column-name sheet -->
+      <column type="gchararray"/>
+    </columns>
   </object>
 </interface>

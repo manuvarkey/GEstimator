@@ -87,7 +87,8 @@ default_project_settings = {'file_version':PROJECT_FILE_VER,
                             'project_item_code':'',
                             'project_resource_code':'',
                             'project_measurement':'["Measurement", ["", []]]'}
-default_program_settings = {'ana_copy_delete_rows':'1',
+default_program_settings = {'export_break_items': 'True',
+                            'ana_copy_delete_rows':'1',
                             'ana_copy_add_items': ana_copy_add_items,
                             'ana_default_add_items': ana_default_add_items}
 # Item codes for project global variables

@@ -2823,7 +2823,7 @@ class ScheduleDatabase:
     
     ## Export items
 
-    def export_sch_spreadsheet(self, spreadsheet):
+    def export_sch_spreadsheet(self, spreadsheet, break_lines=False):
         sch_table = self.get_item_table()
         proj_name = self.get_project_settings()['project_name']
 
@@ -2851,16 +2851,17 @@ class ScheduleDatabase:
                 item_unit = item[2]
                 item_colour = item[6]
                 
-                # If item has multiple lines split up lines
-                item_desc_parts = item_desc.split('\n')
-                if len(item_desc_parts) > 1:
-                    for part in item_desc_parts[0:-1]:
-                        item_row = [code, part, None, None, None, None, None]
-                        code = None
-                        spreadsheet.append_data([item_row], fill=item_colour)
-                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
-                        s_row = s_row + 1
-                    item_desc = item_desc_parts[-1]
+                if break_lines:
+                    # If item has multiple lines split up lines
+                    item_desc_parts = item_desc.split('\n')
+                    if len(item_desc_parts) > 1:
+                        for part in item_desc_parts[0:-1]:
+                            item_row = [code, part, None, None, None, None, None]
+                            code = None
+                            spreadsheet.append_data([item_row], fill=item_colour)
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        item_desc = item_desc_parts[-1]
                     
                 if item_unit == '':
                     item_rate = None
@@ -2886,16 +2887,17 @@ class ScheduleDatabase:
                     remarks = sub_item[5]
                     colour = sub_item[6]
                     
-                    # If item has multiple lines split up lines
-                    item_desc_parts = desc.split('\n')
-                    if len(item_desc_parts) > 1:
-                        for part in item_desc_parts[0:-1]:
-                            item_row = [code, part, None, None, None, None, None]
-                            code = None
-                            spreadsheet.append_data([item_row], fill=colour)
-                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
-                            s_row = s_row + 1
-                        desc = item_desc_parts[-1]
+                    if break_lines:
+                        # If item has multiple lines split up lines
+                        item_desc_parts = desc.split('\n')
+                        if len(item_desc_parts) > 1:
+                            for part in item_desc_parts[0:-1]:
+                                item_row = [code, part, None, None, None, None, None]
+                                code = None
+                                spreadsheet.append_data([item_row], fill=colour)
+                                spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                                s_row = s_row + 1
+                            desc = item_desc_parts[-1]
                         
                     amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
                         
@@ -3147,7 +3149,7 @@ class ScheduleDatabase:
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
         
-    def export_meas_spreadsheet(self, spreadsheet):
+    def export_meas_spreadsheet(self, spreadsheet, break_lines=False):
         # Get measurement
         meas = self.get_measurement()
         sch_table = self.get_item_table()
@@ -3195,16 +3197,17 @@ class ScheduleDatabase:
                 item_qty = item[4]
                 key = self.get_item_key(code)
 
-                # If item has multiple lines split up lines
-                item_desc_parts = item_desc.split('\n')
-                if len(item_desc_parts) > 1:
-                    for part in item_desc_parts[0:-1]:
-                        item_row = [code, part, None, None]
-                        code = None
-                        spreadsheet.append_data([item_row])
-                        spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
-                        s_row = s_row + 1
-                    item_desc = item_desc_parts[-1]
+                if break_lines:
+                    # If item has multiple lines split up lines
+                    item_desc_parts = item_desc.split('\n')
+                    if len(item_desc_parts) > 1:
+                        for part in item_desc_parts[0:-1]:
+                            item_row = [code, part, None, None]
+                            code = None
+                            spreadsheet.append_data([item_row])
+                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                            s_row = s_row + 1
+                        item_desc = item_desc_parts[-1]
 
                 if item_unit == '':
                     item_row = [code, item_desc, None, None]
@@ -3243,17 +3246,18 @@ class ScheduleDatabase:
                     unit = sub_item[2]
                     qty = sub_item[4]
                     key = self.get_item_key(code)
-
-                    # If item has multiple lines split up lines
-                    item_desc_parts = desc.split('\n')
-                    if len(item_desc_parts) > 1:
-                        for part in item_desc_parts[0:-1]:
-                            item_row = [code, part, None, None]
-                            code = None
-                            spreadsheet.append_data([item_row])
-                            spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
-                            s_row = s_row + 1
-                        desc = item_desc_parts[-1]
+                    
+                    if break_lines:
+                        # If item has multiple lines split up lines
+                        item_desc_parts = desc.split('\n')
+                        if len(item_desc_parts) > 1:
+                            for part in item_desc_parts[0:-1]:
+                                item_row = [code, part, None, None]
+                                code = None
+                                spreadsheet.append_data([item_row])
+                                spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
+                                s_row = s_row + 1
+                            desc = item_desc_parts[-1]
 
                     # Add detail from measurements
                     if key in netqtys:

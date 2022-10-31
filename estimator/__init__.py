@@ -363,7 +363,11 @@ class MainWindow:
             # Export schedule
             progress.add_message('Exporting Schedule Items...')
             progress.set_fraction(0)
-            self.sch_database.export_sch_spreadsheet(spreadsheet)
+            if 'export_break_items' in self.program_settings:
+                break_lines = bool(eval(self.program_settings['export_break_items']))
+            else:
+                break_lines = False
+            self.sch_database.export_sch_spreadsheet(spreadsheet, break_lines)
             # Export Resources
             progress.add_message('Exporting Resource Items...')
             progress.set_fraction(0.1)
@@ -371,7 +375,7 @@ class MainWindow:
             # Export Measurements
             progress.add_message('Exporting Resource Items...')
             progress.set_fraction(0.2)
-            self.sch_database.export_meas_spreadsheet(spreadsheet)
+            self.sch_database.export_meas_spreadsheet(spreadsheet, break_lines)
             # Export Resource usage
             progress.add_message('Exporting Resource Usage...')
             progress.set_fraction(0.3)
