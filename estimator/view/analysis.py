@@ -777,7 +777,7 @@ class AnalysisView:
         self.renderer_desc = CellRendererTextView()
         self.renderer_remarks = CellRendererTextView()
         self.renderer_unit = CellRendererTextView()
-        self.renderer_qty = CellRendererTextView()
+        self.renderer_qty = Gtk.CellRendererText()
         self.renderer_rate = CellRendererTextView()
         self.renderer_amount = CellRendererTextView()
         # Pack renderers
@@ -835,7 +835,6 @@ class AnalysisView:
         self.renderer_remarks.connect("edited", self.cell_renderer, 2)
         self.renderer_remarks.connect("editing_started", self.cell_editing_started, 2)
         self.renderer_qty.connect("edited", self.cell_renderer, 4)
-        self.renderer_qty.connect("editing_started", self.cell_editing_started, 4)
         self.renderer_amount.connect("edited", self.cell_renderer, 6)
         self.renderer_amount.connect("editing_started", self.cell_editing_started, 6)
         self.column_desc.connect("notify", self.on_wrap_column_resized, self.renderer_desc)

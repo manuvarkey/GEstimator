@@ -103,7 +103,15 @@ class ResourceView:
         self.cells = dict()
         for slno, [caption, expand, width, columntype] in enumerate(zip(captions, expands, widths, columntypes)):
             column = Gtk.TreeViewColumn(caption)
-            cell = CellRendererTextView()
+            
+            if columntype is str:
+                cell = CellRendererTextView()
+                cell.connect("edited", self.on_cell_edited_text, slno)
+                cell.connect("editing_started", self.on_cell_edit_started, slno)
+            elif columntype is float:
+                cell = Gtk.CellRendererText()
+                cell.connect("edited", self.on_cell_edited_num, slno)
+                
             self.tree.append_column(column)
             self.columns[caption] = column
             self.cells[caption] = cell
@@ -119,13 +127,6 @@ class ResourceView:
             
             if not read_only:
                 column.add_attribute(cell, "editable", 7+slno)
-                
-            if columntype is str:
-                cell.connect("edited", self.on_cell_edited_text, slno)
-                cell.connect("editing_started", self.on_cell_edit_started, slno)
-            elif columntype is float:
-                cell.connect("edited", self.on_cell_edited_num, slno)
-                cell.connect("editing_started", self.on_cell_edit_started, slno)
         
         if compact:
             self.cells['Code'].props.wrap_width = 150
