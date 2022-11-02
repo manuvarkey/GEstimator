@@ -598,9 +598,9 @@ class AnalysisView:
                                       ref_desc + vat_desc + discount_desc + ')'
                     else:
                         net_description = description
-                        
+                    remarks_ = '' if remarks is None else misc.clean_markup(remarks)
                     iter_res_item = self.store.append(None,[code, misc.clean_markup(net_description), unit, str(qty), str(net_rate),
-                                                                 str(amount), remarks,misc.MEAS_COLOR_NORMAL, str([p1,p2]),
+                                                                 str(amount), remarks_, misc.MEAS_COLOR_NORMAL, str([p1,p2]),
                                                                  True,False,True,False,True,False,False])
                 amount = result[-1]
                 group_total_desc = 'TOTAL of ' + item_code if item_code != '' else 'TOTAL of ' + item['description']
