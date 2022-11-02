@@ -74,10 +74,12 @@ class MainWindow:
     def set_title(self, title):
         self.gtk_header = self.builder.get_object("gtk_header")
         self.gtk_header_progress = self.builder.get_object("gtk_header_progress")
-        self.gtk_header_ana = self.builder.get_object("gtk_header_ana")
         
         self.gtk_header.set_subtitle(title)
         self.gtk_header_progress.set_subtitle(title)
+        
+    def set_ana_title(self, title):
+        self.gtk_header_ana = self.builder.get_object("gtk_header_ana")
         self.gtk_header_ana.set_subtitle(title)
         
     def run_command(self, exec_func, data=None):
@@ -511,6 +513,7 @@ class MainWindow:
             code = codes[0]
             model = self.sch_database.get_item(code, modify_res_code=False)
             if model.unit != '':
+                self.set_ana_title('Analysis of rates for item number ' + code)
                 dialog_ana = self.analysis_view.init(model)
                 # Show stack page
                 self.hidden_stack.set_visible_child_name('Analysis')
