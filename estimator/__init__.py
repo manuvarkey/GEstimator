@@ -525,7 +525,7 @@ class MainWindow:
     def on_sch_mark_clicked(self, button):
         """Add empty row to schedule view"""
         [item_count, with_mismatch, d1, d2, d3, without_analysis] = self.schedule_view.update_store(mark=True)
-        message = "Items with rates differing from anaysis rates marked. Total: {}, Mismatch: {} ({},{},{}), Missing: {}". format(item_count, with_mismatch, d1, d2, d3, without_analysis)
+        message = "Items with rates differing from anaysis rates marked. \nTotal: {},  Mismatch: {} [Δ~0.1:🟡, Δ~1:🟠, Δ>1:🟤] ({}, {}, {}),  Missing: [🔴] {}". format(item_count, with_mismatch, d1, d2, d3, without_analysis)
         self.display_status(misc.INFO, message)
         
     def on_sch_colour_clicked(self, button):
