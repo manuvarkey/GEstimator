@@ -2639,34 +2639,38 @@ class ScheduleDatabase:
             code_cat_dict = dict()
 
             categories = self.ScheduleCategoryTable.select().order_by(self.ScheduleCategoryTable.order)
+            counter_cat = 1
             for category in categories:
-                code_cat_dict[category.id] = category.order + 1
-            
+                # If sub-analysis skip renumber
+                if category.description != misc.SUB_ANA_TITLE:
+                    code_cat_dict[category.id] = counter_cat
+                    counter_cat += 1
+                    
             # Calculate and modify item codes
             items = self.ScheduleTable.select(self.ScheduleTable, self.ScheduleCategoryTable).join(self.ScheduleCategoryTable).order_by(self.ScheduleTable.order, self.ScheduleTable.suborder)
             for item in items:
-                
-                code_cat = code_cat_dict[item.category.id]
-                code_item = item.order + 1
-                
-                if item.parent == None:
-                    # If only one category reduce level of item numbering
-                    if len(code_cat_dict) == 1:
-                        code = str(code_item)
-                    else:
-                        code = str(code_cat) + '.' + str(code_item)
-                    undodict[code] = item.code[:-1]
-                    item.code = code
-                else: 
-                    code_subitem = item.suborder + 1
-                    # If only one category reduce level of item numbering
-                    if len(code_cat_dict) == 1:
-                        code = str(code_item) + '.' + str(code_subitem)
-                    else:
-                        code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
-                    undodict[code] = item.code[:-1]
-                    item.code = code
+                # If sub-analysis skip renumber
+                if item.category.description != misc.SUB_ANA_TITLE:
+                    code_cat = code_cat_dict[item.category.id]
+                    code_item = item.order + 1
                     
+                    if item.parent == None:
+                        # If only one category reduce level of item numbering
+                        if len(code_cat_dict) == 1:
+                            code = str(code_item)
+                        else:
+                            code = str(code_cat) + '.' + str(code_item)
+                    else: 
+                        code_subitem = item.suborder + 1
+                        # If only one category reduce level of item numbering
+                        if len(code_cat_dict) == 1:
+                            code = str(code_item) + '.' + str(code_subitem)
+                        else:
+                            code = str(code_cat) + '.' + str(code_item) + '.' + str(code_subitem)
+                else:
+                    code = item.code[:-1]
+                undodict[code] = item.code[:-1]
+                item.code = code
                 # Bulk update item codes
                 item.save(only=[self.ScheduleTable.code])
             
@@ -2700,21 +2704,26 @@ class ScheduleDatabase:
             for cat in cats:
                 items = self.ResourceTable.select().where(self.ResourceTable.category == cat.id).order_by(self.ResourceTable.order)
                 for item in items:
-                    parts = item.code.split(':')
-                    if not(len(parts) > 1 and parts[0] in exclude):
-                        if len(cats) == 1:
-                            code = str(counter).rjust(3, '0')
+                    # If sub-analysis skip renumber
+                    if item.category.description != misc.SUB_ANA_TITLE:
+                        parts = item.code.split(':')
+                        if not(len(parts) > 1 and parts[0] in exclude):
+                            if len(cats) == 1:
+                                code = str(counter).rjust(3, '0')
+                            else:
+                                code = str(counter_cat) + '.' + str(counter).rjust(3, '0')
+                            counter = counter + 1
                         else:
-                            code = str(counter_cat) + '.' + str(counter).rjust(3, '0')
-                        counter = counter + 1
+                            code = item.code[:-1]
                     else:
                         code = item.code[:-1]
                         
                     undodict[code] = item.code[:-1]
                     item.code = code
-                    
                     item.save(only=[self.ResourceTable.code])
-                counter_cat = counter_cat + 1
+                # If sub-analysis skip renumber
+                if cat.description != misc.SUB_ANA_TITLE:
+                    counter_cat = counter_cat + 1
                 counter = 1
             
         yield "Assign automatic item numbers"
