@@ -551,6 +551,20 @@ class ScheduleView:
                 return (True, False)
         else:
             return None
+            
+    def add_sub_ana_items(self, items):
+        """Add items under sub-analysis"""
+        [items_added, net_ress_added] = self.database.insert_item_multiple(items, path=None, number_with_path=False)
+        if items_added:
+            # Add new items to store
+            self.insert_rows_from_database(items_added)
+
+            if net_ress_added:
+                return (True, True)
+            else:
+                return (True, False)
+        else:
+            return None
                 
     def delete_selected_items(self):
         selected = self.get_selected()
@@ -1055,18 +1069,18 @@ class SelectScheduleDialog:
                 return self.scheduleview.get_selected_codes(get_key=True)
         # Standard select
         else:
+            name = self.library_combo.get_active_text()  # Get current library name
+            selected_codes = self.scheduleview.get_selected_codes()
+            selected_items = []
+            
             # Modify and add
             if response == Gtk.ResponseType.OK:
-                selected_codes = self.scheduleview.get_selected_codes()
-                selected_items = []
                 if selected_codes:
                     # Get settings
                     delete_rows = int(eval(self.settings['ana_copy_delete_rows']))
                     ana_rows = self.settings['ana_copy_add_items']
                     
                     for selected_code in selected_codes:
-                        # Get current name
-                        name = self.library_combo.get_active_text()
                         # Get item from selected library
                         with self.database.using_library(name):
                             item = self.database.get_item(selected_code)
@@ -1085,17 +1099,16 @@ class SelectScheduleDialog:
                                              
                     if selected_items:
                         # Hide and Return
+                        codes = [item.code for item in selected_items]
+                        with self.database.using_library(name):
+                            sub_ana_items = self.database.get_sub_ana_items(codes)
                         self.dialog_window.hide()
-                        return selected_items
+                        return selected_items, sub_ana_items
             
             # Add without modiying
             elif response == Gtk.ResponseType.APPLY:
-                selected_codes = self.scheduleview.get_selected_codes()
-                selected_items = []
                 if selected_codes:
                     for selected_code in selected_codes:
-                        # Get current name
-                        name = self.library_combo.get_active_text()
                         # Get item from selected library
                         with self.database.using_library(name):
                             item = self.database.get_item(selected_code)
@@ -1110,8 +1123,11 @@ class SelectScheduleDialog:
                                              
                     if selected_items:
                         # Hide and Return
+                        codes = [item.code for item in selected_items]
+                        with self.database.using_library(name):
+                            sub_ana_items = self.database.get_sub_ana_items(codes)
                         self.dialog_window.hide()
-                        return selected_items
+                        return selected_items, sub_ana_items
         
         # Cancel
         # Hide and Return

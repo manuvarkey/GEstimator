@@ -1954,6 +1954,38 @@ class ScheduleDatabase:
                     sch_table[item.code] = item_list
                     
             return sch_table
+            
+    def get_sub_ana_items(self, codes):
+        proj_code = self.get_project_settings()['project_resource_code']
+        subcodes = dict()
+        for code in codes:
+            item = self.get_item(code, modify_res_code=False, copy_ana=True)
+            if item:
+                for res_code in item.resources:
+                    res_mod_code = proj_code + ':' + res_code
+                    sub_ana_item = self.get_item(res_code, modify_res_code=True, copy_ana=True)
+                    if sub_ana_item:
+                        sub_ana_item.code = res_mod_code
+                        sub_ana_item.parent = None
+                        sub_ana_item.category = misc.SUB_ANA_TITLE
+                        subcodes[res_code] = sub_ana_item
+                        
+        # Nest 2 of subanalysis search
+        tier1_codes = list(subcodes.keys())
+        for code in tier1_codes:
+            item = self.get_item(code, modify_res_code=False, copy_ana=True)
+            if item:
+                for res_code in item.resources:
+                    res_mod_code = proj_code + ':' + res_code
+                    sub_ana_item = self.get_item(res_code, modify_res_code=True, copy_ana=True)
+                    if sub_ana_item:
+                        sub_ana_item.code = res_mod_code
+                        sub_ana_item.parent = None
+                        sub_ana_item.category = misc.SUB_ANA_TITLE
+                        subcodes[res_code] = sub_ana_item
+                        
+        return subcodes.values()
+            
         
     @undoable
     def update_rates(self, codes = None):

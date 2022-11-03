@@ -468,10 +468,13 @@ class MainWindow:
 
     def on_sch_add_clicked(self, button):
         """Add empty row to schedule view"""
-        items = self.sch_dialog.run()
+        items, sub_ana_items = self.sch_dialog.run()
         if items:
             ret = self.schedule_view.add_item_at_selection(items)
-            if ret and ret[1]:
+            ret2 = None
+            if sub_ana_items:
+                ret2 = self.schedule_view.add_sub_ana_items(sub_ana_items)
+            if (ret and ret[1]) or (ret2 and ret2[1]):
                 # Refresh resource view to update any items that may be added
                 self.resource_view.update_store()
             
