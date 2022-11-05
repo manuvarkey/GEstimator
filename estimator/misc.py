@@ -64,6 +64,7 @@ PROJECT_EXTENSION = '.eproj'
 
 # Sub Analysis item
 SUB_ANA_TITLE = "SUB ANALYSIS"
+SUB_ANA_SEARCH_DEPTH = 2
 
 # Limiting values
 MAX_DESC_LEN = 1000

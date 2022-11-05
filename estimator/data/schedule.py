@@ -1955,34 +1955,26 @@ class ScheduleDatabase:
                     
             return sch_table
             
-    def get_sub_ana_items(self, codes):
+    def get_sub_ana_items(self, codes, modify_res_code=False):
         proj_code = self.get_project_settings()['project_resource_code']
         subcodes = dict()
-        for code in codes:
-            item = self.get_item(code, modify_res_code=False, copy_ana=True)
-            if item:
-                for res_code in item.resources:
-                    res_mod_code = proj_code + ':' + res_code
-                    sub_ana_item = self.get_item(res_code, modify_res_code=True, copy_ana=True)
-                    if sub_ana_item:
-                        sub_ana_item.code = res_mod_code
-                        sub_ana_item.parent = None
-                        sub_ana_item.category = misc.SUB_ANA_TITLE
-                        subcodes[res_code] = sub_ana_item
-                        
-        # Nest 2 of subanalysis search
-        tier1_codes = list(subcodes.keys())
-        for code in tier1_codes:
-            item = self.get_item(code, modify_res_code=False, copy_ana=True)
-            if item:
-                for res_code in item.resources:
-                    res_mod_code = proj_code + ':' + res_code
-                    sub_ana_item = self.get_item(res_code, modify_res_code=True, copy_ana=True)
-                    if sub_ana_item:
-                        sub_ana_item.code = res_mod_code
-                        sub_ana_item.parent = None
-                        sub_ana_item.category = misc.SUB_ANA_TITLE
-                        subcodes[res_code] = sub_ana_item
+        
+        for index in range(0, misc.SUB_ANA_SEARCH_DEPTH):
+            for code in codes:
+                item = self.get_item(code, modify_res_code=False, copy_ana=True)
+                if item:
+                    for res_code in item.resources:
+                        res_mod_code = proj_code + ':' + res_code
+                        sub_ana_item = self.get_item(res_code, modify_res_code=True, copy_ana=True)
+                        if sub_ana_item:
+                            if modify_res_code:
+                                sub_ana_item.code = res_mod_code
+                            else:
+                                sub_ana_item.code = res_code
+                            sub_ana_item.parent = None
+                            sub_ana_item.category = misc.SUB_ANA_TITLE
+                            subcodes[res_code] = sub_ana_item
+            codes = list(subcodes.keys())
                         
         return subcodes.values()
             
@@ -1992,17 +1984,46 @@ class ScheduleDatabase:
         
         with self.database.atomic():
             old_rates = dict()
+            old_rates_res = dict()
+            sub_ana_rates_dict = dict()
+            
             if codes is None:
                 sch_rows = self.ScheduleTable.select()
             else:
                 sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << codes)
+            
+            # Save schedule rates
             for sch_row in sch_rows:
-                sch = self.get_item(sch_row.code)
-                sch.update_rate()
-                
                 old_rates[sch_row.code] = sch_row.rate
-                
-                sch_row.rate = sch.rate
+            
+            # Update item rates for sub ana items
+            for index in range(0, misc.SUB_ANA_SEARCH_DEPTH):
+                sub_ana_items = self.get_sub_ana_items(codes)
+                for item in sub_ana_items:
+                    try:
+                        sch_row = self.ScheduleTable.select().where(self.ScheduleTable.code == item.code).get()
+                        res_row = self.ResourceTable.select().where(self.ResourceTable.code == item.code).get()
+                    except self.ScheduleTable.DoesNotExist:
+                        continue
+                        
+                    if sch_row and res_row:
+                        # Save sub analysis schedule and resource rates
+                        if index == 0:
+                            if sch_row.code not in old_rates:
+                                old_rates[sch_row.code] = sch_row.rate
+                            old_rates_res[res_row.code] = res_row.rate
+                        # Update rates
+                        item.update_rate()
+                        sch_row.rate = item.rate
+                        res_row.rate = item.rate
+                        sch_row.save()
+                        res_row.save()
+            
+            # Update item rates
+            for sch_row in sch_rows:
+                item = self.get_item(sch_row.code)
+                item.update_rate()
+                sch_row.rate = item.rate
                 sch_row.save()
         
         yield "Update schedule item rates", True
@@ -2010,11 +2031,17 @@ class ScheduleDatabase:
         with self.database.atomic():
             if codes is None:
                 sch_rows = self.ScheduleTable.select()
+                res_rows = self.ResourceTable.select().where(self.ResourceTable.code << list(old_rates_res.keys()))
             else:
-                sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << codes)
+                sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << list(old_rates.keys()))
+                res_rows = self.ResourceTable.select().where(self.ResourceTable.code << list(old_rates_res.keys()))
+                
             for sch_row in sch_rows:
                 sch_row.rate = old_rates[sch_row.code]
                 sch_row.save()
+            for res_row in res_rows:
+                res_row.rate = old_rates_res[res_row.code]
+                res_row.save()
         
     @undoable
     def update_item_schedule(self, code, value, col):

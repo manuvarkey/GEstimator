@@ -1101,7 +1101,7 @@ class SelectScheduleDialog:
                         # Hide and Return
                         codes = [item.code for item in selected_items]
                         with self.database.using_library(name):
-                            sub_ana_items = self.database.get_sub_ana_items(codes)
+                            sub_ana_items = self.database.get_sub_ana_items(codes, modify_res_code=True)
                         self.dialog_window.hide()
                         return selected_items, sub_ana_items
             
@@ -1125,7 +1125,7 @@ class SelectScheduleDialog:
                         # Hide and Return
                         codes = [item.code for item in selected_items]
                         with self.database.using_library(name):
-                            sub_ana_items = self.database.get_sub_ana_items(codes)
+                            sub_ana_items = self.database.get_sub_ana_items(codes, modify_res_code=True)
                         self.dialog_window.hide()
                         return selected_items, sub_ana_items
         
