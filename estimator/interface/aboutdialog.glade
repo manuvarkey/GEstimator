@@ -21,7 +21,7 @@ MoUDH, Govt of India</property>
 (anupama264@gmail.com)
 A. Ahila Subash 
 (asubash85@yahoo.co.in)</property>
-    <property name="logo-icon-name">applications-engineering-symbolic</property>
+    <property name="logo">GEstimator.png</property>
     <property name="license-type">gpl-3-0</property>
     <child internal-child="vbox">
       <object class="GtkBox">

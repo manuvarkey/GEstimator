@@ -2,20 +2,20 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="512"
    height="512"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91 r13725"
-   sodipodi:docname="accessories-calculator.svg">
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="GEstimator.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs4">
     <linearGradient
@@ -1643,29 +1643,29 @@
        id="clipPath4128"
        clipPathUnits="userSpaceOnUse">
       <path
-         sodipodi:type="arc"
          style="fill:#656e7e;fill-opacity:1;fill-rule:evenodd;stroke:none"
          id="path4130"
-         sodipodi:cx="-536.32001"
-         sodipodi:cy="239.36"
-         sodipodi:rx="157.44"
-         sodipodi:ry="157.44"
+         transform="matrix(0.118891,0,0,0.118891,191.68187,-2.9744718)"
          d="m -378.88,239.36 a 157.44,157.44 0 1 1 -314.88001,0 157.44,157.44 0 1 1 314.88001,0 z"
-         transform="matrix(0.118891,0,0,0.118891,191.68187,-2.9744718)" />
+         sodipodi:type="arc"
+         sodipodi:ry="157.44"
+         sodipodi:rx="157.44"
+         sodipodi:cy="239.36"
+         sodipodi:cx="-536.32001" />
     </clipPath>
     <clipPath
        id="clipPath4118"
        clipPathUnits="userSpaceOnUse">
       <path
-         sodipodi:type="arc"
          style="fill:#656e7e;fill-opacity:1;fill-rule:evenodd;stroke:none"
          id="path4120"
-         sodipodi:cx="-536.32001"
-         sodipodi:cy="239.36"
-         sodipodi:rx="157.44"
-         sodipodi:ry="157.44"
+         transform="translate(-268.8,-17.92)"
          d="m -378.88,239.36 a 157.44,157.44 0 1 1 -314.88001,0 157.44,157.44 0 1 1 314.88001,0 z"
-         transform="translate(-268.8,-17.92)" />
+         sodipodi:type="arc"
+         sodipodi:ry="157.44"
+         sodipodi:rx="157.44"
+         sodipodi:cy="239.36"
+         sodipodi:cx="-536.32001" />
     </clipPath>
     <linearGradient
        gradientTransform="translate(3.76576e-6,5.4305801)"
@@ -3262,14 +3262,14 @@
        id="clipPath5201">
       <path
          transform="matrix(1.3902439,0,0,1.3902439,2394.1846,218.55774)"
+         id="path5203"
+         style="fill:#474d58;fill-opacity:1;fill-rule:evenodd;stroke:none"
          d="m -378.88,239.36 a 157.44,157.44 0 1 1 -314.88001,0 157.44,157.44 0 1 1 314.88001,0 z"
+         sodipodi:type="arc"
          sodipodi:ry="157.44"
          sodipodi:rx="157.44"
          sodipodi:cy="239.36"
-         sodipodi:cx="-536.32001"
-         id="path5203"
-         style="fill:#474d58;fill-opacity:1;fill-rule:evenodd;stroke:none"
-         sodipodi:type="arc" />
+         sodipodi:cx="-536.32001" />
     </clipPath>
     <linearGradient
        inkscape:collect="always"
@@ -3368,9 +3368,9 @@
        inkscape:collect="always"
        style="color-interpolation-filters:sRGB"
        id="filter4909"
-       x="-0.058868711"
+       x="-0.058868712"
        width="1.1177374"
-       y="-0.05873145"
+       y="-0.058731437"
        height="1.1174629">
       <feGaussianBlur
          inkscape:collect="always"
@@ -3385,19 +3385,21 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35355339"
-     inkscape:cx="335.49022"
-     inkscape:cy="169.83034"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="304.05592"
+     inkscape:cy="326.68333"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      showguides="true"
      inkscape:guide-bbox="true"
-     inkscape:window-width="1360"
-     inkscape:window-height="717"
+     inkscape:window-width="1846"
+     inkscape:window-height="1016"
      inkscape:window-x="0"
-     inkscape:window-y="25"
-     inkscape:window-maximized="1" />
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:pagecheckerboard="0"
+     lock-margins="true" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -3406,7 +3408,6 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
