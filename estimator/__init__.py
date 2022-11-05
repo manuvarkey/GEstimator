@@ -543,6 +543,7 @@ class MainWindow:
     def on_sch_refresh_clicked(self, button):
         ret_code = self.schedule_view.update_selected_rates()
         if ret_code:
+            self.resource_view.update_store()
             self.display_status(misc.INFO, "Schedule rates updated from analysis")
         elif ret_code is None:
             self.display_status(misc.WARNING, "No valid items in selection")
@@ -1056,7 +1057,7 @@ class MainWindow:
         self.resource_view.add_category_at_selection(newcat)
         
     def on_res_load_rates_clicked(self, button):
-        """Add empty row to schedule view"""
+        """Load resource rates from database"""
         dialog = view.resource.SelectResourceDialog(self.window, 
                                 self.sch_database, 
                                 select_database_mode=True)

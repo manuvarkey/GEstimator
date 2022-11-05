@@ -573,7 +573,7 @@ class ResourceView:
         if selected:
             with self.database.group('Synchronise resource item from schedule'):
                 for path, code in selected.items():
-                    sch = self.database.get_item(code)
+                    sch = self.database.get_item(code, copy_ana=False)
                     if sch:
                         self.on_cell_edited_num(None, ':'.join(map(str,path)), str(sch.rate), 3)
             
