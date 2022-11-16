@@ -14,6 +14,7 @@ Homepage: https://manuvarkey.github.io/GEstimator/
 ![Image 2](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png)
 ![Image 3](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png)
 ![Image 4](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png)
+![Image 5](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/measurements.png)
 
 ## Installation
 
