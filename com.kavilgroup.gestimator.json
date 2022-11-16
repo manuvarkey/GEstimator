@@ -11,68 +11,63 @@
     ],
     "modules" : [
         {
-            "name" : "python3-appdirs",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} appdirs"
+            "name": "python3-appdirs",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"appdirs\" --no-build-isolation"
             ],
-            "sources" : [
+            "sources": [
                 {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/48/69/d87c60746b393309ca30761f8e2b49473d43450b150cb08f3c6df5c11be5/appdirs-1.4.3.tar.gz",
-                    "sha256" : "9e5896d1372858f8dd3344faf4e5014d21849c756c8d5701f78f8a103b372d92"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl",
+                    "sha256": "a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128"
                 }
             ]
         },
         {
-            "name" : "python3-openpyxl",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} openpyxl"
+            "name": "python3-openpyxl",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"openpyxl\" --no-build-isolation"
             ],
-            "sources" : [
+            "sources": [
                 {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/22/28/a99c42aea746e18382ad9fb36f64c1c1f04216f41797f2f0fa567da11388/et_xmlfile-1.0.1.tar.gz",
-                    "sha256" : "614d9722d572f6246302c4491846d2c393c199cfa4edc9af593437691683335b"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/96/c2/3dd434b0108730014f1b96fd286040dc3bcb70066346f7e01ec2ac95865f/et_xmlfile-1.1.0-py3-none-any.whl",
+                    "sha256": "a2ba85d1d6a74ef63837eed693bcb89c3f752169b0e3e7ae5b16ca5e1b3deada"
                 },
                 {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/3b/d5/181cab9a39dbe8060bd073acae2518e0378e66ff7509c4c6db0881d58e01/jdcal-1.4.tar.gz",
-                    "sha256" : "ea0a5067c5f0f50ad4c7bdc80abad3d976604f6fb026b0b3a17a9d84bb9046c9"
-                },
-                {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/ba/06/b899c8867518df19e242d8cbc82d4ba210f5ffbeebb7704c695e687ab59c/openpyxl-2.6.2.tar.gz",
-                    "sha256" : "1d2af392cef8c8227bd2ac3ebe3a28b25aba74fd4fa473ce106065f0b73bfe2e"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/7b/60/9afac4fd6feee0ac09339de4101ee452ea643d26e9ce44c7708a0023f503/openpyxl-3.0.10-py2.py3-none-any.whl",
+                    "sha256": "0ab6d25d01799f97a9464630abacbb34aafecdcaa0ef3cba6d6b3499867d0355"
                 }
             ]
         },
         {
-            "name" : "python3-peewee",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} peewee"
+            "name": "python3-peewee",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"peewee\" --no-build-isolation"
             ],
-            "sources" : [
+            "sources": [
                 {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/c9/e4/f82bd273a7c88e7a2f71652324039c7e382f2f88eced01b9799d6c936ad2/peewee-3.9.3.tar.gz",
-                    "sha256" : "603337153536b85c3c5b5e84df4ae0f9cbaff09163a3739451d167e0ad3fe1f7"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/17/c8/8035f2155832580d786c35cb1ce0a89d80a67be522f620878fc294742905/peewee-3.15.4.tar.gz",
+                    "sha256": "2581520c8dfbacd9d580c2719ae259f0637a9e46eda47dfc0ce01864c6366205"
                 }
             ]
         },
         {
-            "name" : "python3-pyblake2",
-            "buildsystem" : "simple",
-            "build-commands" : [
-                "pip3 install --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} pyblake2"
+            "name": "python3-pyblake2",
+            "buildsystem": "simple",
+            "build-commands": [
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pyblake2\" --no-build-isolation"
             ],
-            "sources" : [
+            "sources": [
                 {
-                    "type" : "file",
-                    "url" : "https://files.pythonhosted.org/packages/a6/ea/559658f48713567276cabe1344a9ef918adcb34a9da417dbf0a2f7477d8e/pyblake2-1.1.2.tar.gz",
-                    "sha256" : "5ccc7eb02edb82fafb8adbb90746af71460fbc29aa0f822526fc976dff83e93f"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/a6/ea/559658f48713567276cabe1344a9ef918adcb34a9da417dbf0a2f7477d8e/pyblake2-1.1.2.tar.gz",
+                    "sha256": "5ccc7eb02edb82fafb8adbb90746af71460fbc29aa0f822526fc976dff83e93f"
                 }
             ]
         },
