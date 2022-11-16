@@ -8,6 +8,13 @@ The estimates can be rendered into a .xlsx document from `Menu->Export...`. The 
 
 Homepage: https://manuvarkey.github.io/GEstimator/
 
+## Screenshots
+
+![Image 1](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png)
+![Image 2](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png)
+![Image 3](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png)
+![Image 4](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png)
+
 ## Installation
 
 Latest source code and binaries for GEstimator can be downloaded from this page under `Releases`.
