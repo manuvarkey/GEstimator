@@ -24,15 +24,48 @@
     <screenshot type="source"> 
       <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png</image>
     </screenshot>
+    <screenshot type="source"> 
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/measurements.png</image>
+    </screenshot>
   </screenshots>
   <update_contact>manuvarkey@gmail.com</update_contact>
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
-    <release date="2022-11-05" version="2.5.0" />
-    <release date="2022-10-18" version="2.4.0" />
-    <release date="2022-01-28" version="2.3.0" />
-	<release date="2020-04-17" version="2.2.0" />
+    <release date="2022-11-05" version="2.5.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Add DSR 2021</li>
+            <li>Add support for handling sub analysis of rates</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2022-10-18" version="2.4.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Add DSR E&M 2022</li>
+            <li>Add support for updating rates in item and resource schedules from spreadsheet</li>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2022-01-28" version="2.3.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Multiple selection support for resource items.</li>
+            <li>Support for rounding quantity in DOM</li>
+            <li>Copy paste support from spreadsheets</li>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+	  <release date="2020-04-17" version="2.2.0" />
     <release date="2019-06-27" version="2.1.0" />
     <release date="2019-04-01" version="2.0.0" />
   </releases>
