@@ -3,7 +3,7 @@
 
 # All the other settings can be tweaked by editing the !defines at the top of this script
 !define APPNAME "GEstimator"
-!define COMPANYNAME "CPWD"
+!define COMPANYNAME "KavilGroup"
 !define DESCRIPTION "Civil estimation program for civil/electrical works"
 # These three must be integers
 !define VERSIONMAJOR 2
@@ -13,7 +13,7 @@
 # It is possible to use "mailto:" links in here to open the email client
 !define HELPURL "mailto:manuvarkey@gmail.com" # "Support Information" link
 !define UPDATEURL "http://github.com/manuvarkey/GEstimator/" # "Product Updates" link
-!define ABOUTURL "http://manuiisc.blogspot.com" # "Publisher" link
+!define ABOUTURL "http://kavilgroup.com" # "Publisher" link
 # This is the size (in kB) of all the files copied into "Program Files"
 !define INSTALLSIZE 87800
  
