@@ -1,6 +1,8 @@
 # GEstimator
 
 [![Release](https://img.shields.io/github/release/manuvarkey/GEstimator.svg)](https://github.com/manuvarkey/GEstimator/releases/latest)
+![License](https://img.shields.io/github/license/manuvarkey/GEstimator)
+
 
 <a href="https://beta.flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
 
