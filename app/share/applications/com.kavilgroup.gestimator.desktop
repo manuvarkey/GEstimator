@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=GEstimator
-Comment=GEstimator is a simple civil estimation software written in Python and GTK+
+Comment=GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works.
 Exec=/app/bin/gestimator.py %U
 StartupNotify=true
 Icon=com.kavilgroup.gestimator
