@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GEestimator
+Comment=GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works.
+Exec=gestimator
+StartupNotify=true
+Icon=${SNAP}/meta/gui/gestimator.svg
+MimeType=application/eproj;
+Categories=GNOME;GTK;Office;
