@@ -1,5 +1,10 @@
 # GEstimator
 
+[Website](https://manuvarkey.github.io/GEstimator) • 
+[Forum](https://github.com/manuvarkey/GEstimator/discussions/) •
+[Bug tracker](https://github.com/manuvarkey/GEstimator/issues) •
+[Git repository](https://github.com/manuvarkey/GEstimator)
+
 [![Release](https://img.shields.io/github/release/manuvarkey/GEstimator.svg)](https://github.com/manuvarkey/GEstimator/releases/latest)
 ![License](https://img.shields.io/github/license/manuvarkey/GEstimator)
 
@@ -16,6 +21,12 @@ The estimates can be rendered into a .xlsx document from `Menu->Export...`. The 
 
 Homepage: https://manuvarkey.github.io/GEstimator/
 
+## Tutorials
+
+[![Simple Usage](https://img.youtube.com/vi/B3ycfivex-E/0.jpg)](https://youtu.be/B3ycfivex-E)
+
+[![Advanced Usage](https://img.youtube.com/vi/lo3-QIPtyI8/0.jpg)](https://youtu.be/lo3-QIPtyI8)
+
 ## Screenshots
 
 ![Image 1](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png)
@@ -23,6 +34,9 @@ Homepage: https://manuvarkey.github.io/GEstimator/
 ![Image 3](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png)
 ![Image 4](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png)
 ![Image 5](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/measurements.png)
+
+## Resources
+Additional libraries and other resources can be downloaded from [GEstimator Other Databases](https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases).
 
 ## Installation
 
@@ -44,7 +58,6 @@ Python Modules:
 * jdcal - Not included
 * et_xmlfile - Not included
 * peewee (v3.2.0) - Not included
-* pyblake2 - Not included
 * pycairo - Not included
 * PyGObject - Not included
 
