@@ -5,3 +5,5 @@ build-dir/*
 repo/*
 gestimator.flatpak
 *.pyc
+Pipfile.lock
+Pipfile

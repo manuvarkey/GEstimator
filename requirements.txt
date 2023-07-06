@@ -1,0 +1,9 @@
+appdirs==1.4.4
+certifi==2023.5.7
+charset-normalizer==3.1.0
+et-xmlfile==1.1.0
+idna==3.4
+openpyxl==3.1.2
+peewee==3.16.2
+requests==2.31.0
+urllib3==2.0.3
