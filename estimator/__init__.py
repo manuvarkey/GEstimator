@@ -1267,6 +1267,13 @@ class MainWindow:
         self.hidden_stack = self.builder.get_object("hidden_stack")
         self.hidden_stack_header = self.builder.get_object("hidden_stack_header")
 
+        # Setup font settings
+        # Set default application font for windows
+        if platform.system() == 'Windows':
+            cssprovider = Gtk.CssProvider()
+            cssprovider.load_from_data(str.encode("*{font-family:'trebuchet ms';}"))
+            self.window.get_style_context().add_provider_for_screen(Gdk.Screen.get_default(), cssprovider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
         # Other variables
         self.filename = None
         
