@@ -23,9 +23,9 @@ Homepage: https://manuvarkey.github.io/GEstimator/
 
 ## Tutorials
 
-[![Simple Usage](https://img.youtube.com/vi/B3ycfivex-E/0.jpg)](https://youtu.be/B3ycfivex-E)
+[![Simple Usage](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/screenshot1.png)](https://youtu.be/B3ycfivex-E)
 
-[![Advanced Usage](https://img.youtube.com/vi/lo3-QIPtyI8/0.jpg)](https://youtu.be/lo3-QIPtyI8)
+[![Advanced Usage](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/screenshot2.png)](https://youtu.be/lo3-QIPtyI8)
 
 ## Screenshots
 
