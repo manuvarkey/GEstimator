@@ -19,7 +19,6 @@ The program is organised in three tabs - Schedule Items, Details of Measurements
 
 The estimates can be rendered into a .xlsx document from `Menu->Export...`. The exported sheet includes - the schedule of rates for the work, schedule of resources, details of measurements, resource usage for the work and analysis of rates for various items of work.
 
-Homepage: https://manuvarkey.github.io/GEstimator/
 
 ## Tutorials
 
