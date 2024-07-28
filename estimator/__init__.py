@@ -468,15 +468,17 @@ class MainWindow:
 
     def on_sch_add_clicked(self, button):
         """Add empty row to schedule view"""
-        items, sub_ana_items = self.sch_dialog.run()
-        if items:
-            ret = self.schedule_view.add_item_at_selection(items)
-            ret2 = None
-            if sub_ana_items:
-                ret2 = self.schedule_view.add_sub_ana_items(sub_ana_items)
-            if (ret and ret[1]) or (ret2 and ret2[1]):
-                # Refresh resource view to update any items that may be added
-                self.resource_view.update_store()
+        retval = self.sch_dialog.run()
+        if retval:
+            items, sub_ana_items = retval
+            if items:
+                ret = self.schedule_view.add_item_at_selection(items)
+                ret2 = None
+                if sub_ana_items:
+                    ret2 = self.schedule_view.add_sub_ana_items(sub_ana_items)
+                if (ret and ret[1]) or (ret2 and ret2[1]):
+                    # Refresh resource view to update any items that may be added
+                    self.resource_view.update_store()
             
     def on_sch_add_item_clicked(self, button):
         """Add empty row to schedule view"""
@@ -539,6 +541,10 @@ class MainWindow:
         colour = '#%02X%02X%02X' % (int(colour_obj.red*255), int(colour_obj.green*255), int(colour_obj.blue*255))
         
         self.schedule_view.update_colour(colour)
+        
+    def on_sch_reset_colour_clicked(self, button):
+        """Reset color of selection in schedule view"""
+        self.schedule_view.update_colour(None)
         
     def on_sch_refresh_clicked(self, button):
         ret_code = self.schedule_view.update_selected_rates()
@@ -1266,6 +1272,17 @@ class MainWindow:
         # Initialise window variables
         self.hidden_stack = self.builder.get_object("hidden_stack")
         self.hidden_stack_header = self.builder.get_object("hidden_stack_header")
+        
+        # Setup darkmode
+        text_color = self.window.get_style_context().get_color(Gtk.StateFlags.NORMAL)
+        back_color = self.window.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+        textavg = (text_color.red + text_color.green + text_color.blue)/3
+        backavg = (back_color.red + back_color.green + back_color.blue)/3
+        misc.MEAS_COLOR_NORMAL = misc.rgb2hex(back_color.red, back_color.green, back_color.blue)
+        if textavg > backavg:  # Darkish theme
+            self.darkmode = True
+        else:  # Lightish theme
+            self.darkmode = False
 
         # Setup font settings
         # Set default application font for windows

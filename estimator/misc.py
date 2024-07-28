@@ -1174,3 +1174,24 @@ def round_value(value, rounding='Round to 0'):
         rounded = value
     return rounded
     
+# Cairo drawing functions
+
+def rgb2hex(r,g,b,a=None):
+    if a:
+        return "#{:02x}{:02x}{:02x}{:02x}".format(int(r*255),int(g*255),int(b*255),int(a*255))
+    else:
+        return "#{:02x}{:02x}{:02x}".format(int(r*255),int(g*255),int(b*255))
+
+def hex2rgb(hexcode):
+    if len(hexcode) == 7:
+        r = int(hexcode[1:3],16)/255 
+        g = int(hexcode[3:5],16)/255
+        b = int(hexcode[5:7],16)/255
+        a = 1
+    elif len(hexcode) == 9:
+        r = int(hexcode[1:3],16)/255 
+        g = int(hexcode[3:5],16)/255
+        b = int(hexcode[5:7],16)/255
+        a = int(hexcode[7:9],16)/255
+    return (r, g, b, a)
+    
