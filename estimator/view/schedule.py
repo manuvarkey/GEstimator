@@ -72,8 +72,8 @@ class ScheduleView:
 
         # Setup treestore and filter
         # Additional bool array for editable
-        # str for background colour and full description
-        self.store = Gtk.TreeStore(*([str]*7 + [bool] + [int] + [bool]*5 + [str]*2))
+        # str for background colour, full description and emphasis
+        self.store = Gtk.TreeStore(*([str]*7 + [bool] + [int] + [bool]*5 + [str]*2 + [int]))
         self.filter = self.store.filter_new()
         self.filter.set_visible_func(self.filter_func, data=[0,15,2,6])
 
@@ -133,6 +133,7 @@ class ScheduleView:
 
             column.set_resizable(True)
             column.add_attribute(cell, "cell_background", 14)
+            column.add_attribute(cell, "weight", 16)
             column.set_fixed_width(width)
               
         if compact:
@@ -187,7 +188,7 @@ class ScheduleView:
                 bools = [False] + [False] + [False]*5
             else:
                 bools = [False] + [True] + [False]*5
-            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, category]
+            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, category, 700]
             category_iter = self.store.append(None, category_row)
             for code, item_list in items.items():
                 # Add items to store
@@ -240,7 +241,7 @@ class ScheduleView:
                         
                     item_count = item_count + 1
                 
-                item_row = data + bools + [colour, full_description]
+                item_row = data + bools + [colour, full_description, 400]
                 item_iter = self.store.append(category_iter, item_row)
                 
                 for sub_item in item_list[1]:
@@ -292,7 +293,7 @@ class ScheduleView:
                             without_analysis = without_analysis + 1
                         item_count = item_count + 1
                     
-                    row = data + bools + [colour, full_description]
+                    row = data + bools + [colour, full_description, 400]
                     self.store.append(item_iter, row)
                     
         # Append sum row
@@ -300,7 +301,7 @@ class ScheduleView:
             data = ['', 'SUM TOTAL', '', '', '', str(sum_total), '']
             bools = [False]*7
             colour = misc.MEAS_COLOR_HIGHLIGHTED
-            row = data + bools + [colour, '']               
+            row = data + bools + [colour, '', 700]               
             self.store.append(None, row)
 
         # Expand all expanders
@@ -372,7 +373,7 @@ class ScheduleView:
             
             data = ['', code, '', '', '', '', '']
             bools = [False] + [True] + [False]*5
-            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, code]
+            category_row = data + bools + [misc.MEAS_COLOR_NORMAL, code, 700]
             
             self.store.insert(None, position, category_row)
             
@@ -389,7 +390,7 @@ class ScheduleView:
             data = [code, item_desc, item_unit, item_rate, 
                     item_qty, item_amount, item_remarks]
             bools = [True] + [True] + [True]*3 + [False,True]
-            item_row = data + bools + [misc.MEAS_COLOR_NORMAL, item.description]
+            item_row = data + bools + [misc.MEAS_COLOR_NORMAL, item.description, 400]
             
             if len(path) == 2:
                 parent_iter = self.store.get_iter(Gtk.TreePath.new_from_indices([path[0]]))

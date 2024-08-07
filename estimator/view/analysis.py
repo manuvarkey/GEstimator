@@ -613,7 +613,7 @@ class AnalysisView:
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,False,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_WEIGHT:
-                iter_res_item = self.store.append(None,['<span color="blue"><b>∗</b></span>', 
+                iter_res_item = self.store.append(None,['<span color="blue"><b>*</b></span>', 
                                                         misc.clean_markup(item['description']), '', 
                                                         '<span color="blue">' + str(item['value']) + '</span>', '', 
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),

@@ -70,7 +70,5 @@ if __name__ == '__main__':
     log_file = misc.posix_path(log_dir, misc.PROGRAM_NAME + '.log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    with open(log_file, 'w') as fobj:
+    with open(log_file, 'w', encoding="utf-8") as fobj:
         fobj.write(log_file_temp.getvalue())
-    
-    

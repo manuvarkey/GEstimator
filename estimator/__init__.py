@@ -1278,7 +1278,6 @@ class MainWindow:
         back_color = self.window.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
         textavg = (text_color.red + text_color.green + text_color.blue)/3
         backavg = (back_color.red + back_color.green + back_color.blue)/3
-        misc.MEAS_COLOR_NORMAL = misc.rgb2hex(back_color.red, back_color.green, back_color.blue)
         if textavg > backavg:  # Darkish theme
             self.darkmode = True
         else:  # Lightish theme
@@ -1288,7 +1287,7 @@ class MainWindow:
         # Set default application font for windows
         if platform.system() == 'Windows':
             cssprovider = Gtk.CssProvider()
-            cssprovider.load_from_data(str.encode("*{font-family:'trebuchet ms';}"))
+            cssprovider.load_from_data(str.encode("treeview{font-family:'monospace'; }"))
             self.window.get_style_context().add_provider_for_screen(Gdk.Screen.get_default(), cssprovider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
         # Other variables
