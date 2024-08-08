@@ -1010,6 +1010,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         textbuffer = textview.get_buffer()
         dialogBox.pack_end(scrolledwindow, False, False, 0)
         scrolledwindow.add(textview)
+        scrolledwindow.set_border_width(6)
         
         # Set old value
         if oldval != None:

@@ -11,7 +11,7 @@ added_files = [
 		 ]
 
 a = Analysis(['gestimator.py'],
-             pathex=['C:\\Users\\User\\Desktop\\GEstimator'],
+             pathex=['C:\\Users\\User\\Documents\\GitHub\\GEstimator'],
              binaries=None,
              datas=added_files,
              hiddenimports=[],
