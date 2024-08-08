@@ -80,6 +80,7 @@ class ResourceView:
         self.search_bar = Gtk.SearchBar()
         self.search_bar.set_show_close_button(True)
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.tree = Gtk.TreeView(self.filter)
         # Pack widgets
         self.search_bar.add(self.search_field)
@@ -847,7 +848,7 @@ class SelectResourceDialog:
         self.dialog_window.set_transient_for(parent)
         self.dialog_window.set_default_response(Gtk.ResponseType.OK)
         self.dialog_window.set_resizable(True)
-        self.dialog_window.set_size_request(1100,600)
+        self.dialog_window.set_size_request(-1,600)
         
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
@@ -883,7 +884,7 @@ class SelectResourceDialog:
             res_view = ResourceView(self.dialog_window, 
                                             self.database, 
                                             box_res, 
-                                            compact=True,
+                                            compact=False,
                                             read_only=True)
             # Overide functions of default resource view
             res_view.select_action = self.select_action
@@ -899,7 +900,7 @@ class SelectResourceDialog:
                 res_view = ResourceView(self.dialog_window, 
                                         self.database, 
                                         box_res, 
-                                        compact=True,
+                                        compact=False,
                                         read_only=True)
                 self.resourceviews[library] = res_view
                 # Overide functions of resource view

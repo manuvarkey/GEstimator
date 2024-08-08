@@ -7,3 +7,4 @@ gestimator.flatpak
 *.pyc
 Pipfile.lock
 Pipfile
+/venv

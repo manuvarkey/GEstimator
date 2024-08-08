@@ -82,12 +82,14 @@ class ScheduleView:
         self.search_bar = Gtk.SearchBar()
         self.search_bar.set_show_close_button(True)
         scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.tree = Gtk.TreeView(self.filter)
         # Pack widgets
         self.search_bar.add(self.search_field)
         self.box.pack_start(self.search_bar, False, False, 0)
         self.box.pack_start(scrolled, True, True, 0)
         scrolled.add(self.tree)
+
 
         # Setup tree view
         self.tree.set_grid_lines(3)
@@ -984,7 +986,7 @@ class SelectScheduleDialog:
         self.dialog_window.set_transient_for(parent)
         self.dialog_window.set_default_response(Gtk.ResponseType.OK)
         self.dialog_window.set_resizable(True)
-        self.dialog_window.set_size_request(1100,600)
+        self.dialog_window.set_size_request(-1,600)
         
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
@@ -996,7 +998,7 @@ class SelectScheduleDialog:
             self.scheduleview = ScheduleView(self.dialog_window, 
                                             self.database, 
                                             box, 
-                                            compact=True,
+                                            compact=False,
                                             read_only=True)
             # Overide functions of default resource view
             self.scheduleview.select_action = self.select_action
@@ -1032,7 +1034,7 @@ class SelectScheduleDialog:
                     sch_view = ScheduleView(self.dialog_window,
                                             self.database, 
                                             box_res,
-                                            compact = True,
+                                            compact = False,
                                             read_only = True)
                     self.scheduleviews[library] = sch_view
                     # Overide functions of schedule view
