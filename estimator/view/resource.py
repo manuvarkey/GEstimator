@@ -854,7 +854,7 @@ class SelectResourceDialog:
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
         self.action_area = self.dialog_window.get_action_area()
-        self.action_area.set_border_width(6)
+        self.action_area.props.margin_top = 12
         
         # Combobox for libraries
         self.library_combo = Gtk.ComboBoxText()
@@ -1009,6 +1009,8 @@ class ResourceEntryDialog():
         self.dialog_window.set_border_width(6)
         self.dialog_window.set_size_request(600,-1)
         self.dialog_window.set_default_response(Gtk.ResponseType.OK)
+        self.action_area = self.dialog_window.get_action_area()
+        self.action_area.props.margin_top = 12
 
         # Pack Dialog
         dialog_box = self.dialog_window.get_content_area()
@@ -1153,23 +1155,25 @@ class ResourceUsageDialog():
         self.entrys = {}
         captions = ['Code', 'Description', 'Unit', 'Rate', 'Qty', 'Amount']
         expands = [False, True, False, False, False, False]
-        widths = [100, 350, 100, 100, 100, 100]
+        widths = [100, 400, 100, 100, 100, 150]
         window_caption = 'Resource Usage'
         
         # Setup dialog
         self.dialog_window = Gtk.Dialog(window_caption, parent, Gtk.DialogFlags.MODAL,
             (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE))
-        self.dialog_window.set_size_request(1100,600)
+        self.dialog_window.set_size_request(-1,600)
         self.dialog_window.set_default_response(Gtk.ResponseType.CLOSE)
         self.action_area = self.dialog_window.get_action_area()
-        self.action_area.set_border_width(6)
+        self.action_area.props.margin_top = 12
         
         # Setup treestore
         self.store = Gtk.TreeStore(*([str]*6 + [int]))
         
         # Setup widgets
         self.box = self.dialog_window.get_content_area()
+        self.box.set_border_width(6)
         self.scrolled = Gtk.ScrolledWindow()
+        self.scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.tree = Gtk.TreeView(self.store)
         
         # Pack widgets

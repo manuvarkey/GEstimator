@@ -991,7 +991,7 @@ class SelectScheduleDialog:
         dialogBox = self.dialog_window.get_content_area()
         dialogBox.set_border_width(6)
         self.action_area = self.dialog_window.get_action_area()
-        self.action_area.set_border_width(6)
+        self.action_area.props.margin_top = 12
         
         if self.simple:
             box = Gtk.Box.new(Gtk.Orientation.VERTICAL, 12)

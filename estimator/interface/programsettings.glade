@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkAdjustment" id="ana_delete_adjustment">
@@ -28,7 +28,6 @@
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area1">
             <property name="can-focus">False</property>
-            <property name="margin-top">12</property>
             <property name="hexpand">True</property>
             <property name="layout-style">end</property>
             <child>
@@ -71,6 +70,7 @@
           <object class="GtkBox" id="box1">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="margin-bottom">6</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <property name="orientation">vertical</property>
@@ -85,6 +85,7 @@
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-start">12</property>
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
                     <property name="hexpand">True</property>
@@ -92,10 +93,8 @@
                     <property name="column-spacing">12</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="width-request">250</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-start">12</property>
                         <property name="label" translatable="yes">Break item description across
 multiple lines</property>
                         <property name="xalign">1</property>
@@ -146,6 +145,7 @@ multiple lines</property>
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-start">12</property>
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
                     <property name="hexpand">True</property>
@@ -155,7 +155,6 @@ multiple lines</property>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-start">12</property>
                         <property name="label" translatable="yes">Database Location</property>
                         <property name="xalign">1</property>
                       </object>
@@ -219,6 +218,7 @@ multiple lines</property>
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-start">12</property>
                         <property name="margin-top">6</property>
                         <property name="margin-bottom">6</property>
                         <property name="hexpand">True</property>
@@ -226,10 +226,8 @@ multiple lines</property>
                         <property name="column-spacing">12</property>
                         <child>
                           <object class="GtkLabel">
-                            <property name="width-request">250</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="margin-start">12</property>
                             <property name="label" translatable="yes">Number of rows to be deleted 
 when modifying analysis</property>
                             <property name="xalign">1</property>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
-  <requires lib="gtk+" version="3.10"/>
+  <requires lib="gtk+" version="3.20"/>
   <object class="GtkFileFilter" id="filefilter_xlsx">
     <patterns>
       <pattern>*.xlsx</pattern>
@@ -22,8 +22,8 @@
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can-focus">False</property>
-        <property name="margin-left">6</property>
-        <property name="margin-right">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
         <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
@@ -31,7 +31,6 @@
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area1">
             <property name="can-focus">False</property>
-            <property name="margin-top">7</property>
             <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="button_cancel">
@@ -75,6 +74,7 @@
           <object class="GtkViewport" id="viewport1">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="margin-bottom">6</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <child>
