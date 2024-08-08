@@ -1287,7 +1287,7 @@ class MainWindow:
         # Set default application font for windows
         if platform.system() == 'Windows':
             cssprovider = Gtk.CssProvider()
-            cssprovider.load_from_data(str.encode("treeview{font-family:'monospace'; }"))
+            cssprovider.load_from_data(str.encode("*{font-family: consolas, segoe ui; font-size:11pt}"))
             self.window.get_style_context().add_provider_for_screen(Gdk.Screen.get_default(), cssprovider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
 
         # Other variables
