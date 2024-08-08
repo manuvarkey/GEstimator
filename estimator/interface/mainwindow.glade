@@ -38,6 +38,8 @@
       <object class="GtkBox" id="popover_meas_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
         <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
@@ -79,8 +81,8 @@
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="margin-left">6</property>
-        <property name="margin-right">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
         <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>
@@ -258,8 +260,8 @@
       <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="margin-left">6</property>
-        <property name="margin-right">6</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
         <property name="margin-top">6</property>
         <property name="margin-bottom">6</property>
         <property name="orientation">vertical</property>

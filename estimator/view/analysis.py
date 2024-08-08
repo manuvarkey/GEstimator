@@ -545,6 +545,9 @@ class AnalysisView:
         """Update GUI of AnalysisView from data model while trying to preserve selection"""
 
         log.info('AnalysisView - update_store')
+        
+        C1 = lambda x : '<span color="#486581"><b>{x}</b></span>'.format(x=str(x))
+        C2 = lambda x : '<span color="#c30101"><b>{x}</b></span>'.format(x=str(x))
 
         # Get selection
         selection = self.tree.get_selection()
@@ -608,28 +611,28 @@ class AnalysisView:
                                                              str(amount), '',misc.MEAS_COLOR_NORMAL, str([p1,None]),
                                                              False,False,False,False,False,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_SUM:
-                iter_res_item = self.store.append(None,['<span color="red"><b>∑</b></span>', 
+                iter_res_item = self.store.append(None,[C2('∑'), 
                                                         misc.clean_markup(item['description']), '', '', '', 
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,False,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_WEIGHT:
-                iter_res_item = self.store.append(None,['<span color="blue"><b>*</b></span>', 
+                iter_res_item = self.store.append(None,[C1('*'), 
                                                         misc.clean_markup(item['description']), '', 
-                                                        '<span color="blue">' + str(item['value']) + '</span>', '', 
+                                                        C1(str(item['value'])), '', 
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,True,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_TIMES:
-                iter_res_item = self.store.append(None,['<span color="blue"><b>×∑</b></span>', 
+                iter_res_item = self.store.append(None,[C1('×∑'), 
                                                         misc.clean_markup(item['description']), '', 
-                                                        '<span color="blue">' + str(item['value']) + '</span>', '', 
+                                                        C1(str(item['value'])), '', 
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,True,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_ROUND:
                 description_ = '<b>' + misc.clean_markup(item['description']) + '</b>'
                 result_ = '<b>' + misc.clean_markup(str(result)) + '</b>'
-                iter_res_item = self.store.append(None,['<span color="red"><b>≈</b></span>', description_, '', 
-                                                        '<span color="red">' + str(item['value']) + '</span>', 
-                                                        '', result_, '', misc.MEAS_COLOR_NORMAL, str([p1]),
+                iter_res_item = self.store.append(None,[C2('≈'), description_, '', 
+                                                        C2(str(item['value'])), 
+                                                        '', result_, '', misc.MEAS_COLOR_HIGHLIGHTED, str([p1]),
                                                         False,True,False,False,True,False,False])
 
         self.tree.expand_all()

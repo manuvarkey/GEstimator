@@ -71,5 +71,6 @@ class CustomItem:
         # Define functions here
         self.cust_funcs = [None, None, None, None, None, callback_total_item]
         self.total_func = total_func
+        self.total_func_item = total_func_item
         self.dimensions = [[300,80,80,80,80,100], [True,False,False,False,False,False]]
         

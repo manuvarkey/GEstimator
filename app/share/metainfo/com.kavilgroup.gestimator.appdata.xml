@@ -36,6 +36,15 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2024-08-08" version="2.6.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
     <release date="2022-11-05" version="2.5.0">
       <description>
         <p>Changelog:</p>

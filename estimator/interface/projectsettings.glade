@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkDialog" id="settings_dialog">
     <property name="name">dialog</property>
-    <property name="width_request">800</property>
+    <property name="width-request">800</property>
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">Project Settings</property>
     <property name="resizable">False</property>
-    <property name="type_hint">dialog</property>
+    <property name="type-hint">dialog</property>
     <property name="gravity">center</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
-        <property name="can_focus">False</property>
-        <property name="margin_left">6</property>
-        <property name="margin_right">6</property>
-        <property name="margin_top">6</property>
-        <property name="margin_bottom">6</property>
+        <property name="can-focus">False</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
         <property name="hexpand">True</property>
         <property name="vexpand">True</property>
         <property name="orientation">vertical</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="dialog-action_area1">
-            <property name="can_focus">False</property>
-            <property name="margin_top">12</property>
+            <property name="can-focus">False</property>
+            <property name="margin-top">12</property>
             <property name="hexpand">True</property>
-            <property name="layout_style">end</property>
+            <property name="layout-style">end</property>
             <child>
               <object class="GtkButton" id="button_cancel">
                 <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="receives_default">False</property>
-                <property name="use_stock">True</property>
+                <property name="can-focus">False</property>
+                <property name="receives-default">False</property>
+                <property name="use-stock">True</property>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -45,11 +45,11 @@
               <object class="GtkButton" id="button_apply">
                 <property name="label">gtk-apply</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="receives_default">False</property>
-                <property name="use_stock">True</property>
-                <accelerator key="Return" signal="clicked"/>
+                <property name="can-focus">False</property>
+                <property name="receives-default">False</property>
+                <property name="use-stock">True</property>
                 <accelerator key="KP_Enter" signal="clicked"/>
+                <accelerator key="Return" signal="clicked"/>
                 <style>
                   <class name="suggested-action"/>
                 </style>
@@ -70,86 +70,96 @@
         <child>
           <object class="GtkBox" id="box1">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <property name="orientation">vertical</property>
             <child>
+              <!-- n-columns=3 n-rows=3 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="hexpand">True</property>
                 <property name="vexpand">True</property>
-                <property name="row_spacing">6</property>
-                <property name="column_spacing">12</property>
+                <property name="row-spacing">6</property>
+                <property name="column-spacing">12</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
                     <property name="label" translatable="yes">Project Name</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkEntry" id="project_name_entry">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="hexpand">True</property>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">0</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
                     <property name="label" translatable="yes">Project Item Code</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">1</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkEntry" id="project_item_code_entry">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="hexpand">True</property>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">1</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">end</property>
                     <property name="label" translatable="yes">Project Resource Code</property>
                   </object>
                   <packing>
-                    <property name="left_attach">0</property>
-                    <property name="top_attach">2</property>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkEntry" id="project_resource_code_entry">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
+                    <property name="can-focus">True</property>
                     <property name="hexpand">True</property>
                   </object>
                   <packing>
-                    <property name="left_attach">1</property>
-                    <property name="top_attach">2</property>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
               </object>
               <packing>

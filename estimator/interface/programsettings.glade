@@ -19,10 +19,10 @@
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
         <property name="can-focus">False</property>
-        <property name="margin-start">6</property>
-        <property name="margin-end">6</property>
-        <property name="margin-top">6</property>
-        <property name="margin-bottom">6</property>
+        <property name="margin-start">12</property>
+        <property name="margin-end">12</property>
+        <property name="margin-top">12</property>
+        <property name="margin-bottom">12</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child internal-child="action_area">
@@ -95,6 +95,7 @@
                         <property name="width-request">250</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-start">12</property>
                         <property name="label" translatable="yes">Break item description across
 multiple lines</property>
                         <property name="xalign">1</property>
@@ -152,9 +153,9 @@ multiple lines</property>
                     <property name="column-spacing">12</property>
                     <child>
                       <object class="GtkLabel">
-                        <property name="width-request">250</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-start">12</property>
                         <property name="label" translatable="yes">Database Location</property>
                         <property name="xalign">1</property>
                       </object>
@@ -228,6 +229,7 @@ multiple lines</property>
                             <property name="width-request">250</property>
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="margin-start">12</property>
                             <property name="label" translatable="yes">Number of rows to be deleted 
 when modifying analysis</property>
                             <property name="xalign">1</property>

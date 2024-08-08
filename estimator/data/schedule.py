@@ -2981,7 +2981,7 @@ class ScheduleDatabase:
         # General formating
         spreadsheet.set_title('Schedule')
         spreadsheet.set_column_widths([10,50,10,10,10,15,15])
-        spreadsheet.set_page_settings(font='Trebuchet MS', print_title_rows='6:7')
+        spreadsheet.set_page_settings(font='Consolas', print_title_rows='6:7')
         log.info('ScheduleDatabase - export_sch_spreadsheet - Schedule exported')
         
     def export_res_spreadsheet(self, spreadsheet):
@@ -3014,7 +3014,7 @@ class ScheduleDatabase:
         
         # General formating
         spreadsheet.set_column_widths([10,40,10,10,10,15,25,25])
-        spreadsheet.set_page_settings(font='Trebuchet MS')
+        spreadsheet.set_page_settings(font='Consolas')
         log.info('ScheduleDatabase - export_res_spreadsheet - Schedule exported')
 
     def export_ana_item_spreadsheet(self, code, spreadsheet, parent=None):
@@ -3177,7 +3177,7 @@ class ScheduleDatabase:
             log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported - ' + category)
 
         spreadsheet.set_column_widths([10, 50, 10, 15, 10, 15])
-        spreadsheet.set_page_settings(font='Trebuchet MS')
+        spreadsheet.set_page_settings(font='Consolas')
         log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported')
         
             
@@ -3213,7 +3213,7 @@ class ScheduleDatabase:
                 s_row = s_row + 1
             
         spreadsheet.set_column_widths([10, 50, 10, 10, 15, 15])
-        spreadsheet.set_page_settings(font='Trebuchet MS')
+        spreadsheet.set_page_settings(font='Consolas')
         
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
         
@@ -3292,7 +3292,7 @@ class ScheduleDatabase:
                         s_row = s_row + 1
                         s_row_start = s_row
                         for path, qty in zip(netpaths[key], netqtys[key]):
-                            item_row = [None, 'B/F MEASUREMENT # ' + str(path), item_unit, qty]
+                            item_row = [None, 'B/F MEASUREMENT # ' + str(path+1), item_unit, qty]
                             spreadsheet.append_data([item_row])
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
@@ -3336,7 +3336,7 @@ class ScheduleDatabase:
                         s_row = s_row + 1
                         s_row_start = s_row
                         for path, qty in zip(netpaths[key], netqtys[key]):
-                            item_row = [None, 'B/F MEASUREMENT # ' + str(path), unit, qty]
+                            item_row = [None, 'B/F MEASUREMENT # ' + str(path+1), unit, qty]
                             spreadsheet.append_data([item_row])
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
@@ -3353,7 +3353,7 @@ class ScheduleDatabase:
                         s_row = s_row + 2
 
         spreadsheet.set_column_widths([10, 50, 20, 10, 10, 10, 10, 10, 10, 10, 10])
-        spreadsheet.set_page_settings(font='Trebuchet MS')
+        spreadsheet.set_page_settings(font='Consolas')
 
         log.info('ScheduleDatabase - export_meas_spreadsheet - Details of Measurement exported')
         
