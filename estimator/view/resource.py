@@ -71,7 +71,7 @@ class ResourceView:
         columntypes = [str, str, str, float, float, float, str]
         
         # Setup treestore and filter
-        self.store = Gtk.TreeStore(*([str]*7+[bool]*7))
+        self.store = Gtk.TreeStore(*([str]*7 + [bool]*7 + [int]))
         self.filter = self.store.filter_new()
         self.filter.set_visible_func(self.filter_func, data=[0,1,2,6])
 
@@ -123,6 +123,7 @@ class ResourceView:
             
             if caption in ['Description', 'Reference']:
                 column.connect("notify", self.on_wrap_column_resized, cell)
+                column.add_attribute(cell, "weight", 14)
             
             column.set_resizable(True)
             
@@ -170,7 +171,7 @@ class ResourceView:
             else:
                 bools = [False,True] + [False]*5
             
-            category_iter = self.store.append(None, category_row+bools)
+            category_iter = self.store.append(None, category_row + bools + [700])
             
             if self.read_only:
                 bools = [False]*7
@@ -185,7 +186,7 @@ class ResourceView:
                         row.append('')
                     else:    
                         row.append(str(value))
-                item_iter = self.store.append(category_iter, row+bools)
+                item_iter = self.store.append(category_iter, row + bools + [400])
                         
         # Expand all expanders
         self.tree.expand_all()
@@ -220,7 +221,7 @@ class ResourceView:
             
             data = ['', code, '', '', '', '', '']
             bools = [False] + [True] + [False]*5
-            category_row = data + bools
+            category_row = data + bools + [700]
             
             self.store.insert(None, position, category_row)
             
@@ -237,7 +238,7 @@ class ResourceView:
             data = [code, description, unit, rate, 
                     vat, discount, reference]
             bools = [True]*7
-            item_row = data + bools
+            item_row = data + bools + [400]
             
             parent_iter = self.store.get_iter(Gtk.TreePath.new_from_indices([path[0]]))
             position = path[1]
@@ -1164,7 +1165,7 @@ class ResourceUsageDialog():
         self.action_area.set_border_width(6)
         
         # Setup treestore
-        self.store = Gtk.TreeStore(*[str]*6)
+        self.store = Gtk.TreeStore(*([str]*6 + [int]))
         
         # Setup widgets
         self.box = self.dialog_window.get_content_area()
@@ -1191,6 +1192,7 @@ class ResourceUsageDialog():
             self.cells[caption] = cell
             column.pack_start(cell, expand)
             column.add_attribute(cell, "text", slno)
+            column.add_attribute(cell, "weight", 6)
             column.set_fixed_width(width)
             column.set_resizable(True)
         self.cells['Description'].props.wrap_width = 300
@@ -1208,7 +1210,7 @@ class ResourceUsageDialog():
         res_cats = self.database.get_res_usage()
         for cat, res_table in res_cats.items():
             # Add category item
-            category_iter = self.store.append(None, ['', cat, '', '', '', ''])
+            category_iter = self.store.append(None, ['', cat, '', '', '', '', 700])
             for code, item in sorted(res_table.items()):
                 description = item[1]
                 unit = item[2]
@@ -1220,7 +1222,7 @@ class ResourceUsageDialog():
                 amount = Currency(rate*qty)
                 
                 items_str = [code, description, unit, 
-                             str(rate), str(qty), str(amount)]
+                             str(rate), str(qty), str(amount), 400]
                 item_iter = self.store.append(category_iter, items_str)
         self.tree.expand_all()
             
