@@ -91,7 +91,6 @@ default_project_settings = {'file_version':PROJECT_FILE_VER,
                             'project_measurement':'["Measurement", ["", []]]'}
 default_program_settings = {'export_break_items': 'True',
                             'sch_rate_mult_factor':'1',
-                            'res_rate_mult_factor':'1',
                             'ana_copy_delete_rows':'0',
                             'ana_copy_add_items': ana_copy_add_items,
                             'ana_default_add_items': ana_default_add_items}

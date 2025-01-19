@@ -153,7 +153,7 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Database Location</property>
+                        <property name="label" translatable="yes">Customn database location</property>
                         <property name="xalign">0</property>
                       </object>
                       <packing>
@@ -214,7 +214,7 @@
                     <property name="orientation">vertical</property>
                     <property name="spacing">6</property>
                     <child>
-                      <!-- n-columns=2 n-rows=1 -->
+                      <!-- n-columns=2 n-rows=2 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -225,11 +225,43 @@
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Number of lines of analysis to be deleted 
-at the end when [Modify &amp; Add] option is selected</property>
+                            <property name="label" translatable="yes">Number of lines of analysis to be deleted at the end when [Modify &amp; Add] option is selected</property>
                             <property name="wrap">True</property>
-                            <property name="width-chars">50</property>
-                            <property name="max-width-chars">50</property>
+                            <property name="width-chars">60</property>
+                            <property name="max-width-chars">60</property>
+                            <property name="xalign">0</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">0</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkSpinButton" id="ana_delete_spin">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="valign">center</property>
+                            <property name="hexpand">True</property>
+                            <property name="width-chars">10</property>
+                            <property name="max-width-chars">1</property>
+                            <property name="text" translatable="yes">0</property>
+                            <property name="adjustment">ana_delete_adjustment</property>
+                            <property name="numeric">True</property>
+                          </object>
+                          <packing>
+                            <property name="left-attach">1</property>
+                            <property name="top-attach">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="halign">start</property>
+                            <property name="label" translatable="yes">Schedule rate mutiplier to be used when [Modify &amp; Add] option is selected</property>
+                            <property name="wrap">True</property>
+                            <property name="width-chars">60</property>
+                            <property name="max-width-chars">60</property>
                             <property name="xalign">0</property>
                           </object>
                           <packing>
@@ -238,15 +270,12 @@ at the end when [Modify &amp; Add] option is selected</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkSpinButton" id="ana_delete_spin">
+                          <object class="GtkEntry" id="sch_mult_entry">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="valign">center</property>
-                            <property name="width-chars">10</property>
-                            <property name="max-width-chars">1</property>
-                            <property name="text" translatable="yes">0</property>
-                            <property name="adjustment">ana_delete_adjustment</property>
-                            <property name="numeric">True</property>
+                            <property name="hexpand">True</property>
+                            <property name="text" translatable="yes">1.0</property>
                           </object>
                           <packing>
                             <property name="left-attach">1</property>
@@ -415,6 +444,8 @@ at the end when [Modify &amp; Add] option is selected</property>
                                   <object class="GtkTreeView" id="treeview_default_settings">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
+                                    <property name="enable-search">False</property>
+                                    <property name="show-expanders">False</property>
                                     <property name="enable-grid-lines">both</property>
                                     <child internal-child="selection">
                                       <object class="GtkTreeSelection"/>
@@ -473,7 +504,7 @@ at the end when [Modify &amp; Add] option is selected</property>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Analysis options</property>
+                    <property name="label" translatable="yes">Schedule options</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>

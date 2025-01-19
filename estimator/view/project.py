@@ -104,8 +104,8 @@ class ProgramSettings:
 
         # Get objects
         export_break_items_switch = builder.get_object('export_break_items_switch')
-        ana_delete_spin = builder.get_object('ana_delete_spin')
         sch_mult_entry = builder.get_object('sch_mult_entry')
+        ana_delete_spin = builder.get_object('ana_delete_spin')
         location_button = builder.get_object('location_button')
         self.stack_main = builder.get_object('stack_main')
 
@@ -127,6 +127,7 @@ class ProgramSettings:
         # Set existing values
         if 'export_break_items' in settings:
             export_break_items_switch.set_active(bool(eval(settings['export_break_items'])))
+        sch_mult_entry.set_text(settings['sch_rate_mult_factor'])
         ana_delete_spin.set_value(int(eval(settings['ana_copy_delete_rows'])))
         location_button.set_label(library_dir)
 
@@ -140,6 +141,7 @@ class ProgramSettings:
         if response == 1:
             # Set settings
             settings['export_break_items'] = str(export_break_items_switch.get_active())
+            settings['sch_rate_mult_factor'] = str(sch_mult_entry.get_text())
             settings['ana_copy_delete_rows'] = str(ana_delete_spin.get_value())
             settings['ana_copy_add_items'] = model_ret_modify.ana_items
             settings['ana_default_add_items'] = model_ret_default.ana_items
