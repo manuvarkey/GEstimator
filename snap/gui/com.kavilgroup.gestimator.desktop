@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=GEestimator
+Name=GEstimator
 Comment=GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works.
 Exec=gestimator
 StartupNotify=true

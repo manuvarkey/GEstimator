@@ -83,9 +83,9 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
         (comment_loc, round_val) = settings
     else:
         (comment_loc, round_val) = (DOWN, -1)
-        
+
     # Initialise and start state machine
-    
+
     state = SEARCHING
     item_start = 0
     group = None
@@ -108,7 +108,7 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
                             item.ana_remarks = ana_query[0]
                             if ana_query[1] > index:
                                 index = ana_query[1]
-            
+
                     item_start = index
             index = index + 1
             continue
@@ -208,7 +208,7 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
                     for rem_index in range(1,15):
                         if index+1 < len(models):  # Hack to prevent failures in bad files
                             nxt = models[index+1]
-                            if(nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0 
+                            if(nxt[0] == nxt[2] == '' and nxt[3] == nxt[4] == nxt[5] == 0
                                and nxt[1] != '' and (not nxt[1].isupper() or not string_has(nxt[1], RES_KEYS))):
                                 if remarks:
                                     remarks = remarks + '\n' + nxt[1]
@@ -234,16 +234,16 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
                                 break
                         else:
                             break
-                    
+
                 # Set resource model
                 res = ResourceItemModel(code = code,
-                                        description = model[1], 
+                                        description = model[1],
                                         unit = model[2],
                                         rate = model[4],
                                         vat = 0,
                                         discount = 0)
                 item.resources[code] = res
-                
+
                 res_items = [code, qty, remarks]
                 item.ana_items[group]['resource_list'].append(res_items)
 
@@ -257,20 +257,20 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
 
                 index = index + 1
                 continue
-            
+
             # If remark item, skip
             elif (model[0] == model[2] == '' and model[3] == model[4] == model[5] == 0
-                  and model[1] != '' 
+                  and model[1] != ''
                   and (not model[1].isupper() or not string_has(model[1], RES_KEYS))):
                 index = index + 1
                 continue
-            
+
             # If blank line, skip
             elif (model[0] == model[1] == model[2] == ''
                   and model[3] == model[4] == model[5] == 0):
                 index = index + 1
                 continue
-            
+
             # Any other item
             else:
                 group = None
@@ -280,8 +280,8 @@ def parse_analysis(models, item, index, set_code=False, settings=None):
 
         index = index + 1
     return index
-        
-        
+
+
 # Data definition classes
 
 class ScheduleItemModel:
@@ -359,7 +359,7 @@ class ScheduleItemModel:
             self.ana_items.insert(pos, item)
         else:
             self.ana_items.append(item)
-    
+
     def get_item(self, path, deep=True):
         if path[0] >= 0 and path[0] < len(self.ana_items):
             item = copy.deepcopy(self.ana_items[path[0]])
@@ -372,7 +372,7 @@ class ScheduleItemModel:
                     resource_item = copy.copy(item['resource_list'][path[1]])
                     resource = self.resources[resource_item[0]]
                 return ['resource_item', resource_item, resource]
-                    
+
     def insert_item(self, item, path):
         if type(item) == dict:
             if item['itemtype'] == self.ANA_GROUP:
@@ -406,7 +406,7 @@ class ScheduleItemModel:
                     path = [len(self.ana_items)-1]
                 else:
                     return
-                    
+
             if path[0] >= 0 and path[0] < len(self.ana_items):
                 if len(path) == 1:
                     self.add_ana_res(item, path[0])
@@ -457,7 +457,7 @@ class ScheduleItemModel:
             elif item['itemtype'] == self.ANA_ROUND:
                 sum_total = Currency(sum_total, item['value'])
                 self.results.append(sum_total)
-    
+
     def get_ana_rate(self):
         # If analysed
         if self.results:
@@ -549,15 +549,15 @@ def get_orm_model(bind_database):
         """Base class for all schedule database class definitions"""
         class Meta:
             database = bind_database
-            
+
     class ProjectTable(BaseModelSch):
         key = peewee.CharField(primary_key = True)
         value = peewee.CharField()
-        
+
     class ScheduleCategoryTable(BaseModelSch):
         description = peewee.CharField(unique = True)
         order = peewee.IntegerField()
-        
+
     class ResourceCategoryTable(BaseModelSch):
         description = peewee.CharField(unique = True)
         order = peewee.IntegerField()
@@ -619,32 +619,32 @@ def get_orm_model(bind_database):
 
         def __exit__(self, *args):
             self.bind_database.bind(self.tables)
-    
+
     return (BaseModelSch, ProjectTable, ScheduleCategoryTable, ResourceCategoryTable, ScheduleTable, ResourceTable, SequenceTable, ResourceItemTable, Using)
 
-            
+
 # Data base handler
 
 class ScheduleDatabase:
 
     def __init__(self, stack):
         self.stack = stack
-        
+
         self.database = peewee.SqliteDatabase(None)
         self.database_filename = None
         (self.BaseModelSch, self.ProjectTable, self.ScheduleCategoryTable, self.ResourceCategoryTable, self.ScheduleTable, self.ResourceTable, self.SequenceTable, self.ResourceItemTable, self.Using) = get_orm_model(self.database)
-        
+
         self.libraries = OrderedDict()
-        
+
     ## Undo management
-    
+
     class _Action:
         ''' This represents an action which can be done and undone.
-        
+
         It is the result of a call on an undoable function and has
         three methods: ``do()``, ``undo()`` and ``text()``.  The first value
-        returned by the internal call in ``do()`` is the value which will 
-        subsequently be returned by ``text``.  Any remaining values are 
+        returned by the internal call in ``do()`` is the value which will
+        subsequently be returned by ``text``.  Any remaining values are
         returned by ``do()``.
         '''
 
@@ -680,12 +680,12 @@ class ScheduleDatabase:
         def text(self):
             'Return the descriptive text of the action'
             return self._text
-    
+
     def undoable(generator):
-        ''' Decorator which creates a new undoable action type. 
-        
+        ''' Decorator which creates a new undoable action type.
+
         This decorator should be used on a generator of the following format::
-        
+
             @undoable
             def operation(*args):
                 do_operation_code
@@ -705,7 +705,7 @@ class ScheduleDatabase:
             return ret
 
         return inner
-        
+
     class _Group:
         ''' A undoable group context manager. '''
 
@@ -735,17 +735,17 @@ class ScheduleDatabase:
             return self._desc.format(count=len(self._stack))
 
     def group(self, desc):
-        ''' Return a context manager for grouping undoable actions. 
-        
+        ''' Return a context manager for grouping undoable actions.
+
         All actions which occur within the group will be undone by a single call
         of `stack.undo
         '''
         return ScheduleDatabase._Group(desc, self.stack)
-        
+
     ## Database management
-    
+
     def create_new_database(self, filename=None):
-        
+
         if filename:
             self.open_database(filename)
             self.database_filename = filename
@@ -753,26 +753,26 @@ class ScheduleDatabase:
             self.open_database(':memory:')
             self.database_filename = None
         # Create tables
-        tables = [self.ProjectTable, self.ScheduleTable, self.ResourceTable, 
+        tables = [self.ProjectTable, self.ScheduleTable, self.ResourceTable,
                   self.ScheduleCategoryTable, self.ResourceCategoryTable,
                   self.SequenceTable, self.ResourceItemTable]
         self.database.create_tables(tables)
-        
+
         # Update default project settings
         self.set_project_settings(misc.default_project_settings)
         log.info('ScheduleDatabase - create_new_database - database tables created')
 
     def open_database(self, filename):
-        
+
         # Database intitialisation
         self.database.init(filename)
         # Set current database filename
         self.database_filename = filename
         # Enable foreign key support for sqlite database
         self.database.execute_sql('PRAGMA foreign_keys=ON;')
-        
+
         return True
-        
+
     def validate_database(self, filename):
         # Try to open database and check database compatibility
         try:
@@ -780,7 +780,7 @@ class ScheduleDatabase:
             cursor = connection.cursor()
             cursor.execute('''SELECT value FROM ProjectTable where key="file_version"''')
             proj_version = cursor.fetchone()
-            
+
             if proj_version[0] > misc.PROJECT_FILE_VER:
                 return [False, "Newer project file version found. Please use the latest application version."]
             elif proj_version[0] == 'GESTIMATOR_FILE_REFERENCE_VER_1':
@@ -790,31 +790,31 @@ class ScheduleDatabase:
                 connection.close()
         except:
             return [False, 'Error validating file. unknown/corrupt file.']
-        
+
         return [True]
-        
+
     def migrate_from_ver_1(self, filename):
         log.info('ScheduleDatabase - migrate_from_ver_1 called - ' + filename)
-        
+
         # Open database
         my_db = peewee.SqliteDatabase(filename)
         migrator = SqliteMigrator(my_db)
-        
+
         colour = peewee.CharField(null = True)
-        
+
         with my_db.transaction():
             migrate(migrator.add_column('self.ScheduleTable', 'colour', colour))
-            
+
         log.info('ScheduleDatabase - database migrated - ' + filename)
-        
+
     def close_database(self):
-        
+
         self.database.close()
         self.database_filename = None
-        
+
     def get_database_name(self):
         return self.database_filename
-        
+
     def add_library(self, filename):
         """Add a new library to database model"""
         try:
@@ -834,25 +834,25 @@ class ScheduleDatabase:
             return False
         self.libraries[name] = library
         return True
-        
+
     def using_library(self, name):
         """Return context manager for using database name"""
-        tables = [self.ProjectTable, self.ScheduleTable, self.ResourceTable, 
+        tables = [self.ProjectTable, self.ScheduleTable, self.ResourceTable,
                   self.ScheduleCategoryTable, self.ResourceCategoryTable,
                   self.SequenceTable, self.ResourceItemTable]
-                  
+
         if name in self.libraries:
             return self.Using(self.libraries[name], tables)
         else:
             return None
-            
+
     def get_library_names(self):
         return list(self.libraries.keys())
-        
+
     def bulk_modify_analysis(self):
         """ Draft function for manual manipulation of database"""
         sch_table = self.get_item_table(flat=True)
-       
+
         # Modify data
         for code in sch_table:
             sch_item = self.get_item(code, modify_res_code=False)
@@ -865,23 +865,64 @@ class ScheduleDatabase:
                         pass
 
                     elif item['itemtype'] == ScheduleItemModel.ANA_WEIGHT:
-                        desc = item['description']
-                        if "Add COHP @ 15%" in desc:
-                            item['description'] = "OVERHEADS & PROFIT @ 15 %"
-                            sch_item.add_ana_weight("Add 12% GST (MF = 0.1405)", 0.1405, pos = slno)
-                            sch_item.add_ana_sum("TOTAL", pos = slno+1)
-                            self.insert_item_atomic(sch_item, path=None, update=True)
-                            log.info('ScheduleDatabase - bulk_modify_analysis - Item modified: ' + code)
-                            break
+                        pass
+                        # desc = item['description']
+                        # if "Add Cess @ 1%" in desc:
+                        #     sch_item.delete_item([slno])
+                        #     # sch_item.delete_item([slno])
+                        #     self.insert_item_atomic(sch_item, path=None, update=True)
+                        #     log.info('ScheduleDatabase - bulk_modify_analysis - Item modified: ' + code)
+                        #     break
+                        # if "Add 15 % for contractor's profit and overheads" in desc:
+                        #     item['description'] = "Add CPOH @ 15%"
+                        #     sch_item.add_ana_sum("TOTAL", pos = slno+1)
+                        #     sch_item.add_ana_weight("Add LC @ 1%", 0.01, pos = slno+2)
+                        #     sch_item.add_ana_sum("TOTAL", pos = slno+3)
+                        #     sch_item.add_ana_weight("Add GST @ 18%", 0.18, pos = slno+4)
+                        #     self.insert_item_atomic(sch_item, path=None, update=True)
+                        #     log.info('ScheduleDatabase - bulk_modify_analysis - Item modified: ' + code)
+                        #     break
 
                     elif item['itemtype'] == ScheduleItemModel.ANA_TIMES:
                         pass
                     elif item['itemtype'] == ScheduleItemModel.ANA_ROUND:
                         pass
-      
-        
+
+    # template = {'match_criterion': [ScheduleItemModel.ANA_GROUP, 'description', 'Add 18% GST (MF = 0.2127)'],
+    #             'skip': 2,
+    #             'delete': 0,
+    #             'modify': [['description', 'Add 18% GST (MF = 0.2127)'],
+    #                     ['value', 0.18]],
+    #             'add': [{"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"},
+    #                     {"itemtype": 1, "description": "TOTAL"},
+    #                     {'description': 'Add 18% GST', 'value': 0.18, 'itemtype': 2},
+    #                     {'description': 'TOTAL', 'itemtype': 1},
+    #                     {"itemtype": 4, "value": 0, "description": "Say"}] }
+
+    # def modify_ana_item(self, code, template):
+    #     match_type = template['match_criterion'][0]
+    #     match_field = template['match_criterion'][1]
+    #     match_value = template['match_criterion'][2]
+    #     skip = template['skip']
+    #     delete = template['delete']
+    #     modify = template['modify']
+    #     add = template['add']
+    #     modified_flag = False
+
+    #     sch_item = self.get_item(code, modify_res_code=False)
+    #     if sch_item.ana_items:
+    #         for slno in range(len(sch_item.ana_items)):
+    #             item = sch_item.ana_items[slno]
+    #             # Check for match
+    #             if match_type == ScheduleItemModel.ANA_GROUP and item[match_field] == match_value:
+    #                 # Skip items
+    #                 if skip:
+    #                     slno += skip
+    #                 if delete:
+
+
     ## Project settings
-        
+
     def get_project_settings(self):
         with self.database.atomic():
             items = self.ProjectTable.select()
@@ -889,7 +930,7 @@ class ScheduleDatabase:
             for item in items:
                 settings[item.key] = item.value
             return settings
-        
+
     def set_project_settings(self, settings):
         with self.database.atomic():
             # Clear settings
@@ -1013,10 +1054,10 @@ class ScheduleDatabase:
                 if sch_row.id in sums:
                     sch_row.qty = old_qtys[sch_row.code]
                     sch_row.save()
-    
-            
+
+
     ## Resource category methods
-    
+
     def get_resource_categories(self):
         with self.database.atomic():
             categories = self.ResourceCategoryTable.select().order_by(self.ResourceCategoryTable.order)
@@ -1024,25 +1065,25 @@ class ScheduleDatabase:
             for category in categories:
                 cat_list.append(category.description)
             return cat_list
-        
+
     @undoable
     def update_resource_category(self, category, value):
         """Updates schedule item data"""
-        
+
         with self.database.atomic():
             try:
                 self.ResourceCategoryTable.update(description = value).where(self.ResourceCategoryTable.description == category).execute()
             except:
                 yield "Update resource category '{}' to '{}' failed".format(category, value), False
                 return
-            
+
         yield "Update resource category '{}' to '{}'".format(category, value), True
-        
+
         with self.database.atomic():
             self.ResourceCategoryTable.update(description = category).where(self.ResourceCategoryTable.description == value).execute()
-        
+
     def insert_resource_category_atomic(self, category, path=None):
-        """If path is None add as first item; If path[0] = -1, add as last item""" 
+        """If path is None add as first item; If path[0] = -1, add as last item"""
         with self.database.atomic():
             if path:
                 # Path specified add at path
@@ -1054,30 +1095,30 @@ class ScheduleDatabase:
             else:
                 # No path specified, add at start
                 order = 0
-                
+
             self.ResourceCategoryTable.update(order = self.ResourceCategoryTable.order + 1).where(self.ResourceCategoryTable.order >= order).execute()
-                
+
             new_cat = self.ResourceCategoryTable(description=category, order=order)
             try:
                 new_cat.save()
             except:
                 log.error('ScheduleDatabase - insert_resource_category - saving record failed for ' + category)
                 return False
-                
+
             return order
-            
+
     @undoable
     def insert_resource_category(self, category, path=None):
-        
+
         with self.database.atomic():
             ret = self.insert_resource_category_atomic(category, path)
-        
+
         yield "Add resource category item at path:'{}'".format(str(path)), ret
-        
+
         with self.database.atomic():
             # Delete added resources
             self.delete_resource_category(category)
-        
+
     def delete_resource_category_atomic(self, category_name):
         """Delete resource category"""
         with self.database.atomic():
@@ -1089,31 +1130,31 @@ class ScheduleDatabase:
                 self.ResourceCategoryTable.update(order = self.ResourceCategoryTable.order - 1).where(self.ResourceCategoryTable.order > old_order).execute()
             except self.ResourceCategoryTable.DoesNotExist:
                 return False
-                
+
             return old_order
-            
+
     @undoable
     def delete_resource_category(self, category_name):
-        
+
         with self.database.atomic():
             old_order = self.delete_resource_category_atomic(category_name)
-        
+
         yield "Delete resource category:'{}'".format(str(category_name))
-        
+
         with self.database.atomic():
             # Add back deleted resources
             self.insert_resource_category(category_name, [old_order])
 
 
     ## Resource methods
-    
+
     def get_resource(self, code, modify_code=False):
         with self.database.atomic():
             try:
                 item = self.ResourceTable.select().where(self.ResourceTable.code == code).get()
             except self.ResourceTable.DoesNotExist:
                 return None
-            
+
             if modify_code and len(item.code.split(':')) == 1:
                 proj_code = self.get_project_settings()['project_resource_code']
                 code = proj_code + ':' + item.code
@@ -1133,7 +1174,7 @@ class ScheduleDatabase:
         with self.database.atomic():
             res = OrderedDict()
             proj_code = self.get_project_settings()['project_resource_code']
-            
+
             if not flat:
                 if category is not None:
                     try:
@@ -1161,7 +1202,7 @@ class ScheduleDatabase:
                         vat = item.vat
                         discount = item.discount
                         reference = item.reference
-                        items[code] = [code, description, unit, 
+                        items[code] = [code, description, unit,
                                        rate, vat, discount, reference]
                     res[category_name] = items
             else:
@@ -1186,11 +1227,11 @@ class ScheduleDatabase:
                     discount = item.discount
                     reference = item.reference
                     category = item.category.description
-                    res[code] = [code, description, unit, 
+                    res[code] = [code, description, unit,
                                  rate, vat, discount, reference, category]
-                    
+
             return res
-            
+
     def get_res_library_codes(self):
         """Get unique library codes in the resource list"""
         with self.database.atomic():
@@ -1199,12 +1240,12 @@ class ScheduleDatabase:
             for row in rows:
                 unique.add(row.code.split(':')[0])
             return tuple(unique)
-        
+
     def get_resource_dependency(self, itemdict):
         """Get schedule items depending on resource category"""
         with self.database.atomic():
             items = set()
-            
+
             for path, code in itemdict.items():
                 if len(path) == 1:
                     try:
@@ -1222,7 +1263,7 @@ class ScheduleDatabase:
                     except self.ResourceTable.DoesNotExist:
                         continue
             return items
-                
+
     def resource_has_dependency(self, code):
         """Check if the resource has dependency"""
         try:
@@ -1233,7 +1274,7 @@ class ScheduleDatabase:
                 return False
         except self.ResourceTable.DoesNotExist:
             return False
-            
+
     def delete_resource_item_atomic(self, code):
         """Delete schedule item"""
         with self.database.atomic():
@@ -1241,33 +1282,33 @@ class ScheduleDatabase:
                 old_item = self.ResourceTable.select().where(self.ResourceTable.code == code).get()
                 old_order = old_item.order
                 old_category_order = old_item.category.order
-                
+
                 if old_order > 0:
                     old_res_path = [old_category_order, old_order-1]
                 else:
                     old_res_path = [old_category_order]
-                
+
                 old_item.delete_instance()
                 # Update order values
                 self.ResourceTable.update(order = self.ResourceTable.order - 1).where((self.ResourceTable.category == old_item.category.id) & (self.ResourceTable.order > old_order)).execute()
             except self.ResourceTable.DoesNotExist:
                 return False
-                
+
             return old_res_path
-        
+
     @undoable
     def delete_resource_item(self, code):
-        
+
         with self.database.atomic():
             old_res_model = self.get_resource(code)
             old_res_path = self.delete_resource_item_atomic(code)
-        
+
         yield "Delete resource item:'{}'".format(str(code)), old_res_path
 
         with self.database.atomic():
             # Add back deleted resources
             self.insert_resource(old_res_model, old_res_path)
-        
+
     def delete_resource_atomic(self, selected):
         """Delete resource elements"""
         with self.database.atomic():
@@ -1282,21 +1323,21 @@ class ScheduleDatabase:
                 # Resource Items
                 if len(path) == 2:
                     unique_codes.add(code)
-            
-            # Handle sub items first     
+
+            # Handle sub items first
             for code in unique_codes:
                 self.delete_resource_item_atomic(code)
-                    
+
             # Handle categories second
-            for code in unique_cats: 
+            for code in unique_cats:
                 self.delete_resource_category_atomic(code)
-                
+
     def delete_resource(self, selected):
         """Undoable Delete resource elements"""
-        
+
         with self.database.atomic():
             with self.group("Delete resource items"):
-                
+
                 unique_codes = set()
                 unique_cats = set()
                 for path, code in selected.items():
@@ -1308,20 +1349,20 @@ class ScheduleDatabase:
                     # Resource Items
                     if len(path) == 2:
                         unique_codes.add(code)
-                
-                # Handle sub items first     
+
+                # Handle sub items first
                 for code in unique_codes:
                     self.delete_resource_item(code)
-                        
+
                 # Handle categories second
-                for code in unique_cats: 
+                for code in unique_cats:
                     self.delete_resource_category(code)
 
     def insert_resource_atomic(self, resource, path=None):
         with self.database.atomic():
-        
+
             res_category_added = None
-            
+
             # If path is specified
             if path:
                 # Get category by order
@@ -1339,7 +1380,7 @@ class ScheduleDatabase:
                     # Add after selected item
                     order = path[1] + 1
                     self.ResourceTable.update(order = self.ResourceTable.order + 1).where((self.ResourceTable.order >= order) & (self.ResourceTable.category == category_id)).execute()
-            
+
             # If path not specified
             else:
                 # Get category from database
@@ -1362,7 +1403,7 @@ class ScheduleDatabase:
                     else:
                         log.error('ScheduleDatabase - insert_resource - category could not be set - ' + str(category_name))
                         return False
-            
+
             res = self.ResourceTable(code = resource.code,
                                 description = resource.description,
                                 unit = resource.unit,
@@ -1372,17 +1413,17 @@ class ScheduleDatabase:
                                 reference = resource.reference,
                                 category = category_id,
                                 order = order)
-                                
+
             path_added = [category.order, order]
-            
+
             try:
                 res.save()
             except peewee.IntegrityError:
                 log.warning('ScheduleDatabase - insert_resource - Item code exists, Item not added - ' + resource.code)
                 return False
-                
+
             return [path_added, res_category_added]
-            
+
     @undoable
     def insert_resource(self, resource, path=None):
 
@@ -1393,9 +1434,9 @@ class ScheduleDatabase:
             else:
                 path_added = None
                 res_category_added = None
-    
+
         yield "Add resource data item at path:'{}'".format(str(path)), [path_added, res_category_added]
-        
+
         with self.database.atomic():
             # Delete added resources
             if path_added:
@@ -1403,41 +1444,41 @@ class ScheduleDatabase:
             # Delete any category added
             if res_category_added:
                 self.delete_resource_category_atomic(res_category_added)
-                    
+
     def insert_resource_multiple_atomic(self, resources, path=None, preserve_structure=False):
         with self.database.atomic():
             inserted = OrderedDict()
             for resource in resources:
 
                 [path_added, res_category_added] = self.insert_resource_atomic(resource, path)
-                
+
                 # Modify inserted
                 if res_category_added:
                     inserted[(path_added[0],)] = res_category_added
-                    
+
                 inserted[tuple(path_added)] = resource.code
-                
+
                 if not preserve_structure:
                     # Update path
                     path = path_added
-            
+
             return inserted
-        
+
     @undoable
     def insert_resource_multiple(self, resources, path=None, preserve_structure=False):
-        
+
         with self.database.atomic():
             inserted = self.insert_resource_multiple_atomic(resources, path, preserve_structure)
 
         yield "Add resource items at path:'{}'".format(path), inserted
-        
+
         with self.database.atomic():
             # Delete added item
             self.delete_resource_atomic(inserted)
-    
+
     @undoable
     def update_resource_path(self, code, path=None):
-        
+
         with self.database.atomic():
             # Obtain resource item
             try:
@@ -1445,7 +1486,7 @@ class ScheduleDatabase:
             except self.ResourceTable.DoesNotExist:
                 yield False
                 return
-            
+
             # Get new category
             try:
                 category = self.ResourceCategoryTable.select().where(self.ResourceCategoryTable.order == path[0]).get()
@@ -1453,43 +1494,43 @@ class ScheduleDatabase:
             except self.ResourceCategoryTable.DoesNotExist:
                 yield False
                 return
-            
+
             old_order = res.order
             old_category_id = res.category.id
             old_category_order = res.category.order
             new_order = path[1]+1 if len(path) == 2 else 0
             if new_category_id == old_category_id and old_order < new_order:
                 new_order = new_order - 1
-            
+
             # Remove resource from old path
             self.ResourceTable.update(order = self.ResourceTable.order - 1).where((self.ResourceTable.category == old_category_id) & (self.ResourceTable.order > old_order)).execute()
-            
+
             # Add at new path
             self.ResourceTable.update(order = self.ResourceTable.order + 1).where((self.ResourceTable.category == new_category_id) & (self.ResourceTable.order >= new_order)).execute()
-            
+
             res.order = new_order
             res.category = new_category_id
-            
+
             res.save()
-            
+
         yield "Update resource '{}'".format(str(code)), True
-        
+
         if new_category_id == old_category_id and new_order < old_order:
             oldpath = [old_category_order, old_order]
         else:
             oldpath = [old_category_order, old_order-1] if old_order > 0 else [old_category_order]
         self.update_resource_path(code, oldpath)
-            
+
     @undoable
     def update_resource(self, code, newvalue=None, column=None, res_model=None):
-        
+
         with self.database.atomic():
             # Obtain resource item
             try:
                 res = self.ResourceTable.select().where(self.ResourceTable.code == code).get()
             except self.ResourceTable.DoesNotExist:
                 return False
-            
+
             # Individual column update
             if column is not None:
                 if column == 0:
@@ -1513,7 +1554,7 @@ class ScheduleDatabase:
                 elif column == 6:
                     oldvalue = res.reference
                     res.reference = newvalue
-            
+
             # Resource model update
             elif res_model:
                 try:
@@ -1534,12 +1575,12 @@ class ScheduleDatabase:
                     else:
                         log.error('ScheduleDatabase - update_resource - category could not be set - ' + str(category_name))
                         return False
-                
+
                 # Undo values
                 old_model = copy.copy(res_model)
                 category_id_old = res.category
                 old_order = res.order
-                
+
                 res.code = res_model.code
                 res.description = res_model.description
                 res.unit = res_model.unit
@@ -1549,16 +1590,16 @@ class ScheduleDatabase:
                 res.reference = res_model.reference
                 res.category = category_id
                 res.order = order
-                
+
             # Save resource
             try:
                 res.save()
             except:
                 log.error('ScheduleDatabase - update_resource - Error saving resource')
                 return False
-            
+
         yield "Update resource '{}'".format(str(code)), True
-        
+
         with self.database.atomic():
             # Individual column update
             if column is not None:
@@ -1566,7 +1607,7 @@ class ScheduleDatabase:
                     res = self.ResourceTable.select().where(self.ResourceTable.code == code).get()
                 else:
                     res = self.ResourceTable.select().where(self.ResourceTable.code == newvalue).get()
-                    
+
                 if column == 0:
                     res.code = oldvalue
                 elif column == 1:
@@ -1581,7 +1622,7 @@ class ScheduleDatabase:
                     res.discount = oldvalue
                 elif column == 6:
                     res.reference = oldvalue
-            
+
             # Resource model update
             elif res_model:
                 res.code = old_model.code
@@ -1593,10 +1634,10 @@ class ScheduleDatabase:
                 res.reference = old_model.reference
                 res.category = category_id_old
                 res.order = old_order
-                
+
             # Save resource
             res.save()
-            
+
     def update_resource_multiple(self, update_dict, col):
         """Updates multiple schedule item data"""
         updated = 0
@@ -1605,21 +1646,21 @@ class ScheduleDatabase:
         with self.group("Update resource column"):
             for code, value in update_dict.items():
                 query = self.ResourceTable.select().where(self.ResourceTable.code == code)
-                if query.exists():  
+                if query.exists():
                     self.update_resource(code, value, col)
                     updated += 1
                 else:
                     notfound += 1
                     log.warning('ScheduleDatabase - update_resource_multiple - code not found ' + str(code))
         return updated, notfound
-        
+
     def get_new_resource_category_name(self):
         categories =  self.ResourceCategoryTable.select(self.ResourceCategoryTable.description).where(self.ResourceCategoryTable.description.startswith('_CATEGORY'))
-        
+
         cat_list = []
         for category in categories:
             cat_list.append(misc.human_code(category.description))
-            
+
         if categories:
             last_code = sorted(cat_list)[-1]
             if type(last_code[-1]) is int:
@@ -1629,9 +1670,9 @@ class ScheduleDatabase:
         else:
             new_code = '_CATEGORY1'
         return new_code
-        
+
     def get_new_resource_code(self, shift=0, exclude=None, near_item_code=None):
-    
+
         if near_item_code is not None:
             parsed = misc.human_code(near_item_code)
             if type(parsed[-1]) is int:
@@ -1641,28 +1682,28 @@ class ScheduleDatabase:
                     new_code = new_code + str(part)
                 if not self.ResourceTable.select().where(self.ResourceTable.code == new_code).exists():
                     return new_code
-                        
+
         # Fall back
         ress = self.ResourceTable.select(self.ResourceTable.code).where(self.ResourceTable.code.startswith('MR.'))
-        
+
         # If fall through
         if near_item_code:
             shift = 0
-        
+
         # Add exisitng default items
         code_list = []
         for res in ress:
             split_up = misc.human_code(res.code)
             if len(split_up) == 2 and split_up[0] == 'MR.' and type(split_up[1]) is int:
                 code_list.append(split_up)
-        
+
         # Add items specified by exclude
         if exclude:
             for code in exclude:
                 human_code = misc.human_code(code)
                 if len(human_code) == 2 and human_code[0] == 'MR.' and type(human_code[1]) is int:
                     code_list.append(human_code)
-            
+
         if code_list:
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
@@ -1672,19 +1713,19 @@ class ScheduleDatabase:
         else:
             new_code = 'MR.' + str(1+shift)
         return new_code
-        
+
     def check_insert_resource(self, resource):
         with self.database.atomic():
             # Get order asif new item
             order = self.ResourceTable.select().count()
-            
+
             # Get category from database
             try:
                 category = self.ResourceCategoryTable.select().where(self.ResourceCategoryTable.description == resource.category).get()
                 category_id = category.id
             except self.ResourceCategoryTable.DoesNotExist:
                 category_id = None
-            
+
             # Setup item
             res = self.ResourceTable(code = resource.code,
                                 description = resource.description,
@@ -1695,7 +1736,7 @@ class ScheduleDatabase:
                                 reference = resource.reference,
                                 category = category_id,
                                 order = order)
-                                
+
             # Try inserting item in database and then rollback changes
             with self.database.transaction() as txn:
                 with self.database.savepoint() as sp:
@@ -1709,10 +1750,10 @@ class ScheduleDatabase:
                         return False
             # If error return False
             return False
-        
+
     @undoable
     def update_resource_from_database(self, databasename):
-        
+
         with self.database.atomic():
             if databasename in self.get_library_names():
                 undodict = dict()
@@ -1727,9 +1768,9 @@ class ScheduleDatabase:
                         res.discount = res_new[res.code][5]
                         res.reference = res_new[res.code][6]
                         res.save()
-        
+
         yield "Update rates from database:'{}'".format(databasename)
-        
+
         with self.database.atomic():
             ress = self.ResourceTable.select()
             for res in ress:
@@ -1739,9 +1780,9 @@ class ScheduleDatabase:
                     res.discount = undodict[res.code][2]
                     res.reference = undodict[res.code][3]
                     res.save()
-        
+
     ## Schedule category methods
-    
+
     def get_schedule_categories(self):
         with self.database.atomic():
             categories = self.ScheduleCategoryTable.select().order_by(self.ScheduleCategoryTable.order)
@@ -1749,25 +1790,25 @@ class ScheduleDatabase:
             for category in categories:
                 cat_list.append(category.description)
             return cat_list
-        
+
     @undoable
     def update_schedule_category(self, category, value):
         """Updates schedule item data"""
-        
+
         with self.database.atomic():
             try:
                 self.ScheduleCategoryTable.update(description = value).where(self.ScheduleCategoryTable.description == category).execute()
             except:
                 yield "Update schedule category '{}' to '{}' failed".format(category, value), False
                 return
-            
+
         yield "Update schedule category '{}' to '{}'".format(category, value), True
-        
+
         with self.database.atomic():
             self.ScheduleCategoryTable.update(description = category).where(self.ScheduleCategoryTable.description == value).execute()
-            
+
     def insert_schedule_category_atomic(self, category, path=None):
-        """If path is None add as first item; If path[0] = -1, add as last item""" 
+        """If path is None add as first item; If path[0] = -1, add as last item"""
         with self.database.atomic():
             if path:
                 # Path specified add at path
@@ -1780,31 +1821,31 @@ class ScheduleDatabase:
             else:
                 # No path specified, add at start
                 order = 0
-                
+
             # Update order
             self.ScheduleCategoryTable.update(order = self.ScheduleCategoryTable.order + 1).where(self.ScheduleCategoryTable.order >= order).execute()
-                
+
             new_cat = self.ScheduleCategoryTable(description=category, order=order)
             try:
                 new_cat.save()
             except:
                 log.error('ScheduleDatabase - insert_schedule_category - saving record failed for ' + category)
                 return False
-                
+
             return order
-            
+
     @undoable
     def insert_schedule_category(self, category, path=None):
-        
+
         with self.database.atomic():
             order = self.insert_schedule_category_atomic(category, path)
-        
+
         yield "Add schedule category item at path:'{}'".format(str(path)), order
-        
+
         with self.database.atomic():
             # Delete added resources
             self.delete_schedule_category_atomic(category)
-        
+
     def delete_schedule_category_atomic(self, category_name):
         """Delete resource category"""
         with self.database.atomic():
@@ -1816,21 +1857,21 @@ class ScheduleDatabase:
                 self.ScheduleCategoryTable.update(order = self.ScheduleCategoryTable.order - 1).where(self.ScheduleCategoryTable.order > old_order).execute()
             except self.ScheduleCategoryTable.DoesNotExist:
                 return False
-            
+
             return old_order
-            
+
     @undoable
     def delete_schedule_category(self, category_name):
-        
+
         with self.database.atomic():
             old_order = self.delete_schedule_category_atomic(category_name)
-        
+
         yield "Delete schedule category:'{}'".format(str(category_name)), old_order
-        
+
         with self.database.atomic():
             # Add back deleted resources
             self.insert_schedule_category(category_name, [old_order])
-        
+
     ## Schedule item methods
 
     def get_item(self, code, modify_res_code=True, copy_ana=True):
@@ -1859,7 +1900,7 @@ class ScheduleDatabase:
                                           category = item.category.description,
                                           parent = parent,
                                           colour = item.colour)
-            
+
             if copy_ana:
                 for seq in item.sequences:
                     if seq.itemtype == ScheduleItemModel.ANA_GROUP:
@@ -1910,7 +1951,7 @@ class ScheduleDatabase:
     def get_item_table(self, category = None, flat=False):
         with self.database.atomic():
             sch_table = OrderedDict()
-            
+
             if not flat:
                 if category is not None:
                     try:
@@ -1920,7 +1961,7 @@ class ScheduleDatabase:
                         return
                 else:
                     categories = self.ScheduleCategoryTable.select().order_by(self.ScheduleCategoryTable.order)
-                    
+
                 for category in categories:
                     cat_dict = OrderedDict()
                     items = self.ScheduleTable.select().where((self.ScheduleTable.category == category.id) & (self.ScheduleTable.parent == None)).order_by(self.ScheduleTable.order)
@@ -1946,19 +1987,19 @@ class ScheduleDatabase:
                     items = self.ScheduleTable.select().where(self.ScheduleTable.category == category_model.id).order_by(self.ScheduleTable.order, self.ScheduleTable.suborder)
                 else:
                     items = self.ScheduleTable.select().join(self.ScheduleCategoryTable).order_by(self.ScheduleCategoryTable.order, self.ScheduleTable.order, self.ScheduleTable.suborder)
-                
+
                 for item in items:
-                    item_list = [item.code, item.description, item.unit, 
-                                   item.rate, item.qty, item.remarks, 
+                    item_list = [item.code, item.description, item.unit,
+                                   item.rate, item.qty, item.remarks,
                                    item.category.description, item.colour]
                     sch_table[item.code] = item_list
-                    
+
             return sch_table
-            
+
     def get_sub_ana_items(self, codes, modify_res_code=False):
         proj_code = self.get_project_settings()['project_resource_code']
         subcodes = dict()
-        
+
         for index in range(0, misc.SUB_ANA_SEARCH_DEPTH):
             for code in codes:
                 item = self.get_item(code, modify_res_code=False, copy_ana=True)
@@ -1975,27 +2016,27 @@ class ScheduleDatabase:
                             sub_ana_item.category = misc.SUB_ANA_TITLE
                             subcodes[res_code] = sub_ana_item
             codes = list(subcodes.keys())
-                        
+
         return subcodes.values()
-            
-        
+
+
     @undoable
     def update_rates(self, codes = None):
-        
+
         with self.database.atomic():
             old_rates = dict()
             old_rates_res = dict()
             sub_ana_rates_dict = dict()
-            
+
             if codes is None:
                 sch_rows = self.ScheduleTable.select()
             else:
                 sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << codes)
-            
+
             # Save schedule rates
             for sch_row in sch_rows:
                 old_rates[sch_row.code] = sch_row.rate
-            
+
             # Update item rates for sub ana items
             for index in range(0, misc.SUB_ANA_SEARCH_DEPTH):
                 sub_ana_items = self.get_sub_ana_items(codes)
@@ -2005,7 +2046,7 @@ class ScheduleDatabase:
                         res_row = self.ResourceTable.select().where(self.ResourceTable.code == item.code).get()
                     except self.ScheduleTable.DoesNotExist:
                         continue
-                        
+
                     if sch_row and res_row:
                         # Save sub analysis schedule and resource rates
                         if index == 0:
@@ -2018,16 +2059,16 @@ class ScheduleDatabase:
                         res_row.rate = item.rate
                         sch_row.save()
                         res_row.save()
-            
+
             # Update item rates
             for sch_row in sch_rows:
                 item = self.get_item(sch_row.code)
                 item.update_rate()
                 sch_row.rate = item.rate
                 sch_row.save()
-        
+
         yield "Update schedule item rates", True
-        
+
         with self.database.atomic():
             if codes is None:
                 sch_rows = self.ScheduleTable.select()
@@ -2035,18 +2076,18 @@ class ScheduleDatabase:
             else:
                 sch_rows = self.ScheduleTable.select().where(self.ScheduleTable.code << list(old_rates.keys()))
                 res_rows = self.ResourceTable.select().where(self.ResourceTable.code << list(old_rates_res.keys()))
-                
+
             for sch_row in sch_rows:
                 sch_row.rate = old_rates[sch_row.code]
                 sch_row.save()
             for res_row in res_rows:
                 res_row.rate = old_rates_res[res_row.code]
                 res_row.save()
-        
+
     @undoable
     def update_item_schedule(self, code, value, col):
         """Updates schedule item data"""
-        
+
         with self.database.atomic():
             try:
                 sch = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
@@ -2071,20 +2112,20 @@ class ScheduleDatabase:
             elif col == 6:
                 old_value = sch.remarks
                 sch.remarks = value
-            
+
             try:
                 sch.save()
             except:
                 return False
-                
+
         yield "Update schedule item '{}'".format(str(code)), True
-        
+
         with self.database.atomic():
             if col != 0:
                 sch = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
             else:
                 sch = self.ScheduleTable.select().where(self.ScheduleTable.code == value).get()
-                
+
             if col == 0:
                 sch.code = old_value
             elif col == 1:
@@ -2097,9 +2138,9 @@ class ScheduleDatabase:
                 sch.qty = old_value
             elif col == 6:
                 sch.remarks = old_value
-            
+
             sch.save()
-    
+
     def update_item_schedule_multiple(self, update_dict, col):
         """Updates multiple schedule item data"""
         updated = 0
@@ -2108,49 +2149,49 @@ class ScheduleDatabase:
         with self.group("Update schedule column"):
             for code, value in update_dict.items():
                 query = self.ScheduleTable.select().where(self.ScheduleTable.code == code)
-                if query.exists():  
+                if query.exists():
                     self.update_item_schedule(code, value, col)
                     updated += 1
                 else:
                     notfound += 1
                     log.warning('ScheduleDatabase - update_item_schedule_multiple - code not found ' + str(code))
         return updated, notfound
-            
-        
+
+
     @undoable
     def update_item_colour(self, codes, colour):
         """Updates schedule item colour"""
-        
+
         with self.database.atomic():
             old_values = dict()
-            
+
             for code in codes:
                 try:
                     sch = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
                 except self.ScheduleTable.DoesNotExist:
                     return False
-                    
+
                 old_values[code] = sch.colour
-                
+
                 # If white clear colour
                 if colour != '#FFFFFF':
                     sch.colour = colour
                 else:
                     sch.colour = None
-            
+
                 try:
                     sch.save(only=[self.ScheduleTable.colour])
                 except:
                     return False
-            
+
         yield "Update schedule item colour '{}'".format(str(code)), True
 
         with self.database.atomic():
             for code, old_value in old_values.items():
                 sch = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
-                sch.colour = old_value        
+                sch.colour = old_value
                 sch.save(only=[self.ScheduleTable.colour])
-        
+
     def update_item_atomic(self, sch_model):
         """Updates schedule item i/c analysis"""
         return self.insert_item_atomic(sch_model, path=None, update=True)
@@ -2158,17 +2199,17 @@ class ScheduleDatabase:
     def update_item(self, sch_model):
         """Updates schedule item i/c analysis"""
         return self.insert_item(sch_model, path=None, update=True)
-    
+
     def insert_item_atomic(self, item, path=None, update=False, number_with_path=False, local_res_code=None):
         with self.database.atomic():
             sch_category_added = None
             code = item.code
             path_added = path
             ress_added = OrderedDict()
-            
+
             # Get category and parent if path not specified or update
             if path is None or update:
-            
+
                 # Get category from database
                 if item.category is None or item.category == '':
                     category_name = 'UNCATEGORISED'
@@ -2186,7 +2227,7 @@ class ScheduleDatabase:
                     else:
                         log.error('ScheduleDatabase - insert_item - Category could not be set - ' + str(category_name))
                         return False
-                    
+
                 # Get parent item from database
                 parent_id = None
                 if item.parent is not None:
@@ -2195,7 +2236,7 @@ class ScheduleDatabase:
                         parent_id = parent.id
                     except self.ScheduleTable.DoesNotExist:
                         log.warning('ScheduleDatabase - insert_item - Parent not found for ' + str(item.code))
-                    
+
             if update:
                 # Get old item
                 try:
@@ -2218,11 +2259,11 @@ class ScheduleDatabase:
                 # Delete old analysis items
                 for sequence in sch.sequences:
                     sequence.delete_instance()
-                    
+
             else:
-                
+
                 # Setup self.ScheduleTable
-                
+
                 # Insert at last position of category and parent
                 if path is None:
                     if parent_id:
@@ -2231,7 +2272,7 @@ class ScheduleDatabase:
                         # Setup path
                         if suborder == 0:
                             path = [category.order, order]
-                        else:   
+                        else:
                             path = [category.order, order, suborder-1]
                     else:
                         order = self.ScheduleTable.select().where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.parent == None)).count()
@@ -2239,9 +2280,9 @@ class ScheduleDatabase:
                         # Setup path
                         if order == 0:
                             path = [category.order]
-                        else:   
+                        else:
                             path = [category.order, order-1]
-                
+
                 # Get category by path
                 try:
                     category = self.ScheduleCategoryTable.select().where(self.ScheduleCategoryTable.order == path[0]).get()
@@ -2249,7 +2290,7 @@ class ScheduleDatabase:
                     log.error('ScheduleDatabase - insert_item - category could not be found for ' + str(path))
                     return False
                 category_id = category.id
-                
+
                 # If category selected, add as first item
                 if len(path) == 1:
                     order = 0
@@ -2257,19 +2298,19 @@ class ScheduleDatabase:
                     parent_id = None
                     # Modify code according to path
                     if number_with_path:
-                        code = self.get_next_item_code(near_item_code=str(path[0]+1), 
+                        code = self.get_next_item_code(near_item_code=str(path[0]+1),
                                                                 nextlevel=True)
                     self.ScheduleTable.update(order = self.ScheduleTable.order + 1).where(self.ScheduleTable.category == category_id).execute()
-                
+
                 # If item selected, add next or under
                 elif len(path) == 2:
-                   
+
                     try:
                         selected_item = self.ScheduleTable.select().where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.order == path[1]) & (self.ScheduleTable.suborder == None)).get()
                     except:
                         log.error('ScheduleDatabase - insert_item - selected item could not be found for ' + str(path))
                         return False
-                            
+
                     # Add under
                     if selected_item.unit == '' and item.parent is not None:
                         order = path[1]
@@ -2277,7 +2318,7 @@ class ScheduleDatabase:
                         parent_id = selected_item.id
                         # Modify code according to path
                         if number_with_path:
-                            code = self.get_next_item_code(near_item_code=selected_item.code, 
+                            code = self.get_next_item_code(near_item_code=selected_item.code,
                                                                     nextlevel=True)
                         self.ScheduleTable.update(suborder = self.ScheduleTable.suborder + 1).where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.order == order)  & (self.ScheduleTable.suborder != None)).execute()
 
@@ -2288,26 +2329,26 @@ class ScheduleDatabase:
                         parent_id = None
                         # Modify code according to path
                         if number_with_path:
-                            code = self.get_next_item_code(near_item_code=selected_item.code, 
+                            code = self.get_next_item_code(near_item_code=selected_item.code,
                                                                     nextlevel=False)
                         self.ScheduleTable.update(order = self.ScheduleTable.order + 1).where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.order >= order)).execute()
-                            
+
                 # If subitem selected, add next
                 elif len(path) == 3:
-                    
+
                     try:
                         parent_item = self.ScheduleTable.select().where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.order == path[1]) & (self.ScheduleTable.suborder == None)).get()
                     except:
                         log.error('ScheduleDatabase - insert_item - parent item could not be found for ' + str(path))
                         return False
-                            
+
                     # Add as next element
                     if item.parent is not None:
                         order = path[1]
                         suborder = path[2]+1
                         parent_id = parent_item.id
                         if number_with_path:
-                            code = self.get_next_item_code(near_item_code=parent_item.code, 
+                            code = self.get_next_item_code(near_item_code=parent_item.code,
                                                            nextlevel=True, shift=path[2]+1)
                         self.ScheduleTable.update(suborder = self.ScheduleTable.suborder + 1).where((self.ScheduleTable.suborder >= suborder) & (self.ScheduleTable.order == order) & (self.ScheduleTable.category == category_id)).execute()
                     # Add as next element of parent
@@ -2317,10 +2358,10 @@ class ScheduleDatabase:
                         parent_id = None
                         # Modify code according to path
                         if number_with_path:
-                            code = self.get_next_item_code(near_item_code=parent_item.code, 
+                            code = self.get_next_item_code(near_item_code=parent_item.code,
                                                                     nextlevel=False)
                         self.ScheduleTable.update(order = self.ScheduleTable.order + 1).where((self.ScheduleTable.category == category_id) & (self.ScheduleTable.order >= order)).execute()
-                
+
                 # Setup new schedule item
                 sch = self.ScheduleTable(code = code,
                                     description = item.description,
@@ -2334,7 +2375,7 @@ class ScheduleDatabase:
                                     order = order,
                                     suborder = suborder,
                                     colour = item.colour)
-                                    
+
                 path_added = [sch.category.order, sch.order]
                 if sch.suborder is not None:
                     path_added.append(sch.suborder)
@@ -2348,7 +2389,7 @@ class ScheduleDatabase:
             # Setup self.SequenceTable
 
             for slno, anaitem in enumerate(item.ana_items):
-            
+
                 if anaitem['itemtype'] == ScheduleItemModel.ANA_GROUP:
                     seq = self.SequenceTable(id_seq = slno,
                                         id_sch = sch.id,
@@ -2365,7 +2406,7 @@ class ScheduleDatabase:
                             derived_code = local_res_code + '.' + res_item.code
                         else:
                             derived_code = res_item.code
-                        
+
                         # Check if resource exists
                         try:
                             res = self.ResourceTable.select().where(self.ResourceTable.code == derived_code).get()
@@ -2379,7 +2420,7 @@ class ScheduleDatabase:
                             ress_added[tuple(res_path)] = res.code
                             if res_cat:
                                 ress_added[(res_path[0],)] = res_cat
-                            
+
                         resitem = self.ResourceItemTable(id_sch = sch.id,
                                                     id_seq = seq.id,
                                                     id_res = res.id,
@@ -2418,32 +2459,32 @@ class ScheduleDatabase:
                                         code = None,
                                         description = anaitem['description'])
                     seq.save()
-            
+
             return [code, path_added, sch_category_added, ress_added]
-    
+
     @undoable
     def insert_item(self, item, path=None, update=False, number_with_path=False):
-        
+
         with self.database.atomic():
             if update:
                 # Get old item model
                 old_item = self.get_item(item.code, modify_res_code=False)
-                
+
             # Insert item
             ret = self.insert_item_atomic(item, path=path, update=update, number_with_path=number_with_path)
-            
+
             if ret:
                 [code, path_added, sch_category_added, ress_added] = ret
             else:
                 return False
-            
-            if update:    
+
+            if update:
                 message = "Update schedule data item:'{}'".format(item.code)
             else:
                 message = "Add schedule data item at path:'{}'".format(str(path_added))
-            
+
         yield message, [code, path_added, sch_category_added, ress_added]
-        
+
         with self.database.atomic():
             # If update item, insert back old item
             if update:
@@ -2454,27 +2495,27 @@ class ScheduleDatabase:
                 # Delete any category added
                 if sch_category_added:
                     self.delete_schedule_category_atomic(sch_category_added)
-                    
+
             # Delete resources
             self.delete_resource_atomic(ress_added)
-            
+
     def insert_item_multiple_atomic(self, items, path=None, number_with_path=False, preserve_structure=False, local_res_code=None):
         """Function to add multiple schedule items into schedule"""
         with self.database.atomic():
             items_added = OrderedDict()
             net_ress_added = OrderedDict()
-            
+
             for item in items:
                 ret = self.insert_item_atomic(item, path=path, number_with_path=number_with_path, local_res_code=local_res_code)
                 if ret:
                     [code_added, path_added, category_added, ress_added] = ret
-                    
+
                     if category_added is not None:
                         items_added[(path_added[0],)] = category_added
-                        
+
                     items_added[tuple(path_added)] = code_added
                     net_ress_added.update(ress_added)
-                    
+
                     if not preserve_structure:
                         # Update path
                         path = path_added
@@ -2482,20 +2523,20 @@ class ScheduleDatabase:
                     log.error("ScheduleDatabase - insert_item_multiple_atomic - item not added - Code:'{}', Path:'{}'".format(item.code, path))
 
             return [items_added, net_ress_added]
-            
+
     @undoable
     def insert_item_multiple(self, items, path=None, number_with_path=False, preserve_structure=False, local_res_code=None):
         """Undoable function to add multiple schedule items into schedule"""
-        
+
         with self.database.atomic():
             [items_added, net_ress_added] = self.insert_item_multiple_atomic(items, path, number_with_path, preserve_structure, local_res_code)
 
         yield "Add schedule items at path:'{}'".format(path), [items_added, net_ress_added]
-        
+
         with self.database.atomic():
             self.delete_schedule_atomic(items_added)
             self.delete_resource_atomic(net_ress_added)
-                
+
     def delete_item_atomic(self, code):
         """Delete schedule item"""
         with self.database.atomic():
@@ -2513,22 +2554,22 @@ class ScheduleDatabase:
                     self.ScheduleTable.update(order = self.ScheduleTable.order - 1).where((self.ScheduleTable.category == old_item.category.id) & (self.ScheduleTable.order > old_order)).execute()
             except self.ScheduleTable.DoesNotExist:
                 return False
-            
+
             path_added = [old_category_order, old_order]
             if old_suborder is not None:
                 path_added.append(old_suborder)
-            
+
             return path_added
-            
+
     @undoable
     def delete_item(self, code):
-        
+
         with self.database.atomic():
             old_item_model = self.get_item(code, modify_res_code=False)
             path_added = self.delete_item_atomic(code)
-        
+
         yield "Delete schedule item:'{}'".format(code), path_added
-        
+
         with self.database.atomic():
             if path_added:
                 if len(path_added) == 2:
@@ -2536,22 +2577,22 @@ class ScheduleDatabase:
                         path = [path_added[0]]
                     else:
                         path = [path_added[0], path_added[1]-1]
-                        
+
                 elif len(path_added) == 3:
                     if path_added[2] == 0:
                         path = [path_added[0], path_added[1]]
                     else:
                         path = [path_added[0], path_added[1], path_added[2]-1]
-                    
+
                 self.insert_item_atomic(old_item_model, path=path, number_with_path=False)
-        
+
     def delete_schedule_atomic(self, selected):
         """Delete schedule elements"""
         with self.database.atomic():
             unique_cats = set()
             unique_parents = set()
             unique_childs = set()
-            
+
             # Populate dicts
             for path, code in reversed(list(selected.items())):
                 # Category
@@ -2579,19 +2620,19 @@ class ScheduleDatabase:
                         unique_childs.add(child.code)
                 elif len(path) == 3:
                     unique_childs.add(code)
-            
-            # Handle sub items     
+
+            # Handle sub items
             for code in unique_childs:
                 self.delete_item_atomic(code)
-                
-            # Handle parents     
+
+            # Handle parents
             for code in unique_parents:
                 self.delete_item_atomic(code)
-                    
+
             # Handle categories second
-            for code in unique_cats: 
+            for code in unique_cats:
                 self.delete_schedule_category_atomic(code)
-    
+
     def delete_schedule(self, selected):
         """Delete schedule elements"""
         with self.database.atomic():
@@ -2599,7 +2640,7 @@ class ScheduleDatabase:
                 unique_cats = set()
                 unique_parents = set()
                 unique_childs = set()
-                
+
                 # Populate dicts
                 for path, code in reversed(list(selected.items())):
                     # Category
@@ -2627,36 +2668,36 @@ class ScheduleDatabase:
                             unique_childs.add(child.code)
                     elif len(path) == 3:
                         unique_childs.add(code)
-                
-                # Handle sub items     
+
+                # Handle sub items
                 for code in unique_childs:
                     self.delete_item(code)
-                    
-                # Handle parents     
+
+                # Handle parents
                 for code in unique_parents:
                     self.delete_item(code)
-                        
+
                 # Handle categories second
-                for code in unique_cats: 
+                for code in unique_cats:
                     self.delete_schedule_category(code)
-        
+
     def get_res_usage(self):
         with self.database.atomic():
             res_cats = OrderedDict()
             times_values = dict()
-            
+
             # Get sequnces with ANA_TIMES to determine multiplying factor
             times_items = (self.SequenceTable.select(self.SequenceTable.id_sch, self.SequenceTable.value)
                                         .where(self.SequenceTable.itemtype == ScheduleItemModel.ANA_TIMES))
             for time_item in times_items:
                 times_values[time_item.id_sch.id] = time_item.value
-                                                  
+
             cats = self.ResourceCategoryTable.select().order_by(self.ResourceCategoryTable.order)
             for cat in cats:
                 res_list_item = OrderedDict()
                 # Get resource items
-                res_items = (self.ResourceItemTable.select(self.ResourceItemTable, 
-                                                          self.ResourceTable, 
+                res_items = (self.ResourceItemTable.select(self.ResourceItemTable,
+                                                          self.ResourceTable,
                                                           self.ResourceCategoryTable)
                                                   .join(self.ResourceTable)
                                                   .join(self.ResourceCategoryTable)
@@ -2670,9 +2711,9 @@ class ScheduleDatabase:
                         mult_factor = times_values[res_item.id_sch.id]
                     else:
                         mult_factor = 1
-                        
+
                     qty = round(res_qty*sch_qty*mult_factor, 4)
-                    
+
                     if code in res_list_item:
                         res_list_item[code][3] = res_list_item[code][3] + qty
                     else:
@@ -2680,20 +2721,20 @@ class ScheduleDatabase:
                                                res_item.id_res.description,
                                                res_item.id_res.unit,
                                                qty,
-                                               res_item.id_res.rate, 
+                                               res_item.id_res.rate,
                                                res_item.id_res.vat,
                                                res_item.id_res.discount]
                 res_cats[cat.description] = res_list_item
             return res_cats
-        
+
     @undoable
     def assign_auto_item_numbers(self):
         """Assign automatic item numbers to schedule items"""
-        
+
         with self.database.atomic():
             # Change all items to prevent uniqueness errors
             self.ScheduleTable.update(code = self.ScheduleTable.code.concat('_')).execute()
-            
+
             undodict = dict()
             code_cat_dict = dict()
 
@@ -2704,7 +2745,7 @@ class ScheduleDatabase:
                 if category.description != misc.SUB_ANA_TITLE:
                     code_cat_dict[category.id] = counter_cat
                     counter_cat += 1
-                    
+
             # Calculate and modify item codes
             items = self.ScheduleTable.select(self.ScheduleTable, self.ScheduleCategoryTable).join(self.ScheduleCategoryTable).order_by(self.ScheduleTable.order, self.ScheduleTable.suborder)
             for item in items:
@@ -2712,14 +2753,14 @@ class ScheduleDatabase:
                 if item.category.description != misc.SUB_ANA_TITLE:
                     code_cat = code_cat_dict[item.category.id]
                     code_item = item.order + 1
-                    
+
                     if item.parent == None:
                         # If only one category reduce level of item numbering
                         if len(code_cat_dict) == 1:
                             code = str(code_item)
                         else:
                             code = str(code_cat) + '.' + str(code_item)
-                    else: 
+                    else:
                         code_subitem = item.suborder + 1
                         # If only one category reduce level of item numbering
                         if len(code_cat_dict) == 1:
@@ -2732,32 +2773,32 @@ class ScheduleDatabase:
                 item.code = code
                 # Bulk update item codes
                 item.save(only=[self.ScheduleTable.code])
-            
+
         yield "Assign automatic item numbers"
-        
+
         with self.database.atomic():
             # Change all items to prevent uniqueness errors
             self.ScheduleTable.update(code = self.ScheduleTable.code.concat('_')).execute()
 
             items = self.ScheduleTable.select()
-        
+
             for item in items:
                 mod_code = item.code[:-1]
                 if mod_code in undodict:
                     item.code = undodict[mod_code]
                     item.save(only=[self.ScheduleTable.code])
-                    
+
     @undoable
     def assign_auto_item_numbers_res(self, exclude):
         """Assign automatic item numbers to schedule items"""
         with self.database.atomic():
             # Change all items to prevent uniqueness errors
             self.ResourceTable.update(code = self.ResourceTable.code.concat('_')).execute()
-            
+
             undodict = dict()
             counter_cat = 1
             counter = 1
-            
+
             # Calculate and modify item codes
             cats = self.ResourceCategoryTable.select().order_by(self.ResourceCategoryTable.order)
             for cat in cats:
@@ -2776,7 +2817,7 @@ class ScheduleDatabase:
                             code = item.code[:-1]
                     else:
                         code = item.code[:-1]
-                        
+
                     undodict[code] = item.code[:-1]
                     item.code = code
                     item.save(only=[self.ResourceTable.code])
@@ -2784,21 +2825,21 @@ class ScheduleDatabase:
                 if cat.description != misc.SUB_ANA_TITLE:
                     counter_cat = counter_cat + 1
                 counter = 1
-            
+
         yield "Assign automatic item numbers"
-        
+
         with self.database.atomic():
             # Change all items to prevent uniqueness errors
             self.ResourceTable.update(code = self.ResourceTable.code.concat('_')).execute()
 
             items = self.ResourceTable.select()
-        
+
             for item in items:
                 mod_code = item.code[:-1]
                 if mod_code in undodict:
                     item.code = undodict[mod_code]
                     item.save(only=[self.ResourceTable.code])
-        
+
     def get_next_item_code(self, near_item_code=None, nextlevel=False, shift=0):
         if near_item_code:
             if nextlevel:
@@ -2814,22 +2855,22 @@ class ScheduleDatabase:
                         new_code = new_code + str(part)
                     if not self.ScheduleTable.select().where(self.ScheduleTable.code == new_code).exists():
                         return new_code
-        
+
         # Fall back
-        
+
         sch_items = self.ScheduleTable.select(self.ScheduleTable.code).where(self.ScheduleTable.code.startswith('_'))
         code_list = []
-        
+
         # If fall through
         if near_item_code:
             shift = 0
-        
+
         # Add exisitng default items
         for sch in sch_items:
             split_up = misc.human_code(sch.code)
             if len(split_up) == 2 and split_up[0] == '_' and type(split_up[-1]) is int:
                 code_list.append(split_up)
-                
+
         if code_list:
             last_code = sorted(code_list)[-1]
             if type(last_code[-1]) is int:
@@ -2839,14 +2880,14 @@ class ScheduleDatabase:
         else:
             new_code = '_' + str(1+shift)
         return new_code
-        
+
     def get_new_schedule_category_name(self):
         categories =  self.ScheduleCategoryTable.select().where(self.ScheduleCategoryTable.description.startswith('_CATEGORY'))
-        
+
         cat_list = []
         for category in categories:
             cat_list.append(misc.human_code(category.description))
-            
+
         if categories:
             last_code = sorted(cat_list)[-1]
             if type(last_code[-1]) is int:
@@ -2856,9 +2897,9 @@ class ScheduleDatabase:
         else:
             new_code = '_CATEGORY1'
         return new_code
-        
+
     ## Data correction functions
-    
+
     def reorder_items(self):
         """Performs reordering of all items in database to correct any insertion errors"""
         with self.database.atomic():
@@ -2877,7 +2918,7 @@ class ScheduleDatabase:
                         child.order = item_id
                         child.suborder = child_id
                         child.save()
-                        
+
             # Resource items
             categories = self.ResourceCategoryTable.select().order_by(self.ResourceCategoryTable.order)
             for cat_id, category in enumerate(categories):
@@ -2887,8 +2928,8 @@ class ScheduleDatabase:
                 for item_id, item in enumerate(items):
                     item.order = item_id
                     item.save()
-                
-    
+
+
     ## Export items
 
     def export_sch_spreadsheet(self, spreadsheet, break_lines=False):
@@ -2899,13 +2940,13 @@ class ScheduleDatabase:
         spreadsheet.add_merged_cell('SCHEDULE OF RATES', width=7, bold=True)
         rows = [[None]]
         spreadsheet.append_data(rows)
-        spreadsheet.add_merged_cell('Name of Work: ' + proj_name, width=6, start_column=2, bold=True, horizontal='left')        
+        spreadsheet.add_merged_cell('Name of Work: ' + proj_name, width=6, start_column=2, bold=True, horizontal='left')
         rows = [[None],
                 ['Sl.No.', 'Description', 'Unit', 'Rate', 'Qty','Amount', 'Remarks'],
                 [None]]
         spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
         s_row = 8
-        
+
         # Insert data
         for category, items in sch_table.items():
             # Add category item
@@ -2918,7 +2959,7 @@ class ScheduleDatabase:
                 item_desc = item[1]
                 item_unit = item[2]
                 item_colour = item[6]
-                
+
                 if break_lines:
                     # If item has multiple lines split up lines
                     item_desc_parts = item_desc.split('\n')
@@ -2930,7 +2971,7 @@ class ScheduleDatabase:
                             spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                             s_row = s_row + 1
                         item_desc = item_desc_parts[-1]
-                    
+
                 if item_unit == '':
                     item_rate = None
                     item_qty = None
@@ -2940,7 +2981,7 @@ class ScheduleDatabase:
                     item_qty = item[4]
                     item_amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
                 item_remarks = item[5]
-                    
+
                 item_row = [code, item_desc, item_unit, item_rate, item_qty, item_amount, item_remarks]
                 spreadsheet.append_data([item_row], fill=item_colour)
                 spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
@@ -2954,7 +2995,7 @@ class ScheduleDatabase:
                     qty = sub_item[4]
                     remarks = sub_item[5]
                     colour = sub_item[6]
-                    
+
                     if break_lines:
                         # If item has multiple lines split up lines
                         item_desc_parts = desc.split('\n')
@@ -2966,9 +3007,9 @@ class ScheduleDatabase:
                                 spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                                 s_row = s_row + 1
                             desc = item_desc_parts[-1]
-                        
+
                     amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ",2)"
-                        
+
                     row = [code, desc, unit, rate, qty, amount, remarks]
                     spreadsheet.append_data([row], fill=colour)
                     spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
@@ -2977,17 +3018,17 @@ class ScheduleDatabase:
         amount = '=ROUND(SUM(F7:F' + str(s_row) + '),2)'
         rows = [[None],[None,'TOTAL',None,None,None,amount]]
         spreadsheet.append_data(rows, bold=True)
-        
+
         # General formating
         spreadsheet.set_title('Schedule')
         spreadsheet.set_column_widths([10,50,10,10,10,15,15])
         spreadsheet.set_page_settings(font='Consolas', print_title_rows='6:7')
         log.info('ScheduleDatabase - export_sch_spreadsheet - Schedule exported')
-        
+
     def export_res_spreadsheet(self, spreadsheet):
         spreadsheet.new_sheet()
         spreadsheet.set_title('Resources')
-        
+
         res_table = self.get_resource_table()
 
         # Header
@@ -2997,7 +3038,7 @@ class ScheduleDatabase:
                 [None]]
         spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
         s_row = 6
-        
+
         # Insert data
         for category, items in res_table.items():
             # Add category item
@@ -3011,7 +3052,7 @@ class ScheduleDatabase:
                 spreadsheet.append_data([item_row])
                 spreadsheet.set_style(s_row, 1, horizontal='center', vertical='top')
                 s_row = s_row + 1
-        
+
         # General formating
         spreadsheet.set_column_widths([10,40,10,10,10,15,25,25])
         spreadsheet.set_page_settings(font='Consolas')
@@ -3029,7 +3070,7 @@ class ScheduleDatabase:
                 spreadsheet[s_row,1] = parent_code
                 spreadsheet.set_style(s_row,1,horizontal='center', bold=True)
                 s_row = s_row + 1
-                
+
             # Add item number and description
             item_description = sch_item.description
             spreadsheet.add_merged_cell(item_description, width=5, start_column=2, horizontal='left')
@@ -3071,7 +3112,7 @@ class ScheduleDatabase:
                         else:
                             rate_formula = rate
                         amount = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'
-                        
+
                         rate_desc = 'Basic rate ' + str(rate)
                         ref_desc = ' [' + resource.reference + ']' if resource.reference else ''
                         vat_desc = ' + Tax @' + str(vat) + '%' if vat else ''
@@ -3081,7 +3122,7 @@ class ScheduleDatabase:
                                           ref_desc + vat_desc + discount_desc + ')'
                         else:
                             net_description = res_description
-                        
+
                         row = [res_code, net_description, res_unit, qty, rate_formula, amount]
                         spreadsheet.append_data([row])
                         spreadsheet.set_style(s_row, 1, horizontal='center')
@@ -3179,9 +3220,9 @@ class ScheduleDatabase:
         spreadsheet.set_column_widths([10, 50, 10, 15, 10, 15])
         spreadsheet.set_page_settings(font='Consolas')
         log.info('ScheduleDatabase - export_ana_spreadsheet - Analysis exported')
-        
-            
-    def export_res_usage_spreadsheet(self, spreadsheet): 
+
+
+    def export_res_usage_spreadsheet(self, spreadsheet):
         cat_res_items = self.get_res_usage()
         spreadsheet.new_sheet()
         spreadsheet.set_title('Res Usage')
@@ -3193,7 +3234,7 @@ class ScheduleDatabase:
                 [None]]
         spreadsheet.append_data(rows, bold=True, wrap_text=False, horizontal='center')
         s_row = 6
-        
+
         for category, res_list_item in cat_res_items.items():
             # Add category item
             rows = [[None, category]]
@@ -3211,12 +3252,12 @@ class ScheduleDatabase:
                 rows = [[code, description, unit, rate, qty, amount_formula]]
                 spreadsheet.append_data(rows)
                 s_row = s_row + 1
-            
+
         spreadsheet.set_column_widths([10, 50, 10, 10, 15, 15])
         spreadsheet.set_page_settings(font='Consolas')
-        
+
         log.info('ScheduleDatabase - export_res_usage_spreadsheet - Resource Usage exported')
-        
+
     def export_meas_spreadsheet(self, spreadsheet, break_lines=False):
         # Get measurement
         meas = self.get_measurement()
@@ -3314,7 +3355,7 @@ class ScheduleDatabase:
                     unit = sub_item[2]
                     qty = sub_item[4]
                     key = self.get_item_key(code)
-                    
+
                     if break_lines:
                         # If item has multiple lines split up lines
                         item_desc_parts = desc.split('\n')
@@ -3356,4 +3397,3 @@ class ScheduleDatabase:
         spreadsheet.set_page_settings(font='Consolas')
 
         log.info('ScheduleDatabase - export_meas_spreadsheet - Details of Measurement exported')
-        

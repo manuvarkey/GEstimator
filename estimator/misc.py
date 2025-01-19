@@ -2,25 +2,25 @@
 # -*- coding: utf-8 -*-
 #
 # misc.py
-#  
+#
 #  Copyright 2014 Manu Varkey <manuvarkey@gmail.com>
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-#  
-#  
+#
+#
 
 import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time, pathlib, math
 from urllib.parse import urlparse
@@ -69,19 +69,17 @@ SUB_ANA_SEARCH_DEPTH = 2
 # Limiting values
 MAX_DESC_LEN = 1000
 
-ana_copy_add_items = [{"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"}, 
-                      {"itemtype": 1, "description": "TOTAL"}, 
-                      {"itemtype": 4, "value": 0, "description": "Say"}]
-ana_default_add_items = [{'description': 'MATERIALS', 'code': '', 'itemtype': 0, 'resource_list': []}, 
-                         {'description': 'Add Cartage @ 1%', 'value': 0.01, 'itemtype': 2}, 
-                         {'description': 'LABOUR', 'code': '', 'itemtype': 0, 'resource_list': []}, 
+ana_copy_add_items = []
+ana_default_add_items = [{'description': 'MATERIALS', 'code': '', 'itemtype': 0, 'resource_list': []},
+                         {'description': 'Add Cartage @ 1%', 'value': 0.01, 'itemtype': 2},
+                         {'description': 'LABOUR', 'code': '', 'itemtype': 0, 'resource_list': []},
                          {'description': 'TOTAL', 'itemtype': 1},
-                         {'description': 'Add 18% GST (MF = 0.2127)', 'value': 0.2127, 'itemtype': 2},
+                         {'description': 'Add CP&OH @ 15%', 'value': 0.15, 'itemtype': 2},
                          {'description': 'TOTAL', 'itemtype': 1},
-                         {'description': 'OVERHEADS & PROFIT @ 15 %', 'value': 0.15, 'itemtype': 2}, 
+                         {'description': 'Add LC @ 1%', 'value': 0.01, 'itemtype': 2},
                          {'description': 'TOTAL', 'itemtype': 1},
-                         {'description': 'Add LC @ 1%', 'value': 0.01, 'itemtype': 2}, 
-                         {'description': 'TOTAL', 'itemtype': 1}, 
+                         {'description': 'Add 18% GST', 'value': 0.18, 'itemtype': 2},
+                         {'description': 'TOTAL', 'itemtype': 1},
                          {'description': 'Say', 'value': 0, 'itemtype': 4}]
 
 
@@ -92,13 +90,15 @@ default_project_settings = {'file_version':PROJECT_FILE_VER,
                             'project_resource_code':'',
                             'project_measurement':'["Measurement", ["", []]]'}
 default_program_settings = {'export_break_items': 'True',
-                            'ana_copy_delete_rows':'1',
+                            'sch_rate_mult_factor':'1',
+                            'res_rate_mult_factor':'1',
+                            'ana_copy_delete_rows':'0',
                             'ana_copy_add_items': ana_copy_add_items,
                             'ana_default_add_items': ana_default_add_items}
 # Item codes for project global variables
 global_vars = ['$cmbnameofwork$',
                '$cmbagency$',
-               '$cmbagmntno$', 
+               '$cmbagmntno$',
                '$cmbsituation$',
                '$cmbdateofstart$',
                '$cmbdateofstartasperagmnt$',
@@ -107,7 +107,7 @@ global_vars = ['$cmbnameofwork$',
                '$cmbvarifyingauthorityoffice$',
                '$cmbissuingauthority$',
                '$cmbissuingauthorityoffice$']
-global_vars_captions = ['Name of Work', 
+global_vars_captions = ['Name of Work',
                         'Agency',
                         'Agreement Number',
                         'Situation',
@@ -118,7 +118,7 @@ global_vars_captions = ['Name of Work',
                         'Varifying Authority Office',
                         'Issuing Authority',
                         'Issuing Authority Office']
-                        
+
 # Main menu
 MENU_XML="""
 <?xml version="1.0" encoding="UTF-8"?>
@@ -149,7 +149,7 @@ MENU_XML="""
   </menu>
 </interface>
 """
-               
+
 ## GLOBAL VARIABLES
 
 
@@ -162,7 +162,7 @@ class CellTextView(Gtk.TextView, Gtk.CellEditable):
          'editing-canceled': (bool, 'editing-canceled', 'Inheritedproperty', False,
                   GObject.PARAM_READWRITE)
     }
-    
+
     property_names = __gproperties__.keys()
 
     def __init__(self):
@@ -180,10 +180,10 @@ class CellTextView(Gtk.TextView, Gtk.CellEditable):
 
     def do_editing_done(*args):
         pass
-         
+
     def do_remove_widget(*args):
         pass
-         
+
     def do_start_editing(*args):
         pass
 
@@ -192,7 +192,7 @@ class CellRendererMultilineText(Gtk.CellRendererText):
      def __init__(self):
          Gtk.CellRendererText.__init__(self)
          self.set_property('mode',  Gtk.CellRendererMode.EDITABLE)
-         
+
      def __getattr__(self, name):
          try:
              return self.get_property(name)
@@ -214,9 +214,9 @@ class CellRendererMultilineText(Gtk.CellRendererText):
          if property.name not in self.property_names:
              raise TypeError('No property named %s' % (property.name,))
          self.__dict__[property.name] = value
-    
+
      def do_start_editing(self, event, widget, path, bg_area, cell_area, flags):
-     
+
          editor = CellTextView()
          editor.set_wrap_mode(Gtk.WrapMode.WORD)
          editor.props.accepts_tab = False
@@ -248,21 +248,21 @@ class CellRendererMultilineText(Gtk.CellRendererText):
          if (keyname in enter_keynames) and not (mask & accel_masks):
              self.emit('edited', path, widget.get_text())
              widget.destroy()
-             
+
 
 
 ## GLOBAL CLASSES
 
 class UserEntryDialog():
     """Creates a dialog box for entry of custom data fields
-    
+
         Arguments:
             parent: Parent Window
             window_caption: Window Caption to be displayed on Dialog
             item_values: Item values to be requested from user
             item_captions: Description of item values to be shown to user
     """
-    
+
     def __init__(self, parent, window_caption, item_values, item_captions):
         self.toplevel = parent
         self.entrys = []
@@ -301,13 +301,13 @@ class UserEntryDialog():
         # Add data
         for value, user_entry in zip(self.item_values, self.entrys):
             user_entry.set_text(value)
-                
+
     def run(self):
         """Display dialog box and modify Item Values in place
-        
+
             Save modified values to "item_values" (item passed by reference)
             if responce is Ok. Discard modified values if response is Cancel.
-            
+
             Returns:
                 True on Ok
                 False on Cancel
@@ -315,7 +315,7 @@ class UserEntryDialog():
         # Run dialog
         self.dialog_window.show_all()
         response = self.dialog_window.run()
-        
+
         if response == Gtk.ResponseType.OK:
             # Get formated text and update item_values
             for key, user_entry in zip(range(len(self.item_values)), self.entrys):
@@ -332,23 +332,23 @@ class UserEntryDialog():
                 except:
                     cell_formated = ''
                 self.item_values[key] = cell_formated
-                
+
             self.dialog_window.destroy()
             return True
         else:
             self.dialog_window.destroy()
             return False
-            
+
 class SpreadsheetDialog:
     """Dialog for manage input and output of spreadsheets"""
-   
+
     def __init__(self, parent, filename, columntypes, captions, dimensions = None, allow_formula=False):
         """Initialise SpreadsheetDialog class
-        
+
             Arguments:
                 parent: Parent widget (Main window)
-                filename: 
-                columntypes: Data types of columns. 
+                filename:
+                columntypes: Data types of columns.
                              Takes following values:
                                 misc.MEAS_NO: Integer
                                 misc.MEAS_L: Float
@@ -365,7 +365,7 @@ class SpreadsheetDialog:
         self.columntypes = columntypes
         self.dimensions = dimensions
         self.allow_formula = allow_formula
-        
+
         self.top = 0
         self.bottom = 0
         self.left = 0
@@ -390,7 +390,7 @@ class SpreadsheetDialog:
         self.entry_bottom = self.builder.get_object("entry_bottom")
         self.entry_left = self.builder.get_object("entry_left")
         self.entry_right = self.builder.get_object("entry_right")
-        
+
         # Setup treeview
         self.columns = []
         self.cells = []
@@ -427,7 +427,7 @@ class SpreadsheetDialog:
         self.tree.set_enable_search(True)
         search_cols = [no for no,x in enumerate(self.columntypes,1) if x == str]
         self.tree.set_search_equal_func(self.equal_func, [0,1,2,3])
-        
+
         # Read file into spreadsheet object
         if filename is not None:
             try:
@@ -435,7 +435,7 @@ class SpreadsheetDialog:
             except:
                 self.spreadsheet = None
                 log.warning('SpreadsheetDialog - Spreadsheet could not be read - ' + filename)
-                
+
         # Setup combobox
         if self.spreadsheet:
             sheets = self.spreadsheet.sheets()
@@ -444,11 +444,11 @@ class SpreadsheetDialog:
             if sheets:
                 self.combo.set_active_id(sheets[0])
                 self.update()
-            
+
 
     def run(self):
         """Display dialog box and return data model
-        
+
             Returns:
                 Data Model on Ok
                 [] on Cancel
@@ -463,11 +463,11 @@ class SpreadsheetDialog:
         else:
             log.info('SpreadsheetDialog - run - Response Cancel')
             return []
-    
+
     def update(self):
         """Update contents from input values"""
         log.info('SpreadsheetDialog - Update')
-        
+
         # Read if sheet changed
         sheet = self.combo_store[self.combo.get_active_iter()][0]
         if sheet != self.sheet:
@@ -476,24 +476,24 @@ class SpreadsheetDialog:
             self.entry_top.set_text('1')
             self.entry_bottom.set_text(str(self.spreadsheet.length()+1))
             self.entry_left.set_text('1')
-            
+
         # Read values of entries
         self.top = int(self.entry_top.get_text())
         self.bottom = int(self.entry_bottom.get_text())
         self.left = int(self.entry_left.get_text())
-        
+
         # Set values
         self.entry_right.set_text(str(self.left + len(self.columntypes)))
-        
+
         # Read spreadsheet
         self.values = self.spreadsheet.read_rows(self.columntypes, start=self.top-1, end=self.bottom-1, left=self.left-1, allow_formula=self.allow_formula)
-        
+
         # Update store
         self.store.clear()
         for slno, value in enumerate(self.values, self.top):
             formated_value = [str(x) if x != 0 else '' for x in value]
             self.store.append(['<b>' + str(slno) + '</b>'] + formated_value)
-                
+
     def setup_column_props(self, widths, expandables):
         """Set column properties
             Arguments:
@@ -507,7 +507,7 @@ class SpreadsheetDialog:
                 cell.props.wrap_width = width
             if expandable != None:
                 column.set_expand(expandable)
-    
+
     def equal_func(self, model, column, key, iter, cols):
         """Equal function for interactive search"""
         search_string = ''
@@ -517,23 +517,23 @@ class SpreadsheetDialog:
             if word.lower() not in search_string:
                 return True
         return False
-        
+
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
 
         width = column.get_width() - 5
         oldwidth = cell.props.wrap_width
-        
+
         if width > 0 and width != oldwidth:
             cell.props.wrap_width = width
             # Force redraw of treeview
             GLib.idle_add(column.queue_resize)
-    
+
     # Callbacks
-    
+
     def onRefreshClicked(self, button):
         """Refresh screen on button click"""
-        
+
         # Sanitise entries
         if self.entry_top.get_text() == '':
             self.entry_top.set_text('1')
@@ -541,13 +541,13 @@ class SpreadsheetDialog:
             self.entry_bottom.set_text('1')
         if self.entry_left.get_text() == '':
             self.entry_left.set_text('1')
-        
+
         if self.spreadsheet:
             self.update()
-    
+
     def onEntryEditedNum(self, entry):
         """Treeview cell renderer for editable number field
-        
+
             User Data:
                 column: column in ListStore being edited
         """
@@ -559,57 +559,57 @@ class SpreadsheetDialog:
                 if num <= 0:
                    num = 1
             except:
-                log.warning("SpreadsheetDialog - onEntryEditedNum - evaluation of [" 
+                log.warning("SpreadsheetDialog - onEntryEditedNum - evaluation of ["
                 + new_text + "] failed")
         entry.set_text(str(num))
 
-            
+
 class Spreadsheet:
     """Manage input and output of spreadsheets"""
-    
+
     def __init__(self, filename=None):
         if filename is not None:
             self.spreadsheet = openpyxl.load_workbook(filename)
         else:
             self.spreadsheet = openpyxl.Workbook()
         self.sheet = self.spreadsheet.active
-    
+
     def save(self, filename):
         """Save worksheet to file"""
         self.spreadsheet.save(filename)
-        
+
     # Sheet management
-    
+
     def new_sheet(self):
         """Create a new sheet to spreadsheet and set as active"""
-        self.sheet = self.spreadsheet.create_sheet()  
-            
+        self.sheet = self.spreadsheet.create_sheet()
+
     def sheets(self):
         """Returns a list of sheetnames"""
         return self.spreadsheet.sheetnames
-        
+
     def length(self):
         """Get number of rows in sheet"""
         return self.sheet.max_row
-        
+
     def set_title(self, title):
         """Set title of sheet"""
         self.sheet.title = title
-        
+
     def set_page_settings(self, orientation='portrait', papersize='A4', font=None, print_title_rows = None):
         # Orientation
         if orientation == 'portrait':
             self.sheet.page_setup.orientation = openpyxl.worksheet.worksheet.Worksheet.ORIENTATION_PORTRAIT
         elif orientation == 'landscape':
             self.sheet.page_setup.orientation = openpyxl.worksheet.worksheet.Worksheet.ORIENTATION_LANDSCAPE
-            
+
         # Paper size
         if papersize == 'A4':
             self.sheet.page_setup.paperSize = openpyxl.worksheet.worksheet.Worksheet.PAPERSIZE_A4
-            
+
         # Print title rows
         self.sheet.print_title_rows = print_title_rows
-            
+
         # General settings
         self.sheet.page_setup.fitToPage = True
         self.sheet.page_setup.fitToHeight = 99
@@ -629,7 +629,7 @@ class Spreadsheet:
         for column, width in enumerate(widths, 1):
             col_letter = openpyxl.utils.get_column_letter(column)
             self.sheet.column_dimensions[col_letter].width = width
-        
+
     def set_active_sheet(self, sheetref):
         """Set active sheet of spreadsheet"""
         sheetname = ''
@@ -638,12 +638,12 @@ class Spreadsheet:
             sheetno = sheetref
         elif type(sheetref) is str:
             sheetname = sheetref
-        
+
         if sheetname in self.sheets():
             self.sheet = self.spreadsheet[sheetname]
         elif sheetno is not None and sheetno < len(self.sheets()):
             self.sheet = self.spreadsheet[self.sheets()[sheetno]]
-    
+
     def set_style(self, row, col, bold=False, wrap_text=True, horizontal='general', vertical='bottom', fill=None):
         """Set style of individual cell"""
         font = openpyxl.styles.Font(bold=bold)
@@ -651,16 +651,16 @@ class Spreadsheet:
 
         self.sheet.cell(row=row, column=col).font = font
         self.sheet.cell(row=row, column=col).alignment = alignment
-        
+
         if fill == '#FFFFFF':
             patternfill = openpyxl.styles.PatternFill()
             self.sheet.cell(row=row, column=col).fill = patternfill
         elif fill is not None:
             patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
             self.sheet.cell(row=row, column=col).fill = patternfill
-        
+
     # Data addition functions
-            
+
     def append(self, ss_obj):
         """Append an sheet to current sheet"""
         sheet = ss_obj.spreadsheet.active
@@ -680,29 +680,29 @@ class Spreadsheet:
         """Append data to current sheet"""
         rowcount = self.length()
         self.insert_data(data, rowcount+1, 1, bold, italic,wrap_text, horizontal, vertical, fill)
-    
+
     def insert_data(self, data, start_row=1, start_col=1, bold=False, italic=False, wrap_text=True, horizontal='general', vertical='bottom', fill=None):
         """Insert data to current sheet"""
         # Setup styles
         font = openpyxl.styles.Font(bold=bold, italic=italic)
-        
+
         if fill == '#FFFFFF':
             patternfill = openpyxl.styles.PatternFill()
         elif fill is not None:
             patternfill = openpyxl.styles.PatternFill(start_color=fill[1:], end_color=fill[1:], fill_type='solid')
-            
+
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
         # Apply data and styles
         for row_no, row in enumerate(data, start_row):
             for col_no, value in enumerate(row, start_col):
                 self.sheet.cell(row=row_no, column=col_no).value = value
                 self.sheet.cell(row=row_no, column=col_no).font = font
-                
+
                 if fill:
                     self.sheet.cell(row=row_no, column=col_no).fill = patternfill
-                    
+
                 self.sheet.cell(row=row_no, column=col_no).alignment = alignment
-                
+
     def add_merged_cell(self, value, row=None, width=2, bold=False, wrap_text=True, horizontal='center', start_column=1):
         """Add a merged cell of prescrbed width"""
         if row is None:
@@ -712,17 +712,17 @@ class Spreadsheet:
         self.sheet.merge_cells(start_row=rowstart,start_column=start_column,end_row=rowstart,end_column=start_column+width-1)
         self.__setitem__([rowstart,start_column], value)
         self.set_style(rowstart, start_column, bold, wrap_text, horizontal)
-    
+
     def __setitem__(self, index, value):
         """Set an individual cell"""
         self.sheet.cell(row=index[0], column=index[1]).value = value
-        
+
     def __getitem__(self, index):
         """Set an individual cell"""
         return self.sheet.cell(row=index[0], column=index[1]).value
-            
+
     # Bulk read functions
-    
+
     def read_rows(self, columntypes = [], start=0, end=-1, left=0, allow_formula=False):
         """Read and validate selected rows from current sheet"""
         # Get count of rows
@@ -731,7 +731,7 @@ class Spreadsheet:
             count_actual = rowcount
         else:
             count_actual = end
-        
+
         items = []
         for row in range(start, count_actual):
             cells = []
@@ -797,22 +797,22 @@ class Spreadsheet:
             items.append(cells)
         return items
 
-        
+
 class ProgressWindow:
     """Class for handling display of long running proccess"""
-    
+
     def __init__(self, parent=None, label=None, progress=None):
-        
+
         self.parent = parent
         self.label = label
         self.progress = progress
         # Setup data
         self.step = 0
         self.fraction = 0
-        
+
         # Setup progress indicator window
         if parent:
-            self.dialog = Gtk.Window(default_height=250, default_width=400, 
+            self.dialog = Gtk.Window(default_height=250, default_width=400,
                                      title='Process running...')
             self.dialog.set_transient_for(self.parent)
             self.dialog.set_gravity(Gdk.Gravity.CENTER)
@@ -822,7 +822,7 @@ class ProgressWindow:
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             box.set_margin_left(6)
             box.set_margin_right(6)
-            
+
             scroll = Gtk.ScrolledWindow()
             scroll.set_vexpand(True)
             self.store = Gtk.ListStore(str)
@@ -833,29 +833,29 @@ class ProgressWindow:
             column.add_attribute(cell, "markup", 0)
             self.tree.append_column(column)
             scroll.add(self.tree)
-            
+
             box.pack_start(scroll, True, True, 3)
             self.progress = Gtk.ProgressBar()
             box.pack_start(self.progress, False, False, 3)
             dismiss = Gtk.Button('Dismiss')
             box.pack_start(dismiss, False, False, 3)
             self.dialog.add(box)
-            
+
             # Connect events
             self.dialog.connect("delete-event",self.on_delete)
             dismiss.connect("clicked",self.on_dismiss)
-        
+
     # Window functions
-    
+
     def show(self):
         def callback():
             self.dialog.show_all()
             return False
         GLib.idle_add(callback)
-    
+
     def close(self):
         self.dialog.close()
-        
+
     def on_delete(self, *args):
         if self.fraction == 1:
             return False
@@ -863,19 +863,19 @@ class ProgressWindow:
             # Cancel event
             self.dialog.hide()
             return True
-    
+
     def on_dismiss(self, button):
         if self.fraction == 1:
             self.close()
         else:
             self.dialog.hide()
-    
+
     # General functions
-        
+
     def set_pulse_step(self, width):
         self.step = width
         self.fraction = 0
-        
+
     def set_fraction(self, fraction):
         def callback():
             self.fraction = fraction
@@ -884,7 +884,7 @@ class ProgressWindow:
                 self.show()
             return False
         GLib.idle_add(callback)
-        
+
     def pulse(self, end=False):
         def callback():
             self.fraction += self.step
@@ -898,7 +898,7 @@ class ProgressWindow:
             self.progress.set_fraction(self.fraction)
             return False
         GLib.idle_add(callback)
-        
+
     def add_message(self, message):
         if self.parent:
             def callback():
@@ -909,8 +909,8 @@ class ProgressWindow:
             GLib.idle_add(callback)
         else:
             GLib.idle_add(self.label.set_markup, message)
-            
-            
+
+
 class SplashScreen:
     def __init__(self, callback, image_filename, min_splash_time=0 ):
         self.image = Gtk.Image.new_from_file(image_filename )
@@ -924,20 +924,20 @@ class SplashScreen:
         self.min_splash_time   = time.time() + min_splash_time
         self.window.show_all()
         GLib.timeout_add_seconds(1, callback)
-   
+
     def exit(self):
         # Make sure the minimum splash time has elapsed
         timeNow = time.time()
         if timeNow < self.min_splash_time:
             time.sleep( self.min_splash_time - timeNow )
-          
+
         # Destroy the splash window
         self.window.destroy( )
-        
+
 
 class Command(object):
     """Runs a command in a seperate thread"""
-    
+
     def __init__(self, cmd):
         """Initialises class with command to be executed"""
         self.cmd = cmd
@@ -968,7 +968,7 @@ class Command(object):
 
 def get_user_input_text(parent, message, title='', oldval=None, multiline=False):
     '''Gets a single user input by diplaying a dialog box
-    
+
     Arguments:
         parent: Parent window
         message: Message to be displayed to user
@@ -989,7 +989,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
 
     dialogBox = dialogWindow.get_content_area()
     text = ''
-    
+
     if multiline:
         # Function to mark first line as bold
         def mark_heading(textbuff, tag):
@@ -1011,11 +1011,11 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         dialogBox.pack_end(scrolledwindow, False, False, 0)
         scrolledwindow.add(textview)
         scrolledwindow.set_border_width(6)
-        
+
         # Set old value
         if oldval != None:
             textbuffer.set_text(oldval)
-        
+
         # Mark heading
         tag_bold = textbuffer.create_tag("bold", weight=Pango.Weight.BOLD)
         mark_heading(textbuffer, tag_bold)
@@ -1029,7 +1029,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         userEntry.set_activates_default(True)
         userEntry.set_size_request(50, 0)
         dialogBox.pack_end(userEntry, False, False, 0)
-        
+
         # Set old value
         if oldval != None:
             userEntry.set_text(oldval)
@@ -1042,7 +1042,7 @@ def get_user_input_text(parent, message, title='', oldval=None, multiline=False)
         return text
     else:
         return None
-        
+
 def file_to_uri(filename):
     if platform.system() == 'Windows':
         path = pathlib.PureWindowsPath(filename)
@@ -1054,14 +1054,14 @@ def file_to_uri(filename):
         path = pathlib.Path(filename)
         uri = path.as_uri()
     return uri
-    
+
 def uri_to_file(uri):
     return url2pathname(urlparse(uri).path)
 
 def abs_path(*args):
     """Returns absolute path to the relative path provided"""
     return os.path.join(os.path.split(__file__)[0],*args)
-    
+
 def dir_from_path(path):
     """Returns directory path from file path"""
     return os.path.dirname(path)
@@ -1083,18 +1083,18 @@ def posix_path(*args):
             return posixpath.join(*args)
         else:
             return args[0]
-            
+
 def open_file(filename, abs=True):
     if abs:
         filename_mod = abs_path(filename)
     else:
         filename_mod = filename
-        
+
     if platform.system() == 'Linux':
         subprocess.call(('xdg-open', filename_mod))
     elif platform.system() == 'Windows':
         os.startfile(filename_mod)
-        
+
 def get_file_path_from_dnd_dropped_uri(uri):
     # Get the path to file
     path = ""
@@ -1112,7 +1112,7 @@ def get_file_path_from_dnd_dropped_uri(uri):
 
 def human_code(code):
     """Returns a weighted value for sorting codes"""
-    
+
     def tryint(s):
         # For integer
         try:
@@ -1120,26 +1120,26 @@ def human_code(code):
         # For string
         except ValueError:
             return s
-            
+
     ret_list = []
-    
+
     for c in re.split('([0-9]+)', code):
         ret = tryint(c)
         if ret not in ['', " "]:
             ret_list.append(ret)
-    
+
     return ret_list
-    
+
 def remove_markup(text):
     """Clear markup text of special characters"""
     return re.sub('<[^<]+?>', '', text)
-    
+
 def clean_markup(text):
     """Clear markup text of special characters"""
     for splchar, replspelchar in zip(['&', '<', '>', ], ['&amp;', '&lt;', '&gt;']):
         text = text.replace(splchar, replspelchar)
     return text
-    
+
 def get_ellipsized_text(text, length):
     if len(text) > length:
         desc = text[0:(int(length/2)-3)]  + '\n ... \n' + text[-(int(length/2)-3):]
@@ -1174,7 +1174,7 @@ def round_value(value, rounding='Round to 0'):
     else:
         rounded = value
     return rounded
-    
+
 # Cairo drawing functions
 
 def rgb2hex(r,g,b,a=None):
@@ -1185,14 +1185,13 @@ def rgb2hex(r,g,b,a=None):
 
 def hex2rgb(hexcode):
     if len(hexcode) == 7:
-        r = int(hexcode[1:3],16)/255 
+        r = int(hexcode[1:3],16)/255
         g = int(hexcode[3:5],16)/255
         b = int(hexcode[5:7],16)/255
         a = 1
     elif len(hexcode) == 9:
-        r = int(hexcode[1:3],16)/255 
+        r = int(hexcode[1:3],16)/255
         g = int(hexcode[3:5],16)/255
         b = int(hexcode[5:7],16)/255
         a = int(hexcode[7:9],16)/255
     return (r, g, b, a)
-    

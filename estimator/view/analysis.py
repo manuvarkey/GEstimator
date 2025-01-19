@@ -47,18 +47,18 @@ class AnalysisView:
         keyname = event.get_keyval()[1]
         state = event.get_state()
         shift_pressed = bool(state & Gdk.ModifierType.SHIFT_MASK)
-        
+
         if keyname in [Gdk.KEY_Alt_L, Gdk.KEY_Alt_R, Gdk.KEY_Escape]:  # unselect all
             self.tree.get_selection().unselect_all()
             return
-        
+
         if bool(state & Gdk.ModifierType.CONTROL_MASK):
             if keyname in (Gdk.KEY_c, Gdk.KEY_C):
                 self.on_copy()
             elif keyname in (Gdk.KEY_v, Gdk.KEY_V):
                 self.on_paste()
             return
-        
+
         path, col = treeview.get_cursor()
         if path != None:
             columns = [c for c in treeview.get_columns()]
@@ -84,7 +84,7 @@ class AnalysisView:
                                     treeview.scroll_to_cell(path, prev_column, False)
                                     if row == rownum:
                                         GLib.idle_add(treeview.set_cursor, path, prev_column, True)
-                                    else:    
+                                    else:
                                         GLib.timeout_add(200, treeview.set_cursor, path, prev_column, True)
                                     return
                     else:
@@ -104,16 +104,16 @@ class AnalysisView:
                                     treeview.scroll_to_cell(path, next_column, False)
                                     if row == rownum:
                                         GLib.idle_add(treeview.set_cursor, path, next_column, True)
-                                    else:    
+                                    else:
                                         GLib.timeout_add(200, treeview.set_cursor, path, next_column, True)
                                     return
-                                    
+
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
-        
+
         width = column.get_width()
         oldwidth = cell.props.wrap_width
-        
+
         if width > 0 and width != oldwidth:
             cell.props.wrap_width = width
             # Force redraw of treeview
@@ -131,11 +131,11 @@ class AnalysisView:
 
     def on_copy(self):
         """Copy selected row to clipboard"""
-        
+
         selection = self.tree.get_selection()
         if selection.count_selected_rows() != 0: # if selection exists
             test_string = "AnalysisView"
-            
+
             items = []
             [model, paths] = selection.get_selected_rows()
             for pathiter in paths:
@@ -151,7 +151,7 @@ class AnalysisView:
                 return
         # if no selection
         log.warning("AnalysisView - copy_selection - No items selected to copy")
-    
+
     def on_paste(self):
         """Paste copied item at selected row"""
 
@@ -162,11 +162,11 @@ class AnalysisView:
                 itemlist = pickle.loads(codecs.decode(text.encode(), "base64"))  # recover item from string
                 if itemlist[0] == test_string:
                     model_copy = copy.deepcopy(self.model)
-                    
+
                     check_instance_code = itemlist[1]
                     items = itemlist[2]
                     selection = self.tree.get_selection()
-                    
+
                     # If selection exists
                     if selection.count_selected_rows() != 0:
                         [model, paths] = selection.get_selected_rows()
@@ -175,26 +175,26 @@ class AnalysisView:
                     # Else add at top
                     else:
                         path = [-1]
-                        
+
                     insertion_path = path
                     for item in items:
-                        
+
                         if item[0] == 'ana_item':
                             insertion_path[0] = insertion_path[0] + 1
                             model_copy.insert_item(item[1], insertion_path)
-                        
+
                         elif item[0] == 'resource_item' and model_copy.ana_items[insertion_path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
-                            
+
                             if len(insertion_path) == 1:
                                 insertion_path = [insertion_path[0], 0]
                             else:
                                 insertion_path = [insertion_path[0], insertion_path[1]+1]
-                            
+
                             # If resource not a library item and from different document, get modified code
                             if check_instance_code != self.instance_code_callback() and len((item[1][0]).split(':')) == 1:
                                 item[1][0] = check_instance_code + '.' + item[1][0]
                                 item[2].code = item[1][0]
-                            
+
                             code = model_copy.insert_item(item[1], insertion_path)
 
                             # Add resource if resource does not exist in model
@@ -204,7 +204,7 @@ class AnalysisView:
                                 self.res_needs_refresh = True
                                 # Add item to custom items
                                 self.custom_items.append(code)
-                            
+
                     self.modify_model(model_copy, "Paste items at path:'{}'".format(path))
                     log.info('AnalysisView - on_paste - Item pasted at - ' + str(path))
                     return
@@ -212,7 +212,7 @@ class AnalysisView:
                 log.warning('AnalysisView - paste_at_selection - No valid data in clipboard')
         else:
             log.warning('AnalysisView - paste_at_selection - No text in clipboard')
-            
+
     def cell_renderer(self, cell, pathiter, newtext, column):
         """Treeview cell renderer for editable text field
 
@@ -221,12 +221,12 @@ class AnalysisView:
         """
         model_copy = copy.deepcopy(self.model)
         path = eval(self.store[pathiter][8])
-        
-        try:    
+
+        try:
             evaluated = round(eval(newtext), 6)
         except:
             evaluated = 0
-        
+
         item = model_copy.ana_items[path[0]]
         if item['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
             if len(path) == 1:
@@ -273,10 +273,10 @@ class AnalysisView:
                 item['value'] = evaluated
 
         self.modify_model(model_copy, "Change data item at path:'{}' and column:'{}'".format(path, column))
-        
+
     def add_res_library(self, res_select_dialog):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -322,7 +322,7 @@ class AnalysisView:
 
     def add_res(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -331,7 +331,7 @@ class AnalysisView:
                 resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items)
                 # Run resource data dialog
                 ret_code = resource_entry_dialog.run()
-                
+
                 if ret_code:
                     res = ret_code[1]
                     code = res.code
@@ -354,17 +354,17 @@ class AnalysisView:
                     # Add item to custom items
                     self.custom_items.append(code)
                     self.set_selection(selection_path)
-                    
+
     def edit_res(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
-            
+
             if path is not None and len(path) == 2:
                 res_item_model = model_copy.get_item(path)
-                
+
                 if res_item_model[0] == 'resource_item':
                     # Get current item
                     res = res_item_model[2]
@@ -372,7 +372,7 @@ class AnalysisView:
                     resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items, res)
                     # Run resource data dialog
                     ret_code = resource_entry_dialog.run()
-                    
+
                     if ret_code:
                         res = ret_code[1]
                         code = res.code
@@ -388,17 +388,17 @@ class AnalysisView:
                             res_mod_status = self.database.update_resource(code=code, res_model=res)
                             # Initialise saved undo/redo stack
                             undo.setstack(stack_old)
-                            
+
                             if res_mod_status:
                                 # Update model
                                 model_copy.resources[code] = res
                                 self.modify_model(model_copy, "Modify main database resource '{}' ".format(code), undo_main_database=True)
                                 # Set flag
                                 self.res_needs_refresh = True
-                        
+
     def add_res_group(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -412,7 +412,7 @@ class AnalysisView:
 
     def add_sum(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -426,7 +426,7 @@ class AnalysisView:
 
     def add_weight(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -440,21 +440,21 @@ class AnalysisView:
 
     def add_times(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
             pos = path[0]+1 if path is not None else 0
         else:
             pos = 0
-            
+
         model_copy.add_ana_times('Rate for unit item', 0.01, pos)
         self.modify_model(model_copy, "Add new times item at row:'{}' ".format(pos))
         self.set_selection([pos])
 
     def add_round(self):
         model_copy = copy.deepcopy(self.model)
-        
+
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
@@ -469,7 +469,7 @@ class AnalysisView:
     def delete_selected_row(self):
         """Delete selected rows"""
         model_copy = copy.deepcopy(self.model)
-        
+
         selection = self.tree.get_selection()
         if selection.count_selected_rows() != 0: # if selection exists
             [model, paths] = selection.get_selected_rows()
@@ -483,13 +483,13 @@ class AnalysisView:
             self.modify_model(model_copy, 'Delete items from analysis')
 
     # Class Methods
-    
+
     @undoable
     def modify_model(self, newval, message, undo_main_database=False):
         oldmodel = self.model
         self.model = newval
         self.update_store()
-        
+
         yield message
         # Undo main database
         if undo_main_database:
@@ -497,10 +497,10 @@ class AnalysisView:
         # Undo action
         self.model = oldmodel
         self.update_store()
-    
+
     def cell_editing_started(self, widget, editable, path, column):
         """Fill in text from schedule when schedule view column get edited
-        
+
             User Data:
                 column: column in ListStore being edited
         """
@@ -527,14 +527,14 @@ class AnalysisView:
             return paths[0].get_indices()
         else:
             return None
-            
+
     def set_selection(self, path=None):
         def search_func(model, path, iterator, data):
             code = data[0]
             if model[iterator][8] == code:
                 data[1] = path
                 return True
-                
+
         data = [str(path), None]
         self.store.foreach(search_func, data)
         if data[1] is not None:
@@ -545,7 +545,7 @@ class AnalysisView:
         """Update GUI of AnalysisView from data model while trying to preserve selection"""
 
         log.info('AnalysisView - update_store')
-        
+
         C1 = lambda x : '<span color="#486581"><b>{x}</b></span>'.format(x=str(x))
         C2 = lambda x : '<span color="#c30101"><b>{x}</b></span>'.format(x=str(x))
 
@@ -607,38 +607,38 @@ class AnalysisView:
                                                                  True,False,True,False,True,False,False])
                 amount = result[-1]
                 group_total_desc = 'TOTAL of ' + item_code if item_code != '' else 'TOTAL of ' + item['description']
-                iter_res_item = self.store.append(None,['', misc.clean_markup(group_total_desc), '', '', '', 
+                iter_res_item = self.store.append(None,['', misc.clean_markup(group_total_desc), '', '', '',
                                                              str(amount), '',misc.MEAS_COLOR_NORMAL, str([p1,None]),
                                                              False,False,False,False,False,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_SUM:
-                iter_res_item = self.store.append(None,[C2('∑'), 
-                                                        misc.clean_markup(item['description']), '', '', '', 
+                iter_res_item = self.store.append(None,[C2('∑'),
+                                                        misc.clean_markup(item['description']), '', '', '',
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,False,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_WEIGHT:
-                iter_res_item = self.store.append(None,[C1('*'), 
-                                                        misc.clean_markup(item['description']), '', 
-                                                        C1(str(item['value'])), '', 
+                iter_res_item = self.store.append(None,[C1('*'),
+                                                        misc.clean_markup(item['description']), '',
+                                                        C1(str(item['value'])), '',
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,True,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_TIMES:
-                iter_res_item = self.store.append(None,[C1('×∑'), 
-                                                        misc.clean_markup(item['description']), '', 
-                                                        C1(str(item['value'])), '', 
+                iter_res_item = self.store.append(None,[C1('×∑'),
+                                                        misc.clean_markup(item['description']), '',
+                                                        C1(str(item['value'])), '',
                                                         str(result), '', misc.MEAS_COLOR_NORMAL, str([p1]),
                                                         False,True,False,False,True,False,False])
             elif item['itemtype'] == data.schedule.ScheduleItemModel.ANA_ROUND:
                 description_ = '<b>' + misc.clean_markup(item['description']) + '</b>'
                 result_ = '<b>' + misc.clean_markup(str(result)) + '</b>'
-                iter_res_item = self.store.append(None,[C2('≈'), description_, '', 
-                                                        C2(str(item['value'])), 
+                iter_res_item = self.store.append(None,[C2('≈'), description_, '',
+                                                        C2(str(item['value'])),
                                                         '', result_, '', misc.MEAS_COLOR_HIGHLIGHTED, str([p1]),
                                                         False,True,False,False,True,False,False])
 
         self.tree.expand_all()
 
         # Set selection to the nearest item that was selected
-        
+
         if old_row != None:
             if old_row > len(self.store):
                 old_row = len(self.store)
@@ -647,7 +647,7 @@ class AnalysisView:
 
     def on_import_clicked(self, filename):
         """Imports analysis from spreadsheet file into analysis view"""
-        
+
         columntypes = [str, str, str, float, float, float]
         captions = ['Code.', 'Description', 'Unit', 'Rate', 'Qty', 'Amount']
         widths = [80, 200, 80, 80, 80, 80]
@@ -659,7 +659,7 @@ class AnalysisView:
         model_copy = copy.deepcopy(self.model)
         # Fill in analysis of rates from models
         data.schedule.parse_analysis(models, model_copy, 0)
-        
+
         # Modify model
         self.modify_model(model_copy, 'Import from excel sheet')
 
@@ -679,34 +679,34 @@ class AnalysisView:
         # Set analysis remarks in model
         if self.entry_analysis_remarks:
             self.model.ana_remarks = self.entry_analysis_remarks.get_text()
-        
+
         log.info('AnalysisView - exit')
         return (self.model, self.res_needs_refresh)
-        
-    def init(self, model):
+
+    def init(self, model, load_default_items=True):
         """Set new model"""
         self.model = copy.deepcopy(model)
-        
+
         # Setup blank analysis
-        if not self.model.ana_items:
+        if (not self.model.ana_items) and (load_default_items is True):
             self.model.ana_items = self.program_settings['ana_default_add_items']
-        
+
         # Save undo stack of parent
         self.stack_old = undo.stack()
         # Initialise undo/redo stack
         self.stack = undo.Stack()
         undo.setstack(self.stack)
-        
+
         # Clear analysis remarks
         if self.entry_analysis_remarks:
             self.entry_analysis_remarks.set_text('')
-        
+
         # Clear custom items
         self.custom_items.clear()
-        
+
         # Clear flags
         self.res_needs_refresh = False
-        
+
         # Update GUI elements according to data
         self.update_store()
         log.info('AnalysisView - init - ' + str(model.code))
@@ -729,7 +729,7 @@ class AnalysisView:
         self.entry_analysis_remarks = remarks_entry
         self.program_settings = program_settings
         self.instance_code_callback = instance_code_callback
-        
+
         # Track custom items added into view
         self.custom_items = []
 
@@ -746,7 +746,7 @@ class AnalysisView:
         self.column_desc.props.expand = True
         self.column_desc.props.fixed_width = 200
         self.column_desc.set_resizable(True)
-        
+
         self.column_remarks = Gtk.TreeViewColumn('Remarks')
         self.column_remarks.props.fixed_width = 200
         self.column_remarks.set_resizable(True)
@@ -848,5 +848,3 @@ class AnalysisView:
 
         # Intialise clipboard
         self.clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-        
-        

@@ -74,6 +74,7 @@
             <property name="hexpand">True</property>
             <property name="vexpand">True</property>
             <property name="orientation">vertical</property>
+            <property name="spacing">12</property>
             <child>
               <object class="GtkFrame">
                 <property name="visible">True</property>
@@ -87,7 +88,6 @@
                     <property name="can-focus">False</property>
                     <property name="margin-start">12</property>
                     <property name="margin-top">6</property>
-                    <property name="margin-bottom">6</property>
                     <property name="hexpand">True</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">12</property>
@@ -95,9 +95,8 @@
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Break item description across
-multiple lines</property>
-                        <property name="xalign">1</property>
+                        <property name="label" translatable="yes">Break item description across multiple lines</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -147,7 +146,6 @@ multiple lines</property>
                     <property name="can-focus">False</property>
                     <property name="margin-start">12</property>
                     <property name="margin-top">6</property>
-                    <property name="margin-bottom">6</property>
                     <property name="hexpand">True</property>
                     <property name="row-spacing">6</property>
                     <property name="column-spacing">12</property>
@@ -156,7 +154,7 @@ multiple lines</property>
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="label" translatable="yes">Database Location</property>
-                        <property name="xalign">1</property>
+                        <property name="xalign">0</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
@@ -209,18 +207,17 @@ multiple lines</property>
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-top">6</property>
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
                     <property name="orientation">vertical</property>
-                    <property name="spacing">12</property>
+                    <property name="spacing">6</property>
                     <child>
                       <!-- n-columns=2 n-rows=1 -->
                       <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-start">12</property>
-                        <property name="margin-top">6</property>
-                        <property name="margin-bottom">6</property>
                         <property name="hexpand">True</property>
                         <property name="row-spacing">6</property>
                         <property name="column-spacing">12</property>
@@ -228,9 +225,12 @@ multiple lines</property>
                           <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Number of rows to be deleted 
-when modifying analysis</property>
-                            <property name="xalign">1</property>
+                            <property name="label" translatable="yes">Number of lines of analysis to be deleted 
+at the end when [Modify &amp; Add] option is selected</property>
+                            <property name="wrap">True</property>
+                            <property name="width-chars">50</property>
+                            <property name="max-width-chars">50</property>
+                            <property name="xalign">0</property>
                           </object>
                           <packing>
                             <property name="left-attach">0</property>
@@ -242,7 +242,7 @@ when modifying analysis</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="valign">center</property>
-                            <property name="hexpand">True</property>
+                            <property name="width-chars">10</property>
                             <property name="max-width-chars">1</property>
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">ana_delete_adjustment</property>
@@ -257,13 +257,14 @@ when modifying analysis</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
-                        <property name="position">0</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-top">12</property>
                         <property name="hexpand">True</property>
                         <property name="vexpand">True</property>
                         <property name="orientation">vertical</property>
@@ -404,6 +405,29 @@ when modifying analysis</property>
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
                             <child>
+                              <object class="GtkScrolledWindow" id="scrolledwindow2">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="shadow-type">in</property>
+                                <child>
+                                  <object class="GtkTreeView" id="treeview_default_settings">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="enable-grid-lines">both</property>
+                                    <child internal-child="selection">
+                                      <object class="GtkTreeSelection"/>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="name">default_analysis</property>
+                                <property name="title" translatable="yes">Default Analysis Template</property>
+                              </packing>
+                            </child>
+                            <child>
                               <object class="GtkScrolledWindow" id="scrolledwindow1">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
@@ -426,29 +450,6 @@ when modifying analysis</property>
                               <packing>
                                 <property name="name">modify_analysis</property>
                                 <property name="title" translatable="yes">Modify Analysis Template</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkScrolledWindow" id="scrolledwindow2">
-                                <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="hexpand">True</property>
-                                <property name="vexpand">True</property>
-                                <property name="shadow-type">in</property>
-                                <child>
-                                  <object class="GtkTreeView" id="treeview_default_settings">
-                                    <property name="visible">True</property>
-                                    <property name="can-focus">True</property>
-                                    <property name="enable-grid-lines">both</property>
-                                    <child internal-child="selection">
-                                      <object class="GtkTreeSelection"/>
-                                    </child>
-                                  </object>
-                                </child>
-                              </object>
-                              <packing>
-                                <property name="name">default_analysis</property>
-                                <property name="title" translatable="yes">Default Analysis Template</property>
                                 <property name="position">1</property>
                               </packing>
                             </child>
@@ -472,7 +473,7 @@ when modifying analysis</property>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Analysis settings</property>
+                    <property name="label" translatable="yes">Analysis options</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>

@@ -8,3 +8,4 @@ gestimator.flatpak
 Pipfile.lock
 Pipfile
 /venv
+/pvenv
