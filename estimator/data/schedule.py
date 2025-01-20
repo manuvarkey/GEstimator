@@ -849,7 +849,7 @@ class ScheduleDatabase:
     def get_library_names(self):
         return list(self.libraries.keys())
 
-    def bulk_modify_analysis(self):
+    def bulk_modify_analysis_draft(self):
         """ Draft function for manual manipulation of database"""
         sch_table = self.get_item_table(flat=True)
 
@@ -888,37 +888,57 @@ class ScheduleDatabase:
                     elif item['itemtype'] == ScheduleItemModel.ANA_ROUND:
                         pass
 
-    # template = {'match_criterion': [ScheduleItemModel.ANA_GROUP, 'description', 'Add 18% GST (MF = 0.2127)'],
-    #             'skip': 2,
-    #             'delete': 0,
-    #             'modify': [['description', 'Add 18% GST (MF = 0.2127)'],
-    #                     ['value', 0.18]],
-    #             'add': [{"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"},
-    #                     {"itemtype": 1, "description": "TOTAL"},
-    #                     {'description': 'Add 18% GST', 'value': 0.18, 'itemtype': 2},
-    #                     {'description': 'TOTAL', 'itemtype': 1},
-    #                     {"itemtype": 4, "value": 0, "description": "Say"}] }
+    def bulk_modify_analysis(self, template, codes = None):
+        match_type = template['match_criterion'][0]
+        match_field = template['match_criterion'][1]
+        match_value = template['match_criterion'][2]
+        skip = template['skip']
+        delete = template['delete']
+        modify = template['modify']
+        add = template['add']
+        modified_count = 0
 
-    # def modify_ana_item(self, code, template):
-    #     match_type = template['match_criterion'][0]
-    #     match_field = template['match_criterion'][1]
-    #     match_value = template['match_criterion'][2]
-    #     skip = template['skip']
-    #     delete = template['delete']
-    #     modify = template['modify']
-    #     add = template['add']
-    #     modified_flag = False
+        if codes == None:
+            codes = self.get_item_table(flat=True).keys()
 
-    #     sch_item = self.get_item(code, modify_res_code=False)
-    #     if sch_item.ana_items:
-    #         for slno in range(len(sch_item.ana_items)):
-    #             item = sch_item.ana_items[slno]
-    #             # Check for match
-    #             if match_type == ScheduleItemModel.ANA_GROUP and item[match_field] == match_value:
-    #                 # Skip items
-    #                 if skip:
-    #                     slno += skip
-    #                 if delete:
+        for code in codes:
+            sch_item = self.get_item(code, modify_res_code=False)
+            if sch_item.ana_items and len(sch_item.ana_items) > 1:
+                for slno, item in enumerate(sch_item.ana_items):
+                    if item['itemtype'] == ScheduleItemModel.ANA_GROUP:
+                        pass
+
+                slno = 0
+                while slno < len(sch_item.ana_items):
+                    item = sch_item.ana_items[slno]
+                    # Check for match
+                    if item['itemtype'] == match_type and item[match_field] == match_value:
+                        # Skip rows if set
+                        if skip:
+                            slno += skip
+                            if slno < len(sch_item.ana_items):
+                                item_after_skip = sch_item.ana_items[slno]
+                            else:
+                                break
+                        # Implement deletion/ modifcation/ addition
+                        if delete:
+                            for delete_index in range(min(delete, len(sch_item.ana_items) - slno)):
+                                sch_item.delete_item([slno])
+                        elif modify:
+                            for field, value in modify:
+                                item_after_skip[field] = value
+                        elif add:
+                            for ana_item in reversed(add):
+                                sch_item.insert_item(ana_item, [slno])
+                            slno += (len(add) - 1)
+                        else:
+                            slno += 1
+                            continue
+                        modified_count += 1
+                        self.insert_item_atomic(sch_item, path=None, update=True)
+                        log.info('ScheduleDatabase - bulk_modify_analysis - Item modified: ' + code)
+                    slno += 1
+        return modified_count
 
 
     ## Project settings

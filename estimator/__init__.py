@@ -1141,7 +1141,18 @@ class MainWindow:
     def on_refresh(self, widget):
         """Refresh display of views"""
         log.info('on_refresh called')
-        # self.sch_database.bulk_modify_analysis()
+        # template = {'match_criterion': [2, 'description', 'Add CP&OH @ 15%'],
+        #             'skip': 2,
+        #             'delete': 0,
+        #             'modify': [],
+        #             # 'modify': [['description', 'Add 18% GST (MF = 0.2127)'],
+        #             #         ['value', 0.18]],
+        #             'add': [{"itemtype": 2, "value": 0.01, "description": "Add LC @ 1%"},
+        #                     {"itemtype": 1, "description": "TOTAL"},
+        #                     {'description': 'Add 18% GST', 'value': 0.18, 'itemtype': 2},
+        #                     {'description': 'TOTAL', 'itemtype': 1},
+        #                     {"itemtype": 4, "value": 0, "description": "Say"}] }
+        # self.sch_database.bulk_modify_analysis(template)
         self.update()
         self.display_status(misc.INFO, "Project Refreshed")
 
