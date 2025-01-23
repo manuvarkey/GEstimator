@@ -1214,11 +1214,13 @@ class MainWindow:
             os.makedirs(settings_dir)
         if not os.path.exists(self.user_library_dir):
             os.makedirs(self.user_library_dir)
-
+        
+        self.program_settings = copy.deepcopy(misc.default_program_settings)
         try:
             if os.path.exists(self.settings_filename):
                 with open(self.settings_filename, 'rb') as fp:
-                    self.program_settings = pickle.load(fp)
+                    program_settings = pickle.load(fp)
+                    self.program_settings.update(program_settings)
                     log.info('Program settings opened at ' + str(self.settings_filename))
             else:
                 self.program_settings = copy.deepcopy(misc.default_program_settings)
@@ -1226,8 +1228,7 @@ class MainWindow:
                     pickle.dump(self.program_settings, fp)
                 log.info('Program settings saved at ' + str(self.settings_filename))
         except:
-            # If an error load default program preference
-            self.program_settings = copy.deepcopy(misc.default_program_settings)
+            log.info('Default program settings loaded')
         log.info('Program settings initialised')
 
         log.info('Setting up Libraries')

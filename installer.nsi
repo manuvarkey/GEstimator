@@ -7,7 +7,7 @@
 !define DESCRIPTION "Civil estimation program for civil/electrical works"
 # These three must be integers
 !define VERSIONMAJOR 2
-!define VERSIONMINOR 6
+!define VERSIONMINOR 7
 !define VERSIONBUILD 1
 # These will be displayed by the "Click here for support information" link in "Add/Remove Programs"
 # It is possible to use "mailto:" links in here to open the email client
@@ -28,7 +28,7 @@ LicenseData "LICENSE"
 # This will be in the installer/uninstaller's title bar
 Name "${APPNAME}"
 Icon "GEstimator.ico"
-outFile "GEstimator-win64-2-6-1.exe"
+outFile "GEstimator-win64-2-7-1.exe"
  
 !include LogicLib.nsh
  

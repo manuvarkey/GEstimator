@@ -36,6 +36,16 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+	<release date="2025-01-23" version="2.7.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Support for modifying schedule rate while adding item</li>
+			<li>Update to DSR E&M 2022 as per ammendments issued, modification in GST, LC</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
     <release date="2024-08-08" version="2.6.0">
       <description>
         <p>Changelog:</p>
