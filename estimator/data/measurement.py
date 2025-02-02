@@ -294,6 +294,7 @@ class MeasurementItemCustom(MeasurementItem):
         self.name = ''
         self.itemtype = None
         self.itemnos_mask = []
+        self.itemnos_mapping = []
         self.captions = []
         self.columntypes = []
         self.cust_funcs = []
@@ -316,6 +317,7 @@ class MeasurementItemCustom(MeasurementItem):
                 self.name = self.custom_object.name
                 self.itemtype = plugin
                 self.itemnos_mask = self.custom_object.itemnos_mask
+                self.itemnos_mapping = self.custom_object.itemnos_mapping
                 self.captions = self.custom_object.captions
                 self.columntypes = self.custom_object.columntypes
                 self.cust_funcs = self.custom_object.cust_funcs
@@ -391,7 +393,11 @@ class MeasurementItemCustom(MeasurementItem):
             spreadsheet.append_data([[None, 'Remarks: ' + self.remark]], bold=True)
             row = row + 1
         # Data rows
-        spreadsheet.append_data([[None], [None] + self.captions], bold=True)
+        captions = copy.copy(self.captions)
+        for item_remark, itemno_mapping in zip(self.item_remarks, self.itemnos_mapping):
+            if itemno_mapping:
+                captions[itemno_mapping] += ('\n' + item_remark)
+        spreadsheet.append_data([[None], [None] + captions], bold=True)
         row = row + 1
         for slno, record in enumerate(self.records,1):
             values = record.get_model_rendered(slno)
@@ -429,4 +435,3 @@ class MeasurementItemCustom(MeasurementItem):
             return "Remark: " + self.remark
         else:
             return None
-

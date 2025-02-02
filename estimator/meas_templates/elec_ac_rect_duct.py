@@ -52,17 +52,18 @@ class CustomItem:
                     total[0] += item.find_total()[0]
             total[0] = round(total[0],3)
             return total
-        
+
         def total_func_item(values):
             # Populate data values
             data = values[1:7]
             # Evaluate total
             total = round((data[0]+data[1]+data[2]+data[3])*(data[4]+data[5])/2000000.0,3)
             return [total]
-        
+
         # Define your variables here
         self.name = 'Elec: A/C Rectangular Ducting'
         self.itemnos_mask = [None]
+        self.itemnos_mapping = [None]
         self.captions = ['Description','H1(mm)','W1(mm)','H2(mm)','W2(mm)','L1(mm)','L2(mm)','Total']
         self.columntypes = [MEAS_DESC,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_CUST]
         self.captions_udata = []
@@ -73,4 +74,3 @@ class CustomItem:
         self.total_func = total_func
         self.total_func_item = total_func_item
         self.dimensions = [[300,80,80,80,80,80,80,100], [True,False,False,False,False,False,False,False]]
-        

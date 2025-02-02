@@ -57,7 +57,7 @@ class CustomItem:
                     total[0] += item.find_total()[0]
             total[0] = round(total[0],3)
             return total
-        
+
         def total_func_item(values):
             # Populate data values
             data = values[1:6]
@@ -73,6 +73,7 @@ class CustomItem:
         # Define your variables here
         self.name = 'Elec: Table of Points'
         self.itemnos_mask = [None]
+        self.itemnos_mapping = [None]
         self.captions = ['Description','Lights','Fans','Ex.Fans','Call Bells','Other','Total']
         self.columntypes = [MEAS_DESC,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_CUST]
         self.captions_udata = []
@@ -83,6 +84,3 @@ class CustomItem:
         self.total_func = total_func
         self.total_func_item = total_func_item
         self.dimensions = [[200,80,80,80,80,80,100], [True,False,False,False,False,False,False]]
-          
-        
-        

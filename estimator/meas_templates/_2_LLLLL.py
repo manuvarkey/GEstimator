@@ -31,7 +31,7 @@ MEAS_CUST = 4
 
 class CustomItem:
     def __init__(self):
-    
+
         def callback_breakup(values,row=None):
             data_str = values[2:7]
             breakup = "["
@@ -39,7 +39,7 @@ class CustomItem:
                 if x != "" and x!= '0':
                     breakup = breakup + str(x) + ","
                 else:
-                    breakup = breakup + ','      
+                    breakup = breakup + ','
             breakup = breakup[:-1] + "]"
             return breakup
 
@@ -53,13 +53,14 @@ class CustomItem:
             for i in range(5):
                 total[i] = round(total[i],3)
             return total
-        
+
         def total_func_item(values):
             return [round(x,3) for x in values[2:7]]
-        
+
         # Define your variables here
         self.name = 'Item LLLLL'
         self.itemnos_mask = [None,None,None,None,None]
+        self.itemnos_mapping = [2, 3, 4, 5, 6]
         self.captions = ['Description','Breakup','L1','L2','L3','L4','L5']
         self.columntypes = [MEAS_DESC,MEAS_CUST,MEAS_L,MEAS_L,MEAS_L,MEAS_L,MEAS_L]
         self.captions_udata = []
@@ -70,6 +71,3 @@ class CustomItem:
         self.total_func = total_func
         self.total_func_item = total_func_item
         self.dimensions = [[200,150,80,80,80,80,80], [True,False,False,False,False,False,False]]
-          
-        
-        

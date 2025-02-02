@@ -4,23 +4,23 @@
 # scheduledialog.py
 #
 #  Copyright 2014 Manu Varkey <manuvarkey@gmail.com>
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-#  
-#  
+#
+#
 
 import copy, logging, codecs, pickle
 from gi.repository import Gtk, Gdk, GLib, Pango
@@ -42,7 +42,7 @@ class ScheduleViewGeneric:
 
     def onScheduleCellEditedText(self, widget, row, new_text, column):
         """Treeview cell renderer for editable text field
-        
+
             User Data:
                 column: column in ListStore being edited
         """
@@ -50,21 +50,21 @@ class ScheduleViewGeneric:
 
     def onScheduleCellEditedNum(self, widget, row, new_text, column):
         """Treeview cell renderer for editable number field
-        
+
             User Data:
                 column: column in ListStore being edited
         """
         try:  # check whether item evaluates fine
             eval(new_text)
         except:
-            log.warning("ScheduleViewGeneric - onScheduleCellEditedNum - evaluation of [" 
+            log.warning("ScheduleViewGeneric - onScheduleCellEditedNum - evaluation of ["
             + new_text + "] failed")
             return
         self.cell_renderer_text(int(row), column, new_text)
 
     def onEditStarted(self, widget, editable, path, column):
         """Fill in text from schedule when schedule view column get edited
-        
+
             User Data:
                 column: column in ListStore being edited
         """
@@ -76,12 +76,12 @@ class ScheduleViewGeneric:
     # for browsing with tab key
     def onKeyPressTreeviewSchedule(self, widget, event, treeview):
         """Handle key presses"""
-        
+
         def select_func(tree, treepath, col):
             tree.grab_focus()
             tree.set_cursor(treepath, col, True)
             return False
-                        
+
         keyname = event.get_keyval()[1]
         state = event.get_state()
         shift_pressed = bool(state & Gdk.ModifierType.SHIFT_MASK)
@@ -122,23 +122,23 @@ class ScheduleViewGeneric:
                             treeview.scroll_to_cell(path, next_column, False)
                         GLib.idle_add(select_func, treeview, path, next_column)
                         return
-                        
+
                 elif keyname in [Gdk.KEY_Alt_L , Gdk.KEY_Alt_R , Gdk.KEY_Escape]:  # unselect all
                     self.tree.get_selection().unselect_all()
-                    
+
     def on_wrap_column_resized(self, column, pspec, cell):
         """ Automatically adjust wrapwidth to column width"""
-        
+
         width = column.get_width()
         oldwidth = cell.props.wrap_width
-        
+
         if width > 0 and width != oldwidth:
             cell.props.wrap_width = width
             # Force redraw of treeview
             GLib.idle_add(column.queue_resize)
 
     # Class methods
-    
+
     def setup_column_props(self, widths, expandables):
         """Set column properties
             Arguments:
@@ -152,13 +152,13 @@ class ScheduleViewGeneric:
                 self.celldict[column].props.wrap_width = width
             if expandable != None:
                 column.set_expand(expandable)
-                
+
     def set_selection(self, path=None):
         if path:
             path_iter = Gtk.TreePath.new_from_indices(path)
             self.tree.set_cursor(path_iter)
             self.tree.scroll_to_cell(path_iter, None)
-                
+
     def insert_item_at_selection(self, itemlist):
         """Insert items at selected row"""
         if itemlist:
@@ -187,7 +187,7 @@ class ScheduleViewGeneric:
 
         # delete rows
         self.delete_row(rows)
-        
+
     @undoable
     def append_item(self, itemlist):
         """Undoable function to append items to schedule"""
@@ -201,11 +201,11 @@ class ScheduleViewGeneric:
         yield "Append data items to schedule at row '{}'".format(newrows)
         # Undo action
         self.delete_row(newrows)
-    
+
     @undoable
     def insert_item_at_row(self, itemlist, rows):
         """Undoable function to insert items to schedule at given rows
-        
+
             Remarks:
                 Need rows to be sorted.
         """
@@ -291,6 +291,12 @@ class ScheduleViewGeneric:
         self.schedule.set_model(schedule)
         self.update_store()
 
+    def set_caption(self, caption, slno):
+        """Update column captions"""
+        if slno < len(self.captions):
+            self.captions[slno] = caption
+            self.columns[slno].set_title(caption)
+
     def clear(self):
         """Clear all schedule items"""
         self.schedule.clear()
@@ -337,7 +343,7 @@ class ScheduleViewGeneric:
 
     def __init__(self, parent, tree, captions, columntypes, render_funcs):
         """Initialise ScheduleViewGeneric class
-        
+
             Arguments:
                 parent: Parent widget (dialog/window)
                 tree: Treeview for implementing schedule
@@ -353,7 +359,7 @@ class ScheduleViewGeneric:
         # Setup variables
         self.parent = parent
         self.tree = tree
-        self.captions = captions
+        self.captions = copy.copy(captions)
         self.columntypes = columntypes
         self.render_funcs = render_funcs
         self.schedule = data.schedule_meas.ScheduleGeneric()
@@ -364,7 +370,7 @@ class ScheduleViewGeneric:
         self.tree.set_model(self.store)
         self.celldict = dict()
         self.columns = []
-        
+
         # Interactive search function
         def equal_func(model, column, key, iter, cols):
             """Equal function for interactive search"""
@@ -375,7 +381,7 @@ class ScheduleViewGeneric:
                 if word.lower() not in search_string:
                     return True
             return False
-            
+
         # Set interactive search function
         cols = [i for i,x in enumerate(self.columntypes) if x == misc.MEAS_DESC]
         self.tree.set_search_equal_func(equal_func, [0,1,5])
@@ -386,7 +392,7 @@ class ScheduleViewGeneric:
 
             column = Gtk.TreeViewColumn(caption, cell, text=i)
             column.props.resizable = True
-            
+
             self.columns.append(column)  # Add column to list of columns
             self.celldict[column] = cell  # Add cell to column map for future ref
 
@@ -452,7 +458,7 @@ class ScheduleDialog:
     """Class implements a dialog box for entry of measurement records"""
 
     # General Methods
-    
+
     def model_width(self):
         """Width of schedule model loaded"""
         return self.schedule_view.model_width()
@@ -482,10 +488,10 @@ class ScheduleDialog:
             cell.set_text(text)
 
     # Callbacks for GUI elements
-    
+
     def onDeleteWindow(self, *args):
         """Callback called on pressing the close button of main window"""
-        
+
         log.info('ScheduleDialog - onDeleteWindow called')
         # Ask confirmation from user
         message = 'Any changes made will be lost if you continue.\n Are you sure you want to Cancel ?'
@@ -516,7 +522,15 @@ class ScheduleDialog:
             self.itemnos[index] = response[0]
             self.itemnosid[index] = response[1]
             button.set_label(str(response[0]))
-        
+
+    def OnRemarkEdited(self, entry, index):
+        text = entry.get_text()
+        col_index = self.itemnos_mapping[index]
+        base_caption = self.captions[col_index]
+        if col_index:
+            new_text = base_caption + '\n' + text
+            self.schedule_view.set_caption(new_text, col_index)
+
     def onClearButtonPressed(self, button, button_item, index):
         """Clear combobox selecting schedule item"""
         button_item.set_label('None')
@@ -570,7 +584,7 @@ class ScheduleDialog:
     def onImportScheduleClicked(self, button):
         """Import xlsx file into schedule"""
         filename = self.builder.get_object("filechooserbutton_schedule").get_filename()
-        
+
         spread_col_types = []
         for columntype in self.columntypes:
             if columntype == misc.MEAS_NO:
@@ -581,7 +595,7 @@ class ScheduleDialog:
                 spread_col_types.append(str)
             elif columntype == misc.MEAS_CUST:
                 spread_col_types.append(None)
-            
+
         spreadsheet_dialog = misc.SpreadsheetDialog(self.window, filename, spread_col_types, self.captions, self.dimensions, allow_formula=True)
         models = spreadsheet_dialog.run()
 
@@ -591,15 +605,15 @@ class ScheduleDialog:
             items.append(item)
         self.schedule_view.insert_item_at_selection(items)
 
-    def __init__(self, parent, sch_database, itemnosid, captions, columntypes, render_funcs, dimensions=None):
+    def __init__(self, parent, sch_database, itemnosid, itemnos_mapping, captions, columntypes, render_funcs, dimensions=None):
         """Initialise ScheduleDialog class
-        
+
             Arguments:
                 parent: Parent widget (Main window)
                 sch_database: Agreement schedule
                 itemnos: Itemsnos of items being meaured
                 captions: Captions of columns
-                columntypes: Data types of columns. 
+                columntypes: Data types of columns.
                              Takes following values:
                                 misc.MEAS_NO: Integer
                                 misc.MEAS_L: Float
@@ -613,12 +627,13 @@ class ScheduleDialog:
         self.parent = parent
         self.itemnosid = itemnosid
         self.itemnos = itemnosid
+        self.itemnos_mapping = itemnos_mapping
         self.captions = captions
         self.columntypes = columntypes
         self.render_funcs = render_funcs
         self.sch_database = sch_database
         self.dimensions = dimensions
-        
+
         # Save undo stack of parent
         self.stack_old = undo.stack()
         # Initialise undo/redo stack
@@ -636,7 +651,7 @@ class ScheduleDialog:
         # Get required objects
         self.listbox_itemnos = self.builder.get_object("listbox_itemnos")
         self.tree = self.builder.get_object("treeview_schedule")
-        
+
         # Setup schdule view for items
         self.schedule_view = ScheduleViewGeneric(self.parent,
             self.tree, self.captions, self.columntypes, self.render_funcs)
@@ -671,7 +686,7 @@ class ScheduleDialog:
             entry = Gtk.Entry()
             button_clear = Gtk.Button(stock=Gtk.STOCK_CLEAR)
             button_item = Gtk.Button.new_with_label("None")
-            
+
             # Pack row
             row.add(hbox)
             hbox.pack_start(entry, False, True, 3)
@@ -682,6 +697,7 @@ class ScheduleDialog:
             entry.props.width_request = 50
             button_clear.connect("clicked", self.onClearButtonPressed, button_item, index)
             button_item.connect("clicked", self.OnItemSelectClicked, index)
+            entry.connect("changed", self.OnRemarkEdited, index)
 
             # Add to list box
             self.listbox_itemnos.add(row)
@@ -692,7 +708,7 @@ class ScheduleDialog:
 
     def run(self):
         """Display dialog box and return data model
-        
+
             Returns:
                 Data Model on Ok
                 None on Cancel
@@ -711,4 +727,3 @@ class ScheduleDialog:
             self.window.destroy()
             log.info('ScheduleDialog - run - Response Cancel')
             return None
-

@@ -50,7 +50,7 @@ class CustomItem:
                 return '0'
             else:
                 return str(round(total,3))
-    
+
         def callback_breakup(values,row=None):
             data_str = values[2:6]
             breakup = "["
@@ -58,7 +58,7 @@ class CustomItem:
                 if x != "" and x!= '0':
                     breakup = breakup + str(x) + ","
                 else:
-                    breakup = breakup + ','      
+                    breakup = breakup + ','
             breakup = breakup[:-1] + "]"
             return breakup
 
@@ -69,7 +69,7 @@ class CustomItem:
                     total[0] += item.find_total()[0]
             total[0] = round(total[0],3)
             return total
-        
+
         def total_func_item(values):
             # Evaluate product of non-zero values
             data = values[2:6]
@@ -81,10 +81,11 @@ class CustomItem:
                 return [0]
             else:
                 return [round(total,3)]
-        
+
         # Define your variables here
         self.name = 'Item NLBH'
         self.itemnos_mask = [None]
+        self.itemnos_mapping = [None]
         self.captions = ['Description', 'Breakup','No','L','B','H','Total']
         self.columntypes = [MEAS_DESC,MEAS_CUST,MEAS_L,MEAS_L,MEAS_L,MEAS_L,MEAS_CUST]
         self.captions_udata = []
@@ -95,6 +96,3 @@ class CustomItem:
         self.total_func = total_func
         self.total_func_item = total_func_item
         self.dimensions = [[200,150,80,80,80,80,100], [True,False,False,False,False,False,False]]
-          
-        
-        

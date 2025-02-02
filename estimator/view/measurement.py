@@ -2,25 +2,25 @@
 # -*- coding: utf-8 -*-
 #
 #  measuremets.py
-#  
+#
 #  Copyright 2014 Manu Varkey <manuvarkey@gmail.com>
-#  
+#
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  This program is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
-#  
-#  
+#
+#
 
 import pickle, codecs, os.path, copy, logging
 
@@ -37,23 +37,23 @@ log = logging.getLogger()
 
 class MeasurementsView:
     """Implements a view for display and manipulation of measurement items over a treeview"""
-            
+
     # Callback functions
-    
+
     def onKeyPressTreeview(self, treeview, event):
         """Handle keypress event"""
         # Unselect all
         if event.keyval == Gdk.KEY_Escape:
             self.tree.get_selection().unselect_all()
-            
+
     def onButtonPressTreeview(self, treeview, event):
         """Handle button press event"""
         # Handle double clicks
         if event.type == Gdk.EventType._2BUTTON_PRESS:
             self.edit_selected_row()
-            
+
     # Public Methods
-        
+
     def add_heading(self):
         """Add a Heading to measurement view"""
         heading_name = misc.get_user_input_text(self.parent, "Please input Heading. Any additional lines will be printed under the heading.", "Add new Item: Heading", None, True)
@@ -71,11 +71,11 @@ class MeasurementsView:
         else:
             # Return status code for main application interface
             return (misc.WARNING,"Item not added")
-                    
+
     def add_custom(self, oldval=None, itemtype=None, path=None):
         """Add a Custom item to measurement view"""
         item = data.measurement.MeasurementItemCustom(None, itemtype)
-        template = [item.itemnos_mask, item.captions, item.columntypes, item.cust_funcs, item.dimensions]
+        template = [item.itemnos_mask, item.itemnos_mapping, item.captions, item.columntypes, item.cust_funcs, item.dimensions]
         dialog = ScheduleDialog(self.parent, self.sch_database, *template)
         if oldval is not None: # if edit mode add data
             # Obtain ScheduleDialog model from MeasurementItemCustom model
@@ -86,7 +86,7 @@ class MeasurementsView:
             if retdata is not None: # if edited
                 # Obtain MeasurementItemCustom model from ScheduleDialog model
                 item.set_model(['MeasurementItemCustom', retdata + old_value_mod[1][4:6]])
-                self.sch_database.edit_measurement_item(path, item, oldval) 
+                self.sch_database.edit_measurement_item(path, item, oldval)
             else: # if cancel pressed
                 return (misc.INFO,'Cancelled by user. Item not added')
         else: # if normal mode
@@ -106,7 +106,7 @@ class MeasurementsView:
             else: # if cancel pressed
                 return (misc.INFO,'Cancelled by user. Item not added')
         self.update_store()
-        
+
     def delete_selected_row(self):
         """Delete selected rows"""
         selection = self.tree.get_selection()
@@ -175,7 +175,7 @@ class MeasurementsView:
                 log.warning('MeasurementsView - paste_at_selection - No valid data in clipboard')
         else:
             log.warning('MeasurementsView - paste_at_selection - No text on the clipboard')
-            
+
     def edit_selected_row(self):
         """Edit selected Row"""
         # Get selection
@@ -213,7 +213,7 @@ class MeasurementsView:
                         olddata = oldmodel[1][4]
                         # Setup user data dialog
                         newdata = olddata[:]
-                        project_settings_dialog = misc.UserEntryDialog(self.parent, 
+                        project_settings_dialog = misc.UserEntryDialog(self.parent,
                                                     'Edit User Data',
                                                     newdata,
                                                     item.captions_udata)
@@ -228,14 +228,14 @@ class MeasurementsView:
                             self.update_store()
                         return None
         return (misc.WARNING,'User data not supported')
-        
+
     def update_store(self):
         """Update GUI of MeasurementsView from data model while trying to preserve selection"""
         log.info('MeasurementsView - update_store')
-        
+
         # Get measurement model
         self.measurements = self.sch_database.get_measurement()
-                                
+
         # Get selection
         selection = self.tree.get_selection()
         old_path = []
@@ -256,22 +256,22 @@ class MeasurementsView:
             else:
                 path = [len(self.measurements.items)-1]
         self.tree.set_cursor(Gtk.TreePath.new_from_indices(path))
-                    
+
     def __init__(self, parent, sch_database, tree):
         """Initialise MeasurementsView class
-        
+
             Arguments:
                 parent: Parent widget (Main window)
                 data: Main data model
                 tree: Treeview for implementing MeasurementsView
         """
         log.info('MeasurementsView - initialise')
-        
+
         self.parent = parent
         self.tree = tree
         self.sch_database = sch_database
         self.measurements = None
-        
+
         ## Setup treeview store
         # Sl.No., Item Description, Tooltip
         self.store = Gtk.ListStore(str,str,str)
@@ -303,7 +303,6 @@ class MeasurementsView:
         # Connect Callbacks
         self.tree.connect("key-press-event", self.onKeyPressTreeview)
         self.tree.connect("button-press-event", self.onButtonPressTreeview)
-        
+
         # Update GUI elements according to data
         self.update_store()
-        

@@ -22,27 +22,6 @@
 #
 #
 
-# Standard conviniance functions * DONT CHANGE *
-
-def replace_all(text, dic):
-    for i, j in dic.items():
-        j = clean_latex(j)
-        text = text.replace(i, j)
-    return text
-
-
-def replace_all_vanilla(text, dic):
-    for i, j in dic.items():
-        text = text.replace(i, j)
-    return text
-
-def clean_latex(text):
-    for splchar, replspelchar in zip(['\\', '#', '$', '%', '^', '&', '_', '{', '}', '~', '\n'],
-                                     ['\\textbackslash ', '\# ', '\$ ', '\% ', '\\textasciicircum ', '\& ', '\_ ',
-                                      '\{ ', '\} ', '\\textasciitilde ', '\\newline ']):
-        text = text.replace(splchar, replspelchar)
-    return text
-
 # Item codes for schedule dialog * DONT CHANGE *
 MEAS_NO = 1
 MEAS_L = 2
@@ -145,7 +124,7 @@ class CustomItem:
                 except:
                     pass
             return [round(grandtotal,3)]
-        
+
         def total_func_item(values):
             # Populate data values
             n = values[1]*values[2]
@@ -153,7 +132,7 @@ class CustomItem:
             # Evaluate total
             total = [round(l*n,2) for l in data_l]
             return total
-            
+
         def export_abstract(item_list,userdata):
             total = [0]*6
             for item in item_list:
@@ -163,10 +142,11 @@ class CustomItem:
                         total[i] += t
             total_str = [str(t) for t in total]
             return ['','1','1'] + total_str
-                
+
         # Define your variables here
         self.name = 'Civil: Table of Steel Bars'
         self.itemnos_mask = [None]
+        self.itemnos_mapping = [None]
 
         self.captions = ['Description','N1','N2','L1','L2','L3','L4','L5','L6','L',
                          'T1','T2','T3','T4','T5','T6']
