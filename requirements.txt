@@ -2,3 +2,4 @@ appdirs==1.4.4
 et-xmlfile==1.1.0
 openpyxl==3.1.5
 peewee==3.17.6
+prettytable==3.14.0

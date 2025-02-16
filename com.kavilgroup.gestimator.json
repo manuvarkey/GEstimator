@@ -37,6 +37,11 @@
                     "url": "https://files.pythonhosted.org/packages/bd/be/e9c886b4601a19f4c34a1b75c5fe8b98a2115dd964251a76b24c977c369d/peewee-3.17.6.tar.gz",
                     "sha256": "cea5592c6f4da1592b7cff8eaf655be6648a1f5857469e30037bf920c03fb8fb"
                 }
+                {
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/02/7b/18bb59d7c3a4ac9ac7d986cfe49dd3c2e5f5ae3e65ca3db8816764e0c1df/prettytable-3.14.0.tar.gz",
+                    "sha256": "b804b8d51db23959b96b329094debdbbdf10c8c3aa75958c5988cfd7f78501dd"
+                }
             ]
         },
         {
