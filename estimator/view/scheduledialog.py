@@ -22,7 +22,7 @@
 #
 #
 
-import copy, logging, codecs, pickle
+import copy, logging, codecs, pickle, textwrap
 from gi.repository import Gtk, Gdk, GLib, Pango
 
 # local files import
@@ -470,13 +470,29 @@ class ScheduleDialog:
         data = [self.itemnosid, self.schedule_view.get_model(), remark, item_remarks]
         return data
 
+    def set_item_button(self, itemno, button):
+        if itemno:
+            item = self.sch_database.get_item(itemno, modify_res_code=False)
+            full_description = item.description
+            if item.parent is not None:
+                parent = self.sch_database.get_item(item.parent)
+                full_description = parent.description + '\n' + full_description
+            item_desc = misc.get_ellipsized_text(full_description, misc.MAX_DESC_LEN_MEAS, singleline=True)
+            display_text = misc.get_tabular_text([[itemno, item_desc]])
+            button.set_label(str(display_text))
+            button.get_child().set_xalign(0)
+            button.set_has_tooltip(True)
+            button.set_tooltip_text(full_description)
+        else:
+            button.set_label('-')
+
     def set_model(self, data):
         """Set data model"""
         self.itemnosid = copy.copy(data[0])
         # Set item buttons
         for itemnoid, button in zip(self.itemnosid, self.item_buttons):
             itemno = self.sch_database.get_item_code(itemnoid)
-            button.set_label(str(itemno))
+            self.set_item_button(itemno, button)
             self.itemnos.append(itemno)
         # Set schedule
         self.schedule_view.clear()
@@ -521,19 +537,21 @@ class ScheduleDialog:
         if response:
             self.itemnos[index] = response[0]
             self.itemnosid[index] = response[1]
-            button.set_label(str(response[0]))
+            self.set_item_button(response[0], button)
 
     def OnRemarkEdited(self, entry, index):
         text = entry.get_text()
         col_index = self.itemnos_mapping[index]
-        base_caption = self.captions[col_index]
-        if col_index:
-            new_text = base_caption + '\n' + text
-            self.schedule_view.set_caption(new_text, col_index)
+        if col_index is not None:
+            base_caption = self.captions[col_index]
+            if col_index:
+                text_wraped = '\n'.join(textwrap.wrap(text, 10))
+                new_text = base_caption + '\n' + text_wraped
+                self.schedule_view.set_caption(new_text, col_index)
 
     def onClearButtonPressed(self, button, button_item, index):
         """Clear combobox selecting schedule item"""
-        button_item.set_label('None')
+        button_item.set_label('-')
         self.itemnos[index] = None
         self.itemnosid[index] = None
 
@@ -659,23 +677,7 @@ class ScheduleDialog:
             self.schedule_view.setup_column_props(*dimensions)
 
         # Setup remarks row
-        row = Gtk.ListBoxRow()
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        label = Gtk.Label("Remarks:")
-        entry = Gtk.Entry()
-
-        # Pack row
-        row.add(hbox)
-        hbox.pack_start(label, False, True, 3)
-        hbox.pack_start(entry, True, True, 3)
-
-        # Set additional properties
-        label.props.width_request = 50
-
-        # Add to list box
-        self.listbox_itemnos.add(row)
-
-        self.remark_cell = entry
+        self.remark_cell = self.builder.get_object("remarks_entry")
         self.item_buttons = []
         self.item_remarks_cell = []
 

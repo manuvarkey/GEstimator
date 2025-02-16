@@ -23,6 +23,7 @@
 #
 
 import subprocess, threading, os, posixpath, platform, logging, re, copy, json, time, pathlib, math
+from prettytable import PrettyTable, TableStyle
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
@@ -68,6 +69,7 @@ SUB_ANA_SEARCH_DEPTH = 2
 
 # Limiting values
 MAX_DESC_LEN = 1000
+MAX_DESC_LEN_MEAS = 100
 
 ana_copy_add_items = []
 ana_default_add_items = [{'description': 'MATERIALS', 'code': '', 'itemtype': 0, 'resource_list': []},
@@ -1139,12 +1141,27 @@ def clean_markup(text):
         text = text.replace(splchar, replspelchar)
     return text
 
-def get_ellipsized_text(text, length):
+def get_ellipsized_text(text, length, singleline=False):
     if len(text) > length:
-        desc = text[0:(int(length/2)-3)]  + '\n ... \n' + text[-(int(length/2)-3):]
+        if singleline:
+            desc = text[0:(int(length/2)-3)]  + ' ... ' + text[-(int(length/2)-3):]
+        else:
+            desc = text[0:(int(length/2)-3)]  + '\n ... \n' + text[-(int(length/2)-3):]
     else:
         desc = text
     return desc
+
+def get_tabular_text(data, col_labels=None):
+    table = PrettyTable()
+    table.set_style(TableStyle.PLAIN_COLUMNS)
+    table.align = 'l'
+    if col_labels:
+        table.field_names = col_labels
+    else:
+        table.header = False
+    table.add_rows(data)
+    return table.get_string()
+
 
 def round_value(value, rounding='Round to 0'):
     """Round value using predefined schemes"""
