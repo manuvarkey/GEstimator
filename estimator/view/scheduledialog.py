@@ -55,7 +55,8 @@ class ScheduleViewGeneric:
                 column: column in ListStore being edited
         """
         try:  # check whether item evaluates fine
-            eval(new_text)
+            if new_text != '':
+                eval(new_text)
         except:
             log.warning("ScheduleViewGeneric - onScheduleCellEditedNum - evaluation of ["
             + new_text + "] failed")
@@ -329,10 +330,10 @@ class ScheduleViewGeneric:
                         if columntype == misc.MEAS_DESC:
                             display_item.append(item_elem)
                         elif columntype == misc.MEAS_NO:
-                            value = str(int(eval(item_elem))) if item_elem not in ['0','0.0'] else ''
+                            value = str(int(eval(item_elem)))
                             display_item.append(value)
                         elif columntype == misc.MEAS_L:
-                            value = str(round(float(eval(item_elem)), 3)) if item_elem not in ['0','0.0'] else ''
+                            value = str(round(float(eval(item_elem)), 3))
                             display_item.append(value)
                     else:
                         display_item.append("")
