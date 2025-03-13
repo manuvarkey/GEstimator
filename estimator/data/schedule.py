@@ -1094,7 +1094,7 @@ class ScheduleDatabase:
             try:
                 self.ResourceCategoryTable.update(description = value).where(self.ResourceCategoryTable.description == category).execute()
             except:
-                yield "Update resource category '{}' to '{}' failed".format(category, value), False
+                log.error("ScheduleDatabase - update_resource_category - Update resource category '{}' to '{}' failed".format(category, value))
                 return
 
         yield "Update resource category '{}' to '{}'".format(category, value), True
@@ -1819,7 +1819,7 @@ class ScheduleDatabase:
             try:
                 self.ScheduleCategoryTable.update(description = value).where(self.ScheduleCategoryTable.description == category).execute()
             except:
-                yield "Update schedule category '{}' to '{}' failed".format(category, value), False
+                log.error("ScheduleDatabase - update_schedule_category - Update schedule category '{}' to '{}' failed".format(category, value))
                 return
 
         yield "Update schedule category '{}' to '{}'".format(category, value), True
