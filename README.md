@@ -61,3 +61,5 @@ Python Modules:
 * PyGObject - Not included
 
 ### GTK3  (v3.36)
+
+We will attempt to convert this into a software similar to BuildXact, and if there will be any charges, it will be reasonable.
