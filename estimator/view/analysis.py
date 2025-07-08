@@ -320,15 +320,24 @@ class AnalysisView:
                             selection_path = [path[0], None]
                     self.set_selection(selection_path)
 
-    def add_res(self):
+    def add_res(self, copy_existing=False):
         model_copy = copy.deepcopy(self.model)
 
         row = self.get_selected_row()
         if row:
             path = eval(self.store[row][8])
             if path is not None and model_copy.ana_items[path[0]]['itemtype'] == data.schedule.ScheduleItemModel.ANA_GROUP:
-                # Setup resource data dialog
-                resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items)
+                if copy_existing and len(path) == 2 and path[1] is not None:
+                    # Setup resource data dialog using current resource item
+                    res_item_model = model_copy.get_item(path)
+                    if res_item_model[0] == 'resource_item':
+                        # Get current item
+                        res = res_item_model[2]
+                        res.code = self.database.get_new_resource_code(exclude=self.custom_items)
+                        resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items, res)
+                else:
+                    # Setup resource data dialog
+                    resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items)
                 # Run resource data dialog
                 ret_code = resource_entry_dialog.run()
 

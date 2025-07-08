@@ -38,6 +38,12 @@
     <property name="label" translatable="yes">⟳&lt;sub&gt;S&lt;/sub&gt;</property>
     <property name="use-markup">True</property>
   </object>
+  <object class="GtkLabel" id="label1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="label" translatable="yes">＋&lt;sub&gt;D&lt;/sub&gt;</property>
+    <property name="use-markup">True</property>
+  </object>
   <object class="GtkPopoverMenu" id="popover_meas">
     <property name="can-focus">False</property>
     <child>
@@ -1436,9 +1442,24 @@
                     <property name="can-focus">False</property>
                     <property name="tooltip-markup" translatable="yes">Add new resource &lt;i&gt;(Ctrl+Shift+i)&lt;/i&gt;</property>
                     <property name="halign">start</property>
-                    <property name="icon-name">list-add-symbolic</property>
+                    <property name="label" translatable="yes">＋</property>
                     <signal name="clicked" handler="ana_add_res" swapped="no"/>
                     <accelerator key="i" signal="clicked" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="toolbutton_ana_add_resnew_copy">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="tooltip-markup" translatable="yes">Add new resource by copying selected resource &lt;i&gt;(Ctrl+d)&lt;/i&gt;</property>
+                    <property name="halign">start</property>
+                    <property name="label-widget">label1</property>
+                    <signal name="clicked" handler="ana_add_res_copy" swapped="no"/>
+                    <accelerator key="d" signal="clicked" modifiers="GDK_CONTROL_MASK"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>

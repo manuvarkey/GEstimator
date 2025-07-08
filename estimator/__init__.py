@@ -953,6 +953,9 @@ class MainWindow:
     def ana_add_res(self, widget):
         self.analysis_view.add_res()
 
+    def ana_add_res_copy(self, widget):
+        self.analysis_view.add_res(copy_existing=True)
+
     def ana_edit_res(self, widget):
         self.analysis_view.edit_res()
 
