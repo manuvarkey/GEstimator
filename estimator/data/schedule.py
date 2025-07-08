@@ -825,6 +825,10 @@ class ScheduleDatabase:
                 library = peewee.SqliteDatabase(filename)
                 with self.Using(library, [self.ProjectTable]):
                     name = self.get_project_settings()['project_name']
+                    if name == '':
+                        name = 'Untitled Project'
+                        while name in self.libraries:
+                            name += '_'
                 log.info('ScheduleDatabase - add_library - library added - ' + name)
             else:
                 log.error('ScheduleDatabase - add_library - Error validating file')
@@ -1800,6 +1804,36 @@ class ScheduleDatabase:
                     res.discount = undodict[res.code][2]
                     res.reference = undodict[res.code][3]
                     res.save()
+
+    @undoable
+    def update_resource_from_project(self, database):
+
+        with self.database.atomic():
+            undodict = dict()
+            with database.using_library(database.get_library_names()[0]):
+                res_new = database.get_resource_table(flat=True, modify_code=True)
+            ress = self.ResourceTable.select()
+            for res in ress:
+                if res.code in res_new:
+                    undodict[res.code] = [res.rate, res.vat, res.discount, res.reference]
+                    res.rate = res_new[res.code][3]
+                    res.vat = res_new[res.code][4]
+                    res.discount = res_new[res.code][5]
+                    res.reference = res_new[res.code][6]
+                    res.save()
+
+        yield "Update rates from file:'{}'".format(database.database_filename)
+
+        with self.database.atomic():
+            ress = self.ResourceTable.select()
+            for res in ress:
+                if res.code in undodict:
+                    res.rate = undodict[res.code][0]
+                    res.vat = undodict[res.code][1]
+                    res.discount = undodict[res.code][2]
+                    res.reference = undodict[res.code][3]
+                    res.save()
+
 
     ## Schedule category methods
 

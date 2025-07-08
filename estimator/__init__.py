@@ -1074,6 +1074,70 @@ class MainWindow:
             self.resource_view.update_store()
             self.display_status(misc.INFO, "Rates updated from database")
 
+    def on_res_load_rates_from_file_clicked(self, button):
+        """Load resource rates from a project file"""
+
+        ## Open filechooser dialog to open project file
+
+        # Create a filechooserdialog to open:
+        # The arguments are: title of the window, parent_window, action,
+        # (buttons, response)
+        if platform.system() == 'Linux':
+            open_dialog = Gtk.FileChooserNative.new("Open project File", self.window,
+                                                Gtk.FileChooserAction.OPEN,
+                                                "Open", "Cancel")
+        elif platform.system() == 'Windows':
+            open_dialog = Gtk.FileChooserDialog("Open project File", self.window,
+                                            Gtk.FileChooserAction.OPEN,
+                                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                                             Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT))
+        # Remote files can be selected in the file selector
+        open_dialog.set_local_only(True)
+        # Dialog always on top of the textview window
+        open_dialog.set_modal(True)
+        # Set filters
+        file_filter_1 = Gtk.FileFilter()
+        file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION)
+        file_filter_1.add_pattern("*" + misc.PROJECT_EXTENSION.upper())
+        file_filter_1.set_name("All Project Files")
+        open_dialog.add_filter(file_filter_1)
+        file_filter_2 = Gtk.FileFilter()
+        file_filter_2.add_pattern("*.*")
+        file_filter_2.set_name("All files")
+        open_dialog.add_filter(file_filter_2)
+        open_dialog.set_filter(file_filter_1)
+        # Run dialog
+        response_id = open_dialog.run()
+        # If response is "ACCEPT"
+        if response_id == Gtk.ResponseType.ACCEPT:
+            # get filename
+            filename = open_dialog.get_filename()
+            # Destroy dialog
+            open_dialog.destroy()
+        # If response is "CANCEL" (the button "Cancel" has been clicked)
+        else:
+            log.info("MainWindow - on_res_load_rates_from_file_clicked - cancelled: FileChooserAction.OPEN")
+            # Destroy dialog
+            open_dialog.destroy()
+            return
+
+        ## Load resources from project file
+
+        # Create blank database file
+        database = data.schedule.ScheduleDatabase(None)
+        database.create_new_database()
+        if database.add_library(filename):  # Add library to blank database
+            dialog = view.resource.SelectResourceDialog(self.window,
+                                database,
+                                select_database_mode=True)
+            library_name = dialog.run()
+            if library_name:
+                self.sch_database.update_resource_from_project(database)
+                self.resource_view.update_store()
+                self.display_status(misc.INFO, "Rates updated from project file")
+        else:
+            self.display_status(misc.WARNING, "Error validating file. Rates not updated.")
+
     def on_res_renumber_clicked(self, button):
         """Renumber resource items"""
         exclude_list = []  # Libraries to be excluded from renumber
@@ -1214,7 +1278,7 @@ class MainWindow:
             os.makedirs(settings_dir)
         if not os.path.exists(self.user_library_dir):
             os.makedirs(self.user_library_dir)
-        
+
         self.program_settings = copy.deepcopy(misc.default_program_settings)
         try:
             if os.path.exists(self.settings_filename):

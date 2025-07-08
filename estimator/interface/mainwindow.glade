@@ -20,6 +20,12 @@
     <property name="label" translatable="yes">⟳&lt;sub&gt;D&lt;/sub&gt;</property>
     <property name="use-markup">True</property>
   </object>
+  <object class="GtkLabel" id="buttonlabel_refresh_from_database1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="label" translatable="yes">⟳&lt;sub&gt;F&lt;/sub&gt;</property>
+    <property name="use-markup">True</property>
+  </object>
   <object class="GtkLabel" id="buttonlabel_refresh_from_meas">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -1045,6 +1051,21 @@
                                 <property name="use-underline">True</property>
                                 <property name="label-widget">buttonlabel_refresh_from_database</property>
                                 <signal name="clicked" handler="on_res_load_rates_clicked" swapped="no"/>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="homogeneous">False</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkToolButton" id="toolbutton_res_loadrates_from_file">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="tooltip-markup" translatable="yes">Load rates from project file</property>
+                                <property name="halign">start</property>
+                                <property name="use-underline">True</property>
+                                <property name="label-widget">buttonlabel_refresh_from_database1</property>
+                                <signal name="clicked" handler="on_res_load_rates_from_file_clicked" swapped="no"/>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
