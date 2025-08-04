@@ -332,7 +332,7 @@ class AnalysisView:
                     res_item_model = model_copy.get_item(path)
                     if res_item_model[0] == 'resource_item':
                         # Get current item
-                        res = res_item_model[2]
+                        res = copy.deepcopy(res_item_model[2])
                         res.code = self.database.get_new_resource_code(exclude=self.custom_items)
                         resource_entry_dialog = resource.ResourceEntryDialog(self.parent, self.database, self.custom_items, res)
                 else:
