@@ -1073,7 +1073,7 @@ class MainWindow:
         databasename = dialog.run()
 
         if databasename:
-            self.sch_database.update_resource_from_database(databasename)
+            self.resource_view.update_resource_from_database(databasename)
             self.resource_view.update_store()
             self.display_status(misc.INFO, "Rates updated from database")
 
@@ -1135,7 +1135,7 @@ class MainWindow:
                                 select_database_mode=True)
             library_name = dialog.run()
             if library_name:
-                self.sch_database.update_resource_from_project(database)
+                self.resource_view.update_resource_from_project(database)
                 self.resource_view.update_store()
                 self.display_status(misc.INFO, "Rates updated from project file")
         else:

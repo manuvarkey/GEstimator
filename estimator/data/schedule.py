@@ -1776,16 +1776,17 @@ class ScheduleDatabase:
             return False
 
     @undoable
-    def update_resource_from_database(self, databasename):
+    def update_resource_from_database(self, databasename, codes=None):
 
         with self.database.atomic():
+
             if databasename in self.get_library_names():
                 undodict = dict()
                 with self.using_library(databasename):
                     res_new = self.get_resource_table(flat=True, modify_code=True)
                 ress = self.ResourceTable.select()
                 for res in ress:
-                    if res.code in res_new:
+                    if res.code in res_new and (codes is not None and res.code in codes):
                         undodict[res.code] = [res.rate, res.vat, res.discount, res.reference]
                         res.rate = res_new[res.code][3]
                         res.vat = res_new[res.code][4]
@@ -1806,7 +1807,7 @@ class ScheduleDatabase:
                     res.save()
 
     @undoable
-    def update_resource_from_project(self, database):
+    def update_resource_from_project(self, database, codes=None):
 
         with self.database.atomic():
             undodict = dict()
@@ -1814,7 +1815,7 @@ class ScheduleDatabase:
                 res_new = database.get_resource_table(flat=True, modify_code=True)
             ress = self.ResourceTable.select()
             for res in ress:
-                if res.code in res_new:
+                if res.code in res_new and (codes is not None and res.code in codes):
                     undodict[res.code] = [res.rate, res.vat, res.discount, res.reference]
                     res.rate = res_new[res.code][3]
                     res.vat = res_new[res.code][4]

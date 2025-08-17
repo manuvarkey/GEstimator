@@ -579,6 +579,24 @@ class ResourceView:
                     if sch:
                         self.on_cell_edited_num(None, ':'.join(map(str,path)), str(sch.rate), 3)
 
+    def update_resource_from_database(self, databasename):
+        """Synchronise rates from database for resource items"""
+        selected = self.get_selected()
+        if selected:
+            codes = selected.values()
+            self.database.update_resource_from_database(databasename, codes=codes)
+        else:
+            self.database.update_resource_from_database(databasename)
+
+    def update_resource_from_project(self, database):
+        """Synchronise rates from database for resource items"""
+        selected = self.get_selected()
+        if selected:
+            codes = selected.values()
+            self.database.update_resource_from_project(database, codes=codes)
+        else:
+            self.database.update_resource_from_project(database)
+
     def cell_renderer_text(self, path, column, oldvalue, newvalue):
         """Function for modifying value of a treeview cell"""
         iterator = self.store.get_iter(Gtk.TreePath.new_from_indices(path))
