@@ -120,6 +120,7 @@ class ResourceView:
             column.set_expand(expand)
             column.add_attribute(cell, "text", slno)
             column.set_fixed_width(width)
+            column.set_min_width(20)
 
             if caption in ['Description', 'Reference']:
                 column.connect("notify", self.on_wrap_column_resized, cell)

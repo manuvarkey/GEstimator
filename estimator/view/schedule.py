@@ -143,6 +143,7 @@ class ScheduleView:
             column.add_attribute(cell, "cell_background", 14)
             column.add_attribute(cell, "weight", 16)
             column.set_fixed_width(width)
+            column.set_min_width(20)
 
         if compact:
             self.cells['Remarks'].props.wrap_width = 80
