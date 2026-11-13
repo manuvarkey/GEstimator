@@ -341,6 +341,34 @@ test("native typography and schedule, resource and measurement editing", async (
   const link = view.getByLabel("Schedule code 1");
   await link.fill("A");
   await link.press("Tab");
+  const recordDescriptions = view.locator(
+    '.measurement-record-grid .tabulator-row [tabulator-field="c0"]',
+  );
+  await recordDescriptions.first().dblclick();
+  await recordDescriptions.first().locator("textarea").fill("First record");
+  await view.locator("h1").click();
+  await view
+    .getByRole("button", { name: "Duplicate record", exact: true })
+    .click();
+  await expect(recordDescriptions).toHaveCount(2);
+  await recordDescriptions.last().dblclick();
+  await recordDescriptions.last().locator("textarea").fill("Second record");
+  await view.locator("h1").click();
+  await recordDescriptions.last().click();
+  await view
+    .getByRole("button", { name: "Move record up", exact: true })
+    .click();
+  await expect(recordDescriptions.first()).toHaveText("Second record");
+  await page
+    .locator(".titlebar")
+    .getByRole("button", { name: "Undo", exact: true })
+    .click();
+  await expect(recordDescriptions.first()).toHaveText("First record");
+  await recordDescriptions.last().click();
+  await view
+    .getByRole("button", { name: "Delete record", exact: true })
+    .click();
+  await expect(recordDescriptions).toHaveCount(1);
   await page
     .locator(".ribbon")
     .getByRole("button", { name: "Update schedule quantities", exact: true })
@@ -497,4 +525,153 @@ test("application menu and ribbon views share context-aware header actions", asy
       .getByRole("button", { name: "Update dependent rates", exact: true }),
   ).toHaveCount(0);
   await page.screenshot({ path: "test-results/context-ribbon.png" });
+});
+
+test("category lifecycle, library category import and used-resource deletion", async ({
+  page,
+}) => {
+  const { execFileSync } = await import("node:child_process");
+  const fixture = resolve(directory, "categories.eproj");
+  execFileSync(
+    resolve("../.venv/bin/python"),
+    ["-m", "modern.e2e.create_fixture", fixture],
+    { cwd: resolve("..") },
+  );
+  await page
+    .locator(".titlebar")
+    .getByRole("button", { name: "Open project", exact: true })
+    .click();
+  const openDialog = page.getByRole("dialog", {
+    name: "Open project",
+    exact: true,
+  });
+  await openDialog.getByLabel("Project file").fill(fixture);
+  await openDialog
+    .getByRole("button", { name: "Open project", exact: true })
+    .click();
+  await expect(openDialog).not.toBeVisible();
+  const tabs = page.locator(".ribbon-tabs");
+  const ribbon = page.locator(".ribbon");
+  const header = page.locator(".titlebar");
+  const grid = page.locator(".project-main-grid");
+  await tabs.getByRole("tab", { name: "Schedule", exact: true }).click();
+  await ribbon
+    .getByRole("button", { name: "Add category", exact: true })
+    .click();
+  const addCategory = page.getByRole("dialog", {
+    name: "Add category",
+    exact: true,
+  });
+  await addCategory.getByLabel("Category name").fill("Empty category");
+  await addCategory
+    .getByRole("button", { name: "Add category", exact: true })
+    .click();
+  await expect(addCategory).not.toBeVisible();
+  const emptyCategory = grid
+    .locator('.tabulator-row [tabulator-field="description"]')
+    .filter({ hasText: "Empty category" });
+  await emptyCategory.click();
+  await ribbon
+    .getByRole("button", { name: "Move item down", exact: true })
+    .click();
+  await expect(
+    grid
+      .locator(
+        '.tabulator-row[data-kind="Group"] [tabulator-field="description"]',
+      )
+      .last(),
+  ).toHaveText("Empty category");
+  await emptyCategory.click();
+  await ribbon.getByRole("button", { name: "Delete", exact: true }).click();
+  const deletion = page.getByRole("dialog", {
+    name: "Delete selected items",
+    exact: true,
+  });
+  await expect(deletion).toContainText("0 items and 1 category");
+  await deletion.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(emptyCategory).toBeVisible();
+  await ribbon.getByRole("button", { name: "Delete", exact: true }).click();
+  await deletion
+    .getByRole("button", { name: "Delete selected", exact: true })
+    .click();
+  await expect(deletion).not.toBeVisible();
+  await expect(emptyCategory).toHaveCount(0);
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(emptyCategory).toBeVisible();
+
+  await ribbon
+    .getByRole("button", { name: "Attach library…", exact: true })
+    .click();
+  const attach = page.getByRole("dialog", {
+    name: "Attach resource / schedule library",
+    exact: true,
+  });
+  await attach.getByLabel(/Library project/).fill(fixture);
+  await attach
+    .getByRole("button", { name: "Attach library", exact: true })
+    .click();
+  await expect(attach).not.toBeVisible();
+  await ribbon.getByLabel("Data source").selectOption({ index: 1 });
+  await grid
+    .locator(
+      '.tabulator-row[data-kind="Group"] [tabulator-field="description"]',
+    )
+    .filter({ hasText: /^Work$/ })
+    .click();
+  await ribbon
+    .getByRole("button", { name: "Import selected into project", exact: true })
+    .click();
+  await ribbon.getByLabel("Data source").selectOption("");
+  await expect(
+    grid
+      .locator('.tabulator-row [tabulator-field="code"]')
+      .filter({ hasText: /^A-copy$/ }),
+  ).toBeVisible();
+
+  await tabs.getByRole("tab", { name: "Resources", exact: true }).click();
+  await ribbon.getByRole("button", { name: "Add item", exact: true }).click();
+  const add = page.getByRole("dialog", { name: "Add item", exact: true });
+  await add.getByLabel("New code").fill("UNUSED");
+  await add.getByLabel("Description", { exact: true }).fill("Unused resource");
+  await add.getByLabel("Category").fill("Materials");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  const materials = grid
+    .locator(
+      '.tabulator-row[data-kind="Group"] [tabulator-field="description"]',
+    )
+    .filter({ hasText: /^Materials$/ });
+  await materials.click();
+  await ribbon.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(deletion).toContainText("1 resource is used in analyses");
+  await page.screenshot({
+    path: "test-results/category-deletion.png",
+    animations: "disabled",
+  });
+  await deletion
+    .getByRole("button", { name: "Delete unused", exact: true })
+    .click();
+  await expect(deletion).not.toBeVisible();
+  await expect(grid).not.toContainText("UNUSED");
+  await expect(
+    grid
+      .locator('.tabulator-row [tabulator-field="code"]')
+      .filter({ hasText: /^R$/ }),
+  ).toBeVisible();
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(grid).toContainText("UNUSED");
+  await materials.click();
+  await ribbon.getByRole("button", { name: "Delete", exact: true }).click();
+  await deletion
+    .getByRole("button", { name: "Delete including used", exact: true })
+    .click();
+  await expect(deletion).not.toBeVisible();
+  await expect(grid.locator(".tabulator-row")).toHaveCount(0);
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await tabs.getByRole("tab", { name: "Schedule", exact: true }).click();
+  await expect(
+    grid
+      .locator('.tabulator-row [tabulator-field="rate"]')
+      .filter({ hasText: /^20$/ }),
+  ).toHaveCount(2);
 });

@@ -43,11 +43,11 @@ Workspace previews: [dark](../docs/migration/screenshots/workspace-dark.png) · 
 
 ## Schedule, resources and measurements
 
-Use the ribbon tabs to open the project editors. Schedule/resources support hierarchical categories, multiline editing, arithmetic numeric entry, duplication, copy/paste, search/paging and project undo/redo. Select an item and use **Edit analysis** to enter its analysis. Paste plain tab-separated cells into a selected table cell; the backend applies the batch transactionally.
+Use the ribbon tabs to open the project editors. Schedule/resources support hierarchical categories, multiline editing, arithmetic numeric entry, duplication, copy/paste, search/paging and project undo/redo. Select categories or items and use the ribbon arrows to reorder them. Delete previews include hidden category contents and descendants. For used resources, choose **Delete unused** or **Delete including used**; the latter removes their analysis entries and recalculates rates. Project undo restores the entire operation. Select an item and use **Edit analysis** to enter its analysis. Paste plain tab-separated cells into a selected table cell; the backend applies the batch transactionally.
 
-**Attach library…** opens a snapshot of an external .eproj for browsing. Choose that data source, select items and use **Import selected into project**. Imported resources retain library prefixes when defined. Attached libraries also appear as a source in the analysis resource dialog. Libraries are never edited in place.
+**Attach library…** opens a snapshot of an external .eproj for browsing. Choose that data source, select items or whole categories and use **Import selected into project**. Imported resources retain library prefixes when defined. Attached libraries also appear as a source in the analysis resource dialog. Libraries are never edited in place.
 
-Measurements use the existing eight Python templates. Add a heading or a custom item, select it to edit its records, schedule links, item remarks and user data, then use **Update schedule quantities** with the desired legacy rounding scheme. Template-calculated columns are read-only.
+Measurements use the existing eight Python templates. Add a heading or a custom item, select it to edit its records, schedule links, item remarks and user data, then use **Update schedule quantities** with the desired legacy rounding scheme. Use the record toolbar arrows to reorder records; stable identifiers and project undo retain their values. Template-calculated columns are read-only. Deleting linked schedule items retains measurement records/remarks and clears their associations; undo restores the links.
 
 **Import workbook** previews a schedule/resource worksheet with field mapping and duplicate policies. **Export workbook** calls the existing five-sheet exporter. Apply an analysis draft before exporting the whole project; analysis-only export includes the draft without changing the project.
 

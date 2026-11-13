@@ -133,14 +133,35 @@ class ProjectEditor:
         records = (
             table.select()
             .join(category)
-            .where(table.code.contains(query) | table.description.contains(query))
+            .where(
+                table.code.contains(query)
+                | table.description.contains(query)
+                | category.description.contains(query)
+            )
             .order_by(category.order, table.order, table.id)
         )
         total = records.count()
         values = list(records.offset(offset).limit(limit))
-        rows = []
         nodes = {}
         categories = {}
+        # Empty categories remain editable, including before the first item is added.
+        for cat in (
+            category.select()
+            .where(
+                category.id.not_in(
+                    table.select(table.category).where(table.category.is_null(False))
+                )
+            )
+            .order_by(category.order)
+        ):
+            if not query or query.lower() in cat.description.lower():
+                categories[cat.id] = dict(
+                    id="cat:" + str(cat.id),
+                    rowtype="Category",
+                    code="",
+                    description=cat.description,
+                    _children=[],
+                )
         # Include missing ancestors so filtered/paged child rows retain their context.
         if not resource:
             for row in list(values):
@@ -170,7 +191,6 @@ class ProjectEditor:
                     _children=[],
                 )
                 categories[cat.id] = group
-                rows.append(group)
             data = dict(
                 id=str(row.id),
                 rowtype="Resource" if resource else "Schedule",
@@ -207,6 +227,13 @@ class ProjectEditor:
                 if parent
                 else categories[row.category_id]["_children"]
             ).append(data)
+        category_order = {cat.id: cat.order for cat in category.select()}
+        rows = [
+            group
+            for identity, group in sorted(
+                categories.items(), key=lambda entry: category_order[entry[0]]
+            )
+        ]
         return dict(
             rows=rows,
             total=total,
@@ -252,23 +279,179 @@ class ProjectEditor:
             db.close_database()
         self.libraries.clear()
 
-    def from_library(self, kind, params):
+    def selection(self, kind, ids, db=None):
+        """Expand stable IDs to complete categories/subtrees, independently of paging."""
+        db = db or self.db
+        resource = kind == "resources"
+        table = db.ResourceTable if resource else db.ScheduleTable
+        category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
+        if not isinstance(ids, list) or not ids or len(ids) > 1000:
+            raise ValueError("Select between 1 and 1000 rows")
+        categories, records = {}, {}
+        for identity in ids:
+            identity = str(identity)
+            key = int(identity[4:] if identity.startswith("cat:") else identity)
+            if not 0 < key < 2**63:
+                raise ValueError("Invalid row identifier")
+            if identity.startswith("cat:"):
+                cat = category.get_or_none(category.id == key)
+                if cat is None:
+                    raise ValueError("Category no longer exists; refresh the view")
+                categories[cat.id] = cat
+                records.update(
+                    (row.id, row)
+                    for row in table.select().where(table.category == cat.id)
+                )
+            else:
+                row = table.get_or_none(table.id == key)
+                if row is None:
+                    raise ValueError("Item no longer exists; refresh the view")
+                records[row.id] = row
+        if not resource:
+            frontier = list(records)
+            while frontier:
+                children = {}
+                for start in range(0, len(frontier), 500):
+                    for row in table.select().where(
+                        table.parent.in_(frontier[start : start + 500])
+                    ):
+                        if row.id not in records:
+                            children[row.id] = row
+                records.update(children)
+                frontier = list(children)
+        return list(categories.values()), list(records.values())
+
+    def delete_preview(self, kind, p):
+        categories, records = self.selection(kind, p.get("ids"))
+        ids = {row.id for row in records}
+        used = sorted(
+            row.code
+            for row in records
+            if kind == "resources" and self.db.resource_has_dependency(row.code)
+        )
+        references = 0
+        if kind == "schedule":
+            references = sum(
+                key in ids
+                for item in self.db.get_measurement().items
+                for key in item.itemnos
+            )
+        return dict(
+            items=len(records),
+            categories=len(categories),
+            used_resources=used,
+            measurement_references=references,
+        )
+
+    def delete_selection(self, kind, p):
+        categories, records = self.selection(kind, p.get("ids"))
+        resource = kind == "resources"
+        policy = p.get("policy", "protect")
+        if policy not in ("protect", "unused", "all"):
+            raise ValueError("Invalid deletion policy")
+        used = {
+            row.id
+            for row in records
+            if resource and self.db.resource_has_dependency(row.code)
+        }
+        if used and policy == "protect":
+            raise ValueError(
+                "Resources are used by schedule analysis; choose Delete unused or Delete including used"
+            )
+        affected = set()
+        if resource:
+            records = [
+                row for row in records if policy != "unused" or row.id not in used
+            ]
+            for row in records:
+                affected.update(
+                    reference.id_sch.code for reference in row.resourceitems
+                )
+                self.db.delete_resource_item_atomic(row.code)
+        else:
+            selected_ids = {row.id for row in records}
+            meas = self.db.get_measurement()
+            # Remove only associations: retain records/remarks, and prevent recycled SQLite
+            # primary keys from silently linking these measurements to a future item.
+            for item in meas.items:
+                item.itemnos = [
+                    None if key in selected_ids else key for key in item.itemnos
+                ]
+            self.db.set_measurement(meas)
+
+            def depth(row):
+                seen = {row.id}
+                parent = row.parent
+                while parent and parent.id not in seen:
+                    seen.add(parent.id)
+                    parent = parent.parent
+                return len(seen)
+
+            for row in sorted(records, key=depth, reverse=True):
+                self.db.delete_item_atomic(row.code)
+        table = self.db.ResourceTable if resource else self.db.ScheduleTable
+        for cat in categories:
+            if not table.select().where(table.category == cat.id).exists():
+                method = (
+                    self.db.delete_resource_category_atomic
+                    if resource
+                    else self.db.delete_schedule_category_atomic
+                )
+                method(cat.description)
+        if affected:
+            self.owner.update_dependent_rates(self.db, schedules=affected)
+        return dict(deleted=len(records))
+
+    def from_library(self, kind, params, progress):
         identity = params.get("source")
         if identity not in self.libraries:
             raise ValueError("Choose an attached library")
         source = self.libraries[identity][1]
-        table = source.ResourceTable if kind == "resources" else source.ScheduleTable
-        ids = params.get("ids", [])
-        if not isinstance(ids, list) or not ids or len(ids) > 200:
-            raise ValueError("Choose library items")
+        categories, records = self.selection(kind, params.get("ids"), source)
+        destination_category = (
+            self.db.ResourceCategoryTable
+            if kind == "resources"
+            else self.db.ScheduleCategoryTable
+        )
+        for cat in categories:
+            if (
+                not destination_category.select()
+                .where(destination_category.description == cat.description)
+                .exists()
+            ):
+                method = (
+                    self.db.insert_resource_category_atomic
+                    if kind == "resources"
+                    else self.db.insert_schedule_category_atomic
+                )
+                if method(cat.description, [-1]) is False:
+                    raise ValueError("Unable to import category")
         prefix = source.get_project_settings().get("project_resource_code") or ""
         renamed = {}
-        if all(str(identity).startswith("cat:") for identity in ids):
-            raise ValueError("Select library items rather than categories")
-        for identity in ids:
-            if str(identity).startswith("cat:"):
-                continue
-            row = table.get_by_id(int(identity))
+
+        def order(row):
+            ancestors = []
+            current = row
+            seen = set()
+            while current and current.id not in seen:
+                seen.add(current.id)
+                ancestors.append(
+                    current.suborder if current.parent_id else current.order
+                )
+                current = current.parent
+            return (row.category.order, tuple(reversed(ancestors)), row.id)
+
+        records.sort(
+            key=(
+                (lambda row: (row.category.order, row.order, row.id))
+                if kind == "resources"
+                else order
+            )
+        )
+        imported = 0
+        for index, row in enumerate(records):
+            if index % 100 == 0:
+                progress("Importing library items: " + str(index + 1))
             if kind == "resources":
                 item = source.get_resource(row.code, modify_code=bool(prefix))
                 if self.db.get_resource(item.code):
@@ -291,8 +474,10 @@ class ProjectEditor:
                 item.parent = renamed.get(item.parent)
                 if not self.db.insert_item(item):
                     raise ValueError("Unable to import schedule item")
+            imported += 1
         if renamed:
             self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
+        return dict(imported=imported, skipped=len(records) - imported)
 
     def call(self, method, p, progress):
         if method == "library.attach":
@@ -389,7 +574,7 @@ class ProjectEditor:
             ) or dict(ok=True)
         kind, _, operation = method.split(".")
         if operation == "add_from_library":
-            return self.mutate(lambda: self.from_library(kind, p)) or dict(ok=True)
+            return self.mutate(lambda: self.from_library(kind, p, progress))
         if p.get("source"):
             raise ValueError(
                 "Attached libraries are read-only; import items to the project to edit them"
@@ -397,6 +582,8 @@ class ProjectEditor:
         if operation == "copy":
             self.edit(kind, operation, p)
             return dict(ok=True)
+        if operation == "delete_preview":
+            return self.delete_preview(kind, p)
         return self.mutate(lambda: self.edit(kind, operation, p)) or dict(ok=True)
 
     def edit(self, kind, op, p):
@@ -457,31 +644,7 @@ class ProjectEditor:
                     raise ValueError("Unable to paste item")
             return
         if op == "delete_many":
-            ids = p.get("ids", [])
-            if not isinstance(ids, list) or not ids or len(ids) > 1000:
-                raise ValueError("Invalid selection")
-            selected = [
-                table.get_by_id(int(identity))
-                for identity in ids
-                if not str(identity).startswith("cat:")
-            ]
-            if not selected:
-                raise ValueError("Select items rather than categories")
-
-            # Children are removed before parents in the same transaction.
-            def depth(row):
-                result = 0
-                parent = getattr(row, "parent", None)
-                seen = {row.id}
-                while parent and parent.id not in seen:
-                    result += 1
-                    seen.add(parent.id)
-                    parent = parent.parent
-                return result
-
-            for row in sorted(selected, key=depth, reverse=True):
-                self.edit(kind, "delete", dict(id=str(row.id)))
-            return
+            return self.delete_selection(kind, p)
         if op == "category_add":
             name = text(p["description"])
             method = (
@@ -507,20 +670,28 @@ class ProjectEditor:
                 if not method(cat.description, text(p["value"])):
                     raise ValueError("Category could not be renamed")
                 return
-            raise ValueError(
-                "Select an item; delete category contents explicitly first"
-            )
+            if op == "move":
+                delta = p["delta"]
+                if type(delta) is not int or delta not in (-1, 1):
+                    raise ValueError("Invalid direction")
+                siblings = list(category.select().order_by(category.order, category.id))
+                index = siblings.index(cat)
+                other = index + delta
+                if 0 <= other < len(siblings):
+                    target = siblings[other]
+                    category.update(order=target.order).where(
+                        category.id == cat.id
+                    ).execute()
+                    category.update(order=cat.order).where(
+                        category.id == target.id
+                    ).execute()
+                return
+            if op == "delete":
+                return self.delete_selection(kind, dict(p, ids=[identity]))
+            raise ValueError("Unsupported category operation")
         row = table.get_by_id(int(identity)) if identity else None
         if op == "delete":
-            if resource and db.resource_has_dependency(row.code):
-                raise ValueError(
-                    "Resource is used by schedule analysis; replace its references first"
-                )
-            if not resource and row.children.exists():
-                raise ValueError("Delete child schedule items first")
-            method = db.delete_resource if resource else db.delete_item
-            method(row.code)
-            return
+            return self.delete_selection(kind, dict(p, ids=[identity]))
         if op in ("add", "duplicate"):
             data = p.get("data", {})
             code = text(data["code"])
@@ -735,7 +906,13 @@ class ProjectEditor:
                     ],
                     links=[
                         dict(
-                            code=self.db.get_item_code(key) if key else "",
+                            code=(
+                                (self.db.get_item_code(key) or "")
+                                if key is not None
+                                else ""
+                            ),
+                            missing=key is not None
+                            and self.db.get_item_code(key) is None,
                             remark=remark,
                         )
                         for key, remark in zip(item.itemnos, item.item_remarks)

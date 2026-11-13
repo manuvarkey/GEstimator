@@ -384,6 +384,182 @@ class ProjectEditors(unittest.TestCase):
         )
         workbook.close()
 
+    def test_empty_categories_are_visible_renamable_and_ordered(self):
+        self.call("schedule.editor.category_add", description="Empty category")
+        state = self.call("schedule.editor.state")
+        category = next(
+            row for row in state["rows"] if row["description"] == "Empty category"
+        )
+        self.assertEqual(category["_children"], [])
+        self.call(
+            "schedule.editor.edit",
+            id=category["id"],
+            field="description",
+            value="Renamed category",
+        )
+        self.call("schedule.editor.move", id=category["id"], delta=1)
+        self.assertEqual(
+            self.call("schedule.editor.state")["rows"][-1]["description"],
+            "Renamed category",
+        )
+        self.call("project.undo")
+        self.call("project.undo")
+        self.assertEqual(
+            self.call("schedule.editor.state")["rows"][0]["description"],
+            "Empty category",
+        )
+
+    def test_category_delete_preserves_measurements_and_undo_restores_links(self):
+        self.call("measurement.add", template="_1_NLBH")
+        identity = self.call("measurement.state")["rows"][0]["id"]
+        self.call(
+            "measurement.link", id=identity, slot=0, code="A", remark="Linked item"
+        )
+        category = self.call("schedule.editor.state")["rows"][0]
+        preview = self.call("schedule.editor.delete_preview", ids=[category["id"]])
+        self.assertEqual(preview["measurement_references"], 1)
+        self.call("schedule.editor.delete_many", ids=[category["id"]])
+        detail = self.call("measurement.state", id=identity)["detail"]
+        self.assertEqual(detail["links"][0]["code"], "")
+        self.assertIsNone(self.s.db.get_measurement().items[0].itemnos[0])
+        self.assertEqual(detail["links"][0]["remark"], "Linked item")
+        self.call(
+            "schedule.editor.add",
+            data=dict(code="NEW", description="New work", category="Work"),
+        )
+        self.assertIsNone(self.s.db.get_measurement().items[0].itemnos[0])
+        self.call("project.undo")
+        self.call("project.undo")
+        self.assertFalse(
+            self.call("measurement.state", id=identity)["detail"]["links"][0]["missing"]
+        )
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("20"))
+
+    def test_resource_category_delete_unused_or_all_is_atomic_and_undoable(self):
+        self.call(
+            "resources.editor.add",
+            data=dict(code="UNUSED", description="Unused", category="Materials"),
+        )
+        category = self.call("resources.editor.state")["rows"][0]
+        preview = self.call("resources.editor.delete_preview", ids=[category["id"]])
+        self.assertEqual(preview["used_resources"], ["R"])
+        with self.assertRaises(ValueError):
+            self.call("resources.editor.delete_many", ids=[category["id"]])
+        self.call("resources.editor.delete_many", ids=[category["id"]], policy="unused")
+        self.assertIsNone(self.s.db.get_resource("UNUSED"))
+        self.assertIsNotNone(self.s.db.get_resource("R"))
+        self.call("project.undo")
+        self.call("resources.editor.delete_many", ids=[category["id"]], policy="all")
+        self.assertEqual(self.s.db.ResourceTable.select().count(), 0)
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("0"))
+        self.call("project.undo")
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("20"))
+        self.assertIsNotNone(self.s.db.get_resource("UNUSED"))
+
+    def test_import_whole_library_categories_preserves_hierarchy_and_prefixes(self):
+        # Persist a real hierarchy and prefix before attaching the read-only snapshot.
+        external = ScheduleDatabase(Stack())
+        external.open_database(str(self.source))
+        settings = external.get_project_settings()
+        settings["project_resource_code"] = "LIB"
+        external.set_project_settings(settings)
+        self.call(
+            "schedule.editor.add",
+            data=dict(code="HEAD", description="Heading", category="Work"),
+        )
+        external.insert_item(ScheduleItemModel("HEAD", "Heading", "", category="Work"))
+        external.insert_item(
+            ScheduleItemModel(
+                "CHILD",
+                "Child work",
+                "m",
+                Decimal("7"),
+                Decimal("2"),
+                category="Work",
+                parent="HEAD",
+            )
+        )
+        external.close_database()
+        digest = hashlib.sha256(self.source.read_bytes()).hexdigest()
+        source = self.call("library.attach", path=str(self.source))[0]["id"]
+        category = self.call("schedule.editor.state", source=source)["rows"][0]
+        result = self.call(
+            "schedule.editor.add_from_library", source=source, ids=[category["id"]]
+        )
+        self.assertEqual(result["imported"], 4)
+        self.assertIsNotNone(self.s.db.get_item("A-copy"))
+        self.assertEqual(self.s.db.get_item("A-copy").rate, Decimal("20"))
+        self.assertEqual(self.s.db.get_item("CHILD").parent, "HEAD-copy")
+        self.assertIn(
+            "LIB:R", self.s.db.get_item("A-copy", modify_res_code=False).resources
+        )
+        self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), digest)
+        self.call("project.undo")
+        self.assertIsNone(self.s.db.get_item("A-copy"))
+        self.assertIsNone(self.s.db.get_resource("LIB:R"))
+
+    def test_category_selection_expands_beyond_page_and_deduplicates(self):
+        self.call("resources.editor.category_add", description="Bulk")
+        db = self.s.db
+        with db.database.atomic():
+            for index in range(205):
+                db.insert_resource_atomic(
+                    ResourceItemModel(
+                        "BULK" + str(index),
+                        "Resource",
+                        "kg",
+                        Decimal("1"),
+                        category="Bulk",
+                    )
+                )
+        state = self.call("resources.editor.state", limit=1)
+        category = state["rows"][0]
+        child = category["_children"][0]
+        before = len(self.s.project_editor.history)
+        revision = self.s.revision
+        preview = self.call(
+            "resources.editor.delete_preview", ids=[category["id"], child["id"]]
+        )
+        self.assertEqual(preview["items"], 205)
+        self.assertEqual(self.s.revision, revision)
+        self.assertEqual(len(self.s.project_editor.history), before)
+        with self.assertRaises(ValueError):
+            self.call("resources.editor.delete_many", ids=[child["id"], "999999"])
+        self.assertEqual(db.ResourceTable.select().count(), 206)
+        self.assertEqual(len(self.s.project_editor.history), before)
+        self.call("resources.editor.delete_many", ids=[category["id"], child["id"]])
+        self.assertEqual(db.ResourceTable.select().count(), 1)
+        self.call("project.undo")
+        self.assertEqual(db.ResourceTable.select().count(), 206)
+
+    def test_measurement_record_order_preserves_ids_values_totals_and_undo(self):
+        self.call("measurement.add", template="_1_NLBH")
+        identity = self.call("measurement.state")["rows"][0]["id"]
+        self.call("measurement.record_add", id=identity)
+        first = self.call("measurement.state", id=identity)["detail"]["rows"][0]["id"]
+        self.call(
+            "measurement.record_edit_many",
+            id=identity,
+            edits=[
+                dict(id=first, field="c0", value="First\nrecord"),
+                dict(id=first, field="c2", value="2*3"),
+            ],
+        )
+        self.call("measurement.record_duplicate", id=identity, record_id=first)
+        original = self.call("measurement.state", id=identity)["detail"]
+        second = original["rows"][1]["id"]
+        self.call("measurement.record_move", id=identity, record_id=second, delta=-1)
+        moved = self.call("measurement.state", id=identity)["detail"]
+        self.assertEqual([row["id"] for row in moved["rows"]], [second, first])
+        self.assertEqual(moved["totals"], original["totals"])
+        self.assertEqual(moved["rows"][0]["c0"], "First\nrecord")
+        self.call("project.undo")
+        self.assertEqual(
+            self.call("measurement.state", id=identity)["detail"], original
+        )
+        self.call("project.redo")
+        self.assertEqual(self.call("measurement.state", id=identity)["detail"], moved)
+
     def test_existing_export_worksheets_formulas_and_page_settings(self):
         path = Path(self.temp.name) / "report.xlsx"
         self.call("project.export_xlsx", path=str(path))

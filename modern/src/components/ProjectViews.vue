@@ -61,6 +61,15 @@ const formMode = ref("add");
 const form = ref<Record<string, string>>({});
 const categoryOpen = ref(false);
 const categoryName = ref("");
+const deleteOpen = ref(false);
+const deletion = ref<{
+  ids: string[];
+  revision: number;
+  items: number;
+  categories: number;
+  used_resources: string[];
+  measurement_references: number;
+}>();
 const importOpen = ref(false);
 const importPath = ref("");
 const importSheet = ref("");
@@ -251,6 +260,44 @@ async function command(
     emit("changed");
   });
 }
+async function deleteSelection() {
+  if (isMeasurement.value) {
+    await command("delete");
+    return;
+  }
+  const ids = selected.value.map((row) => row.id);
+  const revision = state.value!.revision;
+  const ok = await run(async () => {
+    const preview = await request<
+      Omit<NonNullable<typeof deletion.value>, "ids" | "revision">
+    >(props.view + ".editor.delete_preview", { ids, revision });
+    deletion.value = { ...preview, ids, revision };
+  });
+  if (!ok) return;
+  if (
+    deletion.value!.categories ||
+    deletion.value!.used_resources.length ||
+    deletion.value!.measurement_references ||
+    deletion.value!.items > 1
+  ) {
+    deleteOpen.value = true;
+  } else {
+    await confirmDeletion("protect");
+  }
+}
+async function confirmDeletion(policy: "protect" | "unused" | "all") {
+  if (!deletion.value) return;
+  if (
+    await command("delete_many", {
+      ids: deletion.value.ids,
+      revision: deletion.value.revision,
+      policy,
+    })
+  ) {
+    deleteOpen.value = false;
+    deletion.value = undefined;
+  }
+}
 async function load() {
   await run(refresh);
 }
@@ -340,10 +387,11 @@ async function recordEdit(row: GridRow, field: string, value: string) {
     value,
   });
 }
-async function recordAction(operation: string) {
+async function recordAction(operation: string, delta?: number) {
   await command("record_" + operation, {
     id: activeMeasurement.value,
     record_id: selectedRecord.value?.id,
+    delta,
   });
 }
 async function attachLibrary() {
@@ -476,7 +524,9 @@ watch(
               >Data source
               <select
                 v-model="source"
+                :disabled="busy"
                 @change="
+                  selected = [];
                   page = 0;
                   load();
                 "
@@ -537,11 +587,7 @@ watch(
             <button
               class="button danger"
               :disabled="busy || !selected.length"
-              @click="
-                command(isMeasurement ? 'delete' : 'delete_many', {
-                  ids: selected.map((row) => row.id),
-                })
-              "
+              @click="deleteSelection"
             >
               Delete
             </button>
@@ -559,7 +605,6 @@ watch(
               Paste
             </button>
             <button
-              v-if="isMeasurement"
               class="icon-button"
               :disabled="busy || !one"
               aria-label="Move item up"
@@ -567,7 +612,6 @@ watch(
             >
               <AppIcon name="up" /></button
             ><button
-              v-if="isMeasurement"
               class="icon-button"
               :disabled="busy || !one"
               aria-label="Move item down"
@@ -656,6 +700,7 @@ watch(
       /></label>
       <div class="table-panel project-main-grid">
         <DataTable
+          :key="source"
           :rows="state?.rows || []"
           :columns="columns"
           :busy="busy"
@@ -704,7 +749,8 @@ watch(
                   code: ($event.target as HTMLInputElement).value,
                   remark: link.remark,
                 })
-              " /><input
+              "
+            /><input
               :value="link.remark"
               :disabled="busy"
               placeholder="Item remark"
@@ -715,7 +761,10 @@ watch(
                   code: link.code,
                   remark: ($event.target as HTMLInputElement).value,
                 })
-              " /></label
+              "
+            /><small v-if="link.missing" role="alert"
+              >The linked schedule item is missing. Select another code.</small
+            ></label
           ><label
             v-for="(field, index) in state.detail.user_data"
             :key="'user' + index"
@@ -765,6 +814,22 @@ watch(
             @click="recordAction('paste')"
           >
             Paste record</button
+          ><button
+            class="icon-button"
+            :disabled="busy || !selectedRecord"
+            aria-label="Move record up"
+            title="Move record up"
+            @click="recordAction('move', -1)"
+          >
+            <AppIcon name="up" /></button
+          ><button
+            class="icon-button"
+            :disabled="busy || !selectedRecord"
+            aria-label="Move record down"
+            title="Move record down"
+            @click="recordAction('move', 1)"
+          >
+            <AppIcon name="down" /></button
           ><span class="spacer" /><span
             >Totals: {{ state.detail.totals.join(" · ") }}</span
           >
@@ -856,6 +921,72 @@ watch(
         </div>
       </form></Dialog
     >
+    <Dialog
+      v-model:visible="deleteOpen"
+      modal
+      header="Delete selected items"
+      class="workspace-dialog file-dialog"
+      :closable="!busy"
+    >
+      <template v-if="deletion">
+        <p class="dialog-intro">
+          Delete {{ deletion.items }} item{{ deletion.items === 1 ? "" : "s"
+          }}{{
+            deletion.categories
+              ? ` and ${deletion.categories} ${deletion.categories === 1 ? "category" : "categories"}`
+              : ""
+          }}? Category contents and child items are included. You can undo this
+          operation.
+        </p>
+        <p v-if="deletion.used_resources.length" class="dialog-intro">
+          {{ deletion.used_resources.length }}
+          {{
+            deletion.used_resources.length === 1
+              ? "resource is"
+              : "resources are"
+          }}
+          used in analyses. Deleting them also removes their analysis entries
+          and recalculates dependent rates.
+        </p>
+        <p v-if="deletion.measurement_references" class="dialog-intro">
+          {{ deletion.measurement_references }} measurement associations will be
+          cleared. Measurement records and remarks will be retained.
+        </p>
+        <div v-if="error" class="dialog-error">{{ error }}</div>
+        <div class="dialog-footer">
+          <button
+            class="button secondary"
+            :disabled="busy"
+            @click="deleteOpen = false"
+          >
+            Cancel
+          </button>
+          <button
+            v-if="deletion.used_resources.length"
+            class="button secondary"
+            :disabled="busy"
+            @click="confirmDeletion('unused')"
+          >
+            Delete unused
+          </button>
+          <button
+            class="button danger"
+            :disabled="busy"
+            @click="
+              confirmDeletion(
+                deletion.used_resources.length ? 'all' : 'protect',
+              )
+            "
+          >
+            {{
+              deletion.used_resources.length
+                ? "Delete including used"
+                : "Delete selected"
+            }}
+          </button>
+        </div>
+      </template>
+    </Dialog>
     <Dialog
       v-model:visible="categoryOpen"
       modal
