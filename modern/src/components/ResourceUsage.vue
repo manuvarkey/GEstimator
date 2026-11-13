@@ -15,6 +15,7 @@ interface UsageRow {
 interface Analysis {
   code: string;
   description: string;
+  indirect: boolean;
 }
 interface Page<T> {
   rows: T[];
@@ -97,6 +98,7 @@ function openAnalysis(code: string) {
           <button class="button secondary" :disabled="busy" @click="openAnalysis(item.code)">
             {{ item.code }} {{ item.description }}
           </button>
+          <span v-if="item.indirect"> via sub-analysis</span>
         </li>
       </ul>
       <p v-else-if="!busy && !error">No analyses use this resource.</p>

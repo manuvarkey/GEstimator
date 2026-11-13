@@ -534,9 +534,24 @@ class ProjectEditors(unittest.TestCase):
         matches = self.call("resources.editor.dependents", code="R")
         self.assertEqual([row["code"] for row in matches["rows"]], ["A", "B"])
         self.assertEqual(self.call("resources.editor.dependents", code="R", offset=1)["rows"],
-                         [dict(code="B", description="Work B")])
+                         [dict(code="B", description="Work B", indirect=False)])
         self.assertEqual(self.call("resources.editor.dependents", code="missing")["total"], 0)
         self.assertEqual(self.s.revision, revision)
+
+    def test_resource_dependents_follow_nested_analyses_without_duplicates(self):
+        for code, resource in (("SUB1", "R"), ("SUB2", "SUB1"), ("MAIN", "SUB2")):
+            model = ScheduleItemModel(code, code, "m3", category="SUB ANALYSIS")
+            model.resources = {
+                resource: ResourceItemModel(resource, resource, "kg", Decimal("10"), category="Materials")
+            }
+            model.add_ana_group("Materials")
+            model.add_ana_res([resource, Decimal("1"), ""], 0)
+            self.assertTrue(self.s.db.insert_item(model))
+        matches = self.call("resources.editor.dependents", code="R")
+        self.assertEqual(
+            {row["code"]: row["indirect"] for row in matches["rows"]},
+            {"A": False, "B": False, "SUB1": False, "SUB2": True, "MAIN": True},
+        )
 
     def test_matrix_paste_is_atomic_and_uses_backend_calculation(self):
         records = list(

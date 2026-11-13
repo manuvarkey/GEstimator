@@ -86,3 +86,7 @@ Windows validation passed 36 Python tests, nine Playwright scenarios and the Vue
 ## Save, backup and recovery milestone
 
 Windows validation passed the 38 persistence-inclusive Python tests, ten Playwright scenarios, the locked Cargo check and Vue production build. Fixtures cover backup contents, external edits, preservation of a rejected draft, recovery of an unapplied analysis, and saving a recovered project as a new file. Browser coverage exercises Ctrl+S and reopening via the recent-project selector.
+
+## Indirect resource dependencies
+
+The resource usage browser follows references through nested sub-analyses, deduplicates results and marks indirect references. The 39-test Python suite passed, including a three-level dependency fixture. Aggregate resource totals still use the GTK calculation.

@@ -432,16 +432,26 @@ class ProjectEditor:
         schedule = self.db.ScheduleTable
         resource = self.db.ResourceTable
         entry = self.db.ResourceItemTable
-        matches = (
-            schedule.select(schedule.code, schedule.description)
-            .join(entry).join(resource)
-            .where(resource.code == code)
-            .distinct()
+        references = {}
+        edges = (entry.select(resource.code, schedule.code)
+                 .join(resource).switch(entry).join(schedule).distinct().tuples())
+        for resource_code, analysis_code in edges:
+            references.setdefault(resource_code, set()).add(analysis_code)
+        direct = references.get(code, set())
+        reached = set(direct)
+        pending = list(direct)
+        while pending:
+            via = pending.pop()
+            new = references.get(via, set()) - reached
+            reached.update(new)
+            pending.extend(new)
+        matches = [
+            dict(code=item.code, description=item.description, indirect=item.code not in direct)
+            for item in schedule.select(schedule.code, schedule.description)
             .order_by(schedule.order, schedule.suborder, schedule.id)
-        )
-        return dict(
-            rows=list(matches.offset(offset).limit(50).dicts()), total=matches.count()
-        )
+            if item.code in reached
+        ]
+        return dict(rows=matches[offset : offset + 50], total=len(matches))
 
     def close(self):
         for name, db in self.libraries.values():
