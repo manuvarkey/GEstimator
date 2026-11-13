@@ -1,0 +1,53 @@
+<script setup lang="ts">
+defineProps<{ name: string; size?: number }>();
+const paths: Record<string, string> = {
+  folder:
+    "M3 7V5a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z M3 9h18",
+  save: "M5 3h12l4 4v14H3V3h2Z M7 3v6h10V3 M7 21v-8h10v8",
+  grid: "M3 3h18v18H3Z M3 9h18 M3 15h18 M9 3v18",
+  library: "M4 4h4v17H4Z M10 4h4v17h-4Z M16 5l4-1 3 16-4 1Z",
+  plus: "M12 5v14 M5 12h14",
+  search: "M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
+  undo: "M9 4 3 10l6 6 M3 10h10a7 7 0 0 1 7 9",
+  redo: "m15 4 6 6-6 6 M21 10H11a7 7 0 0 0-7 9",
+  copy: "M9 9h12v12H9Z M5 15H3V3h12v2",
+  trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
+  up: "m6 14 6-6 6 6",
+  down: "m6 10 6 6 6-6",
+  chevron: "m9 5 7 7-7 7",
+  close: "m6 6 12 12 M6 18 18 6",
+  panel: "M3 4h18v16H3Z M15 4v16",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1 1 M18 18l1 1 M5 19l1-1 M18 6l1-1",
+  moon: "M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z",
+  help: "M12 17h.01 M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+  check: "m5 12 4 4L19 6",
+  group: "M4 6h16 M4 12h10 M4 18h16",
+  sum: "M18 4H6l7 8-7 8h12",
+  percent:
+    "M5 19 19 5 M8 6a2 2 0 1 0-4 0 2 2 0 0 0 4 0 M20 18a2 2 0 1 0-4 0 2 2 0 0 0 4 0",
+  multiply: "m6 6 12 12 M6 18 18 6",
+  round: "M6 5H3v14h3 M18 5h3v14h-3 M8 12h8",
+  resource: "m12 3 9 5v9l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v9",
+  paste: "M8 5H4v17h16V5h-4 M8 2h8v6H8Z",
+  dots: "M5 12h.01 M12 12h.01 M19 12h.01",
+  collapse: "m8 9 4-4 4 4 M8 15l4 4 4-4",
+  expand: "m8 5 4 4 4-4 M8 19l4-4 4 4",
+  settings: "M4 7h16 M4 17h16 M8 4v6 M16 14v6",
+  file: "M5 2h9l5 5v15H5Z M14 2v6h5 M8 13h8 M8 17h6",
+};
+</script>
+<template>
+  <svg
+    :width="size || 18"
+    :height="size || 18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path :d="paths[name] || paths.grid" />
+  </svg>
+</template>

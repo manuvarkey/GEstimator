@@ -22,7 +22,6 @@
 #
 #
 
-from gi.repository import Gtk, Gdk, GLib
 import copy, logging, importlib, sys
 
 # local files import

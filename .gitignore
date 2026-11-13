@@ -9,3 +9,15 @@ Pipfile.lock
 Pipfile
 /venv
 /pvenv
+
+# Modern migration development outputs
+.venv/
+__pycache__/
+modern/node_modules/
+modern/dist/
+modern/src-tauri/target/
+modern/src-tauri/binaries/
+modern/.bundle/
+modern/src-tauri/gen/
+modern/test-results/
+modern/playwright-report/

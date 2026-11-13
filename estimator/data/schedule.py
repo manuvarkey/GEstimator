@@ -802,8 +802,11 @@ class ScheduleDatabase:
 
         colour = peewee.CharField(null = True)
 
-        with my_db.transaction():
-            migrate(migrator.add_column('self.ScheduleTable', 'colour', colour))
+        try:
+            with my_db.transaction():
+                migrate(migrator.add_column('ScheduleTable', 'colour', colour))
+        finally:
+            my_db.close()
 
         log.info('ScheduleDatabase - database migrated - ' + filename)
 

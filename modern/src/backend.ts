@@ -1,0 +1,63 @@
+import { invoke } from "@tauri-apps/api/core";
+export type RowKind =
+  | "Group"
+  | "Resource"
+  | "Subtotal"
+  | "Weight"
+  | "Multiply"
+  | "Round";
+export interface AnalysisRow {
+  id: string;
+  kind: RowKind;
+  description: string;
+  value: string;
+  amount: string;
+  code?: string;
+  unit?: string;
+  rate?: string;
+  vat?: string;
+  discount?: string;
+  effective_rate?: string;
+  remarks?: string;
+  reference?: string;
+  category?: string;
+  _children?: AnalysisRow[];
+}
+export interface AnalysisState {
+  code: string;
+  description: string;
+  unit: string;
+  rows: AnalysisRow[];
+  rate: string;
+  revision: number;
+  undo: boolean;
+  redo: boolean;
+  project: boolean;
+  project_open: boolean;
+  source_path: string | null;
+  dirty: boolean;
+  workspace_dirty: boolean;
+  project_name: string;
+  ana_remarks: string;
+  libraries: { id: string; name: string }[];
+}
+export interface LibraryItem {
+  code: string;
+  description: string;
+  unit: string;
+  rate: string;
+}
+interface Response<T> {
+  result?: T;
+  error?: { code: string; message: string };
+}
+export async function request<T>(
+  method: string,
+  params: Record<string, unknown> = {},
+): Promise<T> {
+  const response = await invoke<Response<T>>("backend_request", {
+    request: { id: crypto.randomUUID(), method, params },
+  });
+  if (response.error) throw new Error(response.error.message);
+  return response.result as T;
+}
