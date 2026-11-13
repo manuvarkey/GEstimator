@@ -1,6 +1,6 @@
 # GEstimator desktop migration workspace
 
-See [architecture and audit](../docs/migration/architecture.md), [feature parity ledger](../docs/migration/parity.md), and [validation record](../docs/migration/validation.md). GTK remains available via `gestimator.py`.
+See the [migration handoff](../docs/migration/handoff.md), [architecture and audit](../docs/migration/architecture.md), [feature parity ledger](../docs/migration/parity.md), and [validation record](../docs/migration/validation.md). GTK remains available via `gestimator.py`.
 
 From the repository root:
 

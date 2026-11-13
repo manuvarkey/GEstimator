@@ -26,4 +26,4 @@ The GTK application remains the production reference and remains runnable. A mod
 * The old migration method addressed a nonexistent literal `self.ScheduleTable` table. Its target is corrected to `ScheduleTable`, with a finally-close for the migration connection. A generated v1 fixture verifies the original stays unchanged and the migrated working copy retains its rates.
 * Schedule/resource spreadsheet import is explicitly mapped and bounded to 10,000 data rows/100 columns per worksheet; oversized input is rejected, never silently truncated. It accepts arithmetic numeric cells, not references to other cells/functions. It does not replace the existing GTK import dialogs.
 
-Next completion gates: finish the remaining editor operations and settings/clipboard workflows; validate native behavior and larger real measurement/dependency fixtures; then normal save/recovery, workbook equivalence and installers. Keep GTK until this ledger's gaps are resolved and exercised.
+The [migration handoff](handoff.md) records the implementation checkpoint, Windows commands and prioritized milestones for the next session.

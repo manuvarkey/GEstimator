@@ -100,3 +100,9 @@ The Windows checks passed 42 Python tests, the ten existing Playwright scenarios
 ## Default analysis rows and selected rate refresh
 
 The Analysis ribbon inserts the shipped GTK default rows into a draft. The Schedule ribbon recalculates the selected analyses and their dependents. Both operations are undoable. All 43 Python tests passed, including these operations.
+
+## Handoff checkpoint
+
+Implementation commit `6cd7f7d` passed 43 Python tests, 11 Playwright scenarios on Windows Chrome and the Vue production build. The locked Windows release build produced the x64 NSIS installer. Archive inspection verified the desktop and sidecar executables. A separate frozen-sidecar smoke test restored an unapplied analysis across two processes, saved it to a new file and verified the recovery entry was cleared.
+
+The browser suite uses the real Python engine with a test transport. Native Windows coverage to date includes startup, engine connection and opening the OS file picker. Clean-machine installation, concurrent GTK saves, native dirty-window close, and the wider platform and workbook comparison matrix remain open. See the [handoff plan](handoff.md#next-milestones).
