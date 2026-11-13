@@ -578,8 +578,7 @@ watch(
         <div class="eyebrow">PROJECT WORKSPACE</div>
         <h1>{{ title }}</h1>
         <p>
-          Edits are applied to the project working copy. Save a project copy to
-          keep them.
+          Edits are applied to the project working copy. Save the project to keep them.
         </p>
       </div>
     </div>

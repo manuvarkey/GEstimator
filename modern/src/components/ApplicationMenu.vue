@@ -32,7 +32,8 @@ function item(
 const items = computed<MenuItem[]>(() => [
   item("New project", "new", "file", props.busy),
   item("Open project…", "open", "folder", props.busy),
-  item("Save project copy…", "save", "save", props.busy || !props.projectOpen),
+  item("Save project", "save", "save", props.busy || !props.projectOpen),
+  item("Save project copy…", "save-copy", "save", props.busy || !props.projectOpen),
   item(
     props.analysis ? "Export analysis…" : "Export workbook…",
     "export",

@@ -267,6 +267,55 @@ class ProjectEditors(unittest.TestCase):
         self.assertIsNone(self.s.db.get_item("TOP"))
         self.assertEqual(hashlib.sha256(library.read_bytes()).hexdigest(), digest)
 
+    def test_in_place_save_backs_up_original_and_rejects_external_changes(self):
+        self.call("analysis.load", code="A")
+        self.call("analysis.edit", field="ana_remarks", value="First save")
+        result = self.call("project.save")
+        backup = Path(result["backup"])
+        self.assertEqual(hashlib.sha256(backup.read_bytes()).hexdigest(), self.original)
+        self.assertFalse(self.s.dirty)
+        self.assertFalse(self.s.workspace_dirty)
+        other = Service()
+        self.addCleanup(other.close)
+        other.call("project.open", dict(path=str(self.source)))
+        self.assertEqual(other.db.get_item("A").ana_remarks, "First save")
+        other.call("project.settings.edit", dict(
+            revision=other.revision, settings=dict(project_name="Externally edited"),
+        ))
+        second = other.call("project.save", {})
+        self.assertNotEqual(second["backup"], result["backup"])
+        external_bytes = self.source.read_bytes()
+        self.call("analysis.edit", field="ana_remarks", value="Conflicting draft")
+        with self.assertRaisesRegex(ValueError, "changed on disk"):
+            self.call("project.save")
+        self.assertEqual(self.source.read_bytes(), external_bytes)
+        self.assertTrue(self.s.dirty)
+        self.assertEqual(self.s.db.get_item("A").ana_remarks, "First save")
+        self.call("project.save_copy", path=str(Path(self.temp.name) / "alternate.eproj"))
+
+    def test_recovery_restores_workspace_and_pending_analysis_to_new_file(self):
+        recovery = Path(self.temp.name) / "recovery"
+        self.s.recovery_dir = recovery
+        self.call("analysis.load", code="A")
+        self.call("analysis.edit", field="ana_remarks", value="Recovered draft")
+        self.s.checkpoint_recovery()
+        self.assertEqual(self.s.db.get_item("A").ana_remarks, None)
+        reopened = Service(recovery)
+        try:
+            copies = reopened.call("recovery.list", {})
+            self.assertEqual(len(copies), 1)
+            state = reopened.call("recovery.open", dict(id=copies[0]["id"]))
+            self.assertTrue(state["workspace_dirty"])
+            self.assertIsNone(state["source_path"])
+            self.assertEqual(reopened.db.get_item("A").ana_remarks, "Recovered draft")
+            output = Path(self.temp.name) / "recovered.eproj"
+            reopened.call("project.save_copy", dict(path=str(output)))
+            self.assertTrue(output.exists())
+            self.assertFalse(reopened.call("recovery.list", {}))
+        finally:
+            reopened.close()
+        self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), self.original)
+
     def test_new_project_settings_are_undoable_and_savable_without_analysis(self):
         self.call("project.new")
         self.assertTrue(self.s.state()["workspace_dirty"])

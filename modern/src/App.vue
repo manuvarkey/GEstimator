@@ -78,6 +78,26 @@ watch(
   { immediate: true },
 );
 const fileMode = ref<"open" | "save" | null>(null);
+const recoveryProjects = ref<{ id: string; updated: number }[]>([]);
+const recentProjects = ref<string[]>([]);
+try {
+  const stored = JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]");
+  if (Array.isArray(stored))
+    recentProjects.value = stored.filter((path): path is string => typeof path === "string").slice(0, 10);
+} catch {
+  // A missing or invalid preference can be rebuilt by opening a project.
+}
+function setRecentProjects(paths: string[]) {
+  recentProjects.value = paths;
+  try {
+    localStorage.setItem("gestimator.recent-projects", JSON.stringify(recentProjects.value));
+  } catch {
+    // The in-memory list still works when storage is unavailable.
+  }
+}
+function rememberProject(path: string) {
+  setRecentProjects([path, ...recentProjects.value.filter((item) => item !== path)].slice(0, 10));
+}
 const filePath = ref("");
 const resourceOpen = ref(false);
 const resourceTab = ref("library");
@@ -192,6 +212,15 @@ function showFile(mode: "open" | "save") {
     mode === "save"
       ? state.value?.source_path?.replace(/\.eproj$/i, "-edited.eproj") || ""
       : "";
+  if (mode === "open") void refreshRecovery();
+}
+async function refreshRecovery() {
+  recoveryProjects.value = await request<typeof recoveryProjects.value>("recovery.list")
+    .catch(() => []);
+}
+async function recoverProject(id: string) {
+  fileMode.value = null;
+  await navigate((discard) => w.openProject(id, discard, true), true);
 }
 async function browse() {
   try {
@@ -210,16 +239,26 @@ async function submitFile() {
   if (!path) return;
   if (fileMode.value === "open") {
     fileMode.value = null;
-    await navigate((discard) => w.openProject(path, discard), true);
+    await navigate(async (discard) => {
+      if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
+    }, true);
   } else if (await w.saveCopy(path)) {
+    rememberProject(path);
     fileMode.value = null;
-    if (pending) {
-      const action = pending;
-      pending = undefined;
-      discardOpen.value = false;
-      await action(false);
-    }
+    await continueAfterSave();
   }
+}
+async function continueAfterSave() {
+  if (pending) {
+    const action = pending;
+    pending = undefined;
+    discardOpen.value = false;
+    await action(false);
+  }
+}
+async function saveProject() {
+  if (!state.value?.source_path) showFile("save");
+  else if (await w.saveProject()) await continueAfterSave();
 }
 function addResource() {
   groupId.value = destinationGroup.value?.id || groups.value[0]?.id || "";
@@ -280,7 +319,10 @@ function keyboard(event: KeyboardEvent) {
     event.preventDefault();
     if (busy.value || projectBusy.value) return;
     if (key === "o") showFile("open");
-    if (key === "s" && state.value?.project_open) showFile("save");
+    if (key === "s" && state.value?.project_open) {
+      if (event.shiftKey) showFile("save");
+      else void saveProject();
+    }
     if (key === "k") {
       sidebar.value = true;
       void nextTick(() => document.getElementById("navigator-search")?.focus());
@@ -397,6 +439,9 @@ async function applicationAction(action: string) {
       showFile("open");
       break;
     case "save":
+      await saveProject();
+      break;
+    case "save-copy":
       showFile("save");
       break;
     case "export":
@@ -420,6 +465,8 @@ async function applicationAction(action: string) {
       break;
     case "reconnect":
       await w.reconnect();
+      await refreshRecovery();
+      if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
       break;
     case "help":
       helpOpen.value = true;
@@ -460,7 +507,8 @@ onMounted(async () => {
         }
         if (state.value?.dirty || state.value?.workspace_dirty) {
           event.preventDefault();
-          await navigate(async () => {
+          await navigate(async (discard) => {
+            if (discard) await request("recovery.discard");
             await getCurrentWindow().destroy();
           }, true);
         }
@@ -468,6 +516,8 @@ onMounted(async () => {
     );
   }
   await w.reconnect();
+  await refreshRecovery();
+  if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
 });
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", keyboard);
@@ -513,7 +563,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Save copy"
-          title="Save project copy (Ctrl+S)"
+          title="Save project copy (Ctrl+Shift+S)"
           :disabled="uiBusy || !state?.project_open"
           @click="showFile('save')"
         >
@@ -914,7 +964,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="explorer-foot">
           <AppIcon name="check" :size="14" /><span
-            >Original project preserved</span
+            >Isolated working copy</span
           >
         </div>
       </aside>
@@ -1246,6 +1296,22 @@ onBeforeUnmount(() => {
             : "Supports version 2 .eproj projects."
         }}
       </p>
+      <label v-if="fileMode === 'open' && recentProjects.length" class="field">
+        Recent projects
+        <select aria-label="Recent projects" :value="recentProjects.includes(filePath) ? filePath : ''"
+          @change="filePath = ($event.target as HTMLSelectElement).value">
+          <option value="">Choose a recent project</option>
+          <option v-for="path in recentProjects" :key="path" :value="path">{{ path }}</option>
+        </select>
+        <button type="button" class="button secondary" @click="setRecentProjects([])">Clear recent projects</button>
+      </label>
+      <div v-if="fileMode === 'open' && recoveryProjects.length" class="field">
+        <strong>Recover unsaved work</strong>
+        <button v-for="copy in recoveryProjects" :key="copy.id" type="button"
+          class="button secondary" :disabled="uiBusy" @click="recoverProject(copy.id)">
+          Recover project from {{ new Date(copy.updated * 1000).toLocaleString() }}
+        </button>
+      </div>
       <div class="dialog-footer">
         <button type="button" class="button secondary" @click="fileMode = null">
           Cancel</button
@@ -1423,9 +1489,9 @@ onBeforeUnmount(() => {
     class="workspace-dialog file-dialog"
     @update:visible="cancelDiscard"
     ><p class="dialog-intro">
-      This workspace has unsaved changes. Save a project copy before continuing,
-      or discard the pending changes.
+      This workspace has unsaved changes. Save them before continuing, or discard the pending changes.
     </p>
+    <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
     <div class="dialog-footer">
       <button
         class="button secondary"
@@ -1443,6 +1509,13 @@ onBeforeUnmount(() => {
       >
         Apply and continue</button
       ><button
+        v-if="state?.source_path"
+        class="button secondary"
+        :disabled="uiBusy"
+        @click="saveProject"
+      >
+        Save project
+      </button><button
         class="button primary"
         :disabled="uiBusy || !state?.project_open"
         @click="showFile('save')"
@@ -1460,7 +1533,8 @@ onBeforeUnmount(() => {
       <div
         v-for="[label, key] in [
           ['Open project', 'Ctrl / ⌘ + O'],
-          ['Save project copy', 'Ctrl / ⌘ + S'],
+          ['Save project', 'Ctrl / ⌘ + S'],
+          ['Save project copy', 'Ctrl / ⌘ + Shift + S'],
           ['Find schedule or resource', 'Ctrl / ⌘ + K'],
           ['Undo / Redo', 'Ctrl / ⌘ + Z / Y'],
           ['Copy / Paste rows', 'Ctrl / ⌘ + C / V'],

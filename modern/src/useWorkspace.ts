@@ -125,9 +125,10 @@ export function useWorkspace() {
       resourcePage.value = page;
     }, "Finding resources…");
   }
-  async function openProject(path: string, discard = false) {
+  async function openProject(path: string, discard = false, recovery = false) {
     return run(async () => {
-      await request("project.open", { path, discard });
+      if (recovery) await request("recovery.open", { id: path, discard });
+      else await request("project.open", { path, discard });
       await refresh();
       scheduleQuery.value = "";
       resourceQuery.value = "";
@@ -151,6 +152,15 @@ export function useWorkspace() {
       await request("project.save_copy", { path });
       await refresh();
     }, "Saving project copy…");
+    if (saved) status.value = `Saved ${path}`;
+    return saved;
+  }
+  async function saveProject() {
+    let path = "";
+    const saved = await run(async () => {
+      path = (await request<{ saved: string }>("project.save")).saved;
+      await refresh();
+    }, "Saving project…");
     if (saved) status.value = `Saved ${path}`;
     return saved;
   }
@@ -183,5 +193,6 @@ export function useWorkspace() {
     openProject,
     load,
     saveCopy,
+    saveProject,
   };
 }

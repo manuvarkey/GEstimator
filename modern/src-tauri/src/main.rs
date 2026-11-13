@@ -14,7 +14,7 @@ struct Backend {
     output: mpsc::Receiver<String>,
 }
 impl Backend {
-    fn start() -> Result<Self, String> {
+    fn start(app: &tauri::AppHandle) -> Result<Self, String> {
         let mut cmd;
         if cfg!(debug_assertions) {
             let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -43,6 +43,9 @@ impl Backend {
             use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x0800_0000;
             cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+        if let Ok(directory) = app.path().app_local_data_dir() {
+            cmd.env("GESTIMATOR_RECOVERY_DIR", directory.join("recovery"));
         }
         let mut child = cmd
             .stdin(Stdio::piped())
@@ -105,9 +108,9 @@ async fn backend_request(app: tauri::AppHandle, request: Value) -> Result<Value,
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<Bridge>();
         let mut backend = state.0.lock().map_err(|_|"Backend lock failed")?;
-        if backend.is_none(){*backend=Some(Backend::start()?);}
+        if backend.is_none(){*backend=Some(Backend::start(&app)?);}
         let response = backend.as_mut().unwrap().request(&request,&app);
-        if response.is_err(){*backend=None;return Err("Backend disconnected. Unsaved draft was lost; reconnect and reopen your project copy.".into())}
+        if response.is_err(){*backend=None;return Err("Backend disconnected. Reconnect to check for recoverable work.".into())}
         response
     }).await.map_err(|e|e.to_string())?
 }

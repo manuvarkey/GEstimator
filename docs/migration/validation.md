@@ -82,3 +82,7 @@ Windows validation passed 34 Python regression tests, nine Chrome/Playwright sce
 ## Schedule hierarchy, numbering and library sub-analyses
 
 Windows validation passed 36 Python tests, nine Playwright scenarios and the Vue production build. Tests cover moving whole branches across categories, cycle rejection, hierarchical codes, preserved measurement IDs and active analysis across undo/redo, prefixed library sub-analysis insertion, dependent rates and source-file preservation.
+
+## Save, backup and recovery milestone
+
+Windows validation passed the 38 persistence-inclusive Python tests, ten Playwright scenarios, the locked Cargo check and Vue production build. Fixtures cover backup contents, external edits, preservation of a rejected draft, recovery of an unapplied analysis, and saving a recovered project as a new file. Browser coverage exercises Ctrl+S and reopening via the recent-project selector.

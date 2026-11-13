@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 import { resolve } from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 const python = resolve(
@@ -798,4 +798,33 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   await expect(code).toHaveText("1");
   await header.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(code).toHaveText("A");
+});
+
+test("in-place save keeps a backup and the project appears in recent projects", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "save.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  const original = await readFile(project);
+  const header = page.locator(".titlebar");
+  await header.getByRole("button", { name: "Open project" }).click();
+  const open = page.getByRole("dialog", { name: "Open project" });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.locator(".ribbon-tabs").getByRole("tab", { name: "Schedule" }).click();
+  const quantity = page.locator('.project-main-grid .tabulator-row [tabulator-field="qty"]').last();
+  await expect(quantity).toHaveText("1");
+  await quantity.dblclick();
+  await quantity.locator("input,textarea").fill("8");
+  await page.getByRole("heading", { name: "Schedule of quantities" }).click();
+  await expect(quantity).toHaveText("8");
+  await expect(page.locator(".statusbar")).toContainText("Unsaved draft");
+  await expect(header.getByRole("button", { name: "Save copy" })).toBeEnabled();
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".statusbar")).toContainText("Saved");
+  expect(await readFile(project + ".bak")).toEqual(original);
+  expect(await readFile(project)).not.toEqual(original);
+  await header.getByRole("button", { name: "Open project" }).click();
+  await open.getByLabel("Recent projects").selectOption({ label: project });
+  await expect(open.getByLabel("Project file")).toHaveValue(project);
 });

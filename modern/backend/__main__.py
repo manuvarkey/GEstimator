@@ -2,6 +2,8 @@
 
 import json
 import logging
+import os
+from pathlib import Path
 import sys
 from .service import Service
 
@@ -10,7 +12,8 @@ def main():
     sys.stdin.reconfigure(encoding="utf-8")
     sys.stdout.reconfigure(encoding="utf-8")
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
-    service = Service()
+    recovery = os.environ.get("GESTIMATOR_RECOVERY_DIR")
+    service = Service(Path(recovery) if recovery else None)
 
     def emit(message):
         print(json.dumps(message, ensure_ascii=False), flush=True)
@@ -41,6 +44,11 @@ def main():
                         dict(id=identity, event="progress", message=message)
                     ),
                 )
+                try:
+                    service.checkpoint_recovery()
+                except Exception:
+                    logging.exception("Could not write project recovery copy")
+                    emit(dict(id=identity, event="progress", message="Recovery copy could not be updated"))
                 emit(dict(id=identity, result=result))
             except (ValueError, KeyError, TypeError, IndexError) as exc:
                 emit(

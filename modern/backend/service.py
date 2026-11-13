@@ -21,6 +21,7 @@ from estimator import misc
 
 
 from .numbers import decimal
+from .persistence import fingerprint, save_existing, write_recovery
 
 
 def text(value: Any) -> str:
@@ -30,12 +31,17 @@ def text(value: Any) -> str:
 
 
 class Service:
-    def __init__(self):
+    def __init__(self, recovery_dir=None):
         self.temp = tempfile.TemporaryDirectory(prefix="gestimator-")
         self.db = None
         self.loaded = False
         self.workspace_dirty = False
         self.source_path = None
+        self.source_fingerprint = None
+        self.recovery_dir = recovery_dir
+        self.recovery_id = uuid4().hex
+        self.recovery_state = None
+        self.recovered_path = None
         self.model = ScheduleItemModel("DEMO", "Untitled rate analysis", "m³")
         self.history = []
         self.future = []
@@ -63,7 +69,7 @@ class Service:
             "discard"
         ) is not True:
             raise ValueError(
-                "Unsaved analysis: save a copy or explicitly discard the draft first"
+                "Unsaved analysis: save the project or explicitly discard the draft first"
             )
 
     def identify(self):
@@ -150,6 +156,22 @@ class Service:
     def call(self, method: str, p: dict, progress=lambda value: None):
         if method == "state":
             return self.state()
+        if method == "recovery.list":
+            return self.recovery_projects()
+        if method == "recovery.discard":
+            self.clear_recovery()
+            return True
+        if method == "recovery.open":
+            if not self.recovery_dir or not isinstance(p.get("id"), str):
+                raise ValueError("Recovery copy unavailable")
+            if p["id"] not in {item["id"] for item in self.recovery_projects()}:
+                raise ValueError("Recovery copy unavailable")
+            recovery = self.recovery_dir / (p["id"] + ".eproj")
+            self.call("project.open", dict(path=str(recovery), discard=p.get("discard")))
+            self.source_path = self.source_fingerprint = None
+            self.workspace_dirty = True
+            self.recovered_path = recovery
+            return self.state()
         if method.startswith("library."):
             if not self.db:
                 raise ValueError("Open a project first")
@@ -159,6 +181,8 @@ class Service:
             target = Path(self.temp.name) / (uuid4().hex + ".eproj")
             new = ScheduleDatabase(Stack())
             new.create_new_database(str(target))
+            if p.get("discard") is True:
+                self.clear_recovery()
             if hasattr(self, "project_editor"):
                 self.project_editor.close()
             if self.db:
@@ -166,6 +190,8 @@ class Service:
             self.db = new
             self.loaded = False
             self.source_path = None
+            self.source_fingerprint = None
+            self.recovered_path = None
             self.workspace_dirty = True
             self.model = ScheduleItemModel("", "Select a schedule item")
             self.history.clear()
@@ -192,6 +218,7 @@ class Service:
         if method == "project.open":
             self.guard_draft(p, project=True)
             source = Path(text(p["path"])).resolve(strict=True)
+            before = fingerprint(source)
             progress("Copying project into isolated workspace")
             target = Path(self.temp.name) / (uuid4().hex + ".eproj")
             with closing(
@@ -207,12 +234,17 @@ class Service:
                     raise ValueError("Unsupported project file version")
                 with closing(sqlite3.connect(target)) as dst:
                     src.backup(dst)
+            if fingerprint(source) != before:
+                target.unlink()
+                raise ValueError("Project changed while opening. Try opening it again.")
             new = ScheduleDatabase(Stack())
             if version == ("GESTIMATOR_FILE_REFERENCE_VER_1",):
                 result = new.validate_database(str(target))
                 if not result[0]:
                     raise ValueError(result[1])
             new.open_database(str(target))
+            if p.get("discard") is True:
+                self.clear_recovery()
             if hasattr(self, "project_editor"):
                 self.project_editor.close()
             if self.db:
@@ -223,6 +255,8 @@ class Service:
 
             self.project_editor = ProjectEditor(self)
             self.source_path = str(source)
+            self.source_fingerprint = before
+            self.recovered_path = None
             self.loaded = False
             self.model = ScheduleItemModel("", "Select a schedule item")
             self.history.clear()
@@ -302,28 +336,36 @@ class Service:
             self.revision += 1
             self.saved_signature = copy.deepcopy(self.signature())
             return self.state()
+        if method == "project.save":
+            if not self.source_path or not self.source_fingerprint:
+                raise ValueError("Choose a location with Save project copy first")
+            destination = Path(self.source_path)
+            if not (self.workspace_dirty or (self.loaded and self.dirty)):
+                return dict(saved=str(destination))
+            progress("Saving project and preserving a backup")
+            backup = save_existing(
+                destination, self.source_fingerprint, self.write_project_snapshot
+            )
+            self.source_fingerprint = fingerprint(destination)
+            self.finish_project_save()
+            return dict(saved=str(destination), backup=str(backup))
         if method == "project.save_copy":
             if not self.db:
                 raise ValueError("Open a project first")
             destination = Path(text(p["path"])).resolve()
-            # Reserve the output before changing the workspace; never replace an existing file.
+            # Reserve the output before writing it.
             with destination.open("xb"):
                 pass
             try:
                 progress("Saving analysis and updating dependent rates")
-                if self.loaded and self.dirty:
-                    self.project_editor.mutate(
-                        lambda: self.write_analysis(self.db), reload=False
-                    )
-                with closing(sqlite3.connect(destination)) as dst:
-                    self.db.database.connection().backup(dst)
+                self.write_project_snapshot(destination)
             except Exception:
                 destination.unlink()
                 raise
-            if self.loaded:
-                self.sync_analysis()
-            self.workspace_dirty = False
-            self.saved_signature = copy.deepcopy(self.signature())
+            self.finish_project_save()
+            if not self.source_path:
+                self.source_path = str(destination)
+                self.source_fingerprint = fingerprint(destination)
             return dict(saved=str(destination))
         if p.get("revision") != self.revision:
             raise ValueError("Stale edit; reload analysis state")
@@ -617,6 +659,64 @@ class Service:
                 raise ValueError("Unable to save analysis")
             self.update_dependent_rates(db, changed, {model.code})
         db.stack.clear()
+
+    def write_project_snapshot(self, destination):
+        with closing(sqlite3.connect(destination)) as output:
+            self.db.database.connection().backup(output)
+        if self.loaded and self.dirty:
+            snapshot = ScheduleDatabase(Stack())
+            snapshot.open_database(str(destination))
+            try:
+                self.write_analysis(snapshot)
+            finally:
+                snapshot.close_database()
+
+    def finish_project_save(self):
+        if self.loaded and self.dirty:
+            self.project_editor.mutate(
+                lambda: self.write_analysis(self.db), reload=False
+            )
+            self.sync_analysis()
+        self.workspace_dirty = False
+        self.saved_signature = copy.deepcopy(self.signature())
+        if self.recovered_path:
+            self.recovered_path.unlink(missing_ok=True)
+            self.recovered_path = None
+
+    def recovery_projects(self):
+        if not self.recovery_dir:
+            return []
+        projects = []
+        for path in self.recovery_dir.glob("*.eproj"):
+            if path.stem == self.recovery_id or path == self.recovered_path:
+                continue
+            try:
+                projects.append(dict(id=path.stem, updated=path.stat().st_mtime))
+            except FileNotFoundError:
+                continue
+        return sorted(projects, key=lambda item: item["updated"], reverse=True)
+
+    def clear_recovery(self):
+        if self.recovery_dir:
+            (self.recovery_dir / (self.recovery_id + ".eproj")).unlink(missing_ok=True)
+        if self.recovered_path:
+            self.recovered_path.unlink(missing_ok=True)
+            self.recovered_path = None
+        self.recovery_state = (self.revision, True)
+
+    def checkpoint_recovery(self):
+        if not self.recovery_dir:
+            return
+        dirty = self.db is not None and (self.workspace_dirty or (self.loaded and self.dirty))
+        state = (self.revision, dirty)
+        if state == self.recovery_state:
+            return
+        path = self.recovery_dir / (self.recovery_id + ".eproj")
+        if dirty:
+            write_recovery(path, self.write_project_snapshot)
+        else:
+            path.unlink(missing_ok=True)
+        self.recovery_state = state
 
     def update_dependent_rates(self, db, resources=(), schedules=()):
         schedule_codes = {
