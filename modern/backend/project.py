@@ -807,7 +807,7 @@ class ProjectEditor:
         category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
         if not resource and op == "renumber":
             return self.renumber_schedule()
-        if not resource and op in ("colour", "update_quantities"):
+        if not resource and op in ("colour", "update_quantities", "update_rates"):
             ids = p.get("ids")
             if not isinstance(ids, list) or not 1 <= len(ids) <= 1000:
                 raise ValueError("Select between 1 and 1000 schedule items")
@@ -822,6 +822,8 @@ class ProjectEditor:
                     colour = colour.upper()
                 if not db.update_item_colour(codes, colour):
                     raise ValueError("Unable to update schedule colours")
+            elif op == "update_rates":
+                self.owner.update_dependent_rates(db, schedules=codes)
             elif not db.update_qty(codes, text(p["rounding"])):
                 raise ValueError("Unable to update schedule quantities")
             return

@@ -722,6 +722,14 @@ watch(
               v-if="view === 'schedule'"
               class="button secondary"
               :disabled="busy || !selectedScheduleIds.length"
+              @click="command('update_rates', { ids: selectedScheduleIds })"
+            >
+              Refresh selected rates
+            </button>
+            <button
+              v-if="view === 'schedule'"
+              class="button secondary"
+              :disabled="busy || !selectedScheduleIds.length"
               @click="error = ''; scheduleQuantityOpen = true"
             >
               Quantities from measurements…

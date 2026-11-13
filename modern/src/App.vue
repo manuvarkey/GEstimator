@@ -685,6 +685,10 @@ onBeforeUnmount(() => {
                 row.label
               }}</span>
             </button>
+            <button class="ribbon-large" :disabled="!canEdit"
+              @click="w.command('analysis.insert_template')">
+              <AppIcon name="file" :size="24" /><span>Default analysis rows</span>
+            </button>
           </div>
           <small>INSERT</small>
         </div>

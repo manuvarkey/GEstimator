@@ -417,6 +417,15 @@ class Service:
         return self.state()
 
     def edit(self, method, p):
+        if method == "analysis.insert_template":
+            position = self.locate(p["id"])[0] + 1 if p.get("id") else 0
+            rows = copy.deepcopy(misc.ana_default_add_items)
+            for row in rows:
+                if "value" in row:
+                    row["value"] = Decimal(str(row["value"]))
+            self.model.ana_items[position:position] = rows
+            self.identify()
+            return
         if method == "analysis.import_xlsx":
             if not self.loaded:
                 raise ValueError("Load an analysis first")

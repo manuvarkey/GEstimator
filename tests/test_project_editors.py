@@ -803,6 +803,23 @@ class ProjectEditors(unittest.TestCase):
             self.call("measurement.delete", ids=[ids[0], "stale"])
         self.assertEqual(len(rows()), 8)
 
+    def test_default_analysis_rows_and_selected_rate_refresh(self):
+        self.call("analysis.load", code="A")
+        original = self.s.state()
+        self.call("analysis.insert_template", id=original["rows"][-1]["id"])
+        self.assertEqual(len(self.s.state()["rows"]), len(original["rows"]) + 11)
+        self.call("undo")
+        self.assertEqual(self.s.state()["rows"], original["rows"])
+        table = self.s.db.ScheduleTable
+        a, b = table.get(code="A"), table.get(code="B")
+        for item in (a, b):
+            self.call("schedule.editor.edit", id=str(item.id), field="rate", value="1")
+        self.call("schedule.editor.update_rates", ids=[str(a.id)])
+        self.assertEqual(table.get_by_id(a.id).rate, Decimal("20"))
+        self.assertEqual(table.get_by_id(b.id).rate, Decimal("1"))
+        self.call("project.undo")
+        self.assertEqual(table.get_by_id(a.id).rate, Decimal("1"))
+
     def test_spreadsheet_analysis_preview_and_import_are_undoable(self):
         from openpyxl import Workbook
 
