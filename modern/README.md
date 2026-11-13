@@ -16,14 +16,14 @@ npm run tauri dev
 
 Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/). To build an installer, build the native backend first and then run `npm run tauri build` from `modern`. Cross-compiling Python sidecars is not supported. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
 
-Use **Home → New project** to create a working project, or **Open project** and Browse to choose a v1/v2 `.eproj` (or enter its absolute path). Search/load an item in the explorer, select rows to edit them in the inspector or double click table cells, then use **Save copy** to choose a **new** path. Saving never overwrites an existing file. Numeric entries support bounded arithmetic, evaluated in Python. Rates, VAT and discounts use the existing currency rounding; final calculated values always come from the backend. Ctrl+C/V operates on session rows; text editing uses ordinary text clipboard. Ctrl+Z/Y, Delete and explicit Move up/down act on the analysis. Use **Analysis → Apply analysis** to retain edits while moving between items. Applied changes to multiple items are included in Save copy. Switching items/projects prompts to apply/save/discard a dirty draft; the backend also rejects unconfirmed switches. Closing the desktop window prompts for dirty drafts. Process crashes or forced termination still lose unsaved drafts. Treat saved copies as review artifacts until parity tests are complete.
+Use the **New project** icon beside the logo to create a working project, or the **Open project** icon and Browse to choose a v1/v2 `.eproj` (or enter its absolute path). Search/load an item in the explorer, select rows to edit them in the inspector or double click table cells, then use **Save copy** to choose a **new** path. Saving never overwrites an existing file. Numeric entries support bounded arithmetic, evaluated in Python. Rates, VAT and discounts use the existing currency rounding; final calculated values always come from the backend. Ctrl+C/V operates on session rows; text editing uses ordinary text clipboard. Ctrl+Z/Y, Delete and explicit Move up/down act on the analysis. Use **Analysis → Apply analysis** to retain edits while moving between items. Applied changes to multiple items are included in Save copy. Switching items/projects prompts to apply/save/discard a dirty draft; the backend also rejects unconfirmed switches. Closing the desktop window prompts for dirty drafts. Process crashes or forced termination still lose unsaved drafts. Treat saved copies as review artifacts until parity tests are complete.
 
 Backend protocol can also run independently: `.venv/bin/python -m modern.backend`, one JSON object per line, e.g. `{"id":"1","method":"state","params":{}}`. Responses contain `id` plus `result` or `error:{code,message}`; long operations can emit `event:"progress"` first. Edits require the latest `revision` from state.
 
 
 ## Workspace
 
-The Home, Analysis and View ribbons group project, editing, insertion and layout commands. Explorer tabs provide paged schedule/resource search. The inspector shows resource definitions, effective rates and the selected row's calculated amount. The final rate stays visible below the table. Use View to hide panes, collapse groups or select compact row spacing. Dark/light themes persist locally. Ctrl/⌘+O opens, Ctrl/⌘+S saves a copy, Ctrl/⌘+K focuses search, and the help button lists editing shortcuts.
+The ribbon tabs select Schedule, Analysis, Resources and Measurements and show the active view's tools. The logo opens the application menu; file commands and context-sensitive undo/redo are icon-only controls beside it. Explorer tabs provide paged schedule/resource search. The inspector shows resource definitions, effective rates and the selected row's calculated amount. The final rate stays visible below the table. Use the application menu to hide panes, collapse analysis groups or select compact analysis row spacing. Dark/light themes persist locally. Ctrl/⌘+O opens, Ctrl/⌘+S saves a copy, Ctrl/⌘+K focuses search, and the help button lists editing shortcuts.
 
 The visual direction follows [CivilKit Calcs](https://github.com/civilkit/civilkit-calcs)' docked engineering workspace and ribbon organization; the GEstimator implementation and calculation model remain separate.
 
@@ -43,7 +43,7 @@ Workspace previews: [dark](../docs/migration/screenshots/workspace-dark.png) · 
 
 ## Schedule, resources and measurements
 
-Use the document tabs to open the three project editors. Schedule/resources support hierarchical categories, multiline editing, arithmetic numeric entry, duplication, copy/paste, search/paging and project undo/redo. Select an item and use **Edit analysis** to enter its analysis. Paste plain tab-separated cells into a selected table cell; the backend applies the batch transactionally.
+Use the ribbon tabs to open the project editors. Schedule/resources support hierarchical categories, multiline editing, arithmetic numeric entry, duplication, copy/paste, search/paging and project undo/redo. Select an item and use **Edit analysis** to enter its analysis. Paste plain tab-separated cells into a selected table cell; the backend applies the batch transactionally.
 
 **Attach library…** opens a snapshot of an external .eproj for browsing. Choose that data source, select items and use **Import selected into project**. Imported resources retain library prefixes when defined. Attached libraries also appear as a source in the analysis resource dialog. Libraries are never edited in place.
 
@@ -51,7 +51,7 @@ Measurements use the existing eight Python templates. Add a heading or a custom 
 
 **Import workbook** previews a schedule/resource worksheet with field mapping and duplicate policies. **Export workbook** calls the existing five-sheet exporter. Apply an analysis draft before exporting the whole project; analysis-only export includes the draft without changing the project.
 
-**View → Project settings** edits the existing project name/code metadata. Linux typography reads the actual GTK control font family and size and follows font changes; other platforms use native CSS menu typography until platform validation is complete. No external font is downloaded.
+**Application menu → Project settings…** edits the existing project name/code metadata. Linux typography reads the actual GTK control font family and size and follows font changes; other platforms use native CSS menu typography until platform validation is complete. No external font is downloaded.
 
 The modern workspace is not yet a complete GTK replacement. Consult the parity ledger before relying on a workflow that has not been exercised. Original project/library files are preserved; save outputs remain new copies.
 

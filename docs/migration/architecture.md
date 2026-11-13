@@ -61,3 +61,10 @@ Resource price changes update the dependency closure using existing `update_rate
 `backend/importing.py` provides previewed, mapped openpyxl imports with a single transaction/snapshot and an explicit duplicate policy. All five legacy workbook export methods remain the output authority. A separate scratch database supports analysis-only export of an uncommitted draft without changing the working project.
 
 Tauri supplies a native application menu and dialogs. On Linux it reads GTK's `gtk-font-name` through Pango and sends its family/point size to Vue; changes are observed live. This GTK dependency is confined to the native Rust shell. The Python service remains importable without GI. All UI controls inherit the native base font size; font/theme assets are local.
+
+
+## Unified application menu and context ribbon
+
+Development now takes place on `migration/vue-tauri-desktop`, with a preserved baseline commit and separate commits for tested milestones. The native menu bar is removed. `ApplicationMenu.vue` provides the logo-area popup using PrimeVue's accessible menu behavior. File commands and active-editor undo/redo share an icon-only quick-access toolbar.
+
+The ribbon tabs are the only view switcher. Analysis tools are rendered by the shell; project editor tools are teleported into the same ribbon host by the editor that owns their handlers/state. This moves controls without duplicating command logic. The previous document-tab strip and separate Home/View tool tabs are removed. History availability is reported by the active editor to the quick-access toolbar; text fields retain their normal undo/redo shortcuts. Dirty-analysis navigation guards remain authoritative when a ribbon tab requests a view change.

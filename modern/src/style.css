@@ -1746,3 +1746,112 @@ textarea {
   border-collapse: collapse;
   width: 100%;
 }
+.application-menu-button {
+  min-width: 0;
+  border: 0;
+  background: none;
+  gap: 9px;
+  padding: 3px 7px 3px 0;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.application-menu-button:hover {
+  background: var(--raised);
+}
+.titlebar {
+  gap: 14px;
+}
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.quick-actions-separator {
+  height: 19px;
+  width: 1px;
+  background: var(--line);
+  margin: 0 5px;
+}
+.application-menu.p-menu {
+  min-width: 255px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  box-shadow: var(--shadow);
+}
+.application-menu .p-menu-item-content {
+  color: var(--text);
+}
+.application-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--text);
+}
+.application-menu .p-menu-item:not(.p-disabled) .p-menu-item-content:hover,
+.application-menu .p-menu-item:not(.p-disabled).p-focus .p-menu-item-content {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.application-menu .p-menu-separator {
+  border-top: 1px solid var(--line);
+  margin: 5px;
+}
+.ribbon-tools-host {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.view-ribbon-tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.view-ribbon-tools > .project-tools {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  padding-right: 16px;
+  border-right: 1px solid var(--line);
+  min-height: 55px;
+}
+.view-ribbon-tools > .project-tools:last-child {
+  border-right: 0;
+}
+.view-ribbon-tools .source-selector {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.view-ribbon-tools .source-selector select {
+  max-width: 220px;
+}
+.ribbon-tools-host .spacer {
+  display: none;
+}
+.editor-pane > .project-view {
+  padding-top: 14px;
+}
+.analysis-content .analysis-intro {
+  padding-top: 14px;
+}
+.ribbon-tabs button[role="tab"]:focus-visible {
+  outline-offset: -4px;
+}
+.titlebar-project {
+  flex: 1;
+  max-width: none;
+}
+.ribbon-tabs {
+  overflow-x: auto;
+}
+.ribbon .ribbon-large {
+  min-height: 54px;
+}
+.application-menu .p-menu-item.p-disabled {
+  opacity: 0.4;
+}

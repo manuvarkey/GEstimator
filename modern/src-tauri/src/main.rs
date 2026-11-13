@@ -131,42 +131,7 @@ fn main() {
             json!({"family":null,"size":null}),
         )))
         .setup(|app| {
-            use tauri::menu::{MenuBuilder, SubmenuBuilder};
-            let file = SubmenuBuilder::new(app, "File")
-                .text("new", "New Project")
-                .text("open", "Open Project…")
-                .text("save", "Save Project Copy…")
-                .separator()
-                .text("settings", "Project Settings…")
-                .separator()
-                .text("close", "Close Window")
-                .build()?;
-            let edit = SubmenuBuilder::new(app, "Edit")
-                .undo()
-                .redo()
-                .separator()
-                .cut()
-                .copy()
-                .paste()
-                .select_all()
-                .build()?;
-            let view = SubmenuBuilder::new(app, "View")
-                .text("schedule", "Schedule")
-                .text("analysis", "Rate Analysis")
-                .text("resources", "Resources")
-                .text("measurement", "Measurements")
-                .build()?;
-            let help = SubmenuBuilder::new(app, "Help")
-                .text("shortcuts", "Keyboard Shortcuts")
-                .build()?;
-            app.set_menu(
-                MenuBuilder::new(app)
-                    .items(&[&file, &edit, &view, &help])
-                    .build()?,
-            )?;
-            app.on_menu_event(|app, event| {
-                let _ = app.emit("menu-action", event.id().as_ref());
-            });
+            app.remove_menu()?;
             #[cfg(target_os = "linux")]
             {
                 use gtk::prelude::*;

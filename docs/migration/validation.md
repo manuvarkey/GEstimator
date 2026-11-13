@@ -40,3 +40,8 @@ Final checks for this increment:
 * Source whitespace verification uses `git -c core.whitespace=cr-at-eol diff --check` because the legacy schedule source retains its original CRLF line endings.
 
 Rendered schedule, resource and measurement examples are in `screenshots/*-desktop.png`. These are browser renderings of the desktop workspace, not evidence of native OS menu/dialog interaction. Native menus, OS dialogs, close events, live typography changes, Windows/macOS, cross-instance clipboard, save/recovery and the remaining entries in [the parity ledger](parity.md) remain explicit gates. This increment does **not** declare full replacement parity.
+
+
+## Application menu / context ribbon milestone
+
+Before shell edits, 24 Python tests and the production frontend build passed. After the change, five browser scenarios pass, including the four existing editing/export/import flows and a new logo-menu/ribbon/header-history scenario. Menu Escape/focus restoration, disabled file commands, icon-only accessible buttons, removal of duplicate tabs, active-view tool changes and project undo/redo through the header are covered. TypeScript/Vite and Rust checks pass. The Python protocol and calculation engine were unchanged in this milestone. Native OS interaction remains a manual platform gate.

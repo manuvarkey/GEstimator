@@ -140,20 +140,27 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await page.screenshot({ path: "test-results/workspace-dark.png" });
   await page.getByRole("button", { name: "Switch to light theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.locator(".workspace-tab.active")).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
   await page.screenshot({ path: "test-results/workspace-light.png" });
 
   await page
-    .locator(".ribbon-tabs")
-    .getByRole("tab", { name: "View", exact: true })
+    .getByRole("button", { name: "Application menu", exact: true })
     .click();
-  await page.getByRole("button", { name: "Inspector", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Hide analysis inspector", exact: true })
+    .click();
   await expect(page.locator(".inspector")).not.toBeVisible();
-  await page.getByRole("button", { name: "Inspector", exact: true }).click();
-  await page.getByRole("button", { name: "Compact rows", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Application menu", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Show analysis inspector", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Application menu", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Compact rows", exact: true })
+    .click();
   await expect(page.locator(".analysis-table")).toHaveClass(/compact/);
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.screenshot({ path: "test-results/workspace-compact.png" });
@@ -196,10 +203,6 @@ test("real project navigation protects unsaved drafts and save-copy clears dirty
     .getByRole("button", { name: "Resource group", exact: true })
     .click();
   await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
-  await page
-    .locator(".ribbon-tabs")
-    .getByRole("tab", { name: "Home", exact: true })
-    .click();
   await page
     .getByRole("button", { name: "Open project", exact: true })
     .first()
@@ -255,7 +258,7 @@ test("native typography and schedule, resource and measurement editing", async (
     .click();
   await expect(fileDialog).not.toBeVisible();
   await page
-    .locator(".document-tabs")
+    .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Schedule", exact: true })
     .click();
   const view = page.locator(".project-view");
@@ -266,7 +269,10 @@ test("native typography and schedule, resource and measurement editing", async (
   await quantity.locator("textarea,input").fill("2*3");
   await view.locator("h1").click();
   await expect(quantity).toHaveText("6");
-  await view.getByRole("button", { name: "Undo project change" }).click();
+  await page
+    .locator(".titlebar")
+    .getByRole("button", { name: "Undo", exact: true })
+    .click();
   await expect(quantity).toHaveText("1");
   await quantity.click();
   await view.locator(".project-main-grid .project-grid").evaluate((element) => {
@@ -277,11 +283,14 @@ test("native typography and schedule, resource and measurement editing", async (
     );
   });
   await expect(quantity).toHaveText("7");
-  await view.getByRole("button", { name: "Undo project change" }).click();
+  await page
+    .locator(".titlebar")
+    .getByRole("button", { name: "Undo", exact: true })
+    .click();
   await expect(quantity).toHaveText("1");
   await page.screenshot({ path: "test-results/schedule-desktop.png" });
   await page
-    .locator(".document-tabs")
+    .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Resources", exact: true })
     .click();
   const rate = view.locator('.tabulator-row [tabulator-field="rate"]').last();
@@ -291,10 +300,11 @@ test("native typography and schedule, resource and measurement editing", async (
   await expect(rate).toHaveText("15");
   await page.screenshot({ path: "test-results/resources-desktop.png" });
   await page
-    .locator(".document-tabs")
+    .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Measurements", exact: true })
     .click();
-  await view
+  await page
+    .locator(".ribbon")
     .getByRole("button", { name: "Add measurement", exact: true })
     .click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -331,12 +341,13 @@ test("native typography and schedule, resource and measurement editing", async (
   const link = view.getByLabel("Schedule code 1");
   await link.fill("A");
   await link.press("Tab");
-  await view
+  await page
+    .locator(".ribbon")
     .getByRole("button", { name: "Update schedule quantities", exact: true })
     .click();
   await page.screenshot({ path: "test-results/measurements-desktop.png" });
   await page
-    .locator(".document-tabs")
+    .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Schedule", exact: true })
     .click();
   await expect(
@@ -355,7 +366,8 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await page.getByRole("button", { name: "New project", exact: true }).click();
   const view = page.locator(".project-view");
   await expect(view.locator("h1")).toHaveText("Schedule of quantities");
-  await view
+  await page
+    .locator(".ribbon")
     .getByRole("button", { name: "Import workbook", exact: true })
     .click();
   const dialog = page.getByRole("dialog", {
@@ -375,11 +387,10 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
     view.locator('.tabulator-row [tabulator-field="qty"]').last(),
   ).toHaveText("6");
   await page
-    .locator(".ribbon-tabs")
-    .getByRole("tab", { name: "View", exact: true })
+    .getByRole("button", { name: "Application menu", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Project settings", exact: true })
+    .getByRole("menuitem", { name: "Project settings…", exact: true })
     .click();
   const settings = page.getByRole("dialog", {
     name: "Project settings",
@@ -395,4 +406,95 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await expect(page.locator(".titlebar-project")).toContainText(
     "New desktop estimate",
   );
+});
+
+test("application menu and ribbon views share context-aware header actions", async ({
+  page,
+}) => {
+  const header = page.locator(".titlebar");
+  for (const name of [
+    "New project",
+    "Open project",
+    "Save copy",
+    "Undo",
+    "Redo",
+  ]) {
+    const button = header.getByRole("button", { name, exact: true });
+    expect((await button.textContent())?.trim()).toBe("");
+  }
+  await expect(page.locator(".document-tabs")).toHaveCount(0);
+  const menuButton = page.getByRole("button", {
+    name: "Application menu",
+    exact: true,
+  });
+  await menuButton.click();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByRole("menuitem", { name: "Save project copy…", exact: true }),
+  ).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Escape");
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  await expect(menuButton).toBeFocused();
+  await menuButton.click();
+  await page
+    .getByRole("menuitem", { name: "New project", exact: true })
+    .click();
+  await expect(
+    page
+      .locator(".ribbon-tabs")
+      .getByRole("tab", { name: "Schedule", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await page
+    .locator(".ribbon")
+    .getByRole("button", { name: "Add item", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Add item", exact: true });
+  await dialog.getByLabel("New code", { exact: true }).fill("HEADER-1");
+  await dialog
+    .getByLabel("Description", { exact: true })
+    .fill("Header history test");
+  await dialog.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator(".project-view")).toContainText(
+    "Header history test",
+  );
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".project-main-grid")).not.toContainText(
+    "Header history test",
+  );
+  await header.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(page.locator(".project-main-grid")).toContainText(
+    "Header history test",
+  );
+  await page
+    .locator(".ribbon-tabs")
+    .getByRole("tab", { name: "Resources", exact: true })
+    .click();
+  await expect(page.locator(".project-view h1")).toHaveText("Resource library");
+  await expect(
+    page
+      .locator(".ribbon")
+      .getByRole("button", { name: "Update dependent rates", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".ribbon")
+      .getByRole("button", { name: "Edit analysis", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .locator(".ribbon-tabs")
+    .getByRole("tab", { name: "Measurements", exact: true })
+    .click();
+  await expect(page.locator(".project-view h1")).toHaveText("Measurements");
+  await expect(
+    page
+      .locator(".ribbon")
+      .getByRole("button", { name: "Add measurement", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".ribbon")
+      .getByRole("button", { name: "Update dependent rates", exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: "test-results/context-ribbon.png" });
 });

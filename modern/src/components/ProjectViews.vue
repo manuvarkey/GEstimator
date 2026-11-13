@@ -28,8 +28,21 @@ const emit = defineEmits<{
   changed: [];
   busy: [value: boolean];
   analysis: [code: string];
+  history: [state: { undo: boolean; redo: boolean }];
 }>();
 const state = ref<GridState>();
+watch(
+  () => [state.value?.undo, state.value?.redo],
+  () =>
+    emit("history", { undo: !!state.value?.undo, redo: !!state.value?.redo }),
+);
+onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
+defineExpose({
+  historyAction: (method: "undo" | "redo") => command("project." + method),
+  exportWorkbook: () => {
+    exportOpen.value = true;
+  },
+});
 const busy = ref(false);
 watch(busy, (value) => emit("busy", value));
 onBeforeUnmount(() => emit("busy", false));
@@ -456,169 +469,165 @@ watch(
     <template v-else
       ><p v-if="importResult" role="status">{{ importResult }}</p>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div v-if="!isMeasurement" class="project-tools">
-        <label class="source-selector"
-          >Data source
-          <select
-            v-model="source"
-            @change="
-              page = 0;
-              load();
-            "
-          >
-            <option value="">Project working copy</option>
-            <option
-              v-for="library in libraries"
-              :key="library.id"
-              :value="library.id"
+      <Teleport to="#project-ribbon-tools"
+        ><div class="view-ribbon-tools">
+          <div v-if="!isMeasurement" class="project-tools">
+            <label class="source-selector"
+              >Data source
+              <select
+                v-model="source"
+                @change="
+                  page = 0;
+                  load();
+                "
+              >
+                <option value="">Project working copy</option>
+                <option
+                  v-for="library in libraries"
+                  :key="library.id"
+                  :value="library.id"
+                >
+                  {{ library.name }} (library)
+                </option>
+              </select></label
+            ><button
+              class="button secondary"
+              :disabled="busy"
+              @click="libraryOpen = true"
             >
-              {{ library.name }} (library)
-            </option>
-          </select></label
-        ><button
-          class="button secondary"
-          :disabled="busy"
-          @click="libraryOpen = true"
-        >
-          Attach library…</button
-        ><button
-          v-if="source"
-          class="button primary"
-          :disabled="busy || !selected.length"
-          @click="
-            command('add_from_library', { ids: selected.map((row) => row.id) })
-          "
-        >
-          Import selected into project
-        </button>
-      </div>
-      <div v-show="!source" class="project-tools">
-        <button class="button secondary" :disabled="busy" @click="showForm()">
-          <AppIcon name="plus" :size="15" />{{
-            isMeasurement ? "Add measurement" : "Add item"
-          }}
-        </button>
-        <button
-          v-if="!isMeasurement"
-          class="button secondary"
-          :disabled="busy"
-          @click="categoryOpen = true"
-        >
-          Add category
-        </button>
-        <button
-          class="button secondary"
-          :disabled="busy || !one || one.rowtype === 'Category'"
-          @click="showForm('duplicate')"
-        >
-          Duplicate
-        </button>
-        <button
-          class="button danger"
-          :disabled="busy || !selected.length"
-          @click="
-            command(isMeasurement ? 'delete' : 'delete_many', {
-              ids: selected.map((row) => row.id),
-            })
-          "
-        >
-          Delete
-        </button>
-        <button
-          class="button secondary"
-          :disabled="busy || !selected.length"
-          @click="command('copy', { ids: selected.map((row) => row.id) })"
-        >
-          Copy</button
-        ><button
-          class="button secondary"
-          :disabled="busy"
-          @click="command('paste')"
-        >
-          Paste
-        </button>
-        <button
-          v-if="isMeasurement"
-          class="icon-button"
-          :disabled="busy || !one"
-          aria-label="Move item up"
-          @click="command('move', { delta: -1 })"
-        >
-          <AppIcon name="up" /></button
-        ><button
-          v-if="isMeasurement"
-          class="icon-button"
-          :disabled="busy || !one"
-          aria-label="Move item down"
-          @click="command('move', { delta: 1 })"
-        >
-          <AppIcon name="down" />
-        </button>
-        <button
-          class="icon-button"
-          aria-label="Undo project change"
-          :disabled="busy || !state?.undo"
-          @click="command('project.undo')"
-        >
-          <AppIcon name="undo" />
-        </button>
-        <button
-          class="icon-button"
-          aria-label="Redo project change"
-          :disabled="busy || !state?.redo"
-          @click="command('project.redo')"
-        >
-          <AppIcon name="redo" />
-        </button>
-        <button
-          v-if="view === 'schedule'"
-          class="button primary"
-          :disabled="busy || !one || one.rowtype === 'Category'"
-          @click="one && emit('analysis', one.code)"
-        >
-          Edit analysis
-        </button>
-        <button
-          v-if="view === 'resources'"
-          class="button secondary"
-          :disabled="busy"
-          @click="command('rates')"
-        >
-          Update dependent rates
-        </button>
-        <select
-          v-if="isMeasurement"
-          v-model="quantityRounding"
-          aria-label="Quantity rounding"
-        >
-          <option v-for="option in roundingOptions" :key="option">
-            {{ option }}
-          </option>
-        </select>
-        <button
-          v-if="isMeasurement"
-          class="button secondary"
-          :disabled="busy"
-          @click="command('update_quantities', { rounding: quantityRounding })"
-        >
-          Update schedule quantities
-        </button>
-        <button
-          v-if="!isMeasurement"
-          class="button secondary"
-          :disabled="busy"
-          @click="importOpen = true"
-        >
-          Import workbook
-        </button>
-        <span class="spacer" /><button
-          class="button secondary"
-          :disabled="busy"
-          @click="exportOpen = true"
-        >
-          Export workbook
-        </button>
-      </div>
+              Attach library…</button
+            ><button
+              v-if="source"
+              class="button primary"
+              :disabled="busy || !selected.length"
+              @click="
+                command('add_from_library', {
+                  ids: selected.map((row) => row.id),
+                })
+              "
+            >
+              Import selected into project
+            </button>
+          </div>
+          <div v-show="!source" class="project-tools">
+            <button
+              class="button secondary"
+              :disabled="busy"
+              @click="showForm()"
+            >
+              <AppIcon name="plus" :size="15" />{{
+                isMeasurement ? "Add measurement" : "Add item"
+              }}
+            </button>
+            <button
+              v-if="!isMeasurement"
+              class="button secondary"
+              :disabled="busy"
+              @click="categoryOpen = true"
+            >
+              Add category
+            </button>
+            <button
+              class="button secondary"
+              :disabled="busy || !one || one.rowtype === 'Category'"
+              @click="showForm('duplicate')"
+            >
+              Duplicate
+            </button>
+            <button
+              class="button danger"
+              :disabled="busy || !selected.length"
+              @click="
+                command(isMeasurement ? 'delete' : 'delete_many', {
+                  ids: selected.map((row) => row.id),
+                })
+              "
+            >
+              Delete
+            </button>
+            <button
+              class="button secondary"
+              :disabled="busy || !selected.length"
+              @click="command('copy', { ids: selected.map((row) => row.id) })"
+            >
+              Copy</button
+            ><button
+              class="button secondary"
+              :disabled="busy"
+              @click="command('paste')"
+            >
+              Paste
+            </button>
+            <button
+              v-if="isMeasurement"
+              class="icon-button"
+              :disabled="busy || !one"
+              aria-label="Move item up"
+              @click="command('move', { delta: -1 })"
+            >
+              <AppIcon name="up" /></button
+            ><button
+              v-if="isMeasurement"
+              class="icon-button"
+              :disabled="busy || !one"
+              aria-label="Move item down"
+              @click="command('move', { delta: 1 })"
+            >
+              <AppIcon name="down" />
+            </button>
+            <button
+              v-if="view === 'schedule'"
+              class="button primary"
+              :disabled="busy || !one || one.rowtype === 'Category'"
+              @click="one && emit('analysis', one.code)"
+            >
+              Edit analysis
+            </button>
+            <button
+              v-if="view === 'resources'"
+              class="button secondary"
+              :disabled="busy"
+              @click="command('rates')"
+            >
+              Update dependent rates
+            </button>
+            <select
+              v-if="isMeasurement"
+              v-model="quantityRounding"
+              aria-label="Quantity rounding"
+            >
+              <option v-for="option in roundingOptions" :key="option">
+                {{ option }}
+              </option>
+            </select>
+            <button
+              v-if="isMeasurement"
+              class="button secondary"
+              :disabled="busy"
+              @click="
+                command('update_quantities', { rounding: quantityRounding })
+              "
+            >
+              Update schedule quantities
+            </button>
+            <button
+              v-if="!isMeasurement"
+              class="button secondary"
+              :disabled="busy"
+              @click="importOpen = true"
+            >
+              Import workbook
+            </button>
+            <span class="spacer" /><button
+              class="button secondary"
+              :disabled="busy"
+              @click="exportOpen = true"
+            >
+              Export workbook
+            </button>
+          </div>
+        </div></Teleport
+      >
       <form
         v-if="!isMeasurement"
         class="search-field project-search"

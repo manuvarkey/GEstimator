@@ -12,6 +12,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import ApplicationMenu from "./components/ApplicationMenu.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectViews from "./components/ProjectViews.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
@@ -40,7 +41,14 @@ const {
   selection,
   destinationGroup,
 } = w;
-const ribbon = ref("Home");
+const projectView = ref<InstanceType<typeof ProjectViews>>();
+const projectHistory = ref({ undo: false, redo: false });
+const views = [
+  { key: "schedule", label: "Schedule" },
+  { key: "analysis", label: "Analysis" },
+  { key: "resources", label: "Resources" },
+  { key: "measurement", label: "Measurements" },
+] as const;
 const settingsOpen = ref(false);
 const settings = ref<Record<string, string>>({});
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
@@ -279,6 +287,17 @@ function keyboard(event: KeyboardEvent) {
     }
     return;
   }
+  if (
+    (event.ctrlKey || event.metaKey) &&
+    ["z", "y"].includes(key) &&
+    !(event.target as HTMLElement).closest(
+      "input,textarea,select,[contenteditable=true]",
+    )
+  ) {
+    event.preventDefault();
+    void historyAction(key === "y" || event.shiftKey ? "redo" : "undo");
+    return;
+  }
   if (activeView.value !== "analysis") return;
   if (
     (event.target as HTMLElement).closest(
@@ -364,6 +383,52 @@ async function exportAnalysis() {
   )
     exportAnalysisOpen.value = false;
 }
+async function historyAction(method: "undo" | "redo") {
+  if (uiBusy.value) return;
+  if (activeView.value === "analysis") await w.command(method);
+  else await projectView.value?.historyAction(method);
+}
+async function applicationAction(action: string) {
+  switch (action) {
+    case "new":
+      await newProject();
+      break;
+    case "open":
+      showFile("open");
+      break;
+    case "save":
+      showFile("save");
+      break;
+    case "export":
+      if (activeView.value === "analysis") exportAnalysisOpen.value = true;
+      else projectView.value?.exportWorkbook();
+      break;
+    case "settings":
+      await showSettings();
+      break;
+    case "explorer":
+      sidebar.value = !sidebar.value;
+      break;
+    case "inspector":
+      inspector.value = !inspector.value;
+      break;
+    case "compact":
+      compact.value = !compact.value;
+      break;
+    case "groups":
+      expanded.value = !expanded.value;
+      break;
+    case "reconnect":
+      await w.reconnect();
+      break;
+    case "help":
+      helpOpen.value = true;
+      break;
+    case "close":
+      if (isTauri()) await getCurrentWindow().close();
+      break;
+  }
+}
 onMounted(async () => {
   window.addEventListener("keydown", keyboard);
   window.addEventListener("beforeunload", beforeUnload);
@@ -375,22 +440,6 @@ onMounted(async () => {
       if (font.size) document.documentElement.style.fontSize = font.size;
     };
     applyFont(await invoke("desktop_font"));
-    unsubscribers.push(
-      await listen<string>("menu-action", async (event) => {
-        if (busy.value || projectBusy.value) return;
-        const action = event.payload;
-        if (action === "new") await newProject();
-        else if (action === "open") showFile("open");
-        else if (action === "save") showFile("save");
-        else if (action === "settings") await showSettings();
-        else if (action === "shortcuts") helpOpen.value = true;
-        else if (action === "close") await getCurrentWindow().close();
-        else if (
-          ["schedule", "analysis", "resources", "measurement"].includes(action)
-        )
-          await switchView(action as typeof activeView.value);
-      }),
-    );
     unsubscribers.push(
       await listen<{ family?: string; size?: string }>(
         "desktop-font",
@@ -429,10 +478,73 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-shell">
     <header class="titlebar">
-      <a class="brand" href="#" @click.prevent="ribbon = 'Home'"
-        ><span class="brand-mark">G<span>∑</span></span
-        ><span>GEstimator<small>ESTIMATION WORKSPACE</small></span></a
-      >
+      <ApplicationMenu
+        :busy="uiBusy"
+        :project-open="!!state?.project_open"
+        :can-export="
+          activeView === 'analysis' ? !!state?.project : !!state?.project_open
+        "
+        :analysis="activeView === 'analysis'"
+        :explorer="sidebar"
+        :inspector="inspector"
+        :compact="compact"
+        :expanded="expanded"
+        @action="applicationAction"
+      />
+      <div class="quick-actions" role="toolbar" aria-label="Common actions">
+        <button
+          class="icon-button"
+          aria-label="New project"
+          title="New project"
+          :disabled="uiBusy"
+          @click="newProject"
+        >
+          <AppIcon name="file" />
+        </button>
+        <button
+          class="icon-button"
+          aria-label="Open project"
+          title="Open project (Ctrl+O)"
+          :disabled="uiBusy"
+          @click="showFile('open')"
+        >
+          <AppIcon name="folder" />
+        </button>
+        <button
+          class="icon-button"
+          aria-label="Save copy"
+          title="Save project copy (Ctrl+S)"
+          :disabled="uiBusy || !state?.project_open"
+          @click="showFile('save')"
+        >
+          <AppIcon name="save" />
+        </button>
+        <span class="quick-actions-separator" />
+        <button
+          class="icon-button"
+          aria-label="Undo"
+          title="Undo (Ctrl+Z)"
+          :disabled="
+            uiBusy ||
+            !(activeView === 'analysis' ? state?.undo : projectHistory.undo)
+          "
+          @click="historyAction('undo')"
+        >
+          <AppIcon name="undo" />
+        </button>
+        <button
+          class="icon-button"
+          aria-label="Redo"
+          title="Redo (Ctrl+Y)"
+          :disabled="
+            uiBusy ||
+            !(activeView === 'analysis' ? state?.redo : projectHistory.redo)
+          "
+          @click="historyAction('redo')"
+        >
+          <AppIcon name="redo" />
+        </button>
+      </div>
       <div class="titlebar-project">
         <AppIcon name="folder" :size="15" /><span>{{ projectName }}</span
         ><span
@@ -464,17 +576,20 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </header>
-    <div class="ribbon-tabs" role="tablist" aria-label="Workspace tools">
+    <div class="ribbon-tabs" role="tablist" aria-label="Workspace views">
       <button
-        v-for="tab in ['Home', 'Analysis', 'View']"
-        :key="tab"
+        v-for="view in views"
+        :key="view.key"
         role="tab"
-        :aria-selected="ribbon === tab"
-        :class="{ active: ribbon === tab }"
-        @click="ribbon = tab"
+        :id="'view-' + view.key"
+        :aria-selected="activeView === view.key"
+        :aria-controls="'tools-' + view.key"
+        :class="{ active: activeView === view.key }"
+        @click="switchView(view.key)"
       >
-        {{ tab }}</button
-      ><span class="spacer" /><span
+        {{ view.label }}
+      </button>
+      <span class="spacer" /><span
         class="engine-status"
         :class="{ online: connected }"
         ><i />{{
@@ -482,31 +597,16 @@ onBeforeUnmount(() => {
         }}</span
       >
     </div>
-    <section class="ribbon" :aria-label="ribbon + ' tools'">
-      <template v-if="ribbon === 'Home'">
-        <div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button class="ribbon-large" :disabled="uiBusy" @click="newProject">
-              <AppIcon name="file" :size="25" /><span>New project</span>
-            </button>
-            <button
-              class="ribbon-large"
-              :disabled="uiBusy"
-              @click="showFile('open')"
-            >
-              <AppIcon name="folder" :size="25" /><span
-                >Open project</span
-              ></button
-            ><button
-              class="ribbon-large"
-              :disabled="uiBusy || !state?.project_open"
-              @click="showFile('save')"
-            >
-              <AppIcon name="save" :size="25" /><span>Save copy</span>
-            </button>
-          </div>
-          <small>PROJECT</small>
-        </div>
+    <section
+      class="ribbon"
+      :id="'tools-' + activeView"
+      role="tabpanel"
+      :aria-labelledby="'view-' + activeView"
+      :aria-label="
+        (views.find((view) => view.key === activeView)?.label || '') + ' tools'
+      "
+    >
+      <template v-if="activeView === 'analysis'">
         <div class="ribbon-group">
           <div class="ribbon-tools">
             <button
@@ -514,45 +614,27 @@ onBeforeUnmount(() => {
               :disabled="!canEdit || !groups.length"
               @click="addResource"
             >
-              <AppIcon name="resource" :size="25" /><span>Add resource</span>
+              <AppIcon name="resource" :size="24" /><span>Add resource</span>
             </button>
-            <div class="ribbon-stack">
-              <button
-                :disabled="!canEdit"
-                @click="
-                  w.command('add', {
-                    kind: 'Group',
-                    description: 'New resource group',
-                  })
-                "
-              >
-                <AppIcon name="group" />Resource group</button
-              ><button :disabled="!canEdit" @click="ribbon = 'Analysis'">
-                <AppIcon name="plus" />Calculation row
-              </button>
-            </div>
           </div>
-          <small>INSERT</small>
+          <small>RESOURCES</small>
         </div>
         <div class="ribbon-group">
           <div class="ribbon-tools">
             <button
+              v-for="row in rowKinds"
+              :key="row.kind"
               class="ribbon-large"
-              :disabled="!canEdit || !state?.undo"
-              title="Undo (Ctrl+Z)"
-              @click="w.command('undo')"
+              :title="row.hint"
+              :disabled="!canEdit"
+              @click="w.command('add', { kind: row.kind, value: row.value })"
             >
-              <AppIcon name="undo" :size="25" /><span>Undo</span></button
-            ><button
-              class="ribbon-large"
-              :disabled="!canEdit || !state?.redo"
-              title="Redo (Ctrl+Y)"
-              @click="w.command('redo')"
-            >
-              <AppIcon name="redo" :size="25" /><span>Redo</span>
+              <AppIcon :name="row.icon" :size="24" /><span>{{
+                row.label
+              }}</span>
             </button>
           </div>
-          <small>HISTORY</small>
+          <small>INSERT</small>
         </div>
         <div class="ribbon-group">
           <div class="ribbon-tools">
@@ -585,25 +667,6 @@ onBeforeUnmount(() => {
           </div>
           <small>EDIT</small>
         </div>
-      </template>
-      <template v-else-if="ribbon === 'Analysis'"
-        ><div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button
-              v-for="row in rowKinds"
-              :key="row.kind"
-              class="ribbon-large"
-              :title="row.hint"
-              :disabled="!canEdit"
-              @click="w.command('add', { kind: row.kind, value: row.value })"
-            >
-              <AppIcon :name="row.icon" :size="25" /><span>{{
-                row.label
-              }}</span>
-            </button>
-          </div>
-          <small>CALCULATION ROWS</small>
-        </div>
         <div class="ribbon-group">
           <div class="ribbon-tools">
             <button
@@ -611,13 +674,13 @@ onBeforeUnmount(() => {
               :disabled="!canEdit || selected.length !== 1"
               @click="w.command('move', { delta: -1 })"
             >
-              <AppIcon name="up" :size="25" /><span>Move up</span></button
+              <AppIcon name="up" :size="24" /><span>Move up</span></button
             ><button
               class="ribbon-large"
               :disabled="!canEdit || selected.length !== 1"
               @click="w.command('move', { delta: 1 })"
             >
-              <AppIcon name="down" :size="25" /><span>Move down</span>
+              <AppIcon name="down" :size="24" /><span>Move down</span>
             </button>
           </div>
           <small>SEQUENCE</small>
@@ -629,7 +692,7 @@ onBeforeUnmount(() => {
               :disabled="!canEdit || !state?.project"
               @click="w.command('analysis.apply')"
             >
-              <AppIcon name="check" :size="25" /><span
+              <AppIcon name="check" :size="24" /><span
                 >Apply analysis</span
               ></button
             ><button
@@ -637,84 +700,17 @@ onBeforeUnmount(() => {
               :disabled="!canEdit || !state?.project"
               @click="exportAnalysisOpen = true"
             >
-              <AppIcon name="file" :size="25" /><span>Export analysis</span>
+              <AppIcon name="file" :size="24" /><span>Export analysis</span>
             </button>
           </div>
           <small>PROJECT</small>
         </div>
-        <p class="ribbon-note">
-          Rows calculate from top to bottom.<br />Changing the sequence can
-          change the rate.
-        </p></template
-      >
-      <template v-else
-        ><div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button
-              class="ribbon-large"
-              :class="{ pressed: sidebar }"
-              :aria-pressed="sidebar"
-              @click="sidebar = !sidebar"
-            >
-              <AppIcon name="grid" :size="25" /><span>Explorer</span></button
-            ><button
-              class="ribbon-large"
-              :class="{ pressed: inspector }"
-              :aria-pressed="inspector"
-              @click="inspector = !inspector"
-            >
-              <AppIcon name="panel" :size="25" /><span>Inspector</span>
-            </button>
-          </div>
-          <small>PANELS</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button class="ribbon-large" @click="expanded = !expanded">
-              <AppIcon
-                :name="expanded ? 'collapse' : 'expand'"
-                :size="25"
-              /><span>{{
-                expanded ? "Collapse groups" : "Expand groups"
-              }}</span></button
-            ><button
-              class="ribbon-large"
-              :class="{ pressed: compact }"
-              :aria-pressed="compact"
-              @click="compact = !compact"
-            >
-              <AppIcon name="settings" :size="25" /><span>Compact rows</span>
-            </button>
-          </div>
-          <small>TABLE</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button
-              class="ribbon-large"
-              :disabled="uiBusy || !state?.project_open"
-              @click="showSettings"
-            >
-              <AppIcon name="settings" :size="25" /><span
-                >Project settings</span
-              >
-            </button>
-          </div>
-          <small>PROJECT</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-tools">
-            <button
-              class="ribbon-large"
-              :disabled="uiBusy"
-              @click="w.reconnect"
-            >
-              <AppIcon name="check" :size="25" /><span>Reconnect engine</span>
-            </button>
-          </div>
-          <small>CONNECTION</small>
-        </div></template
-      >
+      </template>
+      <div
+        id="project-ribbon-tools"
+        class="ribbon-tools-host"
+        v-show="activeView !== 'analysis'"
+      />
     </section>
     <div v-if="error" class="error-banner" role="alert">
       <AppIcon name="help" /><span>{{ error }}</span
@@ -923,44 +919,13 @@ onBeforeUnmount(() => {
         </div>
       </aside>
       <main class="editor-pane">
-        <div class="document-tabs" role="tablist" aria-label="Project views">
-          <button
-            v-for="tab in [
-              { key: 'schedule', label: 'Schedule' },
-              { key: 'analysis', label: 'Analysis' },
-              { key: 'resources', label: 'Resources' },
-              { key: 'measurement', label: 'Measurements' },
-            ]"
-            :key="tab.key"
-            class="workspace-tab"
-            role="tab"
-            :aria-selected="activeView === tab.key"
-            :class="{ active: activeView === tab.key }"
-            @click="switchView(tab.key as typeof activeView)"
-          >
-            {{ tab.label }}
-          </button>
-          <span class="spacer" /><button
-            class="icon-button"
-            title="Toggle explorer"
-            aria-label="Toggle explorer"
-            @click="sidebar = !sidebar"
-          >
-            <AppIcon name="grid" :size="15" /></button
-          ><button
-            class="icon-button"
-            title="Toggle inspector"
-            aria-label="Toggle inspector"
-            @click="inspector = !inspector"
-          >
-            <AppIcon name="panel" :size="15" />
-          </button>
-        </div>
         <ProjectViews
+          ref="projectView"
           v-if="activeView !== 'analysis'"
           :view="activeView"
           :project-open="!!state?.project_open"
           @changed="w.refresh()"
+          @history="projectHistory = $event"
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
         />
