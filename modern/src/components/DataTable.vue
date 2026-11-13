@@ -21,6 +21,7 @@ const element = ref<HTMLDivElement>();
 let table: Tabulator;
 let ready: Promise<void>;
 let alive = true;
+let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
 function paste(event: ClipboardEvent) {
   if (
@@ -92,15 +93,21 @@ watch(
     await ready;
     if (!alive) return;
     const ids = new Set(table.getSelectedData().map((r) => r.id));
-    await table.replaceData(rows);
-    const restoreSelection = (rows: RowComponent[]) => {
-      for (const row of rows) {
-        if (!ids.size) break;
-        if (ids.delete(row.getData().id)) row.select();
-        if (props.tree) restoreSelection(row.getTreeChildren());
-      }
-    };
-    restoreSelection(table.getRows());
+    replacingRows = true;
+    try {
+      await table.replaceData(rows);
+      const restoreSelection = (rows: RowComponent[]) => {
+        for (const row of rows) {
+          if (!ids.size) break;
+          if (ids.delete(row.getData().id)) row.select();
+          if (props.tree) restoreSelection(row.getTreeChildren());
+        }
+      };
+      if (alive) restoreSelection(table.getRows());
+    } finally {
+      replacingRows = false;
+    }
+    if (alive) emit("selection", table.getSelectedData());
   },
 );
 watch(
@@ -167,7 +174,9 @@ onMounted(() => {
   table.on("cellClick", (_event, cell) => {
     anchor = { id: cell.getData().id, field: cell.getField() };
   });
-  table.on("rowSelectionChanged", (rows) => emit("selection", rows));
+  table.on("rowSelectionChanged", (rows) => {
+    if (!replacingRows) emit("selection", rows);
+  });
   table.on("cellEdited", (cell) =>
     emit(
       "edit",

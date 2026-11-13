@@ -1172,25 +1172,50 @@ class ProjectEditor:
         self.ensure_ids()
         index = self.ids.index(p["id"]) if p.get("id") in self.ids else None
         item = meas.items[index] if index is not None else None
-        if op == "copy":
-            if item is None:
-                raise ValueError("Select a measurement item")
-            self.clipboard = ("measurement", copy.deepcopy(item))
+        if op in ("copy", "duplicate", "delete", "move"):
+            ids = p.get("ids", [p.get("id")])
+            if not isinstance(ids, list) or not ids or any(
+                not isinstance(identity, str) or identity not in self.ids for identity in ids
+            ):
+                raise ValueError("Select one or more measurement items")
+            selection = set(ids)
+            indexes = [position for position, identity in enumerate(self.ids) if identity in selection]
+            if op == "copy":
+                self.clipboard = ("measurement", [copy.deepcopy(meas.items[i]) for i in indexes])
+                return
+            if op == "duplicate":
+                pos = indexes[-1] + 1
+                items = [copy.deepcopy(meas.items[i]) for i in indexes]
+                for offset, new in enumerate(items):
+                    meas.insert_item(pos + offset, new)
+                    self.ids.insert(pos + offset, uuid4().hex)
+            elif op == "delete":
+                for position in reversed(indexes):
+                    meas.remove_item(position)
+                    self.record_ids.pop(self.ids.pop(position), None)
+            else:
+                delta = p["delta"]
+                if type(delta) is not int or delta not in (-1, 1):
+                    raise ValueError("Invalid move")
+                for position in (indexes if delta < 0 else reversed(indexes)):
+                    other = position + delta
+                    if 0 <= other < len(self.ids) and self.ids[other] not in selection:
+                        meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
+                        self.ids[position], self.ids[other] = self.ids[other], self.ids[position]
+            self.db.set_measurement(meas)
+            self.ensure_ids()
             return
         if op == "paste":
             if not self.clipboard or self.clipboard[0] != "measurement":
                 raise ValueError("Copy a measurement item first")
             pos = index + 1 if index is not None else 0
-            meas.insert_item(pos, copy.deepcopy(self.clipboard[1]))
-            self.ids.insert(pos, uuid4().hex)
+            for offset, copied in enumerate(self.clipboard[1]):
+                meas.insert_item(pos + offset, copy.deepcopy(copied))
+                self.ids.insert(pos + offset, uuid4().hex)
         elif op == "caption":
             meas.caption = text(p["value"])
-        elif op in ("add", "duplicate"):
-            if op == "duplicate":
-                if item is None:
-                    raise ValueError("Select a measurement item")
-                new = copy.deepcopy(item)
-            elif p.get("template"):
+        elif op == "add":
+            if p.get("template"):
                 if p["template"] not in [r["code"] for r in self.templates()]:
                     raise ValueError("Unknown measurement template")
                 new = measurement.MeasurementItemCustom(plugin=p["template"])
@@ -1202,22 +1227,6 @@ class ProjectEditor:
             pos = index + 1 if index is not None else 0
             meas.insert_item(pos, new)
             self.ids.insert(pos, uuid4().hex)
-        elif op == "delete":
-            if index is None:
-                raise ValueError("Select a measurement item")
-            meas.remove_item(index)
-            self.record_ids.pop(self.ids.pop(index), None)
-        elif op == "move":
-            delta = p["delta"]
-            if type(delta) is not int or delta not in (-1, 1) or index is None:
-                raise ValueError("Invalid move")
-            other = index + delta
-            if 0 <= other < len(meas.items):
-                meas.items[index], meas.items[other] = (
-                    meas.items[other],
-                    meas.items[index],
-                )
-                self.ids[index], self.ids[other] = self.ids[other], self.ids[index]
         elif op == "edit":
             if item is None:
                 raise ValueError("Select a measurement item")
@@ -1267,6 +1276,32 @@ class ProjectEditor:
                     copy.deepcopy(item.records[record_index].data_string),
                 )
                 return
+            if op == "record_import":
+                from .importing import selected_rows
+
+                fields = [i for i, kind in enumerate(item.columntypes) if kind != misc.MEAS_CUST]
+                records = selected_rows(p, len(fields), cached=True)
+                pos = record_index + 1 if record_index is not None else len(item.records)
+                imported = 0
+                for values in records:
+                    if all(value is None for value in values):
+                        continue
+                    raw = [""] * len(item.columntypes)
+                    for column, value in zip(fields, values):
+                        if value is not None:
+                            raw[column] = text(str(value))
+                            if item.columntypes[column] in (misc.MEAS_L, misc.MEAS_NO):
+                                decimal(raw[column])
+                    item.insert_record(pos, measurement.RecordCustom(
+                        raw, item.cust_funcs, item.total_func_item, item.columntypes
+                    ))
+                    ids.insert(pos, uuid4().hex)
+                    pos += 1
+                    imported += 1
+                if not imported:
+                    raise ValueError("No measurement records found in the selected range")
+                self.db.set_measurement(meas)
+                return dict(imported=imported)
             if op == "record_paste":
                 if not self.clipboard or self.clipboard[:2] != (
                     "records",

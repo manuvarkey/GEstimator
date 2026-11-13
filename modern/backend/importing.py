@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from openpyxl import load_workbook
-from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
+from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel, parse_analysis
 from .numbers import decimal
 
 FIELDS = {
@@ -27,6 +27,60 @@ FIELDS = {
         "category",
     ),
 }
+
+
+def selected_rows(params, width, *, cached=False):
+    first = params.get("first_row", 1)
+    last = params.get("last_row")
+    column = params.get("first_column", 1)
+    if (type(first) is not int or first < 1 or type(column) is not int
+            or not 1 <= column <= 100 or (last is not None and
+            (type(last) is not int or not first <= last < first + 10000))):
+        raise ValueError("Choose a valid spreadsheet range")
+    path = Path(params["path"]).resolve(strict=True)
+    book = load_workbook(path, read_only=True, data_only=cached)
+    try:
+        name = params.get("sheet") or book.sheetnames[0]
+        if name not in book.sheetnames:
+            raise ValueError("Worksheet not found")
+        sheet = book[name]
+        end = min(last, sheet.max_row) if last and sheet.max_row else last or sheet.max_row
+        if end is None or end >= first + 10000:
+            raise ValueError("Select at most 10,000 rows")
+        return list(sheet.iter_rows(
+            min_row=first, max_row=end, min_col=column,
+            max_col=column + width - 1, values_only=True,
+        ))
+    finally:
+        book.close()
+
+
+def import_analysis(model, params):
+    records = selected_rows(params, 6, cached=True)
+    if params.get("rate_first") is True:
+        records = [(code, desc, unit, qty, rate, amount)
+                   for code, desc, unit, rate, qty, amount in records]
+    data = []
+    for line, record in enumerate(records, params.get("first_row", 1)):
+        try:
+            labels = [str(value) if value is not None else "" for value in record[:3]]
+            header = "description" in labels[1].lower() and "unit" in labels[2].lower()
+            data.append([
+                *labels,
+                *[decimal(str(value)) if value is not None and not header else decimal("0")
+                  for value in record[3:]],
+            ])
+        except ValueError as exc:
+            raise ValueError(f"Invalid analysis number on worksheet row {line}") from exc
+    draft = ScheduleItemModel(model.code, model.description, model.unit)
+    parse_analysis(data, draft, 0, set_code=True)
+    if not any(row.get("resource_list") for row in draft.ana_items):
+        raise ValueError("No analysis resources found. Check the worksheet range and column order.")
+    draft.resources.update({
+        code: model.resources[code] for code in draft.resources if code in model.resources
+    })
+    draft.evaluate_results()
+    return draft
 
 
 def rows(params):

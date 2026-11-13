@@ -15,6 +15,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectViews from "./components/ProjectViews.vue";
+import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
 import { request, type AnalysisRow, type RowKind } from "./backend";
@@ -61,6 +62,7 @@ let pendingProject = false;
 const duplicateCode = ref("");
 const duplicateOpen = ref(false);
 const exportAnalysisOpen = ref(false);
+const importAnalysisOpen = ref(false);
 const exportAnalysisPath = ref("");
 const explorer = ref("schedule");
 const sidebar = ref(true);
@@ -751,6 +753,10 @@ onBeforeUnmount(() => {
               @click="exportAnalysisOpen = true"
             >
               <AppIcon name="file" :size="24" /><span>Export analysis</span>
+            </button>
+            <button class="ribbon-large" :disabled="!canEdit || !state?.project"
+              @click="error = ''; importAnalysisOpen = true">
+              <AppIcon name="folder" :size="24" /><span>Import analysis</span>
             </button>
           </div>
           <small>PROJECT</small>
@@ -1583,6 +1589,8 @@ onBeforeUnmount(() => {
       </button>
     </div></Dialog
   >
+  <SpreadsheetRangeImport v-if="importAnalysisOpen" v-model="importAnalysisOpen"
+    :apply="(params) => w.command('analysis.import_xlsx', params)" :error="error" />
   <Dialog
     v-model:visible="exportAnalysisOpen"
     modal

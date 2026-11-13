@@ -90,3 +90,9 @@ Windows validation passed the 38 persistence-inclusive Python tests, ten Playwri
 ## Indirect resource dependencies
 
 The resource usage browser follows references through nested sub-analyses, deduplicates results and marks indirect references. The 39-test Python suite passed, including a three-level dependency fixture. Aggregate resource totals still use the GTK calculation.
+
+## Workbook ranges and whole-item measurement selection
+
+The Analysis ribbon previews and imports six-column analysis ranges through the GTK parser. The Measurement record toolbar imports editable template columns from a worksheet range, with original callbacks calculating the derived columns and totals. Formula cells rely on saved workbook values. Whole-item measurement selections support ordered copy, paste, duplication, movement and deletion. Changes are undoable.
+
+The Windows checks passed 42 Python tests, the ten existing Playwright scenarios and the new Excel import scenario. Tests cover worksheet preview, draft undo, measurement calculations, rollback on an invalid record, and measurement selection order.

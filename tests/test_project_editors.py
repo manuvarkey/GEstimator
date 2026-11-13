@@ -781,6 +781,80 @@ class ProjectEditors(unittest.TestCase):
         self.call("project.undo")
         self.assertEqual(db.ResourceTable.select().count(), 206)
 
+    def test_measurement_multiselect_operations_preserve_order_and_undo(self):
+        for label in reversed(("One", "Two", "Three", "Four")):
+            self.call("measurement.add", description=label)
+        def rows():
+            return self.call("measurement.state")["rows"]
+        ids = [row["id"] for row in rows()]
+        self.call("measurement.move", ids=[ids[1], ids[2]], delta=-1)
+        self.assertEqual([row["id"] for row in rows()], [ids[1], ids[2], ids[0], ids[3]])
+        self.call("measurement.copy", ids=[ids[2], ids[1]])
+        self.call("measurement.paste", id=ids[3])
+        self.assertEqual([row["description"] for row in rows()],
+                         ["Two", "Three", "One", "Four", "Two", "Three"])
+        self.call("measurement.delete", ids=[ids[1], ids[2]])
+        self.assertEqual(len(rows()), 4)
+        self.call("project.undo")
+        self.assertEqual([row["id"] for row in rows()][:2], [ids[1], ids[2]])
+        self.call("measurement.duplicate", ids=[ids[0], ids[3]])
+        self.assertEqual([row["description"] for row in rows()][4:6], ["One", "Four"])
+        with self.assertRaises(ValueError):
+            self.call("measurement.delete", ids=[ids[0], "stale"])
+        self.assertEqual(len(rows()), 8)
+
+    def test_spreadsheet_analysis_preview_and_import_are_undoable(self):
+        from openpyxl import Workbook
+
+        path = Path(self.temp.name) / "analysis.xlsx"
+        book = Workbook()
+        sheet = book.active
+        for row in (
+            ["EXTERNAL", "Original item"],
+            [None, "Cost of concrete"],
+            ["Code", "Description", "Unit", "Qty", "Rate", "Amount"],
+            [None, "MATERIALS"],
+            ["X", "Cement", "kg", 3, 7, 21],
+            [None, "TOTAL MATERIALS", None, None, None, 21],
+            [None, "TOTAL", None, None, None, 21],
+        ):
+            sheet.append(row)
+        book.save(path)
+        self.call("analysis.load", code="A")
+        preview = self.call("analysis.import_preview", path=str(path))
+        self.assertEqual(preview, dict(rows=2, resources=1, rate="21.00"))
+        self.assertFalse(self.s.dirty)
+        self.call("analysis.import_xlsx", path=str(path))
+        self.assertEqual(self.s.state()["code"], "A")
+        self.assertEqual(self.s.state()["rate"], "21.00")
+        self.assertTrue(self.s.dirty)
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("20"))
+        self.call("undo")
+        self.assertEqual(self.s.state()["rate"], "20.00")
+
+    def test_measurement_record_workbook_import_is_atomic(self):
+        from openpyxl import Workbook
+
+        path = Path(self.temp.name) / "records.xlsx"
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["Description", "Number", "Length", "Breadth", "Height"])
+        sheet.append(["Footing", 2, 3, 4, 5])
+        sheet.append(["Invalid", "invalid", 1, 1, 1])
+        book.save(path)
+        self.call("measurement.add", template="_1_NLBH")
+        identity = self.call("measurement.state")["rows"][0]["id"]
+        params = dict(id=identity, path=str(path), first_row=2)
+        with self.assertRaises(ValueError):
+            self.call("measurement.record_import", **params)
+        self.assertEqual(self.call("measurement.state", id=identity)["detail"]["rows"], [])
+        self.assertEqual(self.call("measurement.record_import", last_row=2, **params), dict(imported=1))
+        detail = self.call("measurement.state", id=identity)["detail"]
+        self.assertEqual(detail["rows"][0]["c0"], "Footing")
+        self.assertEqual(detail["totals"], ["120"])
+        self.call("project.undo")
+        self.assertEqual(self.call("measurement.state", id=identity)["detail"]["rows"], [])
+
     def test_measurement_record_order_preserves_ids_values_totals_and_undo(self):
         self.call("measurement.add", template="_1_NLBH")
         identity = self.call("measurement.state")["rows"][0]["id"]

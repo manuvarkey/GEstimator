@@ -5,6 +5,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
+import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import { request } from "../backend";
 
@@ -89,6 +90,7 @@ const deletion = ref<{
   measurement_references: number;
 }>();
 const importOpen = ref(false);
+const recordImportOpen = ref(false);
 const importPath = ref("");
 const importSheet = ref("");
 const importPreview = ref<{
@@ -269,6 +271,7 @@ async function command(
       {
         revision: state.value?.revision,
         id: one.value?.id,
+        ids: isMeasurement.value ? selected.value.map((row) => row.id) : undefined,
         source: source.value,
         ...params,
       },
@@ -276,6 +279,7 @@ async function command(
     await refresh();
     if (operation === "delete") {
       selected.value = [];
+      activeMeasurement.value = undefined;
     }
     if (operation === "record_delete") selectedRecord.value = undefined;
     emit("changed");
@@ -377,11 +381,8 @@ async function applyPriceUpdate() {
 }
 async function select(rows: GridRow[]) {
   selected.value = rows;
-  if (
-    isMeasurement.value &&
-    rows.length === 1 &&
-    activeMeasurement.value !== rows[0].id
-  ) {
+  if (isMeasurement.value && rows.length === 1 &&
+      activeMeasurement.value !== rows[0].id) {
     activeMeasurement.value = rows[0].id;
     await load();
   }
@@ -653,8 +654,8 @@ watch(
             </button>
             <button
               class="button secondary"
-              :disabled="busy || !one || one.rowtype === 'Category'"
-              @click="showForm('duplicate')"
+              :disabled="busy || (isMeasurement ? !selected.length : !one || one.rowtype === 'Category')"
+              @click="isMeasurement ? command('duplicate') : showForm('duplicate')"
             >
               Duplicate
             </button>
@@ -680,14 +681,14 @@ watch(
             </button>
             <button
               class="icon-button"
-              :disabled="busy || !one"
+              :disabled="busy || (isMeasurement ? !selected.length : !one)"
               aria-label="Move item up"
               @click="command('move', { delta: -1 })"
             >
               <AppIcon name="up" /></button
             ><button
               class="icon-button"
-              :disabled="busy || !one"
+              :disabled="busy || (isMeasurement ? !selected.length : !one)"
               aria-label="Move item down"
               @click="command('move', { delta: 1 })"
             >
@@ -854,7 +855,7 @@ watch(
           Next
         </button>
       </div>
-      <template v-if="isMeasurement && state?.detail">
+      <template v-if="isMeasurement && selected.length === 1 && state?.detail">
         <div class="measurement-links">
           <label
             v-for="(link, index) in state.detail.links"
@@ -912,6 +913,12 @@ watch(
             @click="recordAction('add')"
           >
             Add record</button
+          ><button
+            class="button small secondary"
+            :disabled="busy"
+            @click="error = ''; recordImportOpen = true"
+          >
+            Import records…</button
           ><button
             class="button small secondary"
             :disabled="busy || !selectedRecord"
@@ -1272,6 +1279,10 @@ watch(
         </button>
       </div></Dialog
     >
+    <SpreadsheetRangeImport v-if="recordImportOpen" v-model="recordImportOpen" measurement
+      :apply="(params) => command('record_import', {
+        ...params, id: activeMeasurement, record_id: selectedRecord?.id,
+      })" :error="error" />
     <ResourceUsage
       v-if="view !== 'measurement'"
       v-model="usageOpen"

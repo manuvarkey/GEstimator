@@ -282,6 +282,14 @@ class Service:
             return self.project_editor.call(method, p, progress)
         if method in ("analysis.export_xlsx",):
             return self.export_analysis(p, progress)
+        if method == "analysis.import_preview":
+            if not self.loaded:
+                raise ValueError("Load an analysis first")
+            from .importing import import_analysis
+
+            draft = import_analysis(self.model, p)
+            return dict(rows=len(draft.ana_items), resources=len(draft.resources),
+                        rate=str(draft.get_ana_rate()))
         if method in ("schedule.list", "resources.search"):
             if not self.db:
                 raise ValueError("Open a project first")
@@ -409,6 +417,17 @@ class Service:
         return self.state()
 
     def edit(self, method, p):
+        if method == "analysis.import_xlsx":
+            if not self.loaded:
+                raise ValueError("Load an analysis first")
+            from .importing import import_analysis
+
+            draft = import_analysis(self.model, p)
+            self.model.ana_items = draft.ana_items
+            self.model.resources = draft.resources
+            self.model.ana_remarks = draft.ana_remarks or self.model.ana_remarks
+            self.identify()
+            return
         if method == "analysis.edit":
             if p["field"] != "ana_remarks":
                 raise ValueError("Unknown analysis field")

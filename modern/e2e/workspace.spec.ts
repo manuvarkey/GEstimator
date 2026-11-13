@@ -828,3 +828,35 @@ test("in-place save keeps a backup and the project appears in recent projects", 
   await open.getByLabel("Recent projects").selectOption({ label: project });
   await expect(open.getByLabel("Project file")).toHaveValue(project);
 });
+
+test("Excel analysis import previews a calculated rate and can be undone", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "analysis-import.eproj");
+  const workbook = resolve(directory, "analysis.xlsx");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  execFileSync(python, ["-c", [
+    "import sys",
+    "from openpyxl import Workbook",
+    "book = Workbook()",
+    "for row in [('EXT','Item'), (None,'Cost of concrete'), ('Code','Description','Unit','Qty','Rate','Amount'), (None,'MATERIALS'), ('X','Cement','kg',3,7,21), (None,'TOTAL MATERIALS',None,None,None,21)]:",
+    "    book.active.append(row)",
+    "book.save(sys.argv[1])",
+  ].join("\n"), workbook]);
+  const header = page.locator(".titlebar");
+  await header.getByRole("button", { name: "Open project" }).click();
+  const open = page.getByRole("dialog", { name: "Open project" });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.getByRole("navigation", { name: "Schedule items" }).getByRole("button", { name: /A Foundation/ }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Import analysis" }).click();
+  const dialog = page.getByRole("dialog", { name: "Import analysis from Excel" });
+  await dialog.getByLabel(/Workbook/).fill(workbook);
+  await dialog.getByRole("button", { name: "Preview analysis" }).click();
+  await expect(dialog.getByRole("status")).toContainText("parsed rate 21.00");
+  await dialog.getByRole("button", { name: "Replace analysis draft" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator(".summary-value")).toContainText("21.00");
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".summary-value")).toContainText("20.00");
+});
