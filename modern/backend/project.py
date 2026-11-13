@@ -274,6 +274,42 @@ class ProjectEditor:
     def sources(self):
         return [dict(id=key, name=value[0]) for key, value in self.libraries.items()]
 
+    def refresh_resource_prices(self, params, apply):
+        identity = params.get("library")
+        if not isinstance(identity, str) or identity not in self.libraries:
+            raise ValueError("Choose an attached library")
+        source = self.libraries[identity][1]
+        _, records = self.selection("resources", params.get("ids"))
+        prefix = source.get_project_settings().get("project_resource_code")
+        catalog = source.get_resource_table(flat=True, modify_code=bool(prefix))
+        changes = {}
+        matched = 0
+        for row in records:
+            entry = catalog.get(row.code)
+            if entry is None:
+                continue
+            matched += 1
+            current = (row.rate, row.vat, row.discount, row.reference)
+            replacement = tuple(entry[3:7])
+            if current != replacement:
+                changes[row.code] = replacement
+
+        if apply and changes:
+            def update():
+                table = self.db.ResourceTable
+                for code, (rate, vat, discount, reference) in changes.items():
+                    table.update(
+                        rate=rate, vat=vat, discount=discount, reference=reference
+                    ).where(table.code == code).execute()
+                self.owner.update_dependent_rates(self.db, resources=changes)
+
+            self.mutate(update)
+        return dict(
+            changed=len(changes),
+            unchanged=matched - len(changes),
+            unmatched=len(records) - matched,
+        )
+
     def close(self):
         for name, db in self.libraries.values():
             db.close_database()
@@ -579,6 +615,8 @@ class ProjectEditor:
             raise ValueError(
                 "Attached libraries are read-only; import items to the project to edit them"
             )
+        if kind == "resources" and operation in ("price_preview", "price_update"):
+            return self.refresh_resource_prices(p, apply=operation == "price_update")
         if operation == "copy":
             self.edit(kind, operation, p)
             return dict(ok=True)

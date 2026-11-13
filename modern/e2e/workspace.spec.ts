@@ -681,3 +681,46 @@ test("category lifecycle, library category import and used-resource deletion", a
       .filter({ hasText: /^20$/ }),
   ).toHaveCount(2);
 });
+
+test("selected resources can preview and apply library prices", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "project.eproj");
+  const library = resolve(directory, "prices.eproj");
+  for (const [file, rate] of [[project, "10"], [library, "25"]]) {
+    execFileSync(python, ["-m", "modern.e2e.create_fixture", file, rate], {
+      cwd: resolve(".."),
+    });
+  }
+  await page.locator(".titlebar").getByRole("button", { name: "Open project" }).click();
+  const open = page.getByRole("dialog", { name: "Open project" });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+
+  const tabs = page.locator(".ribbon-tabs");
+  const ribbon = page.locator(".ribbon");
+  const grid = page.locator(".project-main-grid");
+  await tabs.getByRole("tab", { name: "Resources", exact: true }).click();
+  await ribbon.getByRole("button", { name: "Attach library…" }).click();
+  const attach = page.getByRole("dialog", { name: "Attach resource / schedule library" });
+  await attach.getByLabel(/Library project/).fill(library);
+  await attach.getByRole("button", { name: "Attach library", exact: true }).click();
+  await expect(attach).not.toBeVisible();
+  await grid.getByText("Materials", { exact: true }).first().click();
+  await ribbon.getByRole("button", { name: "Update prices from library…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Update resource prices from library" });
+  const apply = dialog.getByRole("button", { name: "Update prices", exact: true });
+  await expect(apply).toBeDisabled();
+  await dialog.getByRole("button", { name: "Preview updates" }).click();
+  await expect(dialog).toContainText("1 to update, 0 already current, 0 without a matching code.");
+  await apply.click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("Updated prices for 1 resource.")).toBeVisible();
+  await expect(grid.getByText("25", { exact: true })).toBeVisible();
+
+  await tabs.getByRole("tab", { name: "Schedule", exact: true }).click();
+  const rate = grid.getByRole("row", { name: /A Foundation/ }).locator('[tabulator-field="rate"]');
+  await expect(rate).toHaveText("50");
+  await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(rate).toHaveText("20");
+});

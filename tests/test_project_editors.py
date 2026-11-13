@@ -304,6 +304,56 @@ class ProjectEditors(unittest.TestCase):
         self.assertEqual(self.s.state()["rows"][0]["_children"][0]["code"], "LIB:X")
         self.assertEqual(hashlib.sha256(library.read_bytes()).hexdigest(), digest)
 
+    def test_selected_library_price_update_preserves_definitions_and_undo(self):
+        library = Path(self.temp.name) / "prices.eproj"
+        external = ScheduleDatabase(Stack())
+        external.create_new_database(str(library))
+        settings = external.get_project_settings()
+        settings["project_resource_code"] = "LIB"
+        external.set_project_settings(settings)
+        for code in ("R", "X"):
+            external.insert_resource(
+                ResourceItemModel(
+                    code, "Library description", "t",
+                    Decimal("20"), Decimal("10"), Decimal("5"),
+                    "Updated reference", "Library materials",
+                )
+            )
+        external.close_database()
+        digest = hashlib.sha256(library.read_bytes()).hexdigest()
+        source = self.call("library.attach", path=str(library))[0]["id"]
+        row = self.s.db.ResourceTable.get()
+        self.call("resources.editor.edit", id=str(row.id), field="code", value="LIB:R")
+        self.call("resources.editor.duplicate", id=str(row.id), data=dict(code="LIB:X"))
+        other = self.s.db.ResourceTable.get(code="LIB:X")
+        self.call("resources.editor.edit", id=str(other.id), field="category", value="Other")
+        self.call("resources.editor.duplicate", id=str(row.id), data=dict(code="Unmatched"))
+        category = self.s.db.get_resource("LIB:R").category
+        category_id = self.s.db.ResourceCategoryTable.get(description=category).id
+        params = dict(library=source, ids=[f"cat:{category_id}", str(row.id)])
+        expected = dict(changed=1, unchanged=0, unmatched=1)
+        revision = self.s.revision
+        self.assertEqual(self.call("resources.editor.price_preview", **params), expected)
+        self.assertEqual(self.s.revision, revision)
+        self.assertEqual(self.call("resources.editor.price_update", **params), expected)
+        current = self.s.db.get_resource("LIB:R")
+        self.assertEqual((current.rate, current.vat, current.discount, current.reference),
+                         (Decimal("20"), Decimal("10"), Decimal("5"), "Updated reference"))
+        self.assertEqual((current.description, current.unit, current.category),
+                         ("Material", "kg", category))
+        self.assertEqual(self.s.db.get_resource("LIB:X").rate, Decimal("10"))
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("41.80"))
+        revision = self.s.revision
+        self.assertEqual(self.call("resources.editor.price_update", **params),
+                         dict(changed=0, unchanged=1, unmatched=1))
+        self.assertEqual(self.s.revision, revision)
+        self.call("project.undo")
+        self.assertEqual(self.s.db.get_resource("LIB:R").rate, Decimal("10"))
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("20"))
+        self.call("project.redo")
+        self.assertEqual(self.s.db.get_item("A").rate, Decimal("41.80"))
+        self.assertEqual(hashlib.sha256(library.read_bytes()).hexdigest(), digest)
+
     def test_matrix_paste_is_atomic_and_uses_backend_calculation(self):
         records = list(
             self.s.db.ScheduleTable.select().order_by(self.s.db.ScheduleTable.id)

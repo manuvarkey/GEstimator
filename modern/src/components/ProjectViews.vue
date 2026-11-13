@@ -52,6 +52,16 @@ const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
 const libraryOpen = ref(false);
 const libraryPath = ref("");
+const priceOpen = ref(false);
+const priceLibrary = ref("");
+const priceResult = ref("");
+const pricePreview = ref<{
+  ids: string[];
+  revision: number;
+  changed: number;
+  unchanged: number;
+  unmatched: number;
+}>();
 const page = ref(0);
 const selected = ref<GridRow[]>([]);
 const selectedRecord = ref<GridRow>();
@@ -301,6 +311,38 @@ async function confirmDeletion(policy: "protect" | "unused" | "all") {
 async function load() {
   await run(refresh);
 }
+function showPriceUpdate() {
+  priceLibrary.value = libraries.value[0]?.id ?? "";
+  pricePreview.value = undefined;
+  priceResult.value = "";
+  error.value = "";
+  priceOpen.value = true;
+}
+async function previewPriceUpdate() {
+  pricePreview.value = undefined;
+  const ids = selected.value.map((row) => row.id);
+  const revision = state.value!.revision;
+  await run(async () => {
+    const result = await request<
+      Pick<NonNullable<typeof pricePreview.value>, "changed" | "unchanged" | "unmatched">
+    >("resources.editor.price_preview", {
+      ids,
+      revision,
+      library: priceLibrary.value,
+    });
+    pricePreview.value = { ...result, ids, revision };
+  });
+}
+async function applyPriceUpdate() {
+  if (!pricePreview.value) return;
+  const { ids, revision, changed } = pricePreview.value;
+  if (await command("price_update", { ids, revision, library: priceLibrary.value })) {
+    priceResult.value = changed === 1
+      ? "Updated prices for 1 resource."
+      : `Updated prices for ${changed} resources.`;
+    priceOpen.value = false;
+  }
+}
 async function select(rows: GridRow[]) {
   selected.value = rows;
   if (
@@ -516,6 +558,7 @@ watch(
     </div>
     <template v-else
       ><p v-if="importResult" role="status">{{ importResult }}</p>
+      <p v-if="priceResult" role="status">{{ priceResult }}</p>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div class="view-ribbon-tools">
@@ -626,6 +669,14 @@ watch(
               @click="one && emit('analysis', one.code)"
             >
               Edit analysis
+            </button>
+            <button
+              v-if="view === 'resources'"
+              class="button secondary"
+              :disabled="busy || !selected.length || !libraries.length"
+              @click="showPriceUpdate"
+            >
+              Update prices from library…
             </button>
             <button
               v-if="view === 'resources'"
@@ -1150,6 +1201,35 @@ watch(
         </button>
       </div></Dialog
     >
+    <Dialog
+      v-model:visible="priceOpen"
+      modal
+      header="Update resource prices from library"
+      class="workspace-dialog"
+    >
+      <p>Update the rate, VAT, discount and reference of selected resources with matching codes.</p>
+      <label class="field">
+        Price library
+        <select v-model="priceLibrary" :disabled="busy" @change="pricePreview = undefined">
+          <option v-for="library in libraries" :key="library.id" :value="library.id">
+            {{ library.name }}
+          </option>
+        </select>
+      </label>
+      <p v-if="pricePreview" role="status">
+        {{ pricePreview.changed }} to update, {{ pricePreview.unchanged }} already current,
+        {{ pricePreview.unmatched }} without a matching code.
+      </p>
+      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
+      <div class="dialog-footer">
+        <button class="button secondary" :disabled="busy" @click="previewPriceUpdate">
+          Preview updates
+        </button>
+        <button class="button primary" :disabled="busy || !pricePreview?.changed" @click="applyPriceUpdate">
+          Update prices
+        </button>
+      </div>
+    </Dialog>
     <Dialog
       v-model:visible="libraryOpen"
       modal
