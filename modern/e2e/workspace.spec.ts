@@ -724,3 +724,27 @@ test("selected resources can preview and apply library prices", async ({ page })
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(rate).toHaveText("20");
 });
+
+test("resource usage shows project totals and opens a referencing analysis", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "usage.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], {
+    cwd: resolve(".."),
+  });
+  await page.locator(".titlebar").getByRole("button", { name: "Open project" }).click();
+  const open = page.getByRole("dialog", { name: "Open project" });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.locator(".ribbon-tabs").getByRole("tab", { name: "Resources" }).click();
+  const ribbon = page.locator(".ribbon");
+  await ribbon.getByRole("button", { name: "Resource usage", exact: true }).click();
+  const usage = page.getByRole("dialog", { name: "Resource usage" });
+  const totals = usage.getByRole("table", { name: "Project resource totals" });
+  await expect(totals.getByRole("cell", { name: "20.00", exact: true })).toBeVisible();
+  await usage.getByRole("button", { name: "R", exact: true }).click();
+  await expect(usage.getByRole("heading", { name: "Analyses using R" })).toBeVisible();
+  await usage.getByRole("button", { name: "A Foundation", exact: true }).click();
+  await expect(usage).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: "Foundation", exact: true })).toBeVisible();
+});

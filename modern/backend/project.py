@@ -2,6 +2,7 @@
 
 from contextlib import closing
 import copy
+from decimal import Decimal
 from pathlib import Path
 import sqlite3
 from uuid import uuid4
@@ -310,6 +311,48 @@ class ProjectEditor:
             unmatched=len(records) - matched,
         )
 
+    def resource_usage(self, params):
+        offset = params.get("offset", 0)
+        if type(offset) is not int or offset < 0:
+            raise ValueError("Invalid resource usage page")
+        words = text(params.get("query", "")).casefold().split()
+        rows = []
+        for category, items in self.db.get_res_usage().items():
+            for code, (_, description, unit, quantity, base, vat, discount) in sorted(
+                items.items()
+            ):
+                haystack = " ".join((code, description, unit, category)).casefold()
+                if not all(word in haystack for word in words):
+                    continue
+                rate = Currency(
+                    base * (1 + (vat or Decimal(0)) / 100)
+                    * (1 - (discount or Decimal(0)) / 100)
+                )
+                rows.append(dict(
+                    code=code, description=description, unit=unit, category=category,
+                    quantity=str(quantity), rate=str(rate), amount=str(Currency(rate * quantity)),
+                ))
+        return dict(rows=rows[offset:offset + 50], total=len(rows))
+
+    def resource_dependents(self, params):
+        code = text(params["code"])
+        offset = params.get("offset", 0)
+        if type(offset) is not int or offset < 0:
+            raise ValueError("Invalid analysis page")
+        schedule = self.db.ScheduleTable
+        resource = self.db.ResourceTable
+        entry = self.db.ResourceItemTable
+        matches = (
+            schedule.select(schedule.code, schedule.description)
+            .join(entry).join(resource)
+            .where(resource.code == code)
+            .distinct()
+            .order_by(schedule.order, schedule.suborder, schedule.id)
+        )
+        return dict(
+            rows=list(matches.offset(offset).limit(50).dicts()), total=matches.count()
+        )
+
     def close(self):
         for name, db in self.libraries.values():
             db.close_database()
@@ -530,6 +573,10 @@ class ProjectEditor:
             return self.measurement_state(p)
         if method == "measurement.templates":
             return self.templates()
+        if method == "resources.editor.usage":
+            return self.resource_usage(p)
+        if method == "resources.editor.dependents":
+            return self.resource_dependents(p)
         if p.get("revision") != self.owner.revision and not method.startswith(
             "project.export"
         ):

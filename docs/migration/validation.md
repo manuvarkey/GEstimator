@@ -68,3 +68,7 @@ Validated on Windows 11 x64 (build 26200) with Visual Studio Build Tools 2022, W
 ## Resource price updates from attached libraries
 
 All 31 Python regression tests and seven Windows Chrome/Playwright scenarios pass. The price update tests cover selected categories, exact resource-code matching with library prefixes, unmatched resources, dependent rate recalculation, undo and redo, and preservation of the attached source. The Windows x64 NSIS installer was rebuilt, and its release sidecar passed a preview, apply, dependent rate and shutdown smoke test.
+
+## Resource usage and analysis references
+
+The Windows suite passed 32 Python tests and eight Chrome/Playwright scenarios. Resource usage tests exercise the original aggregate quantity method, analysis multipliers, VAT, discount, search, paging, direct-reference lookup and navigation into the analysis editor. The dependency browser lists directly referencing analyses. Resource totals reflect the current project working database.

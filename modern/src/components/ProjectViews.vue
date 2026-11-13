@@ -5,6 +5,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
+import ResourceUsage from "./ResourceUsage.vue";
 import { request } from "../backend";
 
 type View = "schedule" | "resources" | "measurement";
@@ -52,6 +53,8 @@ const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
 const libraryOpen = ref(false);
 const libraryPath = ref("");
+const usageOpen = ref(false);
+const usageCode = ref<string>();
 const priceOpen = ref(false);
 const priceLibrary = ref("");
 const priceResult = ref("");
@@ -673,6 +676,22 @@ watch(
             <button
               v-if="view === 'resources'"
               class="button secondary"
+              :disabled="busy"
+              @click="usageCode = undefined; usageOpen = true"
+            >
+              Resource usage
+            </button>
+            <button
+              v-if="view === 'resources'"
+              class="button secondary"
+              :disabled="busy || !one || one.rowtype === 'Category'"
+              @click="usageCode = one?.code; usageOpen = true"
+            >
+              Find analyses
+            </button>
+            <button
+              v-if="view === 'resources'"
+              class="button secondary"
               :disabled="busy || !selected.length || !libraries.length"
               @click="showPriceUpdate"
             >
@@ -1201,6 +1220,12 @@ watch(
         </button>
       </div></Dialog
     >
+    <ResourceUsage
+      v-if="view === 'resources'"
+      v-model="usageOpen"
+      :selected-code="usageCode"
+      @analysis="emit('analysis', $event)"
+    />
     <Dialog
       v-model:visible="priceOpen"
       modal

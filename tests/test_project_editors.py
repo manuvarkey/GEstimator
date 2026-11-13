@@ -354,6 +354,30 @@ class ProjectEditors(unittest.TestCase):
         self.assertEqual(self.s.db.get_item("A").rate, Decimal("41.80"))
         self.assertEqual(hashlib.sha256(library.read_bytes()).hexdigest(), digest)
 
+    def test_resource_usage_totals_and_direct_analysis_links(self):
+        self.call("analysis.load", code="A")
+        last = self.s.state()["rows"][-1]["id"]
+        self.call("add", kind="Multiply", value="2", id=last)
+        self.call("analysis.apply")
+        row = self.s.db.ResourceTable.get()
+        self.call("resources.editor.edit", id=str(row.id), field="vat", value="10")
+        self.call("resources.editor.edit", id=str(row.id), field="discount", value="5")
+        revision = self.s.revision
+        total = self.call("resources.editor.usage", query="material KG")
+        self.assertEqual(total["total"], 1)
+        self.assertEqual(total["rows"][0]["code"], "R")
+        self.assertEqual(Decimal(total["rows"][0]["quantity"]), Decimal("7"))
+        self.assertEqual(total["rows"][0]["rate"], "10.45")
+        self.assertEqual(total["rows"][0]["amount"], "73.15")
+        self.assertEqual(self.call("resources.editor.usage", query="other")["total"], 0)
+        self.assertEqual(self.call("resources.editor.usage", offset=1)["rows"], [])
+        matches = self.call("resources.editor.dependents", code="R")
+        self.assertEqual([row["code"] for row in matches["rows"]], ["A", "B"])
+        self.assertEqual(self.call("resources.editor.dependents", code="R", offset=1)["rows"],
+                         [dict(code="B", description="Work B")])
+        self.assertEqual(self.call("resources.editor.dependents", code="missing")["total"], 0)
+        self.assertEqual(self.s.revision, revision)
+
     def test_matrix_paste_is_atomic_and_uses_backend_calculation(self):
         records = list(
             self.s.db.ScheduleTable.select().order_by(self.s.db.ScheduleTable.id)
