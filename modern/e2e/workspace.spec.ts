@@ -387,6 +387,15 @@ test("native typography and schedule, resource and measurement editing", async (
   await expect(
     view.locator('.tabulator-row [tabulator-field="qty"]').last(),
   ).toHaveText("6");
+  await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(quantity).toHaveText("1");
+  await quantity.click();
+  await page.locator(".ribbon").getByRole("button", { name: "Quantities from measurements…" }).click();
+  const update = page.getByRole("dialog", { name: "Update selected schedule quantities" });
+  await update.getByLabel("Quantity rounding").selectOption("Round to 10");
+  await update.getByRole("button", { name: "Update quantities" }).click();
+  await expect(update).not.toBeVisible();
+  await expect(quantity).toHaveText("10");
 });
 
 test("new project, settings and mapped Excel import", async ({ page }) => {
@@ -747,4 +756,38 @@ test("resource usage shows project totals and opens a referencing analysis", asy
   await usage.getByRole("button", { name: "A Foundation", exact: true }).click();
   await expect(usage).not.toBeVisible();
   await expect(page.getByRole("heading", { name: "Foundation", exact: true })).toBeVisible();
+});
+
+test("schedule row colour is visible and undoable", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "colours.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  const header = page.locator(".titlebar");
+  await header.getByRole("button", { name: "Open project" }).click();
+  const open = page.getByRole("dialog", { name: "Open project" });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.locator(".ribbon-tabs").getByRole("tab", { name: "Schedule" }).click();
+  const ribbon = page.locator(".ribbon");
+  const grid = page.locator(".project-main-grid");
+  const colour = ribbon.getByRole("button", { name: "Row colour…" });
+  await grid.getByRole("gridcell", { name: "Work", exact: true }).first().click();
+  await expect(colour).toBeDisabled();
+  const row = grid.getByRole("row", { name: /A Foundation/ });
+  await row.getByRole("gridcell", { name: "Foundation", exact: true }).click();
+  await colour.click();
+  const dialog = page.getByRole("dialog", { name: "Schedule row colour" });
+  await dialog.getByLabel("Row colour").fill("#253657");
+  await dialog.getByRole("button", { name: "Apply colour" }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(row).toHaveCSS("background-color", "rgb(37, 54, 87)");
+  await expect(row).toHaveCSS("color", "rgb(255, 255, 255)");
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(row).not.toHaveAttribute("data-schedule-colour", /./);
+  await header.getByRole("button", { name: "Redo", exact: true }).click();
+  await expect(row).toHaveAttribute("data-schedule-colour", "#253657");
+  await colour.click();
+  await dialog.getByRole("button", { name: "Clear colour" }).click();
+  await expect(row).not.toHaveAttribute("data-schedule-colour", /./);
 });

@@ -74,6 +74,10 @@ const formMode = ref("add");
 const form = ref<Record<string, string>>({});
 const categoryOpen = ref(false);
 const categoryName = ref("");
+const colourOpen = ref(false);
+const rowColour = ref("#ffe082");
+const scheduleQuantityOpen = ref(false);
+const scheduleRounding = ref("Round to 0");
 const deleteOpen = ref(false);
 const deletion = ref<{
   ids: string[];
@@ -139,6 +143,9 @@ const exportPath = ref("");
 const activeMeasurement = ref<string>();
 const one = computed(() =>
   selected.value.length === 1 ? selected.value[0] : undefined,
+);
+const selectedScheduleIds = computed(() =>
+  selected.value.filter((row) => row.rowtype === "Schedule").map((row) => row.id),
 );
 const title = computed(
   () =>
@@ -313,6 +320,24 @@ async function confirmDeletion(policy: "protect" | "unused" | "all") {
 }
 async function load() {
   await run(refresh);
+}
+function showRowColour() {
+  rowColour.value = /^#[0-9a-f]{6}$/i.test(one.value?.colour ?? "")
+    ? one.value?.colour.toLowerCase()
+    : "#ffe082";
+  error.value = "";
+  colourOpen.value = true;
+}
+async function applyRowColour(colour: string | null) {
+  if (await command("colour", { ids: selectedScheduleIds.value, colour }))
+    colourOpen.value = false;
+}
+async function updateSelectedQuantities() {
+  if (await command("update_quantities", {
+    ids: selectedScheduleIds.value,
+    rounding: scheduleRounding.value,
+  }))
+    scheduleQuantityOpen.value = false;
 }
 function showPriceUpdate() {
   priceLibrary.value = libraries.value[0]?.id ?? "";
@@ -674,7 +699,23 @@ watch(
               Edit analysis
             </button>
             <button
-              v-if="view === 'resources'"
+              v-if="view === 'schedule'"
+              class="button secondary"
+              :disabled="busy || !selectedScheduleIds.length"
+              @click="showRowColour"
+            >
+              Row colour…
+            </button>
+            <button
+              v-if="view === 'schedule'"
+              class="button secondary"
+              :disabled="busy || !selectedScheduleIds.length"
+              @click="error = ''; scheduleQuantityOpen = true"
+            >
+              Quantities from measurements…
+            </button>
+            <button
+              v-if="view !== 'measurement'"
               class="button secondary"
               :disabled="busy"
               @click="usageCode = undefined; usageOpen = true"
@@ -1221,11 +1262,51 @@ watch(
       </div></Dialog
     >
     <ResourceUsage
-      v-if="view === 'resources'"
+      v-if="view !== 'measurement'"
       v-model="usageOpen"
       :selected-code="usageCode"
       @analysis="emit('analysis', $event)"
     />
+    <Dialog
+      v-model:visible="colourOpen"
+      modal
+      header="Schedule row colour"
+      class="workspace-dialog"
+    >
+      <label class="field">
+        Row colour
+        <input v-model="rowColour" type="color" :disabled="busy" />
+      </label>
+      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
+      <div class="dialog-footer">
+        <button class="button secondary" :disabled="busy" @click="applyRowColour(null)">
+          Clear colour
+        </button>
+        <button class="button primary" :disabled="busy" @click="applyRowColour(rowColour)">
+          Apply colour
+        </button>
+      </div>
+    </Dialog>
+    <Dialog
+      v-model:visible="scheduleQuantityOpen"
+      modal
+      header="Update selected schedule quantities"
+      class="workspace-dialog"
+    >
+      <p class="dialog-intro">Use linked measurement totals for the selected schedule items.</p>
+      <label class="field">
+        Quantity rounding
+        <select v-model="scheduleRounding" :disabled="busy">
+          <option v-for="option in roundingOptions" :key="option">{{ option }}</option>
+        </select>
+      </label>
+      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
+      <div class="dialog-footer">
+        <button class="button primary" :disabled="busy" @click="updateSelectedQuantities">
+          Update quantities
+        </button>
+      </div>
+    </Dialog>
     <Dialog
       v-model:visible="priceOpen"
       modal

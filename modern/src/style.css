@@ -1145,6 +1145,15 @@ textarea::placeholder {
   background: var(--raised);
   font-weight: 550;
 }
+.project-grid .tabulator-row[data-schedule-colour],
+.project-grid .tabulator-row[data-schedule-colour]:hover {
+  background: var(--schedule-row-background);
+  color: var(--schedule-row-text);
+}
+.project-grid .tabulator-row[data-schedule-colour].tabulator-selected {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
 .analysis-table .tabulator-row[data-kind="Subtotal"] {
   color: var(--green);
   font-weight: 550;

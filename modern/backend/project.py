@@ -4,6 +4,7 @@ from contextlib import closing
 import copy
 from decimal import Decimal
 from pathlib import Path
+import re
 import sqlite3
 from uuid import uuid4
 from estimator import misc
@@ -211,6 +212,7 @@ class ProjectEditor:
             else:
                 data.update(
                     qty=str(row.qty or 0),
+                    colour=row.colour,
                     amount=(
                         str(Currency((row.rate or 0) * (row.qty or 0)))
                         if row.unit
@@ -358,8 +360,8 @@ class ProjectEditor:
             db.close_database()
         self.libraries.clear()
 
-    def selection(self, kind, ids, db=None):
-        """Expand stable IDs to complete categories/subtrees, independently of paging."""
+    def selection(self, kind, ids, db=None, *, include_descendants=True):
+        """Resolve stable IDs independently of paging and expand selected categories."""
         db = db or self.db
         resource = kind == "resources"
         table = db.ResourceTable if resource else db.ScheduleTable
@@ -386,7 +388,7 @@ class ProjectEditor:
                 if row is None:
                     raise ValueError("Item no longer exists; refresh the view")
                 records[row.id] = row
-        if not resource:
+        if not resource and include_descendants:
             frontier = list(records)
             while frontier:
                 children = {}
@@ -676,6 +678,24 @@ class ProjectEditor:
         resource = kind == "resources"
         table = db.ResourceTable if resource else db.ScheduleTable
         category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
+        if not resource and op in ("colour", "update_quantities"):
+            ids = p.get("ids")
+            if not isinstance(ids, list) or not 1 <= len(ids) <= 1000:
+                raise ValueError("Select between 1 and 1000 schedule items")
+            item_ids = [identity for identity in ids if not str(identity).startswith("cat:")]
+            _, rows = self.selection(kind, item_ids, include_descendants=False)
+            codes = [row.code for row in rows]
+            if op == "colour":
+                colour = p["colour"]
+                if colour is not None:
+                    if not re.fullmatch(r"#[0-9a-fA-F]{6}", text(colour)):
+                        raise ValueError("Choose a six-digit RGB colour")
+                    colour = colour.upper()
+                if not db.update_item_colour(codes, colour):
+                    raise ValueError("Unable to update schedule colours")
+            elif not db.update_qty(codes, text(p["rounding"])):
+                raise ValueError("Unable to update schedule quantities")
+            return
         if op == "copy":
             ids = p.get("ids", [])
             if not isinstance(ids, list) or len(ids) > 1000:

@@ -68,6 +68,8 @@ Use the ribbon tabs to open the project editors. Schedule/resources support hier
 
 Measurements use the existing eight Python templates. Add a heading or a custom item, select it to edit its records, schedule links, item remarks and user data, then use **Update schedule quantities** with the desired legacy rounding scheme. Use the record toolbar arrows to reorder records; stable identifiers and project undo retain their values. Template-calculated columns are read-only. Deleting linked schedule items retains measurement records/remarks and clears their associations; undo restores the links.
 
+In Schedule, select item rows and use **Row colour…** to apply or clear their saved colours. Use **Quantities from measurements…** to update the selected items from their linked totals. **Resource usage** opens the project totals from either Schedule or Resources.
+
 **Import workbook** previews a schedule/resource worksheet with field mapping and duplicate policies. **Export workbook** calls the existing five-sheet exporter. Apply an analysis draft before exporting the whole project; analysis-only export includes the draft without changing the project.
 
 **Application menu → Project settings…** edits the existing project name/code metadata. Linux typography reads the actual GTK control font family and size and follows font changes; other platforms use native CSS menu typography until platform validation is complete. No external font is downloaded.

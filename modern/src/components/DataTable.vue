@@ -3,6 +3,7 @@ import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import {
   TabulatorFull as Tabulator,
   type ColumnDefinition,
+  type RowComponent,
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 const props = defineProps<{
@@ -90,13 +91,16 @@ watch(
   async (rows) => {
     await ready;
     if (!alive) return;
-    const ids = table.getSelectedData().map((r) => r.id);
+    const ids = new Set(table.getSelectedData().map((r) => r.id));
     await table.replaceData(rows);
-    for (const row of table.getRows()) {
-      if (ids.includes(row.getData().id)) row.select();
-      for (const child of row.getTreeChildren() || [])
-        if (ids.includes(child.getData().id)) child.select();
-    }
+    const restoreSelection = (rows: RowComponent[]) => {
+      for (const row of rows) {
+        if (!ids.size) break;
+        if (ids.delete(row.getData().id)) row.select();
+        if (props.tree) restoreSelection(row.getTreeChildren());
+      }
+    };
+    restoreSelection(table.getRows());
   },
 );
 watch(
@@ -132,8 +136,24 @@ onMounted(() => {
     columns: props.columns,
     placeholder: "No items. Add an item or adjust your search.",
     rowFormatter: (row) => {
-      row.getElement().dataset.kind =
-        row.getData().rowtype === "Category" ? "Group" : "Resource";
+      const data = row.getData();
+      const element = row.getElement();
+      element.dataset.kind = data.rowtype === "Category" ? "Group" : "Resource";
+      const colour = data.colour;
+      if (data.rowtype === "Schedule" && typeof colour === "string" && /^#[0-9a-f]{6}$/i.test(colour)) {
+        const [red, green, blue] = [1, 3, 5].map((offset) => {
+          const channel = parseInt(colour.slice(offset, offset + 2), 16) / 255;
+          return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+        });
+        const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+        element.dataset.scheduleColour = colour;
+        element.style.setProperty("--schedule-row-background", colour);
+        element.style.setProperty("--schedule-row-text", luminance > 0.179 ? "#000" : "#fff");
+      } else {
+        delete element.dataset.scheduleColour;
+        element.style.removeProperty("--schedule-row-background");
+        element.style.removeProperty("--schedule-row-text");
+      }
     },
   });
   ready = new Promise<void>((resolve) =>

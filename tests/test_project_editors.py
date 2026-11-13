@@ -156,6 +156,53 @@ class ProjectEditors(unittest.TestCase):
         self.assertEqual(restored.get_measurement().get_model(), model)
         restored.close_database()
 
+    def test_schedule_colour_only_marks_selected_items_and_round_trips(self):
+        table = self.s.db.ScheduleTable
+        parent = table.get(code="A")
+        other = table.get(code="B")
+        self.call("schedule.editor.add", data=dict(
+            code="A.1", description="Child", parent="A", category="Work",
+        ))
+        child = table.get(code="A.1")
+        ids = [f"cat:{parent.category_id}", str(parent.id), str(other.id)]
+        with self.assertRaises(ValueError):
+            self.call("schedule.editor.colour", ids=ids, colour="red")
+        self.assertIsNone(table.get(code="A").colour)
+        self.call("schedule.editor.colour", ids=ids, colour="#aabbcc")
+        self.assertEqual(table.get(code="A").colour, "#AABBCC")
+        self.assertEqual(table.get(code="B").colour, "#AABBCC")
+        self.assertIsNone(table.get_by_id(child.id).colour)
+        self.call("schedule.editor.colour", ids=[str(parent.id)], colour="#ffffff")
+        self.assertIsNone(table.get(code="A").colour)
+        self.call("project.undo")
+        self.assertEqual(table.get(code="A").colour, "#AABBCC")
+        saved = Path(self.temp.name) / "coloured.eproj"
+        self.call("project.save_copy", path=str(saved))
+        self.call("project.open", path=str(saved))
+        items = self.call("schedule.editor.state")["rows"][0]["_children"]
+        self.assertEqual(items[0]["colour"], "#AABBCC")
+        self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), self.original)
+
+    def test_schedule_quantity_update_uses_only_selected_measurement_links(self):
+        self.call("measurement.add", template="_1_NLBH")
+        self.call("measurement.add", template="_1_NLBH")
+        rows = self.call("measurement.state")["rows"]
+        for item, code in zip(rows, ("A", "B")):
+            identity = item["id"]
+            self.call("measurement.record_add", id=identity)
+            record = self.call("measurement.state", id=identity)["detail"]["rows"][0]["id"]
+            for field in ("c2", "c3", "c4", "c5"):
+                self.call("measurement.record_edit", id=identity, record_id=record,
+                          field=field, value="1.5" if field == "c3" else "2")
+            self.call("measurement.link", id=identity, slot=0, code=code)
+        item = self.s.db.ScheduleTable.get(code="A")
+        self.call("schedule.editor.update_quantities",
+                  ids=[str(item.id), f"cat:{item.category_id}"], rounding="Round to 10")
+        self.assertEqual(self.s.db.get_item("A").qty, Decimal("10"))
+        self.assertEqual(self.s.db.get_item("B").qty, Decimal("1"))
+        self.call("project.undo")
+        self.assertEqual(self.s.db.get_item("A").qty, Decimal("1"))
+
     def test_new_project_settings_are_undoable_and_savable_without_analysis(self):
         self.call("project.new")
         self.assertTrue(self.s.state()["workspace_dirty"])
