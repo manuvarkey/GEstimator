@@ -790,4 +790,12 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   await colour.click();
   await dialog.getByRole("button", { name: "Clear colour" }).click();
   await expect(row).not.toHaveAttribute("data-schedule-colour", /./);
+  await ribbon.getByRole("button", { name: "Renumber schedule…" }).click();
+  const renumber = page.getByRole("dialog", { name: "Renumber schedule" });
+  await renumber.getByRole("button", { name: "Renumber", exact: true }).click();
+  await expect(renumber).not.toBeVisible();
+  const code = grid.getByRole("row", { name: /Foundation/ }).locator('[tabulator-field="code"]');
+  await expect(code).toHaveText("1");
+  await header.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(code).toHaveText("A");
 });

@@ -203,6 +203,70 @@ class ProjectEditors(unittest.TestCase):
         self.call("project.undo")
         self.assertEqual(self.s.db.get_item("A").qty, Decimal("1"))
 
+    def test_schedule_relocation_renumbering_and_undo_preserve_links(self):
+        table = self.s.db.ScheduleTable
+        a, b = table.get(code="A"), table.get(code="B")
+        self.call("schedule.editor.edit", id=str(b.id), field="category", value="Second")
+        self.call("schedule.editor.edit", id=str(a.id), field="parent", value="B")
+        self.assertEqual(table.get_by_id(a.id).category.description, "Second")
+        self.assertEqual(table.get_by_id(a.id).parent_id, b.id)
+        with self.assertRaisesRegex(ValueError, "cycle"):
+            self.call("schedule.editor.edit", id=str(b.id), field="parent", value="A")
+        self.call("schedule.editor.add", data=dict(
+            code="LIB:SUB", description="Sub-analysis", category="SUB ANALYSIS",
+        ))
+        self.call("measurement.add", template="_1_NLBH")
+        measurement = self.call("measurement.state")["rows"][0]["id"]
+        self.call("measurement.link", id=measurement, slot=0, code="A")
+        self.call("analysis.load", code="A")
+        self.call("schedule.editor.renumber")
+        self.assertEqual(table.get_by_id(b.id).code, "2.1")
+        self.assertEqual(table.get_by_id(a.id).code, "2.1.1")
+        self.assertTrue(table.get(code="LIB:SUB"))
+        self.assertEqual(self.s.db.get_measurement().items[0].itemnos[0], a.id)
+        self.assertEqual(self.s.state()["code"], "2.1.1")
+        self.call("project.undo")
+        self.assertEqual(self.s.state()["code"], "A")
+        self.call("project.redo")
+        self.assertEqual(self.s.state()["code"], "2.1.1")
+        self.call("schedule.editor.edit", id=str(b.id), field="category", value="Work")
+        self.assertEqual(table.get_by_id(a.id).category.description, "Work")
+        self.assertEqual(table.get_by_id(a.id).parent_id, b.id)
+        self.assertEqual(self.s.db.get_item("2.1.1").rate, Decimal("20"))
+
+    def test_import_schedule_adds_prefixed_sub_analysis_and_preserves_source(self):
+        library = Path(self.temp.name) / "sub-analysis.eproj"
+        external = ScheduleDatabase(Stack())
+        external.create_new_database(str(library))
+        settings = external.get_project_settings()
+        settings["project_resource_code"] = "LIB"
+        external.set_project_settings(settings)
+        for code, resource_code, rate, category in (
+            ("MIX", "SAND", "4", "SUB ANALYSIS"),
+            ("TOP", "MIX", "8", "Road"),
+        ):
+            item = ScheduleItemModel(code, code, "m3", Decimal(rate), category=category)
+            item.resources = {
+                resource_code: ResourceItemModel(resource_code, resource_code, "kg", Decimal(rate) / 2, category="Materials")
+            }
+            item.add_ana_group("Materials")
+            item.add_ana_res([resource_code, Decimal("2"), ""], 0)
+            external.insert_item(item)
+        external.close_database()
+        digest = hashlib.sha256(library.read_bytes()).hexdigest()
+        source = self.call("library.attach", path=str(library))[0]["id"]
+        rows = self.call("schedule.editor.state", source=source, query="TOP")["rows"]
+        selected = rows[0]["_children"][0]["id"]
+        self.call("schedule.editor.add_from_library", source=source, ids=[selected])
+        self.assertEqual(self.s.db.get_item("LIB:MIX").category, "SUB ANALYSIS")
+        self.assertEqual(self.s.db.get_item("LIB:MIX").rate, Decimal("4"))
+        self.assertEqual(self.s.db.get_item("TOP").rate, Decimal("8"))
+        self.assertIn("LIB:MIX", self.s.db.get_item("TOP", modify_res_code=False).resources)
+        self.call("project.undo")
+        self.assertIsNone(self.s.db.get_item("LIB:MIX"))
+        self.assertIsNone(self.s.db.get_item("TOP"))
+        self.assertEqual(hashlib.sha256(library.read_bytes()).hexdigest(), digest)
+
     def test_new_project_settings_are_undoable_and_savable_without_analysis(self):
         self.call("project.new")
         self.assertTrue(self.s.state()["workspace_dirty"])

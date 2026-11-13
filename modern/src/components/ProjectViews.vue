@@ -75,6 +75,7 @@ const form = ref<Record<string, string>>({});
 const categoryOpen = ref(false);
 const categoryName = ref("");
 const colourOpen = ref(false);
+const renumberOpen = ref(false);
 const rowColour = ref("#ffe082");
 const scheduleQuantityOpen = ref(false);
 const scheduleRounding = ref("Round to 0");
@@ -331,6 +332,9 @@ function showRowColour() {
 async function applyRowColour(colour: string | null) {
   if (await command("colour", { ids: selectedScheduleIds.value, colour }))
     colourOpen.value = false;
+}
+async function renumberSchedule() {
+  if (await command("renumber")) renumberOpen.value = false;
 }
 async function updateSelectedQuantities() {
   if (await command("update_quantities", {
@@ -697,6 +701,14 @@ watch(
               @click="one && emit('analysis', one.code)"
             >
               Edit analysis
+            </button>
+            <button
+              v-if="view === 'schedule'"
+              class="button secondary"
+              :disabled="busy || !state?.total"
+              @click="error = ''; renumberOpen = true"
+            >
+              Renumber schedule…
             </button>
             <button
               v-if="view === 'schedule'"
@@ -1267,6 +1279,23 @@ watch(
       :selected-code="usageCode"
       @analysis="emit('analysis', $event)"
     />
+    <Dialog
+      v-model:visible="renumberOpen"
+      modal
+      header="Renumber schedule"
+      class="workspace-dialog"
+    >
+      <p class="dialog-intro">Assign item codes in category and hierarchy order throughout the project. Sub-analysis codes are kept.</p>
+      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
+      <div class="dialog-footer">
+        <button class="button secondary" :disabled="busy" @click="renumberOpen = false">
+          Cancel
+        </button>
+        <button class="button primary" :disabled="busy" @click="renumberSchedule">
+          Renumber
+        </button>
+      </div>
+    </Dialog>
     <Dialog
       v-model:visible="colourOpen"
       modal

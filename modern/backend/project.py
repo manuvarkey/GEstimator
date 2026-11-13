@@ -54,17 +54,25 @@ class ProjectEditor:
         return (target, copy.deepcopy(self.ids), copy.deepcopy(self.record_ids))
 
     def restore(self, snapshot):
+        active_id = (
+            self.db.get_item_key(self.owner.model.code) if self.owner.loaded else None
+        )
         path, self.ids, self.record_ids = snapshot
         with closing(sqlite3.connect(path)) as src:
             src.backup(self.db.database.connection())
         path.unlink()
         self.db.stack.clear()
         self.owner.workspace_dirty = True
-        self.reload_analysis()
+        self.reload_analysis(active_id)
 
-    def reload_analysis(self):
+    def reload_analysis(self, active_id=None):
         if self.owner.loaded:
-            model = self.db.get_item(self.owner.model.code, modify_res_code=False)
+            code = (
+                self.db.get_item_code(active_id)
+                if active_id is not None
+                else self.owner.model.code
+            )
+            model = self.db.get_item(code, modify_res_code=False)
             if model:
                 self.owner.model = model
                 self.owner.identify()
@@ -102,14 +110,94 @@ class ProjectEditor:
         self.db.stack.clear()
         self.owner.workspace_dirty = True
         if reload:
-            if active_row:
-                current = self.db.ScheduleTable.get_or_none(
-                    self.db.ScheduleTable.id == active_row.id
-                )
-                if current:
-                    self.owner.model.code = current.code
-            self.reload_analysis()
+            self.reload_analysis(active_row.id if active_row else None)
         return result
+
+    def relocate_schedule(self, row, parent, category_id):
+        table = self.db.ScheduleTable
+        if parent:
+            category_id = parent.category_id
+        if row.category_id == category_id and row.parent_id == (parent.id if parent else None):
+            return
+
+        _, subtree = self.selection("schedule", [row.id])
+        if parent and any(item.id == parent.id for item in subtree):
+            raise ValueError("Schedule hierarchy cannot contain a cycle")
+        new_siblings = (table.category == category_id) & (table.parent == (parent.id if parent else None))
+        destination_order = table.suborder if parent else table.order
+        last = (table.select(destination_order).where(new_siblings)
+                .order_by(destination_order.desc()).scalar())
+        next_order = 0 if last is None else last + 1
+        table.update(
+            category=category_id, parent=parent.id if parent else None,
+            order=parent.order if parent else next_order,
+            suborder=next_order if parent else None,
+        ).where(table.id == row.id).execute()
+        if row.category_id != category_id:
+            descendants = [item.id for item in subtree if item.id != row.id]
+            for start in range(0, len(descendants), 500):
+                table.update(category=category_id).where(
+                    table.id.in_(descendants[start : start + 500])
+                ).execute()
+        # Keep the legacy order field in sync with each top-level branch.
+        self.normalize_schedule_order({row.category_id, category_id})
+
+    def normalize_schedule_order(self, categories):
+        table = self.db.ScheduleTable
+        rows = list(table.select().where(table.category.in_(categories)).order_by(
+            table.category, table.order, table.suborder, table.id
+        ))
+        children = {}
+        for item in rows:
+            children.setdefault((item.category_id, item.parent_id), []).append(item)
+        for category in categories:
+            for order, root in enumerate(children.get((category, None), [])):
+                stack = [(root, None)]
+                while stack:
+                    item, suborder = stack.pop()
+                    if (item.category_id, item.order, item.suborder) != (category, order, suborder):
+                        table.update(category=category, order=order, suborder=suborder).where(
+                            table.id == item.id
+                        ).execute()
+                    stack.extend((child, index) for index, child in enumerate(
+                        children.get((category, item.id), [])
+                    ))
+
+    def renumber_schedule(self):
+        table = self.db.ScheduleTable
+        category = self.db.ScheduleCategoryTable
+        categories = list(category.select().where(
+            category.description != misc.SUB_ANA_TITLE
+        ).order_by(category.order, category.id))
+        items = list(table.select().order_by(table.order, table.suborder, table.id))
+        children = {}
+        for item in items:
+            children.setdefault((item.category_id, item.parent_id), []).append(item)
+        assigned = {}
+        for index, group in enumerate(categories, 1):
+            prefix = f"{index}." if len(categories) > 1 else ""
+            stack = [(None, prefix)]
+            while stack:
+                parent, prefix = stack.pop()
+                for position, item in enumerate(children.get((group.id, parent), []), 1):
+                    code = f"{prefix}{position}"
+                    assigned[item.id] = code
+                    stack.append((item.id, code + "."))
+        untouched = {item.code for item in items if item.id not in assigned}
+        if untouched.intersection(assigned.values()):
+            raise ValueError("A schedule number conflicts with an existing sub-analysis code")
+        occupied = {item.code for item in items}
+        occupied.update(assigned.values())
+        changes = {item.id: assigned[item.id] for item in items
+                   if item.id in assigned and item.code != assigned[item.id]}
+        for identity in changes:
+            temporary = "__renumber_" + uuid4().hex
+            while temporary in occupied:
+                temporary = "__renumber_" + uuid4().hex
+            occupied.add(temporary)
+            table.update(code=temporary).where(table.id == identity).execute()
+        for identity, code in changes.items():
+            table.update(code=code).where(table.id == identity).execute()
 
     def state(self, kind, p):
         if p.get("source") and p["source"] not in self.libraries:
@@ -529,6 +617,32 @@ class ProjectEditor:
                 else order
             )
         )
+        dependency_codes = set()
+        if kind == "schedule":
+            pending = [row.code for row in records]
+            visited = set()
+            while pending:
+                code = pending.pop()
+                if code in visited:
+                    continue
+                visited.add(code)
+                model = source.get_item(code, modify_res_code=False)
+                for resource_code in model.resources:
+                    if source.get_item_key(resource_code) is not None:
+                        dependency_codes.add(resource_code)
+                        pending.append(resource_code)
+            for code in sorted(dependency_codes):
+                item = source.get_item(code, modify_res_code=True)
+                item.code = f"{prefix}:{code}" if prefix and ":" not in code else code
+                item.category = misc.SUB_ANA_TITLE
+                item.parent = None
+                existing = self.db.get_item(item.code, copy_ana=False)
+                if existing:
+                    if existing.category != misc.SUB_ANA_TITLE:
+                        raise ValueError(f"Sub-analysis code conflicts with schedule item {item.code}")
+                elif not self.db.insert_item(item):
+                    raise ValueError(f"Unable to import sub-analysis {item.code}")
+                renamed[code] = item.code
         imported = 0
         for index, row in enumerate(records):
             if index % 100 == 0:
@@ -540,6 +654,9 @@ class ProjectEditor:
                 if not self.db.insert_resource(item):
                     raise ValueError("Unable to import resource")
             else:
+                if row.code in dependency_codes:
+                    imported += 1
+                    continue
                 item = source.get_item(row.code, modify_res_code=True)
                 code = item.code
                 counter = 1
@@ -678,6 +795,8 @@ class ProjectEditor:
         resource = kind == "resources"
         table = db.ResourceTable if resource else db.ScheduleTable
         category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
+        if not resource and op == "renumber":
+            return self.renumber_schedule()
         if not resource and op in ("colour", "update_quantities"):
             ids = p.get("ids")
             if not isinstance(ids, list) or not 1 <= len(ids) <= 1000:
@@ -888,7 +1007,7 @@ class ProjectEditor:
                         table.update(order=row.order).where(
                             (table.id == other.id) | (table.parent == other.id)
                         ).execute()
-                    db.reorder_items()
+                    self.normalize_schedule_order({row.category_id})
             return
         if op != "edit":
             raise ValueError("Unknown project operation")
@@ -907,30 +1026,26 @@ class ProjectEditor:
             value = round(decimal(value), 4)
         else:
             value = text(value)
-        if field in ("category", "parent"):
-            item = (
-                db.get_resource(row.code)
-                if resource
-                else db.get_item(row.code, modify_res_code=False)
-            )
+        if not resource and field in ("category", "parent"):
             if field == "parent":
-                if resource:
-                    raise ValueError("Resources do not have parents")
                 parent = table.get_or_none(table.code == value) if value else None
-                seen = {row.id}
-                while parent:
-                    if parent.id in seen:
-                        raise ValueError("Schedule hierarchy cannot contain a cycle")
-                    seen.add(parent.id)
-                    parent = parent.parent
-                if value and len(seen) == 1:
+                if value and parent is None:
                     raise ValueError("Parent not found")
-            setattr(item, field, value or None)
-            result = (
-                db.update_resource(row.code, res_model=item)
-                if resource
-                else db.insert_item_atomic(item, update=True)
-            )
+                return self.relocate_schedule(row, parent, row.category_id)
+            destination = category.get_or_none(category.description == value)
+            if destination is None:
+                if db.insert_schedule_category_atomic(value, [-1]) is False:
+                    raise ValueError("Unable to create schedule category")
+                destination = category.get(description=value)
+            if row.category_id != destination.id:
+                self.relocate_schedule(row, None, destination.id)
+            return
+        if field in ("category", "parent"):
+            if field == "parent":
+                raise ValueError("Resources do not have parents")
+            item = db.get_resource(row.code)
+            item.category = value or None
+            result = db.update_resource(row.code, res_model=item)
         else:
             columns = (
                 ["code", "description", "unit", "rate", "vat", "discount", "reference"]

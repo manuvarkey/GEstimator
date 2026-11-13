@@ -78,3 +78,7 @@ The Windows suite passed 32 Python tests and eight Chrome/Playwright scenarios. 
 The Schedule ribbon now exposes row colouring, selected-item quantity refresh from linked measurements, and the project Resource usage dialog. Colour and quantity updates reuse the legacy database methods and apply to explicitly selected items. Category rows and unselected descendants are excluded. Custom colours persist in project copies, and the table chooses black or white text against each saved colour.
 
 Windows validation passed 34 Python regression tests, nine Chrome/Playwright scenarios, the locked Cargo check and the production Vue build. Coverage includes saved colour round-trips, multi-row selection, colour contrast, clearing and undo/redo, and applying legacy measurement rounding to selected items. The frozen sidecar passed a colour, undo and shutdown smoke test.
+
+## Schedule hierarchy, numbering and library sub-analyses
+
+Windows validation passed 36 Python tests, nine Playwright scenarios and the Vue production build. Tests cover moving whole branches across categories, cycle rejection, hierarchical codes, preserved measurement IDs and active analysis across undo/redo, prefixed library sub-analysis insertion, dependent rates and source-file preservation.
