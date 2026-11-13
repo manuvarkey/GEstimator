@@ -55,3 +55,12 @@ Before shell edits, 24 Python tests and the production frontend build passed. Af
 * Reviewed the rendered category-deletion dialog with all three policy buttons and inherited system typography. Refreshed editor screenshots and added [the deletion preview](screenshots/category-deletion.png). `git diff --check` passes.
 
 The original GTK views and calculation methods are unchanged by these two milestones. No database schema change is introduced. Full parity is still gated by the remaining workflows in [parity.md](parity.md), especially save/recovery, advanced editor operations, spreadsheet equivalence and native/cross-platform interaction. Chromium tests substitute native IPC/dialog transport; they do not verify real WebKit/OS behavior.
+
+## Windows x64 development and packaging
+
+Validated on Windows 11 x64 (build 26200) with Visual Studio Build Tools 2022, Windows SDK 10.0.26100.0, Edge WebView2 157.0.4341.46, Rust 1.99.0 (MSVC), Node.js 24.20.0, npm 11.19.0, CPython 3.14.8 and PyInstaller 6.22.3.
+
+* Dependency installation, all 30 baseline Python tests, six baseline Playwright scenarios using Chrome, the production Vue build, and the locked Cargo check passed.
+* The frozen Windows sidecar returned UTF-8 JSON, created a project, discovered all eight measurement templates and shut down cleanly.
+* `npm.cmd run --prefix modern tauri -- dev` started the app in WebView2 and connected to the Python engine. The open-project dialog launched the native Windows file picker.
+* `npm.cmd run --prefix modern tauri -- build --bundles nsis -- --locked` produced an x64 installer. Archive inspection confirmed it contains the app and sidecar executables. A clean-machine installation and the full native interaction matrix remain to be exercised.

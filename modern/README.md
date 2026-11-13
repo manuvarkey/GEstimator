@@ -16,6 +16,23 @@ npm run tauri dev
 
 Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/). To build an installer, build the native backend first and then run `npm run tauri build` from `modern`. Cross-compiling Python sidecars is not supported. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
 
+## Windows development and builds
+
+Install Node.js 24 LTS with npm, Python 3.14 x64, Rust's stable MSVC toolchain, and the Visual Studio C++ desktop build tools with a Windows SDK. Windows also needs the Edge WebView2 Runtime. [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/#windows)
+
+Run these commands in PowerShell from the repository root. With uv, use `uv venv --python 3.14 --seed .venv` for the first command.
+
+```powershell
+py -3.14 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt pyinstaller==6.22.3
+npm.cmd ci --prefix modern
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe modern/bundle_backend.py
+npm.cmd run --prefix modern tauri -- dev
+```
+
+To produce a Windows x64 NSIS installer, run `npm.cmd run --prefix modern tauri -- build --bundles nsis -- --locked` from the repository root after building the backend. The installer is written to `modern/src-tauri/target/release/bundle/nsis/`. Rebuild the sidecar after editing Python code before packaging a release. The `bundle:backend` npm command also builds the sidecar using the repository's `.venv`.
+
 Use the **New project** icon beside the logo to create a working project, or the **Open project** icon and Browse to choose a v1/v2 `.eproj` (or enter its absolute path). Search/load an item in the explorer, select rows to edit them in the inspector or double click table cells, then use **Save copy** to choose a **new** path. Saving never overwrites an existing file. Numeric entries support bounded arithmetic, evaluated in Python. Rates, VAT and discounts use the existing currency rounding; final calculated values always come from the backend. Ctrl+C/V operates on session rows; text editing uses ordinary text clipboard. Ctrl+Z/Y, Delete and explicit Move up/down act on the analysis. Use **Analysis → Apply analysis** to retain edits while moving between items. Applied changes to multiple items are included in Save copy. Switching items/projects prompts to apply/save/discard a dirty draft; the backend also rejects unconfirmed switches. Closing the desktop window prompts for dirty drafts. Process crashes or forced termination still lose unsaved drafts. Treat saved copies as review artifacts until parity tests are complete.
 
 Backend protocol can also run independently: `.venv/bin/python -m modern.backend`, one JSON object per line, e.g. `{"id":"1","method":"state","params":{}}`. Responses contain `id` plus `result` or `error:{code,message}`; long operations can emit `event:"progress"` first. Edits require the latest `revision` from state.
@@ -35,6 +52,8 @@ From `modern`, with the repository Python environment prepared:
 npx playwright install chromium
 npm run test:e2e
 ```
+
+On Windows use `npx.cmd` and `npm.cmd` in PowerShell.
 
 The tests replace only the Tauri invocation transport with a bridge to a real persistent Python subprocess. Calculation responses and project saves are real, with test outputs confined to temporary copies. Native OS dialogs and window-close events still require a desktop interaction check. The test runner starts Vite automatically and saves dark/light/narrow-layout screenshots in `test-results/`. A preinstalled browser can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
 

@@ -5,6 +5,12 @@ import { resolve } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
+const python = resolve(
+  process.platform === "win32"
+    ? "../.venv/Scripts/python.exe"
+    : "../.venv/bin/python",
+);
+
 // Only the Tauri transport is replaced. Every analysis command runs in real Python.
 let child: ChildProcessWithoutNullStreams;
 let directory: string;
@@ -22,7 +28,7 @@ function call(method: string, params: Record<string, unknown> = {}) {
 }
 test.beforeEach(async ({ page }) => {
   directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
-  child = spawn(resolve("../.venv/bin/python"), ["-m", "modern.backend"], {
+  child = spawn(python, ["-m", "modern.backend"], {
     cwd: resolve(".."),
   });
   createInterface({ input: child.stdout }).on("line", (line) => {
@@ -60,7 +66,7 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(async () => {
   child.stdin.end();
-  await new Promise<void>((resolve) => child.on("exit", () => resolve()));
+  await new Promise<void>((resolve) => child.once("close", () => resolve()));
   await rm(directory, { recursive: true, force: true });
 });
 
@@ -235,7 +241,7 @@ test("native typography and schedule, resource and measurement editing", async (
   const { execFileSync } = await import("node:child_process");
   const fixture = resolve(directory, "editable.eproj");
   execFileSync(
-    resolve("../.venv/bin/python"),
+    python,
     ["-m", "modern.e2e.create_fixture", fixture],
     { cwd: resolve("..") },
   );
@@ -386,7 +392,7 @@ test("native typography and schedule, resource and measurement editing", async (
 test("new project, settings and mapped Excel import", async ({ page }) => {
   const { execFileSync } = await import("node:child_process");
   const workbook = resolve(directory, "input.xlsx");
-  execFileSync(resolve("../.venv/bin/python"), [
+  execFileSync(python, [
     "-c",
     "from openpyxl import Workbook; import sys; b=Workbook(); s=b.active; s.append(['Code','Description','Unit','Rate','Qty','Category']); s.append(['NEW','Imported work','m','5','2*3','Work']); b.save(sys.argv[1]); b.close()",
     workbook,
@@ -533,7 +539,7 @@ test("category lifecycle, library category import and used-resource deletion", a
   const { execFileSync } = await import("node:child_process");
   const fixture = resolve(directory, "categories.eproj");
   execFileSync(
-    resolve("../.venv/bin/python"),
+    python,
     ["-m", "modern.e2e.create_fixture", fixture],
     { cwd: resolve("..") },
   );

@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc --noEmit && vite build",
     "tauri": "tauri",
-    "bundle:backend": "../.venv/bin/python bundle_backend.py",
+    "bundle:backend": "node bundle_backend.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

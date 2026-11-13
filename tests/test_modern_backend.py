@@ -158,7 +158,7 @@ class BackendTests(unittest.TestCase):
         subprocess.run([sys.executable, "-c", script], check=True)
         requests = (
             "bad json\n"
-            + json.dumps(dict(id="1", method="state"))
+            + json.dumps(dict(id="測量", method="state"), ensure_ascii=False)
             + "\n"
             + json.dumps(dict(id="2", method="shutdown"))
             + "\n"
@@ -166,13 +166,13 @@ class BackendTests(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, "-m", "modern.backend"],
             input=requests,
-            text=True,
+            encoding="utf-8",
             capture_output=True,
             check=True,
         )
         lines = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(lines[0]["error"]["code"], "INVALID_REQUEST")
-        self.assertEqual(lines[1]["id"], "1")
+        self.assertEqual(lines[1]["id"], "測量")
         self.assertTrue(lines[2]["result"])
 
 
