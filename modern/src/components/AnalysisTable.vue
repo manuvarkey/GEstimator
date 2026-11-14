@@ -82,8 +82,7 @@ onMounted(() => {
     dataTreeSelectPropagate: false,
     selectableRows: true,
     selectableRowsRangeMode: "click",
-    clipboard: "copy",
-    clipboardCopyRowRange: "selected",
+    clipboard: false,
     placeholder: "Add a resource group to begin your analysis.",
     columnDefaults: { headerSort: false, resizable: true, vertAlign: "middle" },
     rowFormatter: (row) => {

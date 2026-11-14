@@ -157,6 +157,7 @@ fn gtk_font(settings: &gtk::Settings) -> Value {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(Bridge::default())
         .manage(DesktopTypography(Mutex::new(
             json!({"family":null,"size":null}),

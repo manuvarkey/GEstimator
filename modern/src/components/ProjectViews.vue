@@ -9,6 +9,7 @@ import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import { request } from "../backend";
 import { programSettings } from "../programSettings";
+import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 
 type View = "schedule" | "resources" | "measurement";
 interface GridRow {
@@ -44,6 +45,7 @@ watch(
 onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
   reload: () => load(),
+  handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") => command("project." + method),
   exportWorkbook: () => {
     exportOpen.value = true;
@@ -53,6 +55,7 @@ const busy = ref(false);
 watch(busy, (value) => emit("busy", value));
 onBeforeUnmount(() => emit("busy", false));
 const error = ref("");
+const clipboardMessage = ref("");
 const query = ref("");
 const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
@@ -270,7 +273,15 @@ async function command(
   params: Record<string, unknown> = {},
 ) {
   return run(async () => {
-    await request(
+    clipboardMessage.value = "";
+    const clipboardParams = { revision: state.value?.revision, id: one.value?.id, ids: selected.value.map(row => row.id), source: source.value, ...params };
+    const clipboardKind: ClipboardKind = operation.startsWith("record_") ? "records" : props.view;
+    if (operation === "copy" || operation === "record_copy") {
+      clipboardMessage.value = await copyRows(clipboardKind, clipboardParams);
+    } else if (operation === "paste" || operation === "record_paste") {
+      const result = await pasteRows(clipboardKind, clipboardParams);
+      clipboardMessage.value = result.unlinked ? `Rows pasted. ${result.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.";
+    } else await request(
       operation.startsWith("project.")
         ? operation
         : (isMeasurement.value ? "measurement." : props.view + ".editor.") +
@@ -405,13 +416,19 @@ function showForm(mode = "add") {
     qty: "0",
     vat: "0",
     discount: "0",
-    category: one.value?.category || "",
+    category: one.value?.category || (one.value?.rowtype === "Category" ? one.value.description : ""),
     parent: "",
     reference: "",
     template: "",
     ...(mode === "duplicate" ? { code: one.value?.code + "-copy" } : {}),
   };
   formOpen.value = true;
+}
+function showSubitem() {
+  if (props.view !== "schedule" || !one.value || one.value.rowtype === "Category") return;
+  const parent = one.value.code;
+  showForm();
+  form.value.parent = parent;
 }
 async function submit() {
   const op = isMeasurement.value
@@ -445,7 +462,7 @@ async function pasteCells(
   });
 }
 function keyboard(event: KeyboardEvent) {
-  if (event.defaultPrevented || busy.value || document.querySelector('[role="dialog"]')) return;
+  if (event.defaultPrevented || !props.projectOpen || busy.value || document.querySelector('[role="dialog"]')) return;
   if (
     (event.target as HTMLElement).closest(
       "input,textarea,select,[contenteditable=true]",
@@ -464,8 +481,39 @@ function keyboard(event: KeyboardEvent) {
     }
   }
   const target = event.target as HTMLElement;
-  if (source.value || !target.closest(".project-grid")) return;
+  if (source.value) return;
   const records = !!target.closest(".measurement-record-grid");
+  if (event.ctrlKey || event.metaKey) {
+    const key = event.key.toLowerCase();
+    if (key === "i") {
+      event.preventDefault();
+      event.stopPropagation();
+      if (records) void recordAction("add");
+      else if (event.shiftKey && props.view === "schedule") showSubitem();
+      else showForm();
+      return;
+    }
+    if (key === "e" && props.view === "schedule" && one.value?.rowtype === "Schedule") {
+      event.preventDefault();
+      event.stopPropagation();
+      emit("analysis", one.value.code);
+      return;
+    }
+    if (key === "m" && props.view === "schedule" && selectedScheduleIds.value.length) {
+      event.preventDefault();
+      event.stopPropagation();
+      showRowColour();
+      return;
+    }
+  }
+  if (!target.closest(".project-grid")) return;
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
+    event.preventDefault();
+    event.stopPropagation();
+    if (records ? !!selectedRecord.value : !!selected.value.length)
+      void (records ? recordAction("copy") : command("copy"));
+    return;
+  }
   if (records ? !selectedRecord.value : !selected.value.length) return;
   const duplicate = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d";
   const remove = event.key === "Delete";
@@ -597,6 +645,7 @@ watch(
     </div>
     <template v-else
       ><p v-if="importResult" role="status">{{ importResult }}</p>
+      <p v-if="clipboardMessage" role="status">{{ clipboardMessage }}</p>
       <p v-if="priceResult" role="status">{{ priceResult }}</p>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
@@ -659,11 +708,16 @@ watch(
             <button
               class="ribbon-action"
               :aria-label="isMeasurement ? 'Add measurement' : 'Add item'"
-              :title="isMeasurement ? 'Add a heading or a custom measurement item using a shipped measurement template.' : 'Create an item in the current project table with its code, description and numeric fields.'"
+              :title="isMeasurement ? 'Add a heading or a custom measurement item using a shipped measurement template (Ctrl+I).' : 'Create an item in the selected category with its code, description and numeric fields (Ctrl+I).'"
               :disabled="busy"
               @click="showForm()"
             >
               <AppIcon name="plus" :size="15" /><span class="ribbon-label">Add item</span>
+            </button>
+            <button v-if="view === 'schedule'" class="ribbon-action ribbon-icon" aria-label="Add subitem"
+              title="Create a child of the selected schedule item. Its category follows the parent; the parent code is filled in for you (Ctrl+Shift+I)."
+              :disabled="busy || !one || one.rowtype === 'Category'" @click="showSubitem">
+              <AppIcon name="child" /><span class="ribbon-label">Add subitem</span>
             </button>
             <button
               v-if="!isMeasurement"
@@ -692,7 +746,7 @@ watch(
             <button
               class="ribbon-action ribbon-icon"
               aria-label="Copy"
-              title="Copy selected items or categories to the session clipboard for pasting within this application window."
+              title="Copy selected items or categories, including off-page contents, to the system clipboard for use in this or another GEstimator window (Ctrl+C)."
               :disabled="busy || !selected.length"
               @click="command('copy', { ids: selected.map((row) => row.id) })"
             >
@@ -700,7 +754,7 @@ watch(
             ><button
               class="ribbon-action ribbon-icon"
               aria-label="Paste"
-              title="Paste items from the session clipboard into this project. Use Undo to restore the previous state."
+              title="Paste rows copied from the same editor in any GEstimator window. Schedule and resource code collisions receive a copy suffix; measurement links match schedule codes. Undo restores the previous state (Ctrl+V)."
               :disabled="busy"
               @click="command('paste')"
             >
@@ -922,6 +976,7 @@ watch(
           @selection="select"
           @edit="edit"
           @paste="pasteCells"
+          @paste-rows="data => command('paste', { clipboardData: data })"
           @activate="row => { if (view === 'schedule' && !source && row.rowtype !== 'Category') emit('analysis', row.code); }"
         />
       </div>
@@ -1030,12 +1085,14 @@ watch(
           ><button
             class="button small secondary"
             :disabled="busy || !selectedRecord"
+            title="Copy the selected record to the system clipboard for use in any measurement item with the same template (Ctrl+C in the records table)."
             @click="recordAction('copy')"
           >
             <AppIcon name="copy" :size="15" />Copy record</button
           ><button
             class="button small secondary"
             :disabled="busy"
+            title="Insert a copied record after the selected record, or at the end. The destination must use the same measurement template; Undo restores the previous records (Ctrl+V in the records table)."
             @click="recordAction('paste')"
           >
             <AppIcon name="paste" :size="15" />Paste record</button
@@ -1067,6 +1124,7 @@ watch(
             @selection="selectedRecord = $event[0]"
             @edit="recordEdit"
             @paste="pasteCells"
+            @paste-rows="data => command('record_paste', { id: activeMeasurement, record_id: selectedRecord?.id, clipboardData: data })"
           />
         </div>
       </template>

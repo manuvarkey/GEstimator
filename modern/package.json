@@ -13,6 +13,7 @@
   "dependencies": {
     "@primeuix/themes": "^1.0.0",
     "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "primevue": "^4.0.0",
     "tabulator-tables": "^6.3.0",

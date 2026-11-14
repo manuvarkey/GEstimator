@@ -1,6 +1,6 @@
 # Vue/Tauri migration handoff
 
-Resume on `migration/vue-tauri-desktop` in `C:\Users\HP\Documents\GitHub\GEstimator`. The implementation checkpoint is `6cd7f7d`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
+Resume on `migration/vue-tauri-desktop`. The Program Settings checkpoint is `8f6c35c`, following `dd90598` (workspace/editor parity); the clipboard/insertion continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
 
 ## Completed through the checkpoint
 
@@ -12,6 +12,8 @@ Resume on `migration/vue-tauri-desktop` in `C:\Users\HP\Documents\GitHub\GEstima
 | `87d1d25` | In-place Save with conflict checks and numbered backups, local recovery checkpoints and recent projects |
 | `ccd28fd` | Excel analysis and measurement record imports and whole-item measurement multi-selection |
 | `6cd7f7d` | Insert the shipped GTK analysis rows and refresh rates for selected schedule items |
+| `dd90598` | Reviewed ribbons, bulk editing, saved libraries, keyboard table selection and measurement layout |
+| `8f6c35c` | Program Settings, configured default rows, GTK Modify & Add preferences, bundled/custom database discovery |
 
 GTK remains available through `gestimator.py`. Keep the legacy calculation engine and workbook exporters as the comparison reference.
 
@@ -40,7 +42,7 @@ The browser suite needs Playwright Chromium or `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 
 
 1. **Validate Save and recovery under failure.** Use disposable projects to test external GTK edits, a concurrent modern save, a Windows file held open, and interruption during save and checkpoint creation. Verify source contents, numbered backups, recovery and the dirty state after each failure. The modern advisory lock coordinates modern instances. GTK does not acquire it.
 2. **Validate settings and library workflows on target platforms.** Saved application library paths now restore through the existing read-only snapshot API, with a retry/forget manager and duplicate prevention across browser reloads. Configurable analysis row templates persist in application preferences and insert with a Python preview and atomic undo. Linux browser tests cover fresh backend processes, moved/missing libraries and source preservation. Broaden prefix/code-collision and Windows/macOS path fixtures.
-3. **Finish editor interactions.** Batch field editing now previews through the Python engine and applies as one analysis undo step. Table keyboard selection/ranges, select-all/clear, schedule Enter activation and template-declared measurement widths are implemented. Remaining work includes a versioned cross-instance clipboard for analysis, schedule, resource and measurement rows using validated data, remaining GTK insertion shortcuts and template-specific dialogs on representative projects.
+3. **Finish editor interactions.** Batch preview/atomic editing, keyboard selection and template widths are implemented. The current continuation adds validated JSON system clipboards for analysis, schedule, resources, measurement items and records, plus Ctrl+I/Ctrl+Shift+I insertion, Ctrl+E analysis and Ctrl+M row colour. Test native clipboard read/write on each target platform. GTK insertion position/automatic numbering, remaining shortcuts and template-specific dialogs still need comparison on representative projects.
 4. **Complete release validation.** Compare the five exported worksheets against GTK on real projects, including formulas, styles, merges and print settings in Excel and LibreOffice. Validate native menus, file dialogs, dirty-window close, typography and accessibility on target platforms. Exercise a clean Windows install and supported Linux/macOS builds. Check larger and cyclic sub-analysis graphs and populated measurement fixtures. Track PDF reporting as a later phase.
 
 Record evidence in the validation log and update the ledger as each milestone lands. Keep GTK available until the editor, file safety, report and native-platform gates are exercised.
@@ -52,3 +54,5 @@ The working tree includes the reviewed ribbon changes, persisted library manager
 Save/recovery tests now inject failed snapshot writes, backup writes, replacement publication and checkpoint publication, and exercise modern save locking and stale second-window saves. These checks preserve source bytes, dirty drafts and complete checkpoints. They supplement, rather than replace, hard process-interruption and real Windows file-lock/GTK-concurrency checks.
 
 The reviewed workspace/editor increment is committed as `dd90598`. The following Program Settings increment is separate: app-level export/Modify & Add/default-row preferences, validation and cancellation, a shared row editor, GTK-compatible Modify & Add imports, blank-analysis defaults, and bundled/custom database discovery. Bundled `.eproj` databases are included in the sidecar and referenced by stable `bundled:` identifiers. Source aliases are deduplicated by their resolved backend paths. Project schema and legacy computation/database implementations remain unchanged.
+
+Program Settings is now committed as `8f6c35c`. The next increment adds the Tauri clipboard-manager text permissions and validated Python row serialization. Required schedule resources/sub-analyses transfer with selected rows; category selections include off-page contents. Destination resource codes reuse existing definitions; schedule stored rates remain as copied. Measurement links use schedule codes, and record paste checks the installed template. All mutations use existing draft/project undo. Creation, duplication and paste now preserve explicit schedule parents and inherit the parent's category; adding while a category is selected no longer enters category-edit dispatch. Native OS clipboard operation and Windows/macOS builds remain validation gates.

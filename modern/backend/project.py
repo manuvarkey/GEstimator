@@ -114,6 +114,18 @@ class ProjectEditor:
             self.reload_analysis(active_row.id if active_row else None)
         return result
 
+    def insert_schedule_item(self, item):
+        table = self.db.ScheduleTable
+        parent = table.get(table.code == item.parent) if item.parent else None
+        if parent:
+            item.category = parent.category.description
+        if not self.db.insert_item(item):
+            return False
+        if parent:
+            inserted = table.get(table.code == item.code)
+            self.relocate_schedule(inserted, parent, parent.category_id)
+        return True
+
     def relocate_schedule(self, row, parent, category_id):
         table = self.db.ScheduleTable
         if parent:
@@ -909,7 +921,7 @@ class ProjectEditor:
                 item.code = code
                 if not resource and item.parent in renamed:
                     item.parent = renamed[item.parent]
-                method = db.insert_resource if resource else db.insert_item
+                method = db.insert_resource if resource else self.insert_schedule_item
                 if not method(item):
                     raise ValueError("Unable to paste item")
             return
@@ -929,7 +941,7 @@ class ProjectEditor:
             db.update_rates([r.code for r in db.ScheduleTable.select()])
             return
         identity = str(p.get("id", ""))
-        if identity.startswith("cat:"):
+        if identity.startswith("cat:") and op != "add":
             cat = category.get_by_id(int(identity[4:]))
             if op == "edit" and p["field"] == "description":
                 method = (
@@ -959,7 +971,7 @@ class ProjectEditor:
             if op == "delete":
                 return self.delete_selection(kind, dict(p, ids=[identity]))
             raise ValueError("Unsupported category operation")
-        row = table.get_by_id(int(identity)) if identity else None
+        row = table.get_by_id(int(identity)) if identity and not identity.startswith("cat:") else None
         if op == "delete":
             return self.delete_selection(kind, dict(p, ids=[identity]))
         if op in ("add", "duplicate"):
@@ -998,7 +1010,7 @@ class ProjectEditor:
                     category=text(data.get("category", "")),
                     parent=parent,
                 )
-            method = db.insert_resource if resource else db.insert_item
+            method = db.insert_resource if resource else self.insert_schedule_item
             if not method(item):
                 raise ValueError("Item could not be inserted")
             return

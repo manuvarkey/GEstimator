@@ -7,6 +7,7 @@ const paths: Record<string, string> = {
   grid: "M3 3h18v18H3Z M3 9h18 M3 15h18 M9 3v18",
   library: "M4 4h4v17H4Z M10 4h4v17h-4Z M16 5l4-1 3 16-4 1Z",
   plus: "M12 5v14 M5 12h14",
+  child: "M5 3v9h14 M15 8l4 4-4 4 M5 18v3",
   search: "M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
   undo: "M9 4 3 10l6 6 M3 10h10a7 7 0 0 1 7 9",
   redo: "m15 4 6 6-6 6 M21 10H11a7 7 0 0 0-7 9",

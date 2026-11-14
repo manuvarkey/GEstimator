@@ -6,6 +6,8 @@
     "main"
   ],
   "permissions": [
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "core:default",
     "dialog:allow-open",
     "dialog:allow-save",

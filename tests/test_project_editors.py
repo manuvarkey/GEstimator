@@ -68,6 +68,7 @@ class ProjectEditors(unittest.TestCase):
             ),
         )
         row = self.s.db.ScheduleTable.get(self.s.db.ScheduleTable.code == "C")
+        self.assertEqual(row.parent.code, "A")
         self.call("schedule.editor.edit", id=str(row.id), field="qty", value="2*3")
         self.assertEqual(self.s.db.ScheduleTable.get_by_id(row.id).qty, Decimal("6"))
         self.call("project.undo")
@@ -102,6 +103,23 @@ class ProjectEditors(unittest.TestCase):
             self.call("resources.editor.edit", id=str(row.id), field="code", value="R2")
         self.assertEqual(self.s.db.get_resource("R").category, "Labour")
         self.assertEqual(len(self.s.project_editor.history), count)
+
+    def test_add_from_selected_category_and_duplicate_preserve_parent(self):
+        table = self.s.db.ScheduleTable
+        parent = table.get(code="A")
+        self.call("schedule.editor.add", id="cat:" + str(parent.category_id), data=dict(
+            code="A.1", description="Child", parent="A", category="Different category",
+        ))
+        child = table.get(code="A.1")
+        self.assertEqual((child.parent_id, child.category_id), (parent.id, parent.category_id))
+        self.call("schedule.editor.duplicate", id=str(child.id), data=dict(code="A.2"))
+        duplicate = table.get(code="A.2")
+        self.assertEqual((duplicate.parent_id, duplicate.category_id), (parent.id, parent.category_id))
+        self.call("project.undo")
+        self.assertFalse(table.select().where(table.code == "A.2").exists())
+        category = self.s.db.ResourceCategoryTable.get(description="Materials")
+        self.call("resources.editor.add", id="cat:" + str(category.id), data=dict(code="NEW", category="Materials", rate="5"))
+        self.assertEqual(self.s.db.get_resource("NEW").category, "Materials")
 
     def test_measurement_template_records_links_and_quantities(self):
         templates = self.call("measurement.templates")

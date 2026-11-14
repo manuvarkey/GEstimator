@@ -7,6 +7,7 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { tableSelection, resetTablePosition } from "../tableSelection";
+import { isRowClipboard } from "../rowClipboard";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
@@ -19,6 +20,7 @@ const emit = defineEmits<{
   paste: [changes: { id: string; field: string; value: string }[]];
   edit: [row: { id: string; [key: string]: any }, field: string, value: string];
   activate: [row: { id: string; [key: string]: any }];
+  pasteRows: [data: string];
 }>();
 const element = ref<HTMLDivElement>();
 let table: Tabulator;
@@ -38,7 +40,6 @@ function keyboard(event: KeyboardEvent) {
 function paste(event: ClipboardEvent) {
   if (
     props.busy ||
-    !anchor ||
     (event.target as HTMLElement).closest(
       "input,textarea,[contenteditable=true]",
     )
@@ -46,6 +47,13 @@ function paste(event: ClipboardEvent) {
     return;
   const text = event.clipboardData?.getData("text/plain");
   if (text === undefined) return;
+  if (isRowClipboard(text)) {
+    event.preventDefault();
+    event.stopPropagation();
+    emit("pasteRows", text);
+    return;
+  }
+  if (!anchor) return;
   event.preventDefault();
   const rows: any[] = [];
   const flatten = (values: any[]) => {
@@ -144,7 +152,7 @@ onMounted(() => {
     selectableRows: true,
     selectableRowsRangeMode: "click",
     editTriggerEvent: "dblclick",
-    clipboard: "copy",
+    clipboard: false,
     columnDefaults: {
       headerSort: false,
       resizable: true,

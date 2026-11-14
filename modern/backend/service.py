@@ -396,6 +396,9 @@ class Service:
             return dict(saved=str(destination))
         if p.get("revision") != self.revision:
             raise ValueError("Stale edit; reload analysis state")
+        if method in ("clipboard.export", "clipboard.paste"):
+            from . import clipboard
+            return clipboard.export(self, p) if method == "clipboard.export" else clipboard.paste(self, p)
         if method == "analysis.batch.preview":
             original = self.model
             self.model = copy.deepcopy(original)
@@ -623,7 +626,8 @@ class Service:
                             raise ValueError("Select a destination resource group")
                         j = 0 if j is None else j + 1
                         self.model.resources.setdefault(
-                            entry[2].code, copy.deepcopy(entry[2])
+                            entry[2].code,
+                            (self.db.get_resource(entry[2].code) if self.db else None) or copy.deepcopy(entry[2]),
                         )
                         self.model.add_ana_res(copy.deepcopy(entry[1]), i, j)
                         self.model.ana_items[i]["_resource_ids"].insert(j, uuid4().hex)

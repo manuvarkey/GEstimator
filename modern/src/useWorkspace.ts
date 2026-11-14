@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { restoreLibraries } from "./libraryPreferences";
 import { initializeProgramSettings, programSettings } from "./programSettings";
+import { copyRows, pasteRows } from "./rowClipboard";
 import {
   request,
   type AnalysisRow,
@@ -23,7 +24,6 @@ export function useWorkspace() {
   const resourceSource = ref("");
   const schedulePage = ref(0);
   const resourcePage = ref(0);
-  const clipboardReady = ref(false);
   const projectName = computed(
     () =>
       state.value?.project_name ||
@@ -94,8 +94,19 @@ export function useWorkspace() {
     }, "Connecting to engine…");
   }
   async function command(method: string, params: Record<string, unknown> = {}) {
-    return run(async () => {
+    let feedback = "";
+    const ok = await run(async () => {
       try {
+        const clipboardParams = { revision: state.value?.revision, ids: selected.value.map(row => row.id), id: selected.value[0]?.id, ...params };
+        if (method === "copy") {
+          feedback = await copyRows("analysis", clipboardParams);
+          return;
+        }
+        if (method === "paste") {
+          await pasteRows("analysis", clipboardParams);
+          await refresh();
+          return;
+        }
         await refresh(
           await request<AnalysisState>(method, {
             revision: state.value?.revision,
@@ -105,8 +116,6 @@ export function useWorkspace() {
             ...params,
           }),
         );
-        if (method === "copy" || method === "duplicate")
-          clipboardReady.value = true;
       } catch (e) {
         await refresh().catch(() => {
           connected.value = false;
@@ -114,6 +123,8 @@ export function useWorkspace() {
         throw e;
       }
     }, "Updating analysis…");
+    if (ok && feedback) status.value = feedback;
+    return ok;
   }
   async function searchSchedule(page = 0) {
     await run(async () => {
@@ -149,7 +160,6 @@ export function useWorkspace() {
       schedule.value = await request("schedule.list");
       resources.value = [];
       selected.value = [];
-      clipboardReady.value = false;
     }, "Opening project…");
   }
   async function load(code: string, discard = false) {
@@ -196,7 +206,6 @@ export function useWorkspace() {
     resourceSource,
     schedulePage,
     resourcePage,
-    clipboardReady,
     projectName,
     resourceCount,
     groups,

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 import { resolve } from "node:path";
@@ -14,39 +14,55 @@ const python = resolve(
 // Only the Tauri transport is replaced. Every analysis command runs in real Python.
 let child: ChildProcessWithoutNullStreams;
 let directory: string;
-const pending = new Map<
-  string,
-  { resolve: (value: unknown) => void; reject: (error: Error) => void }
->();
-let sequence = 0;
 let measurementDelay = 0;
+let systemClipboard = "";
+let clipboardUnavailable = false;
+let backend: ReturnType<typeof createBackend>;
 function call(method: string, params: Record<string, unknown> = {}) {
-  const id = String(++sequence);
-  return new Promise<any>((resolve, reject) => {
-    pending.set(id, { resolve, reject });
-    child.stdin.write(JSON.stringify({ id, method, params }) + "\n");
-  });
+  return backend.call(method, params);
 }
-function startBackend() {
-  child = spawn(python, ["-m", "modern.backend"], {
+function createBackend() {
+  const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
+  let sequence = 0;
+  const process = spawn(python, ["-m", "modern.backend"], {
     cwd: resolve(".."),
   });
-  createInterface({ input: child.stdout }).on("line", (line) => {
+  createInterface({ input: process.stdout }).on("line", (line) => {
     const message = JSON.parse(line);
     if (message.event) return;
     pending.get(message.id)?.resolve(message);
     pending.delete(message.id);
   });
-  child.stderr.on("data", (data) => process.stderr.write(data));
+  process.stderr.on("data", (data) => console.error(String(data)));
+  process.on("close", () => {
+    for (const request of pending.values()) request.reject(new Error("Backend closed"));
+    pending.clear();
+  });
+  return {
+    child: process,
+    call(method: string, params: Record<string, unknown> = {}) {
+      const id = String(++sequence);
+      return new Promise<any>((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        process.stdin.write(JSON.stringify({ id, method, params }) + "\n");
+      });
+    },
+  };
 }
-test.beforeEach(async ({ page }) => {
-  directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
-  measurementDelay = 0;
-  startBackend();
+function startBackend() {
+  backend = createBackend();
+  child = backend.child;
+}
+async function connectDesktop(page: Page, transport = call) {
   await page.exposeBinding("backendTransport", async (_source, request) => {
     if (request.method === "measurement.state" && measurementDelay)
       await new Promise(resolve => setTimeout(resolve, measurementDelay));
-    return call(request.method, request.params);
+    return transport(request.method, request.params);
+  });
+  await page.exposeBinding("clipboardTransport", (_source, method, text) => {
+    if (clipboardUnavailable) throw new Error("Clipboard unavailable");
+    if (method === "write_text") systemClipboard = text;
+    return systemClipboard;
   });
   await page.addInitScript(() => {
     (window as any).isTauri = true;
@@ -63,6 +79,8 @@ test.beforeEach(async ({ page }) => {
         if (method.startsWith("plugin:event|")) return Promise.resolve(1);
         if (method === "backend_request")
           return (window as any).backendTransport(args.request);
+        if (method.startsWith("plugin:clipboard-manager|"))
+          return (window as any).clipboardTransport(method.split("|")[1], args?.text);
         if (method.startsWith("plugin:dialog|")) return Promise.resolve(null);
         throw new Error("Unexpected desktop command: " + method);
       },
@@ -70,11 +88,203 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto("/");
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
+}
+test.beforeEach(async ({ page }) => {
+  directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
+  measurementDelay = 0;
+  systemClipboard = "";
+  clipboardUnavailable = false;
+  startBackend();
+  await connectDesktop(page);
 });
 test.afterEach(async () => {
   child.stdin.end();
   await new Promise<void>((resolve) => child.once("close", () => resolve()));
   await rm(directory, { recursive: true, force: true });
+});
+
+async function openFixture(page: Page, path: string) {
+  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Open project", exact: true });
+  await dialog.getByLabel("Project file").fill(path);
+  await dialog.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+}
+async function pasteDocument(page: Page, selector: string, data: string) {
+  await page.locator(selector).evaluate((table, text) => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData("text/plain", text);
+    table.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData }));
+  }, data);
+}
+
+test("system row clipboard transfers schedule, resources and analysis between independent processes", async ({ page, browser }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "clipboard.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  const original = await readFile(project);
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.keyboard.press("ControlOrMeta+c");
+  await expect.poll(() => { try { return JSON.parse(systemClipboard).kind; } catch { return ""; } }).toBe("schedule");
+
+  const other = createBackend();
+  const context = await browser.newContext({ baseURL: "http://127.0.0.1:1420", viewport: { width: 1600, height: 1000 } });
+  try {
+    await other.call("project.new");
+    const destination = await context.newPage();
+    await connectDesktop(destination, other.call);
+    await destination.locator("#view-schedule").click();
+    const pasted = destination.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" });
+    await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await expect.poll(async () => JSON.stringify({ state: await other.call("schedule.editor.state"), errors: await destination.getByRole("alert").allTextContents() })).toContain("Foundation");
+    await expect(pasted).toHaveCount(1);
+    await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(pasted).toHaveCount(0);
+    // Native Ctrl+V delivers structured rows through a paste event, not cell TSV.
+    await pasteDocument(destination, ".project-main-grid .project-grid", systemClipboard);
+    await expect(pasted).toHaveCount(1);
+
+    await page.locator("#view-resources").click();
+    await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: /^Material$/ }).click();
+    await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
+    expect(JSON.parse(systemClipboard).kind).toBe("resources");
+    await destination.locator("#view-resources").click();
+    await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await expect(destination.locator('.project-main-grid .tabulator-row [tabulator-field="code"]').filter({ hasText: /^R-copy$/ })).toHaveCount(1);
+    systemClipboard = "ordinary text";
+    await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await expect(destination.getByRole("alert")).toContainText("valid GEstimator rows");
+    expect((await other.call("resources.editor.state")).result.rows[0]._children).toHaveLength(2);
+
+    for (const editor of [page, destination]) {
+      await editor.locator("#view-schedule").click();
+      await editor.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+      await editor.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+    }
+    await page.getByRole("grid", { name: "Rate analysis table" }).focus();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("ControlOrMeta+c");
+    await expect.poll(() => JSON.parse(systemClipboard).kind).toBe("analysis");
+    await destination.locator(".ribbon").getByRole("button", { name: "Paste rows", exact: true }).click();
+    await expect(destination.locator(".summary-value")).toContainText("40.00");
+    await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(destination.locator(".summary-value")).toContainText("20.00");
+    expect(await readFile(project)).toEqual(original);
+  } finally {
+    await context.close();
+    other.child.stdin.end();
+    await new Promise<void>(resolve => other.child.once("close", () => resolve()));
+  }
+});
+
+test("measurement clipboard transfers whole items and template records with explicit local fallback", async ({ page, browser }) => {
+  const other = createBackend();
+  const context = await browser.newContext({ baseURL: "http://127.0.0.1:1420", viewport: { width: 1600, height: 1000 } });
+  async function edit(transport: typeof call, method: string, params: Record<string, unknown> = {}) {
+    const revision = (await transport("state")).result.revision;
+    const response = await transport(method, { revision, ...params });
+    expect(response.error).toBeUndefined();
+    return response.result;
+  }
+  try {
+    await call("project.new");
+    await edit(call, "measurement.add", { template: "_1_NLBH", description: "Copied dimensions" });
+    const id = (await call("measurement.state")).result.rows[0].id;
+    await edit(call, "measurement.record_add", { id });
+    const record = (await call("measurement.state", { id })).result.detail.rows[0].id;
+    await edit(call, "measurement.record_edit_many", { id, edits: [{ id: record, field: "c2", value: "2*3" }, { id: record, field: "c3", value: "4" }] });
+    await page.reload();
+    await expect(page.getByText("Calculation engine connected")).toBeVisible();
+    await page.locator("#view-measurement").click();
+    await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Copied dimensions" }).click();
+    await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
+    expect(JSON.parse(systemClipboard).kind).toBe("measurement");
+    await other.call("project.new");
+    const destination = await context.newPage();
+    await connectDesktop(destination, other.call);
+    await destination.locator("#view-measurement").click();
+    await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await destination.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Copied dimensions" }).click();
+    await expect(destination.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]')).toHaveText("2*3");
+    await page.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]').click();
+    await page.keyboard.press("ControlOrMeta+c");
+    await expect.poll(() => JSON.parse(systemClipboard).kind).toBe("records");
+    await pasteDocument(destination, ".measurement-record-grid .project-grid", systemClipboard);
+    await expect(destination.locator(".measurement-record-grid .tabulator-row")).toHaveCount(2);
+    await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(destination.locator(".measurement-record-grid .tabulator-row")).toHaveCount(1);
+    clipboardUnavailable = true;
+    await page.getByRole("button", { name: "Copy record", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "within this window only" })).toBeVisible();
+    await page.getByRole("button", { name: "Paste record", exact: true }).click();
+    await expect(page.locator(".measurement-record-grid .tabulator-row")).toHaveCount(2);
+    await destination.getByRole("button", { name: "Paste record", exact: true }).click();
+    await expect(destination.getByRole("alert")).toContainText("Unable to read text");
+  } finally {
+    await context.close();
+    other.child.stdin.end();
+    await new Promise<void>(resolve => other.child.once("close", () => resolve()));
+  }
+});
+
+test("GTK insertion shortcuts retain schedule parents and target the active editor", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "insertion.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  const main = page.locator(".project-main-grid");
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+i");
+  const add = page.getByRole("dialog", { name: "Add item", exact: true });
+  await expect(add.getByLabel("Parent code (optional)")).toHaveValue("A");
+  await expect(add.getByRole("combobox", { name: "Category", exact: true })).toHaveValue("Work");
+  await add.getByLabel("New code", { exact: true }).fill("A.1");
+  await add.getByLabel("Description", { exact: true }).fill("Child work");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await expect(main.locator('.tabulator-tree-level-2 [tabulator-field="description"]')).toContainText("Child work");
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.keyboard.press("ControlOrMeta+m");
+  const colour = page.getByRole("dialog", { name: "Schedule row colour" });
+  await expect(colour).toBeVisible();
+  await colour.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(colour).not.toBeVisible();
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.keyboard.press("ControlOrMeta+e");
+  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("grid", { name: "Rate analysis table" }).focus();
+  await page.keyboard.press("ControlOrMeta+i");
+  const resource = page.getByRole("dialog", { name: "Add resource", exact: true });
+  await expect(resource.getByRole("tab", { name: "From library" })).toHaveAttribute("aria-selected", "true");
+  await resource.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(resource).not.toBeVisible();
+  await page.getByRole("grid", { name: "Rate analysis table" }).focus();
+  await page.keyboard.press("ControlOrMeta+Shift+i");
+  await expect(resource.getByRole("tab", { name: "Custom resource" })).toHaveAttribute("aria-selected", "true");
+  await resource.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(resource).not.toBeVisible();
+  await page.locator("#view-resources").click();
+  await main.locator('[tabulator-field="description"]').filter({ hasText: /^Materials$/ }).click();
+  // GTK accelerators also work while focus is in the active ribbon.
+  await page.locator(".ribbon").getByRole("button", { name: "Add item", exact: true }).focus();
+  await page.keyboard.press("ControlOrMeta+i");
+  await expect(add.getByRole("combobox", { name: "Category", exact: true })).toHaveValue("Materials");
+  await add.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await page.locator("#view-measurement").click();
+  await main.locator(".project-grid").focus();
+  await page.keyboard.press("ControlOrMeta+i");
+  await add.getByLabel("Measurement template").selectOption("_1_NLBH");
+  await add.getByLabel("Description / remarks").fill("Dimensions");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Dimensions" }).click();
+  await page.locator(".measurement-record-grid .project-grid").focus();
+  await page.keyboard.press("ControlOrMeta+i");
+  await expect(page.locator(".measurement-record-grid .tabulator-row")).toHaveCount(1);
 });
 
 test("saved libraries restore across processes, deduplicate and recover from missing paths", async ({ page }) => {

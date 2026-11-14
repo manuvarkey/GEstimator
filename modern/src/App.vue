@@ -42,7 +42,6 @@ const {
   resourceSource,
   schedulePage,
   resourcePage,
-  clipboardReady,
   projectName,
   resourceCount,
   groups,
@@ -362,13 +361,25 @@ function keyboard(event: KeyboardEvent) {
     void historyAction(key === "y" || event.shiftKey ? "redo" : "undo");
     return;
   }
-  if (activeView.value !== "analysis") return;
+  if (activeView.value !== "analysis") {
+    projectView.value?.handleKeyboard(event);
+    return;
+  }
   if (
     (event.target as HTMLElement).closest(
       "input,textarea,select,[contenteditable=true]",
     )
   )
     return;
+  if (mod && key === "i") {
+    event.preventDefault();
+    if (canEdit.value && groups.value.length) {
+      resourceTab.value = event.shiftKey ? "custom" : "library";
+      addResource();
+      if (!event.shiftKey && state.value?.project_open) void w.searchResources();
+    }
+    return;
+  }
   if (mod && ["z", "y", "c", "v", "d"].includes(key)) {
     event.preventDefault();
     if (!canEdit.value) return;
@@ -740,11 +751,11 @@ onBeforeUnmount(() => {
         </div>
         <div class="ribbon-group">
           <div class="ribbon-actions ribbon-pairs">
-            <button class="ribbon-action ribbon-icon" aria-label="Copy rows" title="Copy the selected analysis rows to the session clipboard (Ctrl+C)."
+            <button class="ribbon-action ribbon-icon" aria-label="Copy rows" title="Copy selected analysis rows and resource definitions to the system clipboard for use in another GEstimator window (Ctrl+C)."
               :disabled="!canEdit || !selected.length" @click="w.command('copy')">
               <AppIcon name="copy" /><span class="ribbon-label">Copy rows</span></button>
-            <button class="ribbon-action ribbon-icon" aria-label="Paste rows" title="Insert copied analysis rows at the current selection (Ctrl+V)."
-              :disabled="!canEdit || !clipboardReady" @click="w.command('paste')">
+            <button class="ribbon-action ribbon-icon" aria-label="Paste rows" title="Insert analysis rows copied from this or another GEstimator window at the current selection. Existing project resource definitions are reused by code (Ctrl+V)."
+              :disabled="!canEdit" @click="w.command('paste')">
               <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span></button>
             <button class="ribbon-action ribbon-icon" aria-label="Duplicate" title="Create another copy of the selected analysis rows in this draft (Ctrl+D)."
               :disabled="!canEdit || !selected.length" @click="w.command('duplicate')">
@@ -1609,13 +1620,16 @@ onBeforeUnmount(() => {
           ['Find schedule or resource', 'Ctrl / ⌘ + K'],
           ['Undo / Redo', 'Ctrl / ⌘ + Z / Y'],
           ['Copy / Paste rows', 'Ctrl / ⌘ + C / V'],
+          ['Add item / measurement record / analysis resource', 'Ctrl / ⌘ + I'],
+          ['Add schedule subitem / custom analysis resource', 'Ctrl / ⌘ + Shift + I'],
+          ['Open selected schedule analysis', 'Ctrl / ⌘ + E or Enter'],
+          ['Colour selected schedule items', 'Ctrl / ⌘ + M'],
           ['Duplicate selected rows', 'Ctrl / ⌘ + D'],
           ['Delete selected rows', 'Delete'],
           ['Navigate editable cells', 'Tab / Shift + Tab'],
           ['Select table rows', 'Up / Down / Home / End'],
           ['Extend table selection', 'Shift + Up / Down / Home / End'],
           ['Select current table page / Clear selection', 'Ctrl / ⌘ + A / Escape'],
-          ['Open selected schedule analysis', 'Enter'],
           ['Focus ribbon tabs', 'Left / Right / Home / End'],
           ['Activate focused ribbon tab', 'Enter / Space'],
           ['Move project item or measurement record', 'Alt + Up / Down'],
@@ -1627,8 +1641,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <p class="field-hint">
-      Text fields keep their normal editing shortcuts. Analysis row paste uses
-      the selected resource group. In project tables, Ctrl+D duplicates and Delete
+      Text fields keep their normal editing shortcuts. Copied rows can be pasted in
+      the same editor in another GEstimator window. Measurement records require
+      the same template; whole-item schedule links match codes in the destination.
+      Analysis resource paste uses the selected resource group. In project tables, Ctrl+D duplicates and Delete
       removes selected items; these shortcuts apply to records when the measurement
       record table has focus. Spreadsheet cell paste keeps its normal Ctrl+V behavior.
     </p></Dialog
