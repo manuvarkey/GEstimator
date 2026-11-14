@@ -1925,6 +1925,19 @@ textarea {
   border-top: 1px solid var(--line);
   margin: 5px;
 }
+.themed-select-menu .p-menu-list { max-height: min(55vh, 380px); overflow-y: auto; }
+.themed-select-menu { max-width: 94vw; }
+.themed-select-menu .p-menu-submenu-label { color: var(--muted); padding: 8px 12px 3px; font-size: 0.9rem; }
+.themed-select-menu .application-menu-item[aria-current="true"] { color: var(--accent); background: var(--accent-soft); }
+.themed-select-menu .application-menu-item span { white-space: normal; overflow-wrap: anywhere; }
+.measurement-cell-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+.database-picker-dialog { width: min(94vw, 1100px); }
+.database-picker-grid { height: min(43vh, 400px); min-height: 220px; margin-top: 14px; border: 1px solid var(--line); }
+.database-manager { max-width: 1000px; padding: 0 0 24px; }
+.attached-databases { margin-block: 16px; }
+.attached-database { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.attached-database small { margin-left: auto; color: var(--muted); }
+.database-view { padding-inline: 24px; }
 .ribbon-tools-host {
   display: flex;
   align-items: stretch;

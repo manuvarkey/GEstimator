@@ -440,6 +440,22 @@ class ProjectEditor:
             unmatched=len(records) - matched,
         )
 
+    def refresh_schedule_prices(self, params, apply):
+        identity = params.get("library")
+        if identity not in self.libraries:
+            raise ValueError("Choose an attached database")
+        _, records = self.selection("schedule", params.get("ids"))
+        source = self.libraries[identity][1].ScheduleTable
+        rates = {row.code: row.rate for row in source.select().where(source.code.in_([row.code for row in records]))}
+        changes = {row.code: rates[row.code] for row in records if row.code in rates and row.rate != rates[row.code]}
+        if apply and changes:
+            def update():
+                for code, rate in changes.items():
+                    if not self.db.update_item_schedule(code, rate, 3):
+                        raise ValueError("Unable to update database rate")
+            self.mutate(update)
+        return dict(changed=len(changes), unchanged=len(rates) - len(changes), unmatched=len(records) - len(rates))
+
     def resource_usage(self, params):
         offset = params.get("offset", 0)
         if type(offset) is not int or offset < 0:
@@ -753,7 +769,8 @@ class ProjectEditor:
         for code, rate in modified_rates.items():
             if not self.db.update_item_schedule(code, rate, 3):
                 raise ValueError("Unable to retain the modified library rate")
-        return dict(imported=imported, skipped=len(records) - imported)
+        table = self.db.ResourceTable if kind == "resources" else self.db.ScheduleTable
+        return dict(imported=imported, skipped=len(records) - imported, selected=[str(row.id) for row in table.select().where(table.code.in_(inserted_codes))])
 
     def call(self, method, p, progress):
         if method == "library.attach":
@@ -867,6 +884,8 @@ class ProjectEditor:
             )
         if kind == "resources" and operation in ("price_preview", "price_update"):
             return self.refresh_resource_prices(p, apply=operation == "price_update")
+        if kind == "schedule" and operation in ("price_preview", "price_update"):
+            return self.refresh_schedule_prices(p, apply=operation == "price_update")
         if operation == "copy":
             self.edit(kind, operation, p)
             return dict(ok=True)
@@ -1257,6 +1276,7 @@ class ProjectEditor:
                 )
                 # Raw editable strings preserve measurement expressions and description text.
                 for row, record in zip(detail["rows"], item.records[offset:offset + limit]):
+                    row["_display"] = {key: value for key, value in row.items() if key.startswith("c")}
                     for i, t in enumerate(item.columntypes):
                         if t != misc.MEAS_CUST:
                             row["c" + str(i)] = record.data_string[i]

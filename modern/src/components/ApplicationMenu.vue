@@ -44,7 +44,7 @@ const items = computed<MenuItem[]>(() => [
   ),
   { separator: true },
   item("Program settings…", "program-settings", "settings", props.busy),
-  item("Libraries…", "libraries", "library", props.busy),
+  item("Databases…", "libraries", "library", props.busy),
   item("Reconnect engine", "reconnect", "check", props.busy),
   item("Keyboard shortcuts", "help", "help"),
   { separator: true },

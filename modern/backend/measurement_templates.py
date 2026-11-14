@@ -5,7 +5,7 @@ from estimator import misc
 from estimator.data.measurement import MeasurementItemCustom
 
 DESCRIPTIONS = {
-    "_1_NLBH": ("Dimensions (N × L × B × H)", "Multiply the nonzero factors in each record and sum the record totals.", "Blank and zero factors are ignored, not multiplied as zero. A completely empty record totals zero."),
+    "_1_NLBH": ("NLBH (numbers, length, area, volume)", "Evaluate expressions, multiply the nonzero factors in each record and sum the totals.", "Blank dimensions are optional: No for numbers, L for length, L/B for area, L/B/H for volume. Add No when needed. As in GTK, zero factors are ignored; an empty record totals zero."),
     "_2_LLLLL": ("Five linked quantities", "Five independent quantity columns, each linked to its own schedule item.", "Each quantity is rounded to three places per record before summing."),
     "_3_NNNNNNNN": ("Eight linked quantities", "Eight independent quantity columns, each linked to its own schedule item.", "Each quantity is rounded to three places per record before summing."),
     "_4_nnnnnT": ("Sum of five quantities", "Add N1 to N5 in each record and sum the record totals.", "Negative quantities are included; record totals are rounded to three places."),
@@ -18,7 +18,8 @@ DESCRIPTIONS = {
 
 def metadata(item):
     label, summary, note = DESCRIPTIONS.get(item.itemtype, (item.name, "Installed measurement template.", "Results are calculated by the installed Python template."))
-    return dict(code=item.itemtype, name=item.name, label=label, summary=summary, note=note,
+    group = "Civil" if item.itemtype.startswith("civil_") else "E&M" if item.itemtype.startswith("elec_") else "General"
+    return dict(code=item.itemtype, name=item.name, label=label, summary=summary, note=note, group=group,
                 inputs=[caption for caption, kind in zip(item.captions, item.columntypes) if kind != misc.MEAS_CUST],
                 outputs=len(item.itemnos), properties=bool(item.captions_udata))
 

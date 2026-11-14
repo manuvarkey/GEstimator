@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import Dialog from "primevue/dialog";
-import { invoke } from "@tauri-apps/api/core";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
-import { request } from "../backend";
-import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, customDatabaseDirectory, type ProgramSettings } from "../programSettings";
+import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
 const visible = defineModel<boolean>({ required: true });
-const emit = defineEmits<{ libraries: [] }>();
 const draft = ref<ProgramSettings>();
 const tab = ref("general");
 const busy = ref(false);
 const error = ref("");
-const sections = [{ key: "general", label: "General" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Modify & Add template" }];
+const sections = [{ key: "general", label: "General" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
 function navigate(event: KeyboardEvent, index: number) {
   const last = sections.length - 1;
   const next = event.key === "ArrowRight" ? (index + 1) % sections.length : event.key === "ArrowLeft" ? (index + last) % sections.length : event.key === "Home" ? 0 : event.key === "End" ? last : -1;
@@ -36,10 +33,6 @@ async function reset() {
   catch (failure) { error.value = String(failure); }
   finally { busy.value = false; }
 }
-async function openDirectory() {
-  try { const path = await request<string>("program.library_directory"); await invoke("open_library_directory", { path }); }
-  catch (failure) { error.value = String(failure); }
-}
 </script>
 <template>
   <Dialog v-model:visible="visible" modal header="Program settings" class="workspace-dialog program-settings-dialog" :closable="!busy" :close-on-escape="!busy">
@@ -52,20 +45,16 @@ async function openDirectory() {
       <template v-if="tab === 'general'">
         <h3>Export options</h3>
         <label class="library-remember"><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across multiple rows in exported workbooks</label>
-        <h3>Library Modify & Add</h3>
-        <label class="field">Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy" /></label>
-        <p class="field-hint">Applied only by Schedule → Modify & Add. Arithmetic is accepted and rounded to five places using the existing currency rules. Plain import keeps its usual behavior.</p>
-        <label class="field">Trailing analysis rows to replace<input v-model.number="draft.ana_copy_delete_rows" type="number" min="0" max="5" step="1" :disabled="busy" /></label>
-        <p class="field-hint">Replace trailing rows only when the count is non-zero, the replacement template is not empty, and the source analysis has more rows than the count.</p>
-        <h3>Custom databases</h3>
-        <p class="field-hint">Legacy custom database folder: <code>{{ customDatabaseDirectory }}</code></p>
-        <div class="project-tools"><button class="button secondary" :disabled="busy" @click="openDirectory">Open database folder</button><button class="button secondary" :disabled="busy" @click="visible = false; emit('libraries')">Manage attached libraries…</button></div>
       </template>
       <template v-else-if="tab === 'default'">
         <p class="field-hint">Used by Analysis → Default rows and when opening an analysis with no calculation rows. An empty template leaves blank analyses empty.</p>
         <AnalysisRowEditor v-model="draft.ana_default_rows" prefix="Default row" :disabled="busy" />
       </template>
       <template v-else>
+        <label class="field">Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy" /></label>
+        <p class="field-hint">Applied by Add item from database → Modify & Add. Arithmetic is accepted and rounded to five places using the existing currency rules. Plain addition retains the database rate.</p>
+        <label class="field">Trailing analysis rows to replace<input v-model.number="draft.ana_copy_delete_rows" type="number" min="0" max="5" step="1" :disabled="busy" /></label>
+        <p class="field-hint">Replacement applies when the count is non-zero, the replacement is not empty and the source analysis contains more rows than the count.</p>
         <p class="field-hint">Rows substituted by the Modify & Add action after deleting the configured number of trailing analysis rows. Sub-analyses are imported with their original calculations.</p>
         <AnalysisRowEditor v-model="draft.ana_copy_rows" prefix="Modify row" :disabled="busy" />
       </template>

@@ -92,7 +92,7 @@ onMounted(() => {
     selectableRowsRangeMode: "click",
     clipboard: false,
     placeholder: "Add a resource group to begin your analysis.",
-    columnDefaults: { headerSort: false, resizable: true, vertAlign: "middle" },
+    columnDefaults: { headerSort: false, resizable: true, vertAlign: "middle", editorParams: () => ({ enterSubmit: true, shiftEnterNewLine: true, ctrlEnterNewLine: true, metaEnterNewLine: true }) },
     rowFormatter: (row) => {
       row.getElement().dataset.kind = row.getData().kind;
     },

@@ -13,6 +13,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
+import SelectMenus from "./components/SelectMenus.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
@@ -55,22 +56,25 @@ const analysisBatchOpen = ref(false);
 const analysisTemplateMode = ref(false);
 const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
 async function librariesChanged() {
+  await databasePanel.value?.refresh();
   await w.run(async () => {
     await w.refresh();
     await projectView.value?.reload();
   }, "Refreshing libraries…");
 }
 const projectView = ref<InstanceType<typeof ProjectViews>>();
+const databasePanel = ref<InstanceType<typeof LibraryManager>>();
 const projectHistory = ref({ undo: false, redo: false });
 const views = [
   { key: "schedule", label: "Schedule" },
   { key: "analysis", label: "Analysis" },
   { key: "resources", label: "Resources" },
   { key: "measurement", label: "Measurements" },
+  { key: "databases", label: "Databases" },
 ] as const;
 const settingsOpen = ref(false);
 const settings = ref<Record<string, string>>({});
-const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
+const activeView = ref<"analysis" | "schedule" | "resources" | "measurement" | "databases">(
   "analysis",
 );
 const projectBusy = ref(false);
@@ -509,7 +513,7 @@ async function applicationAction(action: string) {
       await showSettings();
       break;
     case "libraries":
-      libraryManagerOpen.value = true;
+      await switchView("databases");
       break;
     case "program-settings":
       programSettingsOpen.value = true;
@@ -854,10 +858,13 @@ onBeforeUnmount(() => {
           <small>PROJECT</small>
         </div>
       </template>
+      <template v-else-if="activeView === 'databases'">
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Attach database…" title="Attach an external database. The dialog stays open so that several databases can be attached before closing." @click="libraryManagerOpen = true"><AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button><button class="ribbon-action ribbon-icon" aria-label="Refresh databases" title="Refresh the available and attached database lists." @click="databasePanel?.refresh()"><AppIcon name="refresh" /><span class="ribbon-label">Refresh</span></button></div><small>DATABASES</small></div>
+      </template>
       <div
         id="project-ribbon-tools"
         class="ribbon-tools-host"
-        v-show="activeView !== 'analysis'"
+        v-show="activeView !== 'analysis' && activeView !== 'databases'"
       />
     </RibbonToolbar>
     <div v-if="error" class="error-banner" role="alert">
@@ -876,7 +883,7 @@ onBeforeUnmount(() => {
     </div>
     <div v-if="state?.project_open && unavailableLibraries.length" class="library-warning" role="status">
       <span>{{ unavailableLibraries.length }} saved {{ unavailableLibraries.length === 1 ? 'library is' : 'libraries are' }} unavailable. The project is open and available libraries are attached.</span>
-      <button class="text-button" :disabled="uiBusy" @click="libraryManagerOpen = true">Manage libraries</button>
+      <button class="text-button" :disabled="uiBusy" @click="switchView('databases')">Manage libraries</button>
     </div>
     <div class="workspace">
       <aside v-show="sidebar" class="explorer">
@@ -1066,17 +1073,18 @@ onBeforeUnmount(() => {
         </div>
       </aside>
       <main class="editor-pane">
+        <section v-if="activeView === 'databases'" class="project-view database-view"><div class="analysis-heading"><div><div class="eyebrow">APPLICATION DATABASES</div><h1>Databases</h1><p>Attach and manage databases here. Add items and refresh rates from their editor dialogs.</p></div></div><LibraryManager ref="databasePanel" :model-value="true" embedded :project-open="!!state?.project_open" @changed="librariesChanged" @busy="projectBusy = $event" /></section>
         <ProjectViews
           :key="projectSession"
           ref="projectView"
-          v-if="activeView !== 'analysis'"
+          v-if="activeView !== 'analysis' && activeView !== 'databases'"
           :view="activeView"
           :project-open="!!state?.project_open"
           @changed="w.refresh()"
           @history="projectHistory = $event"
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
-          @libraries="libraryManagerOpen = true"
+          @libraries="switchView('databases')"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
           <div class="analysis-intro">
@@ -1749,6 +1757,7 @@ onBeforeUnmount(() => {
     </div></Dialog
   >
   <LibraryManager v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
-  <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" @libraries="libraryManagerOpen = true" />
+  <SelectMenus />
+  <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
   <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
 </template>

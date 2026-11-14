@@ -1,6 +1,6 @@
 # Vue/Tauri migration handoff
 
-Resume on `migration/vue-tauri-desktop`. The Program Settings checkpoint is `8f6c35c`, following `dd90598` (workspace/editor parity); the clipboard/insertion continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
+Resume on `migration/vue-tauri-desktop`. The editor checkpoint is `c813c2c`, following `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the database-selector continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
 
 ## Completed through the checkpoint
 
@@ -14,6 +14,8 @@ Resume on `migration/vue-tauri-desktop`. The Program Settings checkpoint is `8f6
 | `6cd7f7d` | Insert the shipped GTK analysis rows and refresh rates for selected schedule items |
 | `dd90598` | Reviewed ribbons, bulk editing, saved libraries, keyboard table selection and measurement layout |
 | `8f6c35c` | Program Settings, configured default rows, GTK Modify & Add preferences, bundled/custom database discovery |
+| `c649ec6` | Portable row clipboard and GTK insertion shortcuts |
+| `c813c2c` | Selection-aware insertion, resource editing and efficient measurement templates |
 
 GTK remains available through `gestimator.py`. Keep the legacy calculation engine and workbook exporters as the comparison reference.
 
@@ -41,7 +43,7 @@ The browser suite needs Playwright Chromium or `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 
 ## Next milestones
 
 1. **Validate Save and recovery under failure.** Use disposable projects to test external GTK edits, a concurrent modern save, a Windows file held open, and interruption during save and checkpoint creation. Verify source contents, numbered backups, recovery and the dirty state after each failure. The modern advisory lock coordinates modern instances. GTK does not acquire it.
-2. **Validate settings and library workflows on target platforms.** Saved application library paths now restore through the existing read-only snapshot API, with a retry/forget manager and duplicate prevention across browser reloads. Configurable analysis row templates persist in application preferences and insert with a Python preview and atomic undo. Linux browser tests cover fresh backend processes, moved/missing libraries and source preservation. Broaden prefix/code-collision and Windows/macOS path fixtures.
+2. **Validate settings and library workflows on target platforms.** The Databases tab owns attachment management; Schedule/Resources use modal item selectors and selected-rate preview/apply dialogs. Saved application library paths restore through the existing read-only snapshot API, with retry/forget and duplicate prevention across browser reloads. Configurable analysis row templates persist in application preferences and insert with a Python preview and atomic undo. Linux browser tests cover repeated attachment without closing, themed source menus, fresh backend processes, moved/missing libraries and source preservation. Broaden prefix/code-collision and Windows/macOS path fixtures.
 3. **Finish editor interactions.** Batch preview/atomic editing, keyboard selection and template widths are implemented. The current continuation adds validated JSON system clipboards for analysis, schedule, resources, measurement items and records, plus Ctrl+I/Ctrl+Shift+I insertion, Ctrl+E analysis and Ctrl+M row colour. Test native clipboard read/write on each target platform. Selection-aware placement, GTK numbering suggestions, automatic row reveal, resource editing/relocation, F2/context actions and modern shortcut mappings are implemented. Measurement template previews, atomic Properties, searchable links, bulk/multi-record operations and record paging are implemented. Compare native input methods and larger real/custom-template projects next; see the editor review for unusual legacy behavior and efficiency evidence.
 4. **Complete release validation.** Compare the five exported worksheets against GTK on real projects, including formulas, styles, merges and print settings in Excel and LibreOffice. Validate native menus, file dialogs, dirty-window close, typography and accessibility on target platforms. Exercise a clean Windows install and supported Linux/macOS builds. Check larger and cyclic sub-analysis graphs and populated measurement fixtures. Track PDF reporting as a later phase.
 
@@ -50,6 +52,10 @@ Record evidence in the validation log and update the ledger as each milestone la
 ## Editor continuation — 2026-11-14
 
 The portable-clipboard/shortcut increment is committed as `c649ec6`. The following editor continuation implements selection-aware insertion and GTK numbering, row reveal, F2/context/tree interactions, resource definition editing and identity-preserving category moves. Measurement templates have descriptive previews, atomic Properties, searchable links, paired steel labels/constants, mapped column captions, bulk/multi-record operations and record pages. Paste now reads/writes the measurement model once per batch; template modules are reused with file-change invalidation and fresh mutable defaults. See [editor review](editor-review.md) for measured evidence, unusual formula conventions and modern shortcut choices. Python calculations and the project schema are retained.
+
+## Database and entry continuation — 2026-11-14
+
+The editor increment is committed as `c813c2c`. Its continuation replaces the working-table database-source switch with separate item-selection dialogs, moves management to the Databases tab and keeps attachment dialogs open after attaching. Selected-rate dialogs preview and apply matching source rates with undo. Modify & Add preferences share one settings tab. Single-select popups use the main-menu theme; Enter accepts text and Shift/Ctrl+Enter inserts newlines. Measurement templates are grouped General/Civil/E&M, and original Python callbacks provide evaluated display and Breakup while retaining raw expressions for editing. NLBH optional blank factors are preserved. The [workflow review](database-selection-workflow.md) explains exact rate policies and proposes a future named-rule modification regime. The continuation passes 76 Python tests and 23 browser workflows; native-platform, real-project and report validation remain open in the ledger.
 
 ## Linux continuation — 2026-11-14
 

@@ -177,6 +177,7 @@ onMounted(() => {
         .map(item => ({ label: item.label, action: () => emit("action", item.action) }));
     },
     columnDefaults: {
+      editorParams: () => ({ enterSubmit: true, shiftEnterNewLine: true, ctrlEnterNewLine: true, metaEnterNewLine: true }),
       headerSort: false,
       resizable: true,
       vertAlign: "middle",

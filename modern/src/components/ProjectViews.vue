@@ -7,6 +7,7 @@ import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
+import DatabasePicker from "./DatabasePicker.vue";
 import { request } from "../backend";
 import { programSettings } from "../programSettings";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
@@ -61,22 +62,16 @@ const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
 const usageCode = ref<string>();
-const priceOpen = ref(false);
-const priceLibrary = ref("");
-const priceResult = ref("");
-const pricePreview = ref<{
-  ids: string[];
-  revision: number;
-  changed: number;
-  unchanged: number;
-  unmatched: number;
-}>();
+const databaseOpen = ref(false);
+const databaseMode = ref<"add" | "rates">("add");
+const databaseTargetIds = ref<string[]>([]);
+const databaseRevision = ref(0);
 const page = ref(0);
 const selected = ref<GridRow[]>([]);
 const selectedRecord = ref<GridRow>();
 const selectedRecords = ref<GridRow[]>([]);
 const recordSelectionIds = ref<string[]>();
-const templates = ref<{ code: string; name: string; label: string; summary: string; note: string; inputs: string[]; outputs: number }[]>([]);
+const templates = ref<{ code: string; name: string; label: string; group: string; summary: string; note: string; inputs: string[]; outputs: number }[]>([]);
 const templateInfo = computed(() => templates.value.find(template => template.code === form.value.template));
 const recordPage = ref(0);
 const recordCount = ref(10);
@@ -259,7 +254,12 @@ const recordColumns = computed<ColumnDefinition[]>(
       headerTooltip: () => { const label = document.createElement("span"); label.textContent = c.editable ? `${c.title}: editable measurement input; arithmetic expressions are retained` : `${c.title}: calculated by the measurement template; read-only`; return label; },
       editor: c.editable ? "textarea" : undefined,
       editable: !!c.editable,
-      formatter: "textarea",
+      formatter: (cell: CellComponent) => {
+        const element = document.createElement("span");
+        element.className = "measurement-cell-value";
+        element.textContent = String(cell.getData()._display?.[cell.getField()] ?? cell.getValue() ?? "");
+        return element;
+      },
       variableHeight: true,
     })) || [],
 );
@@ -425,36 +425,19 @@ async function updateSelectedQuantities() {
     scheduleQuantityOpen.value = false;
 }
 function showPriceUpdate() {
-  priceLibrary.value = libraries.value[0]?.id ?? "";
-  pricePreview.value = undefined;
-  priceResult.value = "";
+  showDatabase("rates");
+}
+function showDatabase(mode: "add" | "rates" = "add") {
+  if (!state.value || isMeasurement.value) return;
+  databaseMode.value = mode;
+  databaseTargetIds.value = selected.value.map(row => row.id);
+  databaseRevision.value = state.value.revision;
   error.value = "";
-  priceOpen.value = true;
+  databaseOpen.value = true;
 }
-async function previewPriceUpdate() {
-  pricePreview.value = undefined;
-  const ids = selected.value.map((row) => row.id);
-  const revision = state.value!.revision;
-  await run(async () => {
-    const result = await request<
-      Pick<NonNullable<typeof pricePreview.value>, "changed" | "unchanged" | "unmatched">
-    >("resources.editor.price_preview", {
-      ids,
-      revision,
-      library: priceLibrary.value,
-    });
-    pricePreview.value = { ...result, ids, revision };
-  });
-}
-async function applyPriceUpdate() {
-  if (!pricePreview.value) return;
-  const { ids, revision, changed } = pricePreview.value;
-  if (await command("price_update", { ids, revision, library: priceLibrary.value })) {
-    priceResult.value = changed === 1
-      ? "Updated prices for 1 resource."
-      : `Updated prices for ${changed} resources.`;
-    priceOpen.value = false;
-  }
+async function applyDatabase(params: Record<string, unknown>) {
+  const { operation, ...values } = params;
+  return command(String(operation), { ...values, ...(values.modify ? { settings: programSettings.value } : {}) });
 }
 async function select(rows: GridRow[]) {
   if (!rows.length && !selected.value.length) return;
@@ -637,8 +620,7 @@ function keyboard(event: KeyboardEvent) {
     }
     if (key === "l" && props.view !== "measurement") {
       event.preventDefault(); event.stopPropagation();
-      if (libraries.value.length) source.value = libraries.value[0]!.id;
-      else emit("libraries");
+      showDatabase();
       return;
     }
     if (key === "m" && props.view === "schedule" && selectedScheduleIds.value.length) {
@@ -804,56 +786,14 @@ watch(
     <template v-else
       ><p v-if="importResult" role="status">{{ importResult }}</p>
       <p v-if="clipboardMessage" role="status">{{ clipboardMessage }}</p>
-      <p v-if="priceResult" role="status">{{ priceResult }}</p>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div class="view-ribbon-tools">
-          <div v-if="!isMeasurement" class="ribbon-group ribbon-source-group">
-            <div class="ribbon-actions ribbon-source-actions">
-              <label class="source-selector"
-              ><span>Data source</span>
-              <select
-                v-model="source"
-                aria-label="Data source"
-                :disabled="busy"
-              >
-                <option value="">Project working copy</option>
-                <option
-                  v-for="library in libraries"
-                  :key="library.id"
-                  :value="library.id"
-                >
-                  {{ library.name }} (library)
-                </option>
-              </select></label>
-            <button
-              class="ribbon-action"
-              aria-label="Attach library…"
-              title="Open an external project as a read-only library snapshot for browsing and importing items."
-              :disabled="busy"
-              @click="emit('libraries')"
-            >
-              <AppIcon name="attach" /><span class="ribbon-label">Attach library…</span></button
-            ><button
-              v-if="source"
-              class="ribbon-action"
-              aria-label="Import selected into project"
-              title="Copy the selected library items or categories and their required resources into the working project. The library file stays unchanged."
-              :disabled="busy || !selected.length"
-              @click="
-                command('add_from_library', {
-                  ids: selected.map((row) => row.id),
-                })
-              "
-            >
-              <AppIcon name="import" /><span class="ribbon-label">Import selected into project</span>
-            </button>
-            <button v-if="source && view === 'schedule'" class="ribbon-action" aria-label="Modify & Add" title="Import selected schedule items using Program Settings: multiply their stored rates, replace eligible trailing analysis rows, and retain the source reference. The entire import can be undone."
-              :disabled="busy || !selected.length" @click="command('add_from_library', { ids: selected.map(row => row.id), modify: true, settings: programSettings })">
-              <AppIcon name="settings" /><span class="ribbon-label">Modify &amp; Add</span>
-            </button>
-            </div>
-            <small>DATA SOURCE</small>
+          <div v-if="!isMeasurement" class="ribbon-group">
+            <div class="ribbon-actions">
+              <button class="ribbon-action" :aria-label="view === 'schedule' ? 'Add item from database' : 'Add resources from database'" title="Select items from attached databases in a separate dialog. The working table and its insertion selection remain in place (Ctrl+L)." :disabled="busy" @click="showDatabase()"><AppIcon name="database" /><span class="ribbon-label">Add from database</span></button>
+              <button class="ribbon-action" aria-label="Refresh selected rates from database" title="Choose an attached database, preview rates matching selected project codes, and apply as one undoable update." :disabled="busy || !selected.length" @click="showPriceUpdate"><AppIcon name="refresh" /><span class="ribbon-label">Database rates</span></button>
+            </div><small>DATABASE</small>
           </div>
           <template v-if="!source">
           <div class="ribbon-group">
@@ -1021,15 +961,6 @@ watch(
               @click="usageCode = one?.code; usageOpen = true"
             >
               <AppIcon name="link" /><span class="ribbon-label">Find analyses</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Update prices from library…"
-              title="Preview matching prices from an attached library and apply them to selected resources with project Undo."
-              :disabled="busy || !selected.length || !libraries.length"
-              @click="showPriceUpdate"
-            >
-              <AppIcon name="library" /><span class="ribbon-label">Library prices</span>
             </button>
             <button
               class="ribbon-action"
@@ -1345,13 +1276,9 @@ watch(
           ><label v-if="formMode === 'add'" class="field"
             >Measurement template<select v-model="form.template">
               <option value="">Heading</option>
-              <option
-                v-for="template in templates"
-                :key="template.code"
-                :value="template.code"
-              >
-                {{ template.label }}
-              </option>
+              <optgroup v-for="group in ['General', 'Civil', 'E&M']" :key="group" :label="group">
+                <option v-for="template in templates.filter(item => item.group === group)" :key="template.code" :value="template.code">{{ template.label }}</option>
+              </optgroup>
             </select><small v-if="templateInfo">{{ templateInfo.summary }} {{ templateInfo.note }}<br />Inputs: {{ templateInfo.inputs.join(', ') }} · {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? 'quantity' : 'quantities' }}</small></label
           ><label class="field"
             >Description / remarks<textarea
@@ -1705,34 +1632,6 @@ watch(
         </button>
       </div>
     </Dialog>
-    <Dialog
-      v-model:visible="priceOpen"
-      modal
-      header="Update resource prices from library"
-      class="workspace-dialog"
-    >
-      <p>Update the rate, VAT, discount and reference of selected resources with matching codes.</p>
-      <label class="field">
-        Price library
-        <select v-model="priceLibrary" :disabled="busy" @change="pricePreview = undefined">
-          <option v-for="library in libraries" :key="library.id" :value="library.id">
-            {{ library.name }}
-          </option>
-        </select>
-      </label>
-      <p v-if="pricePreview" role="status">
-        {{ pricePreview.changed }} to update, {{ pricePreview.unchanged }} already current,
-        {{ pricePreview.unmatched }} without a matching code.
-      </p>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div class="dialog-footer">
-        <button class="button secondary" :disabled="busy" @click="previewPriceUpdate">
-          Preview updates
-        </button>
-        <button class="button primary" :disabled="busy || !pricePreview?.changed" @click="applyPriceUpdate">
-          Update prices
-        </button>
-      </div>
-    </Dialog>
+    <DatabasePicker v-if="view !== 'measurement'" v-model="databaseOpen" :kind="view === 'resources' ? 'resources' : 'schedule'" :mode="databaseMode" :revision="databaseRevision" :target-ids="databaseTargetIds" :apply="applyDatabase" :parent-error="error" @manage="emit('libraries')" />
   </section>
 </template>
