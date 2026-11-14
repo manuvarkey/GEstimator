@@ -117,10 +117,13 @@ async function pasteDocument(page: Page, selector: string, data: string) {
     table.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData }));
   }, data);
 }
-async function attachDatabase(page: Page, path: string, returnView = "schedule") {
+async function openDatabaseManager(page: Page) {
   await page.locator("#view-databases").click();
   await page.locator(".ribbon").getByRole("button", { name: "Attach database…", exact: true }).click();
-  const manager = page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
+  return page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
+}
+async function attachDatabase(page: Page, path: string, returnView = "schedule") {
+  const manager = await openDatabaseManager(page);
   await manager.getByLabel("Library project", { exact: true }).fill(path);
   await manager.getByRole("button", { name: "Attach library", exact: true }).click();
   await expect(manager.locator(".attached-database").first()).toBeVisible();
@@ -149,7 +152,8 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   }
   await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await expect(manager).not.toBeVisible();
-  await expect(page.locator(".database-view .attached-database")).toHaveCount(2);
+  await expect(page.locator(".database-view")).toHaveCount(0);
+  await expect(page.locator(".project-view h1")).toHaveText("Schedule of quantities");
   await page.locator("#view-schedule").click();
   const ribbon = page.locator(".ribbon");
   await expect(ribbon.getByLabel("Data source")).toHaveCount(0);
@@ -187,6 +191,129 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   await expect(grid.locator('.tabulator-selected [tabulator-field="code"]')).toHaveText("NEW-R");
   expect(await readFile(first)).toEqual(originals[0]);
   expect(await readFile(second)).toEqual(originals[1]);
+});
+
+test("MCP controls configure a live authenticated server while ribbon tabs preserve the editor", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const { createServer } = await import("node:net");
+  const port = await new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address() as { port: number };
+      server.close(error => error ? reject(error) : resolve(address.port));
+    });
+  });
+  const project = resolve(directory, "mcp.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  const original = await readFile(project);
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  const selected = page.locator('.project-main-grid .tabulator-selected [tabulator-field="code"]');
+  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await expect(selected).toHaveText("A");
+  for (const tab of ["databases", "mcp"]) {
+    await page.locator("#view-" + tab).click();
+    await expect(page.locator(".project-view h1")).toHaveText("Schedule of quantities");
+    await expect(selected).toHaveText("A");
+  }
+  const ribbon = page.locator(".ribbon");
+  await ribbon.getByRole("button", { name: "Configure MCP server", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Configure MCP server", exact: true });
+  await settings.getByLabel("Port", { exact: true }).fill(String(port));
+  await settings.getByLabel("Start automatically when GEstimator opens").check();
+  await settings.getByRole("button", { name: "Save settings", exact: true }).click();
+  await expect(settings.getByText("MCP settings saved.", { exact: true })).toBeVisible();
+  await settings.getByRole("button", { name: "Show token", exact: true }).click();
+  await expect(settings.getByLabel("Client configuration", { exact: true })).toHaveValue(/mcpServers/);
+  await settings.getByRole("button", { name: "Copy client configuration", exact: true }).click();
+  const config = JSON.parse(systemClipboard).mcpServers.gestimator;
+  expect(config.url).toBe(`http://127.0.0.1:${port}/mcp`);
+  await settings.getByRole("button", { name: "Close MCP settings", exact: true }).click();
+  await ribbon.getByRole("button", { name: "Start MCP server", exact: true }).click();
+  await expect(ribbon.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
+  async function rpc(method: string, params = {}) {
+    const response = await fetch(config.url, { method: "POST", headers: { ...config.headers, "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
+    expect(response.status).toBe(200);
+    return response.json();
+  }
+  expect((await rpc("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "browser-test", version: "1" } })).result.serverInfo.name).toBe("GEstimator");
+  expect((await rpc("tools/list")).result.tools).toHaveLength(7);
+  const result = await rpc("tools/call", { name: "list_schedule", arguments: { query: "Foundation" } });
+  expect(result.result.isError).toBe(false);
+  expect(result.result.content[0].text).toContain("Foundation");
+  await expect(selected).toHaveText("A");
+  await page.locator("#view-schedule").click();
+  await ribbon.getByRole("button", { name: "Edit analysis", exact: true }).click();
+  await page.locator('.analysis-table .tabulator-row[data-kind="Resource"] [tabulator-field="value"]').dblclick();
+  const editor = page.locator('.analysis-table [tabulator-field="value"] input');
+  await editor.fill("3");
+  await editor.press("Enter");
+  await expect(page.locator(".summary-value")).toContainText("30.00");
+  const before = (await call("state")).result;
+  for (const tab of ["databases", "mcp", "analysis"]) {
+    await page.locator("#view-" + tab).click();
+    await expect(page.getByRole("dialog", { name: /Unsaved/ })).toHaveCount(0);
+    await expect(page.locator(".analysis-table")).toBeVisible();
+  }
+  expect((await call("state")).result).toEqual(before);
+  await page.locator("#view-mcp").click();
+  await ribbon.getByRole("button", { name: "Stop MCP server", exact: true }).click();
+  await expect(ribbon.getByRole("button", { name: "Start MCP server", exact: true })).toBeEnabled();
+  // Restart the real backend; saved automatic-start settings must restore the endpoint.
+  child.stdin.end();
+  await new Promise<void>(resolve => child.once("close", () => resolve()));
+  startBackend();
+  await page.reload();
+  await page.locator("#view-mcp").click();
+  await expect(ribbon.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
+  expect((await rpc("tools/call", { name: "get_project", arguments: {} })).result.isError).toBe(false);
+  await ribbon.getByRole("button", { name: "Configure MCP server", exact: true }).click();
+  await expect(settings.getByLabel("Port", { exact: true })).toBeDisabled();
+  await settings.getByRole("button", { name: "Stop server", exact: true }).click();
+  await settings.getByRole("button", { name: "Rotate token", exact: true }).click();
+  await expect(settings.getByRole("status").filter({ hasText: "Connection token changed" })).toBeVisible();
+  await settings.getByRole("button", { name: "Start server", exact: true }).click();
+  expect((await fetch(config.url, { method: "GET", headers: config.headers })).status).toBe(401);
+  await page.screenshot({ path: "test-results/mcp-settings.png", animations: "disabled" });
+  await settings.getByRole("button", { name: "Stop server", exact: true }).click();
+  await settings.getByRole("button", { name: "Close MCP settings", exact: true }).click();
+  expect(await readFile(project)).toEqual(original);
+});
+
+test("MCP startup conflicts and invalid saved preferences remain visible and recoverable", async ({ page }) => {
+  const { createServer } = await import("node:net");
+  const blocker = createServer();
+  const port = await new Promise<number>((resolve, reject) => {
+    blocker.once("error", reject);
+    blocker.listen(0, "127.0.0.1", () => resolve((blocker.address() as { port: number }).port));
+  });
+  try {
+    await page.evaluate(port => localStorage.setItem("gestimator.mcp.v1", JSON.stringify({ version: 1, port, token: "x".repeat(43), autostart: true })), port);
+    await page.reload();
+    await expect(page.locator(".mcp-error")).toBeVisible();
+    await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+    expect((await call("mcp.status")).result.running).toBe(false);
+    await page.getByRole("button", { name: "Review MCP settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Configure MCP server", exact: true });
+    await expect(settings.getByLabel("Port", { exact: true })).toHaveValue(String(port));
+    await settings.getByRole("button", { name: "Close MCP settings", exact: true }).click();
+    await page.evaluate(() => localStorage.setItem("gestimator.mcp.v1", "invalid JSON"));
+    await page.reload();
+    await expect(page.locator(".mcp-error")).toContainText("Saved MCP settings could not be read");
+    await page.getByRole("button", { name: "Review MCP settings", exact: true }).click();
+    await settings.getByLabel("Port", { exact: true }).fill(String(port));
+    await settings.getByRole("button", { name: "Save settings", exact: true }).click();
+    await expect(settings.getByText("MCP settings saved.", { exact: true })).toBeVisible();
+    await new Promise<void>((resolve, reject) => blocker.close(error => error ? reject(error) : resolve()));
+    await settings.getByRole("button", { name: "Start server", exact: true }).click();
+    await expect(settings.getByRole("button", { name: "Stop server", exact: true })).toBeVisible();
+    await settings.getByRole("button", { name: "Stop server", exact: true }).click();
+    await settings.getByRole("button", { name: "Close MCP settings", exact: true }).click();
+    await expect(page.locator(".mcp-error")).toHaveCount(0);
+  } finally {
+    if (blocker.listening) await new Promise<void>(resolve => blocker.close(() => resolve()));
+  }
 });
 
 test("themed template groups and Enter editing retain measurement eval and original Breakup", async ({ page }) => {
@@ -279,7 +406,7 @@ test("system row clipboard transfers schedule, resources and analysis between in
     await page.getByRole("grid", { name: "Rate analysis table" }).focus();
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("ControlOrMeta+c");
-    await expect.poll(() => JSON.parse(systemClipboard).kind).toBe("analysis");
+    await expect.poll(() => { try { return JSON.parse(systemClipboard).kind; } catch { return ""; } }).toBe("analysis");
     await destination.locator(".ribbon").getByRole("button", { name: "Paste rows", exact: true }).click();
     await expect(destination.locator(".summary-value")).toContainText("40.00");
     await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
@@ -545,8 +672,9 @@ test("saved libraries restore across processes, deduplicate and recover from mis
   await attachDatabase(page, library);
   await attachDatabase(page, library);
   const count = async (expected: number) => {
-    await page.locator("#view-databases").click();
-    await expect(page.locator(".database-view .attached-database")).toHaveCount(expected);
+    const manager = await openDatabaseManager(page);
+    await expect(manager.locator(".attached-database")).toHaveCount(expected);
+    await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   };
   const restart = async () => {
     child.stdin.end();
@@ -566,9 +694,13 @@ test("saved libraries restore across processes, deduplicate and recover from mis
   await restart();
   await expect(page.locator(".library-warning")).toContainText("1 saved library is unavailable");
   await count(0);
-  await expect(page.locator(".database-view .saved-library")).toContainText("Unavailable:");
+  let manager = await openDatabaseManager(page);
+  await expect(manager.locator(".saved-library")).toContainText("Unavailable:");
+  await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await attachDatabase(page, moved, "databases");
-  await page.locator(".database-view .saved-library").filter({ hasText: library }).getByRole("button", { name: /Forget library/ }).click();
+  manager = await openDatabaseManager(page);
+  await manager.locator(".saved-library").filter({ hasText: library }).getByRole("button", { name: /Forget library/ }).click();
+  await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await expect(page.locator(".library-warning")).not.toBeVisible();
   await restart();
   await count(1);
@@ -1317,7 +1449,7 @@ test("application menu and ribbon views share context-aware header actions", asy
       .getByRole("button", { name: "Update dependent rates", exact: true }),
   ).toHaveCount(0);
   const ribbonHeights = new Set<number>();
-  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases"]) {
+  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases", "MCP"]) {
     await page
       .locator(".ribbon-tabs")
       .getByRole("tab", { name: tab, exact: true })
@@ -1325,6 +1457,8 @@ test("application menu and ribbon views share context-aware header actions", asy
     ribbonHeights.add(
       await page.locator(".ribbon").evaluate((element) => element.clientHeight),
     );
+    const positions = await page.locator('.ribbon:not([data-compact]) .ribbon-action:not(.ribbon-icon) svg').evaluateAll(icons => icons.map(icon => icon.getBoundingClientRect()).filter(rect => rect.height > 0).map(rect => rect.top));
+    if (positions.length > 1) expect(Math.max(...positions) - Math.min(...positions), `${tab} full button icons align`).toBeLessThan(1);
   }
   expect(ribbonHeights.size).toBe(1);
   const scheduleTab = page.getByRole("tab", { name: "Schedule", exact: true }).first();
@@ -1333,14 +1467,14 @@ test("application menu and ribbon views share context-aware header actions", asy
   const analysisTab = page.locator("#view-analysis");
   await expect(analysisTab).toBeFocused();
   // Focusing a tab alone must not switch the editor or discard a draft.
-  await expect(page.locator("#view-databases")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#view-mcp")).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Enter");
   await expect(analysisTab).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".ribbon").getByRole("button", { name: "Apply analysis", exact: true }))
     .toHaveAttribute("title", /working copy.*Save the project/);
   for (const width of [1600, 1366, 1280, 1100, 800, 700]) {
     await page.setViewportSize({ width, height: 1000 });
-    for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases"]) {
+    for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases", "MCP"]) {
       await page.locator(".ribbon-tabs").getByRole("tab", { name: tab, exact: true }).click();
       await expect.poll(() => page.locator(".ribbon").evaluate(element =>
         element.scrollWidth <= element.clientWidth,
@@ -1353,7 +1487,7 @@ test("application menu and ribbon views share context-aware header actions", asy
     return previous;
   });
   await page.setViewportSize({ width: 1100, height: 1000 });
-  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases"]) {
+  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements", "Databases", "MCP"]) {
     await page.locator(".ribbon-tabs").getByRole("tab", { name: tab, exact: true }).click();
     await expect.poll(() => page.locator(".ribbon").evaluate(element =>
       element.scrollWidth <= element.clientWidth,

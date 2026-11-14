@@ -31,7 +31,9 @@ def text(value: Any) -> str:
 
 
 class Service:
-    def __init__(self, recovery_dir=None):
+    def __init__(self, recovery_dir=None, dispatch=None):
+        from .mcp_server import MCPServer
+        self.mcp = MCPServer(dispatch)
         self.temp = tempfile.TemporaryDirectory(prefix="gestimator-")
         self.db = None
         self.loaded = False
@@ -154,6 +156,22 @@ class Service:
         )
 
     def call(self, method: str, p: dict, progress=lambda value: None):
+        if method.startswith("mcp."):
+            if method == "mcp.status":
+                return self.mcp.status()
+            if method == "mcp.configure":
+                return self.mcp.configure(p)
+            if method == "mcp.start":
+                return self.mcp.start()
+            if method == "mcp.stop":
+                return self.mcp.stop()
+            if method == "mcp.rotate_token":
+                from secrets import token_urlsafe
+                return self.mcp.configure(dict(token=token_urlsafe(32)))
+            if method == "mcp.read":
+                from .mcp_server import read_tool
+                return read_tool(self, p.get("name"), p.get("arguments", {}))
+            raise ValueError("Unknown MCP operation")
         if method.startswith("program."):
             from . import program_settings
             if method == "program.settings":
@@ -862,6 +880,7 @@ class Service:
         return dict(saved=str(destination))
 
     def close(self):
+        self.mcp.stop()
         if hasattr(self, "project_editor"):
             self.project_editor.close()
         if self.db:

@@ -1,6 +1,6 @@
 # Vue/Tauri migration handoff
 
-Resume on `migration/vue-tauri-desktop`. The editor checkpoint is `c813c2c`, following `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the database-selector continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
+Resume on `migration/vue-tauri-desktop`. The database-selector checkpoint is `c28a449`, following `c813c2c` (editor efficiency), `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the ribbon/MCP continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
 
 ## Completed through the checkpoint
 
@@ -16,6 +16,7 @@ Resume on `migration/vue-tauri-desktop`. The editor checkpoint is `c813c2c`, fol
 | `8f6c35c` | Program Settings, configured default rows, GTK Modify & Add preferences, bundled/custom database discovery |
 | `c649ec6` | Portable row clipboard and GTK insertion shortcuts |
 | `c813c2c` | Selection-aware insertion, resource editing and efficient measurement templates |
+| `c28a449` | Database item/rate dialogs, themed menus and original measurement expression/Breakup display |
 
 GTK remains available through `gestimator.py`. Keep the legacy calculation engine and workbook exporters as the comparison reference.
 
@@ -48,6 +49,12 @@ The browser suite needs Playwright Chromium or `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 
 4. **Complete release validation.** Compare the five exported worksheets against GTK on real projects, including formulas, styles, merges and print settings in Excel and LibreOffice. Validate native menus, file dialogs, dirty-window close, typography and accessibility on target platforms. Exercise a clean Windows install and supported Linux/macOS builds. Check larger and cyclic sub-analysis graphs and populated measurement fixtures. Track PDF reporting as a later phase.
 
 Record evidence in the validation log and update the ledger as each milestone lands. Keep GTK available until the editor, file safety, report and native-platform gates are exercised.
+
+## Ribbon and MCP continuation — 2026-11-14
+
+Databases now changes only the ribbon; its separate page and embedded manager were removed. The attachment dialog retains its non-closing workflow. MCP is also a ribbon-only tab. The active editor, selection, draft, inspector and undo context remain in place while either application tab is selected. Full ribbon actions reserve equal caption height so one/two-line labels align their icons.
+
+The MCP ribbon controls a local authenticated, read-only HTTP server: Start/Stop, port, optional automatic startup, token rotation, client configuration copy/reveal, tool inspection and activity. A bounded queue serializes HTTP reads with desktop requests on one service/SQLite owner thread. Computation and database implementations are retained. Shutdown closes the listener; start conflicts and invalid saved settings remain visible outside the MCP tab. See [server setup, tools and protocol boundaries](mcp-server.md). Validate third-party client setup and native Windows/macOS behavior next.
 
 ## Editor continuation — 2026-11-14
 

@@ -50,6 +50,8 @@ const paths: Record<string, string> = {
   rows: "M4 5h16 M4 9h16 M4 15h16 M4 19h16",
   ruler: "M4 16 16 4l4 4L8 20Z M13 7l4 4 M10 10l2 2 M7 13l2 2",
   attach: "M8 12l5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l8-8",
+  play: "m8 4 12 8-12 8Z",
+  stop: "M5 5h14v14H5Z",
 };
 </script>
 <template>

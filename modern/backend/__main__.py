@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from .service import Service
+from .runtime import Runtime
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)
     recovery = os.environ.get("GESTIMATOR_RECOVERY_DIR")
-    service = Service(Path(recovery) if recovery else None)
+    service = Runtime(Path(recovery) if recovery else None)
 
     def emit(message):
         print(json.dumps(message, ensure_ascii=False), flush=True)

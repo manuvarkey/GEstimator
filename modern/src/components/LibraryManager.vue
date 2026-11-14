@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref } from "vue";
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -7,14 +7,12 @@ import { attachLibrary, forgetLibrary, savedLibraries, libraryStorageError } fro
 import { request } from "../backend";
 import { invoke } from "@tauri-apps/api/core";
 
-const props = defineProps<{ projectOpen: boolean; embedded?: boolean }>();
+const props = defineProps<{ projectOpen: boolean }>();
 const visible = defineModel<boolean>({ required: true });
-const emit = defineEmits<{ changed: []; busy: [value: boolean] }>();
+const emit = defineEmits<{ changed: [] }>();
 const path = ref("");
 const remember = ref(true);
 const busy = ref(false);
-watch(busy, value => emit("busy", value));
-onBeforeUnmount(() => emit("busy", false));
 const error = ref("");
 const available = ref<{ name: string; path: string; bundled: boolean }[]>([]);
 const availablePath = ref("");
@@ -25,12 +23,10 @@ async function refresh() {
   await discover();
   attached.value = props.projectOpen ? await request("library.list") : [];
 }
-onMounted(() => { if (props.embedded) void refresh(); });
-watch(() => props.projectOpen, () => { if (props.embedded) void refresh(); });
-defineExpose({ refresh });
+defineExpose({ openDirectory });
 async function openDirectory() {
   try { await invoke("open_library_directory", { path: await request("program.library_directory") }); }
-  catch (failure) { error.value = String(failure); }
+  catch (failure) { error.value = String(failure); visible.value = true; }
 }
 async function discover() {
   try {
@@ -60,7 +56,7 @@ async function browse() {
 </script>
 
 <template>
-  <component :is="embedded ? 'section' : Dialog" v-model:visible="visible" :modal="!embedded" header="Attach resource / schedule library" :class="embedded ? 'database-manager' : 'workspace-dialog file-dialog'" :closable="!busy" :close-on-escape="!busy" @show="refresh">
+  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
     <p class="dialog-intro">Browse an external project as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
     <label class="field">Available databases<select v-model="availablePath" :disabled="busy" @change="path = availablePath"><option value="">Choose a bundled or custom database…</option><option v-for="database in available" :key="database.path" :value="database.path">{{ database.name }} ({{ database.bundled ? 'bundled' : 'custom' }})</option></select></label>
     <button class="text-button" :disabled="busy" @click="discover">Refresh available databases</button>
@@ -87,6 +83,6 @@ async function browse() {
     </div>
     <p v-if="libraryStorageError" class="dialog-error" role="status">{{ libraryStorageError }}</p>
     <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
-    <div class="dialog-footer"><button class="button secondary" :disabled="busy" @click="openDirectory">Open database folder</button><button v-if="!embedded" class="button secondary" aria-label="Close database manager" :disabled="busy" @click="visible = false">Close</button><button class="button primary" :disabled="busy || !projectOpen || !path.trim()" @click="attach()">Attach library</button></div>
-  </component>
+    <div class="dialog-footer"><button class="button secondary" :disabled="busy" @click="openDirectory">Open database folder</button><button class="button secondary" aria-label="Close database manager" :disabled="busy" @click="visible = false">Close</button><button class="button primary" :disabled="busy || !projectOpen || !path.trim()" @click="attach()">Attach library</button></div>
+  </Dialog>
 </template>

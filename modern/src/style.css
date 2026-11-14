@@ -406,6 +406,7 @@ textarea::placeholder {
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  min-height: 2.3em;
 }
 .ribbon-primary {
   grid-row: auto;
@@ -462,6 +463,11 @@ textarea::placeholder {
   max-width: 34px;
   padding: 3px;
 }
+.ribbon[data-compact] .ribbon-note { display: none; }
+.mcp-settings-dialog { width: 680px; max-width: 94vw; }
+.mcp-tools dt { font-weight: 600; margin-top: 10px; }
+.mcp-tools dd { margin: 3px 0 0; color: var(--muted); }
+.mcp-feedback { padding: 7px 16px; border-top: 1px solid var(--line); background: var(--raised); }
 .ribbon[data-compact] .source-selector,
 .ribbon[data-compact] .ribbon-measure-actions select {
   grid-row: 1 / span 2;
@@ -1933,11 +1939,9 @@ textarea {
 .measurement-cell-value { white-space: pre-wrap; overflow-wrap: anywhere; }
 .database-picker-dialog { width: min(94vw, 1100px); }
 .database-picker-grid { height: min(43vh, 400px); min-height: 220px; margin-top: 14px; border: 1px solid var(--line); }
-.database-manager { max-width: 1000px; padding: 0 0 24px; }
 .attached-databases { margin-block: 16px; }
 .attached-database { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .attached-database small { margin-left: auto; color: var(--muted); }
-.database-view { padding-inline: 24px; }
 .ribbon-tools-host {
   display: flex;
   align-items: stretch;

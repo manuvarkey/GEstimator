@@ -17,6 +17,8 @@ import SelectMenus from "./components/SelectMenus.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
+import MCPSettings from "./components/MCPSettings.vue";
+import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
 import { programSettingsWarning } from "./programSettings";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
@@ -56,14 +58,15 @@ const analysisBatchOpen = ref(false);
 const analysisTemplateMode = ref(false);
 const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
 async function librariesChanged() {
-  await databasePanel.value?.refresh();
   await w.run(async () => {
     await w.refresh();
     await projectView.value?.reload();
   }, "Refreshing libraries…");
 }
 const projectView = ref<InstanceType<typeof ProjectViews>>();
-const databasePanel = ref<InstanceType<typeof LibraryManager>>();
+const libraryManager = ref<InstanceType<typeof LibraryManager>>();
+const mcpSettingsOpen = ref(false);
+let mcpPoll: ReturnType<typeof setInterval> | undefined;
 const projectHistory = ref({ undo: false, redo: false });
 const views = [
   { key: "schedule", label: "Schedule" },
@@ -71,12 +74,21 @@ const views = [
   { key: "resources", label: "Resources" },
   { key: "measurement", label: "Measurements" },
   { key: "databases", label: "Databases" },
+  { key: "mcp", label: "MCP" },
 ] as const;
 const settingsOpen = ref(false);
 const settings = ref<Record<string, string>>({});
-const activeView = ref<"analysis" | "schedule" | "resources" | "measurement" | "databases">(
+const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
   "analysis",
 );
+const activeTab = ref<(typeof views)[number]["key"]>("analysis");
+watch(activeTab, tab => {
+  if (mcpPoll) clearInterval(mcpPoll);
+  if (tab === "mcp") {
+    void refreshMCP();
+    mcpPoll = setInterval(() => { if (!mcpSettingsOpen.value && !uiBusy.value) void refreshMCP(); }, 3000);
+  }
+});
 const projectBusy = ref(false);
 const uiBusy = computed(() => busy.value || projectBusy.value);
 
@@ -428,6 +440,7 @@ async function newProject() {
       schedulePage.value = resourcePage.value = 0;
       selected.value = [];
       activeView.value = "schedule";
+      activeTab.value = "schedule";
     });
   }, true);
 }
@@ -448,11 +461,15 @@ async function saveSettings() {
   )
     settingsOpen.value = false;
 }
-async function switchView(view: typeof activeView.value) {
-  if (view === activeView.value) return;
+async function switchView(view: typeof activeTab.value) {
+  if (view === "databases" || view === "mcp" || view === activeView.value) {
+    activeTab.value = view;
+    return;
+  }
   await navigate(async (discard) => {
     if (discard && state.value?.project) await w.load(state.value.code, true);
     activeView.value = view;
+    activeTab.value = view;
   });
 }
 function navigateTabs(event: KeyboardEvent, index: number) {
@@ -467,7 +484,7 @@ function navigateTabs(event: KeyboardEvent, index: number) {
 }
 async function loadAnalysis(code: string) {
   await navigate(async (discard) => {
-    if (await w.load(code, discard)) activeView.value = "analysis";
+    if (await w.load(code, discard)) { activeView.value = "analysis"; activeTab.value = "analysis"; }
   });
 }
 async function applyAndContinue() {
@@ -513,13 +530,14 @@ async function applicationAction(action: string) {
       await showSettings();
       break;
     case "libraries":
-      await switchView("databases");
+      libraryManagerOpen.value = true;
       break;
     case "program-settings":
       programSettingsOpen.value = true;
       break;
     case "reconnect":
       await w.reconnect();
+      await initializeMCP();
       await refreshRecovery();
       if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
       break;
@@ -571,10 +589,12 @@ onMounted(async () => {
     );
   }
   await w.reconnect();
+  await initializeMCP();
   await refreshRecovery();
   if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
 });
 onBeforeUnmount(() => {
+  if (mcpPoll) clearInterval(mcpPoll);
   window.removeEventListener("keydown", keyboard);
   window.removeEventListener("beforeunload", beforeUnload);
   unsubscribers.forEach((fn) => fn());
@@ -694,11 +714,11 @@ onBeforeUnmount(() => {
         :key="view.key"
         role="tab"
         :id="'view-' + view.key"
-        :aria-selected="activeView === view.key"
-        :tabindex="activeView === view.key ? 0 : -1"
+        :aria-selected="activeTab === view.key"
+        :tabindex="activeTab === view.key ? 0 : -1"
         :disabled="uiBusy"
         :aria-controls="'tools-' + view.key"
-        :class="{ active: activeView === view.key }"
+        :class="{ active: activeTab === view.key }"
         @click="switchView(view.key)"
         @keydown="navigateTabs($event, index)"
       >
@@ -714,14 +734,14 @@ onBeforeUnmount(() => {
     </div>
     <RibbonToolbar
       class="ribbon"
-      :id="'tools-' + activeView"
+      :id="'tools-' + activeTab"
       role="tabpanel"
-      :aria-labelledby="'view-' + activeView"
+      :aria-labelledby="'view-' + activeTab"
       :aria-label="
-        (views.find((view) => view.key === activeView)?.label || '') + ' tools'
+        (views.find((view) => view.key === activeTab)?.label || '') + ' tools'
       "
     >
-      <template v-if="activeView === 'analysis'">
+      <template v-if="activeTab === 'analysis'">
         <div class="ribbon-group">
           <div class="ribbon-actions">
             <button
@@ -858,13 +878,18 @@ onBeforeUnmount(() => {
           <small>PROJECT</small>
         </div>
       </template>
-      <template v-else-if="activeView === 'databases'">
-        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Attach database…" title="Attach an external database. The dialog stays open so that several databases can be attached before closing." @click="libraryManagerOpen = true"><AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button><button class="ribbon-action ribbon-icon" aria-label="Refresh databases" title="Refresh the available and attached database lists." @click="databasePanel?.refresh()"><AppIcon name="refresh" /><span class="ribbon-label">Refresh</span></button></div><small>DATABASES</small></div>
+      <template v-else-if="activeTab === 'databases'">
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Attach database…" title="Open the database manager to attach several databases, retry saved paths or forget entries. The editor stays in place." @click="libraryManagerOpen = true"><AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button><button class="ribbon-action" aria-label="Open database folder" title="Open the custom database folder in your file manager. Refresh available databases in the attachment dialog after adding files." @click="libraryManager?.openDirectory()"><AppIcon name="folder" /><span class="ribbon-label">Database folder</span></button></div><small>DATABASES</small></div>
+      </template>
+      <template v-else-if="activeTab === 'mcp'">
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Start MCP server" title="Start the local authenticated MCP server, giving connected clients read-only access to the currently open project." :disabled="mcpBusy || !mcpStatus || mcpStatus.running" @click="startMCP"><AppIcon name="play" /><span class="ribbon-label">Start server</span></button><button class="ribbon-action" aria-label="Stop MCP server" title="Stop listening and prevent further MCP requests. The current project and editor stay open." :disabled="mcpBusy || !mcpStatus?.running" @click="stopMCP"><AppIcon name="stop" /><span class="ribbon-label">Stop server</span></button></div><small>SERVER</small></div>
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Configure MCP server" title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration." :disabled="mcpBusy" @click="mcpSettingsOpen = true"><AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button><button class="ribbon-action" aria-label="Copy MCP client configuration" title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client." :disabled="mcpBusy || !mcpStatus" @click="copyMCPConfig"><AppIcon name="copy" /><span class="ribbon-label">Client config</span></button><button class="ribbon-action ribbon-icon" aria-label="Refresh MCP status" title="Refresh server status and client activity without changing the project." :disabled="mcpBusy" @click="refreshMCP"><AppIcon name="refresh" /></button></div><small>CONNECTION</small></div>
+        <span class="ribbon-note" role="status">{{ mcpStatus?.running ? 'Running' : 'Stopped' }} · Read only<br />{{ mcpStatus?.url || 'Connecting…' }}</span>
       </template>
       <div
         id="project-ribbon-tools"
         class="ribbon-tools-host"
-        v-show="activeView !== 'analysis' && activeView !== 'databases'"
+        v-show="activeTab !== 'analysis' && activeTab !== 'databases' && activeTab !== 'mcp'"
       />
     </RibbonToolbar>
     <div v-if="error" class="error-banner" role="alert">
@@ -881,9 +906,10 @@ onBeforeUnmount(() => {
       <span>{{ programSettingsWarning }}</span>
       <button class="text-button" :disabled="uiBusy" @click="programSettingsOpen = true">Review program settings</button>
     </div>
+    <div v-if="mcpError && !mcpSettingsOpen" class="error-banner mcp-error" role="alert"><span>{{ mcpError }}</span><button class="text-button" :disabled="mcpBusy" @click="mcpSettingsOpen = true">Review MCP settings</button><button class="icon-button" aria-label="Dismiss MCP error" @click="mcpError = ''"><AppIcon name="close" :size="16" /></button></div>
     <div v-if="state?.project_open && unavailableLibraries.length" class="library-warning" role="status">
       <span>{{ unavailableLibraries.length }} saved {{ unavailableLibraries.length === 1 ? 'library is' : 'libraries are' }} unavailable. The project is open and available libraries are attached.</span>
-      <button class="text-button" :disabled="uiBusy" @click="switchView('databases')">Manage libraries</button>
+      <button class="text-button" :disabled="uiBusy" @click="libraryManagerOpen = true">Manage libraries</button>
     </div>
     <div class="workspace">
       <aside v-show="sidebar" class="explorer">
@@ -1073,18 +1099,17 @@ onBeforeUnmount(() => {
         </div>
       </aside>
       <main class="editor-pane">
-        <section v-if="activeView === 'databases'" class="project-view database-view"><div class="analysis-heading"><div><div class="eyebrow">APPLICATION DATABASES</div><h1>Databases</h1><p>Attach and manage databases here. Add items and refresh rates from their editor dialogs.</p></div></div><LibraryManager ref="databasePanel" :model-value="true" embedded :project-open="!!state?.project_open" @changed="librariesChanged" @busy="projectBusy = $event" /></section>
         <ProjectViews
           :key="projectSession"
           ref="projectView"
-          v-if="activeView !== 'analysis' && activeView !== 'databases'"
+          v-if="activeView !== 'analysis'"
           :view="activeView"
           :project-open="!!state?.project_open"
           @changed="w.refresh()"
           @history="projectHistory = $event"
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
-          @libraries="switchView('databases')"
+          @libraries="libraryManagerOpen = true"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
           <div class="analysis-intro">
@@ -1756,7 +1781,9 @@ onBeforeUnmount(() => {
       </button>
     </div></Dialog
   >
-  <LibraryManager v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
+  <LibraryManager ref="libraryManager" v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
+  <MCPSettings v-model="mcpSettingsOpen" />
+  <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">{{ mcpMessage }}</div>
   <SelectMenus />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
   <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
