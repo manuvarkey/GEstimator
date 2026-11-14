@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
-import AppIcon from "./AppIcon.vue";
-import { request, type AnalysisRow, type AnalysisState, type RowKind } from "../backend";
+import AnalysisRowEditor from "./AnalysisRowEditor.vue";
+import { request, type AnalysisRow, type AnalysisState } from "../backend";
+import { programSettings, initializeProgramSettings, saveProgramSettings, type TemplateRow } from "../programSettings";
 
-interface TemplateRow { kind: Exclude<RowKind, "Resource">; description: string; value: string }
 const props = defineProps<{
   template?: boolean;
   selected: AnalysisRow[];
@@ -12,7 +12,6 @@ const props = defineProps<{
   apply: (params: Record<string, unknown>) => Promise<boolean>;
 }>();
 const visible = defineModel<boolean>({ required: true });
-const kinds = ["Group", "Subtotal", "Weight", "Multiply", "Round"] as const;
 const rows = ref<TemplateRow[]>([]);
 const field = ref("description");
 const value = ref("");
@@ -37,27 +36,17 @@ async function defaults() {
 onMounted(async () => {
   if (!props.template) return;
   try {
-    const stored = JSON.parse(localStorage.getItem("gestimator.analysis-template.v1") || "null");
-    if (stored?.version === 1 && Array.isArray(stored.rows) && stored.rows.length > 0 && stored.rows.length <= 100 && stored.rows.every((row: TemplateRow) => row && kinds.includes(row.kind) && typeof row.description === "string" && row.description.length <= 10000 && typeof row.value === "string" && row.value.length <= 200)) {
-      rows.value = stored.rows.map((row: TemplateRow) => ({ kind: row.kind, description: row.description, value: row.value }));
-    } else await defaults();
-  } catch {
-    try { await defaults(); status.value = "Loaded shipped rows because the saved template could not be read."; }
-    catch (failure) { error.value = String(failure); }
-  }
+    await initializeProgramSettings();
+    rows.value = JSON.parse(JSON.stringify(programSettings.value!.ana_default_rows));
+  } catch (failure) { error.value = String(failure); }
 });
 async function saveTemplate() {
   await calculate();
   if (!preview.value) return;
   try {
-    localStorage.setItem("gestimator.analysis-template.v1", JSON.stringify({ version: 1, rows: rows.value }));
+    await saveProgramSettings({ ...programSettings.value!, ana_default_rows: rows.value });
     status.value = "Template saved for this application. No project data changed.";
   } catch { error.value = "The template could not be saved to application preferences."; }
-}
-function move(index: number, delta: number) {
-  const next = index + delta;
-  if (next < 0 || next >= rows.value.length) return;
-  [rows.value[index], rows.value[next]] = [rows.value[next]!, rows.value[index]!];
 }
 async function calculate() {
   if (busy.value) return;
@@ -65,7 +54,7 @@ async function calculate() {
   error.value = "";
   try {
     const operations = props.template
-      ? rows.value.map(row => ({ method: "add", kind: row.kind, description: row.description, value: row.value }))
+      ? rows.value.map(row => ({ method: "add", kind: row.kind, description: row.description, value: row.value, code: row.code || "" }))
       : props.selected.map(row => ({ method: "edit", id: row.id, field: field.value, value: value.value }));
     const params = { revision: props.state.revision, id: props.selected[0]?.id, operations };
     preview.value = await request<AnalysisState>("analysis.batch.preview", params);
@@ -88,18 +77,8 @@ const previewRows = computed(() => preview.value?.rows.flatMap(row => [row, ...(
   <Dialog v-model:visible="visible" modal :header="template ? 'Custom analysis template' : 'Bulk edit analysis'" class="workspace-dialog batch-dialog" :closable="!busy" :close-on-escape="!busy">
     <p class="dialog-intro">{{ template ? 'Configure reusable calculation rows and preview their insertion after the selection. Saving this template changes application preferences only.' : `Set one field on ${selected.length} selected rows. Resource definition changes also affect other uses of the same resource in this draft.` }} Preview leaves the draft unchanged. Applying the preview is one analysis undo step; apply the analysis and save the project to retain it.</p>
     <template v-if="template">
-      <div class="template-rows">
-        <div v-for="(row, index) in rows" :key="index" class="template-row">
-          <label>Row {{ index + 1 }} type<select v-model="row.kind" :disabled="busy"><option v-for="kind in kinds" :key="kind">{{ kind }}</option></select></label>
-          <label>Description<input v-model="row.description" :aria-label="'Row ' + (index + 1) + ' description'" :disabled="busy" /></label>
-          <label>Value<input v-model="row.value" :aria-label="'Row ' + (index + 1) + ' value'" :disabled="busy || ['Group', 'Subtotal'].includes(row.kind)" /></label>
-          <button class="icon-button" :aria-label="'Move template row ' + (index + 1) + ' up'" :disabled="busy || index === 0" @click="move(index, -1)"><AppIcon name="up" /></button>
-          <button class="icon-button" :aria-label="'Move template row ' + (index + 1) + ' down'" :disabled="busy || index === rows.length - 1" @click="move(index, 1)"><AppIcon name="down" /></button>
-          <button class="icon-button" :aria-label="'Remove template row ' + (index + 1)" :disabled="busy" @click="rows.splice(index, 1)"><AppIcon name="trash" /></button>
-        </div>
-      </div>
+      <AnalysisRowEditor v-model="rows" :disabled="busy" />
       <div class="project-tools">
-        <button class="button small secondary" :disabled="busy || rows.length >= 100" @click="rows.push({ kind: 'Group', description: 'Resource group', value: '' })">Add template row</button>
         <button class="button small secondary" :disabled="busy" @click="defaults().catch(failure => error = String(failure))">Load shipped rows</button>
         <button class="button small secondary" :disabled="busy || !rows.length" @click="saveTemplate">Save template</button>
       </div>

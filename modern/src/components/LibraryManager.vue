@@ -3,6 +3,7 @@ import { ref } from "vue";
 import Dialog from "primevue/dialog";
 import { open } from "@tauri-apps/plugin-dialog";
 import { attachLibrary, forgetLibrary, savedLibraries, libraryStorageError } from "../libraryPreferences";
+import { request } from "../backend";
 
 defineProps<{ projectOpen: boolean }>();
 const visible = defineModel<boolean>({ required: true });
@@ -11,6 +12,16 @@ const path = ref("");
 const remember = ref(true);
 const busy = ref(false);
 const error = ref("");
+const available = ref<{ name: string; path: string; bundled: boolean }[]>([]);
+const availablePath = ref("");
+const catalogWarnings = ref<string[]>([]);
+async function discover() {
+  try {
+    const result = await request<{ rows: typeof available.value; warnings: string[] }>("program.libraries");
+    available.value = result.rows;
+    catalogWarnings.value = result.warnings;
+  } catch (failure) { error.value = String(failure); }
+}
 async function attach(value = path.value, close = true) {
   if (busy.value) return;
   busy.value = true;
@@ -31,8 +42,11 @@ async function browse() {
 </script>
 
 <template>
-  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy">
+  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy" @show="discover">
     <p class="dialog-intro">Browse an external project as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
+    <label class="field">Available databases<select v-model="availablePath" :disabled="busy" @change="path = availablePath"><option value="">Choose a bundled or custom database…</option><option v-for="database in available" :key="database.path" :value="database.path">{{ database.name }} ({{ database.bundled ? 'bundled' : 'custom' }})</option></select></label>
+    <button class="text-button" :disabled="busy" @click="discover">Refresh available databases</button>
+    <p v-for="warning in catalogWarnings" :key="warning" class="dialog-error" role="status">{{ warning }}</p>
     <label class="field">Library project
       <div class="file-input"><input v-model="path" aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" />
         <button class="button secondary" :disabled="busy" @click="browse">Browse</button></div>

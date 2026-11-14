@@ -8,6 +8,7 @@ import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import { request } from "../backend";
+import { programSettings } from "../programSettings";
 
 type View = "schedule" | "resources" | "measurement";
 interface GridRow {
@@ -645,6 +646,10 @@ watch(
             >
               <AppIcon name="import" /><span class="ribbon-label">Import selected into project</span>
             </button>
+            <button v-if="source && view === 'schedule'" class="ribbon-action" aria-label="Modify & Add" title="Import selected schedule items using Program Settings: multiply their stored rates, replace eligible trailing analysis rows, and retain the source reference. The entire import can be undone."
+              :disabled="busy || !selected.length" @click="command('add_from_library', { ids: selected.map(row => row.id), modify: true, settings: programSettings })">
+              <AppIcon name="settings" /><span class="ribbon-label">Modify &amp; Add</span>
+            </button>
             </div>
             <small>DATA SOURCE</small>
           </div>
@@ -1257,7 +1262,7 @@ watch(
           class="button primary"
           :disabled="busy || !exportPath"
           @click="
-            command('project.export_xlsx', { path: exportPath }).then((ok) => {
+            command('project.export_xlsx', { path: exportPath, break_lines: programSettings?.export_break_items ?? true }).then((ok) => {
               if (ok) exportOpen = false;
             })
           "

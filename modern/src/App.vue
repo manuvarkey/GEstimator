@@ -15,7 +15,9 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
+import ProgramSettings from "./components/ProgramSettings.vue";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
+import { programSettingsWarning } from "./programSettings";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectViews from "./components/ProjectViews.vue";
@@ -49,6 +51,7 @@ const {
   projectSession,
 } = w;
 const libraryManagerOpen = ref(false);
+const programSettingsOpen = ref(false);
 const analysisBatchOpen = ref(false);
 const analysisTemplateMode = ref(false);
 const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
@@ -487,6 +490,9 @@ async function applicationAction(action: string) {
     case "libraries":
       libraryManagerOpen.value = true;
       break;
+    case "program-settings":
+      programSettingsOpen.value = true;
+      break;
     case "reconnect":
       await w.reconnect();
       await refreshRecovery();
@@ -721,7 +727,7 @@ onBeforeUnmount(() => {
               }}</span>
             </button>
             <button class="ribbon-action" aria-label="Default analysis rows"
-              title="Insert the shipped default calculation rows into this analysis draft. Undo restores the previous draft." :disabled="!canEdit"
+              title="Insert the default calculation rows configured in Program Settings into this draft. Undo restores the previous draft." :disabled="!canEdit"
               @click="w.command('analysis.insert_template')">
               <AppIcon name="file" /><span class="ribbon-label">Default rows</span>
             </button>
@@ -842,6 +848,10 @@ onBeforeUnmount(() => {
       >
         <AppIcon name="close" :size="16" />
       </button>
+    </div>
+    <div v-if="programSettingsWarning" class="library-warning program-settings-warning" role="status">
+      <span>{{ programSettingsWarning }}</span>
+      <button class="text-button" :disabled="uiBusy" @click="programSettingsOpen = true">Review program settings</button>
     </div>
     <div v-if="state?.project_open && unavailableLibraries.length" class="library-warning" role="status">
       <span>{{ unavailableLibraries.length }} saved {{ unavailableLibraries.length === 1 ? 'library is' : 'libraries are' }} unavailable. The project is open and available libraries are attached.</span>
@@ -1708,5 +1718,6 @@ onBeforeUnmount(() => {
     </div></Dialog
   >
   <LibraryManager v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
+  <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" @libraries="libraryManagerOpen = true" />
   <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
 </template>

@@ -1647,6 +1647,10 @@ kbd {
 .saved-library code { display: block; overflow-wrap: anywhere; margin-block: 5px; }
 .measurement-derived { background: var(--accent-soft); color: var(--muted); }
 .batch-dialog { width: 860px; max-width: 94vw; }
+.workspace-dialog.program-settings-dialog { width: min(94vw, 960px); }
+.settings-tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.settings-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px; }
+.settings-tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 .template-rows { max-height: 330px; overflow: auto; margin-bottom: 12px; }
 .template-row { display: grid; grid-template-columns: 130px minmax(130px, 1fr) 90px repeat(3, 29px); gap: 6px; align-items: end; margin-bottom: 8px; }
 .template-row label { display: flex; flex-direction: column; gap: 3px; }

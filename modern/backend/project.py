@@ -30,6 +30,7 @@ class ProjectEditor:
         self.record_ids = {}
         self.clipboard = None
         self.libraries = {}
+        self.library_paths = {}
         self.ensure_ids()
 
     @property
@@ -338,7 +339,17 @@ class ProjectEditor:
         )
 
     def attach_library(self, path):
-        source = Path(text(path)).resolve(strict=True)
+        path = text(path)
+        if path.startswith("bundled:"):
+            name = path[len("bundled:"):]
+            if not name or Path(name).name != name or "/" in name or "\\" in name or Path(name).suffix.lower() != ".eproj":
+                raise ValueError("Invalid bundled database name")
+            source = Path(misc.abs_path("database", name)).resolve(strict=True)
+        else:
+            source = Path(path).resolve(strict=True)
+        if source in self.library_paths:
+            selected = self.library_paths[source]
+            return [dict(item, attached=item["id"] == selected) for item in self.sources()]
         target = Path(self.owner.temp.name) / (uuid4().hex + ".library")
         with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as src:
             version = src.execute(
@@ -360,7 +371,8 @@ class ProjectEditor:
         name = db.get_project_settings().get("project_name") or source.stem
         identity = uuid4().hex
         self.libraries[identity] = (name, db)
-        return self.sources()
+        self.library_paths[source] = identity
+        return [dict(item, attached=item["id"] == identity) for item in self.sources()]
 
     def sources(self):
         return [dict(id=key, name=value[0]) for key, value in self.libraries.items()]
@@ -457,6 +469,7 @@ class ProjectEditor:
         for name, db in self.libraries.values():
             db.close_database()
         self.libraries.clear()
+        self.library_paths.clear()
 
     def selection(self, kind, ids, db=None, *, include_descendants=True):
         """Resolve stable IDs independently of paging and expand selected categories."""
@@ -582,6 +595,13 @@ class ProjectEditor:
         return dict(deleted=len(records))
 
     def from_library(self, kind, params, progress):
+        modify = params.get("modify", False)
+        if type(modify) is not bool or (modify and kind != "schedule"):
+            raise ValueError("Modify & Add applies only to schedule items")
+        if modify:
+            from .program_settings import validate, legacy_rows
+            settings = validate(params.get("settings", {}))
+            replacement = legacy_rows(settings["ana_copy_rows"])
         identity = params.get("source")
         if identity not in self.libraries:
             raise ValueError("Choose an attached library")
@@ -654,6 +674,7 @@ class ProjectEditor:
                     raise ValueError(f"Unable to import sub-analysis {item.code}")
                 renamed[code] = item.code
         imported = 0
+        modified_rates = {}
         for index, row in enumerate(records):
             if index % 100 == 0:
                 progress("Importing library items: " + str(index + 1))
@@ -668,6 +689,12 @@ class ProjectEditor:
                     imported += 1
                     continue
                 item = source.get_item(row.code, modify_res_code=True)
+                if modify:
+                    item.rate *= Currency(decimal(settings["sch_rate_mult_factor"]), 5)
+                    count = settings["ana_copy_delete_rows"]
+                    if count and replacement and len(item.ana_items) > count:
+                        item.ana_items = item.ana_items[:-count] + copy.deepcopy(replacement)
+                    item.remarks = source.get_project_settings().get("project_item_code", "") + " " + item.code
                 code = item.code
                 counter = 1
                 while (
@@ -680,11 +707,18 @@ class ProjectEditor:
                 renamed[item.code] = code
                 item.code = code
                 item.parent = renamed.get(item.parent)
+                if modify:
+                    modified_rates[item.code] = item.rate
                 if not self.db.insert_item(item):
                     raise ValueError("Unable to import schedule item")
             imported += 1
         if renamed:
             self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
+        # GTK Modify & Add retains the selected library item's multiplied stored rate,
+        # even when its replacement calculation rows produce a different analysis rate.
+        for code, rate in modified_rates.items():
+            if not self.db.update_item_schedule(code, rate, 3):
+                raise ValueError("Unable to retain the modified library rate")
         return dict(imported=imported, skipped=len(records) - imported)
 
     def call(self, method, p, progress):

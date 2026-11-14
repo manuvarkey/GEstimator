@@ -40,6 +40,11 @@ subprocess.run(
             for template in (root / "estimator/meas_templates").glob("*.py")
             for argument in ("--add-data", str(template) + ":estimator/meas_templates")
         ],
+        *[
+            argument
+            for database in (root / "estimator/database").glob("*.eproj")
+            for argument in ("--add-data", str(database) + ":estimator/database")
+        ],
         str(modern / "backend/entry.py"),
     ],
     cwd=root,

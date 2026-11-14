@@ -154,6 +154,22 @@ class Service:
         )
 
     def call(self, method: str, p: dict, progress=lambda value: None):
+        if method.startswith("program."):
+            from . import program_settings
+            if method == "program.settings":
+                return dict(settings=program_settings.defaults(), library_directory=str(program_settings.library_directory()))
+            if method == "program.libraries":
+                return program_settings.library_catalog()
+            if method == "program.settings.validate":
+                settings = program_settings.validate(p.get("settings"))
+                program_settings.legacy_rows(settings["ana_default_rows"])
+                program_settings.legacy_rows(settings["ana_copy_rows"])
+                return settings
+            if method == "program.library_directory":
+                directory = program_settings.library_directory()
+                directory.mkdir(parents=True, exist_ok=True)
+                return str(directory)
+            raise ValueError("Unknown program settings operation")
         if method == "state":
             return self.state()
         if method == "analysis.template_rows":
@@ -448,7 +464,11 @@ class Service:
             return
         if method == "analysis.insert_template":
             position = self.locate(p["id"])[0] + 1 if p.get("id") else 0
-            rows = copy.deepcopy(misc.ana_default_add_items)
+            if "rows" in p:
+                from .program_settings import legacy_rows
+                rows = legacy_rows(p["rows"])
+            else:
+                rows = copy.deepcopy(misc.ana_default_add_items)
             for row in rows:
                 if "value" in row:
                     row["value"] = Decimal(str(row["value"]))
@@ -476,7 +496,7 @@ class Service:
             description = text(p.get("description", kind))
             pos = self.locate(p["id"])[0] + 1 if p.get("id") else 0
             if kind == "Group":
-                self.model.add_ana_group(description, code="", pos=pos)
+                self.model.add_ana_group(description, code=text(p.get("code", "")), pos=pos)
             elif kind == "Subtotal":
                 self.model.add_ana_sum(description, pos=pos)
             elif kind in ("Weight", "Multiply", "Round"):

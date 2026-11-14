@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { request } from "./backend";
 
 export interface SavedLibrary { path: string; name: string; error?: string }
-interface Source { id: string; name: string }
+interface Source { id: string; name: string; attached?: boolean }
 const storageKey = "gestimator.libraries.v1";
 export const savedLibraries = ref<SavedLibrary[]>([]);
 export const libraryStorageError = ref("");
@@ -54,13 +54,13 @@ export async function attachLibrary(path: string, remember = true) {
   let source = sources.find(entry => entry.id === attached.get(key));
   if (!source) {
     const next = await request<Source[]>("library.attach", { path });
-    source = next.find(entry => !sources.some(old => old.id === entry.id));
+    source = next.find(entry => entry.attached) || next.find(entry => !sources.some(old => old.id === entry.id));
     if (!source) throw new Error("The library did not return an attachment identifier.");
     attached.set(key, source.id);
     try { sessionStorage.setItem("gestimator.library-attachments", JSON.stringify([...attached].slice(-50))); }
     catch { /* The active connection still works without persisted session identifiers. */ }
   }
-  const existing = savedLibraries.value.find(entry => identity(entry.path) === key);
+  const existing = savedLibraries.value.find(entry => identity(entry.path) === key || attached.get(identity(entry.path)) === source!.id);
   if (existing) { existing.name = source.name; existing.error = undefined; }
   if (remember) {
     if (!existing) savedLibraries.value.push({ path, name: source.name });

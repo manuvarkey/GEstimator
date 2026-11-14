@@ -116,6 +116,28 @@ async fn backend_request(app: tauri::AppHandle, request: Value) -> Result<Value,
 }
 struct DesktopTypography(Mutex<Value>);
 #[tauri::command]
+fn open_library_directory(path: String) -> Result<(), String> {
+    if !std::path::Path::new(&path).is_dir() {
+        return Err("Custom database folder is unavailable".into());
+    }
+    let command = if cfg!(windows) {
+        "explorer"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    let mut child = Command::new(command)
+        .arg(path)
+        .spawn()
+        .map_err(|error| error.to_string())?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
+#[tauri::command]
 fn desktop_font(app: tauri::AppHandle) -> Result<Value, String> {
     app.state::<DesktopTypography>()
         .0
@@ -158,7 +180,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backend_request, desktop_font])
+        .invoke_handler(tauri::generate_handler![backend_request, desktop_font, open_library_directory])
         .build(tauri::generate_context!())
         .expect("Unable to start GEstimator")
         .run(|app, event| {

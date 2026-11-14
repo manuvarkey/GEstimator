@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { restoreLibraries } from "./libraryPreferences";
+import { initializeProgramSettings, programSettings } from "./programSettings";
 import {
   request,
   type AnalysisRow,
@@ -83,6 +84,7 @@ export function useWorkspace() {
   }
   async function reconnect() {
     await run(async () => {
+      await initializeProgramSettings();
       await refresh();
       if (state.value?.project_open) {
         await restoreLibraries();
@@ -99,6 +101,7 @@ export function useWorkspace() {
             revision: state.value?.revision,
             ids: selected.value.map((row) => row.id),
             id: selected.value[0]?.id,
+            ...(method === "analysis.insert_template" ? { rows: programSettings.value?.ana_default_rows } : {}),
             ...params,
           }),
         );
@@ -152,6 +155,12 @@ export function useWorkspace() {
   async function load(code: string, discard = false) {
     return run(async () => {
       await refresh(await request("analysis.load", { code, discard }));
+      if (!state.value?.rows.length && programSettings.value?.ana_default_rows.length) {
+        await refresh(await request("analysis.insert_template", {
+          revision: state.value?.revision,
+          rows: programSettings.value.ana_default_rows,
+        }));
+      }
       selected.value = [];
     }, "Loading rate analysis…");
   }
