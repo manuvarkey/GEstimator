@@ -1,0 +1,33 @@
+# Editor and measurement review — 2026-11-14
+
+Scope: remaining schedule insertion, editor interactions and measurement-template workflows. Calculations still run in the original Python models; project storage and schema remain unchanged.
+
+## Implemented workflows
+
+* Schedule and resource creation suggest codes through the original `get_next_item_code` / `get_new_resource_code` helpers. Users can override a suggestion or leave it blank for generation at insertion. A selected category inserts at its start; a selected item supplies the insertion position. Subitem and duplicate operations preserve parent/category relationships. Normal schedule insertion after a child goes after its containing root, matching GTK. The last selected row is determined by visual hierarchy order, not click order.
+* Paste positions new sibling blocks together and preserves copied subtrees. Individual rows pasted into a selected destination use its category; copied whole categories retain their categories. Library browsing remembers the working selection for individual-item imports. New rows are selected, ancestors expanded and the appropriate page revealed using a SQL rank count. Clearing a filter on insertion prevents the new row being hidden by the previous search.
+* Tables provide contextual row actions, F2 editing, keyboard range selection and tree expansion/collapse. Resource Enter/Ctrl+E opens an atomic definition editor; measurement Enter focuses records, and Ctrl+E opens Properties. Ctrl+L browses the first attached library or opens the library manager. Ctrl+Enter applies an analysis; Ctrl+Escape opens the existing discard confirmation. Ctrl+Shift+S retains modern Save Copy behavior.
+* Measurement creation explains all eight installed templates, their inputs, linked quantities and calculation rules. Properties stages description, schedule links, per-item remarks and user data until Save, with Cancel and one project undo step. Searchable schedule selection and clear-link actions retain records and remarks. Linked remarks label mapped columns; steel labels identify their corresponding result columns. User-supplied headers render as text, including tooltips.
+* Records support bulk insertion of 1–1000 rows and ordered multi-selection for copy, paste, duplicate, delete and movement. Template compatibility is checked before paste. The UI renders pages of 100 records; the API permits page sizes up to 200. Full item totals and quantity updates still use all records. Worksheet imports retain their existing limits.
+
+## Unusual or inefficient behavior found
+
+| Finding | Resolution / retained behavior |
+|---|---|
+| A 200-cell measurement paste repeatedly parsed and serialized the entire measurement model: 600 reads and 200 writes. | One read and one write per batch; each affected record is reconstructed once. An invalid later cell rolls back the complete operation, including history. |
+| Reconstructing each measurement item re-executed its template module. | A bounded 32-entry cache reuses modules by resolved path, modification time and size. Every item still receives a fresh `CustomItem` and independent mutable defaults. Editing a template invalidates the cache, including same-size edits within one second. |
+| Selecting an item refreshed both tables and requested library state. Large record tables rendered every row's derived values. | Selection fetches detail only, leaves the main table intact and renders one record page. Measurement refreshes omit library-list requests. The legacy JSON storage still requires parsing the complete measurement model; paging bounds rendered results, not all model-loading work. |
+| Schedule query ordering ignored child `suborder`, making inserted/moved children appear in ID order. | Queries now honor sibling order; a regression compares displayed hierarchy order with insertion order. |
+| Record select-all and TSV paste called tree-only APIs on flat tables. | Tree traversal is conditional. Browser regression exercises page selection, multi-record copy and spreadsheet paste without runtime errors. |
+| Rejected cell edits left optimistic text visible until a later refresh. | Failed project edits restore authoritative backend rows while retaining the error and properties-dialog draft. |
+| Newly inserted items could remain hidden in collapsed groups, filters or another page. | Explicit selection, ancestor expansion, filter reset and SQL-based page reveal. Ordinary refreshes preserve selection and expansion. |
+| NLBH skips zero factors instead of multiplying the result by zero. | Preserved for compatibility, explained in the template chooser and active editor. An entirely empty/zero record still totals zero. |
+| Electrical points truncate each count towards zero; duct templates use fractional dimensions even though the old cells displayed them as whole numbers. | Original calculations preserved. Modern cells retain raw input expressions; each template explains its count/dimension rule. |
+| Steel constants accepted arithmetic strings, but legacy totals pass them to `float()` and silently skip invalid strings. | New numeric property edits are evaluated to numeric strings before saving. Existing stored data is not rewritten on read; Properties exposes it for correction. |
+| GTK resource Ctrl+X copies an instance-specific move reference and does not remove anything until paste. | The modern Move Resources dialog performs the category move directly, preserving codes, IDs and analysis relationships, with undo. No executable clipboard references are introduced. |
+
+## Evidence and limits
+
+The focused comparison used 100 NLBH records and 200 cell changes against the previous committed editor implementation. It measured 600 loads / 200 saves / 0.8032 seconds before, and 1 load / 1 save / 0.0048 seconds after; both totals were 2400. The previous implementation also used the new module cache in this comparison, so the timing isolates batching rather than claiming the total benefit of template caching. Wall-clock values are a local observation; regression tests assert operation counts and equivalent totals instead of timing thresholds.
+
+Tests cover numbering, positions, hierarchy order, off-page reveal, library source preservation, resource identity through relocation, paged records, multi-record history, all eight template calculations/exports, property rollback and constant normalization, safe headers and cache invalidation. The existing all-template workbook comparison and optional LibreOffice round trip remain in the Python suite. Native WebView input methods, OS clipboard interaction and larger real/custom-template projects still require the platform/corpus checks in the parity ledger.

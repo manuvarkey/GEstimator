@@ -213,9 +213,10 @@ def export(service, params):
                     raise ValueError("Select a measurement item")
                 item = measurement_items[editor.ids.index(params["id"])]
                 ids = editor.record_ids.get(params["id"], [])
-                if params.get("record_id") not in ids:
+                selected = params.get("record_ids") or [params.get("record_id")]
+                if not isinstance(selected, list) or not selected or any(identity not in ids for identity in selected):
                     raise ValueError("Select a measurement record")
-                items = [dict(template=item.itemtype, values=item.records[ids.index(params["record_id"])].data_string)]
+                items = [dict(template=item.itemtype, values=record.data_string) for identity, record in zip(ids, item.records) if identity in selected]
     if len(items) > 1000 or len(dependencies) > 1000:
         raise ValueError("Selection is too large for the system clipboard; copy fewer rows")
     if not items and not categories:
@@ -288,11 +289,11 @@ def decode(data, expected, service):
         items = [item for item, _ in decoded]
         missing = sum(count for _, count in decoded)
     else:
-        if len(values) != 1:
-            raise ValueError("Copy one measurement record at a time")
-        value = obj(values[0])
-        item = custom_template(value.get("template"))
-        items = (item.itemtype, record_values(value.get("values"), item))
+        first = obj(values[0])
+        item = custom_template(first.get("template"))
+        if any(obj(value).get("template") != item.itemtype for value in values):
+            raise ValueError("Copied records must use the same measurement template")
+        items = (item.itemtype, [record_values(value.get("values"), item) for value in values])
     return kind, items, categories, dependencies, missing
 
 
@@ -331,16 +332,16 @@ def paste(service, params):
                         raise ValueError("Unable to paste referenced sub-analysis")
             editor.clipboard = (kind, items)
             if items:
-                editor.edit(kind, "paste", params)
+                return editor.edit(kind, "paste", dict(params, preserve_categories=bool(categories)))
         elif kind == "measurement":
             editor.clipboard = (kind, items)
-            editor.measurement_edit("paste", params)
+            return editor.measurement_edit("paste", params)
         else:
-            editor.clipboard = ("records", *items)
-            editor.measurement_edit("record_paste", params)
+            editor.clipboard = ("records", *items, "batch")
+            return editor.measurement_edit("record_paste", params)
     try:
-        editor.mutate(apply)
+        result = editor.mutate(apply)
     except Exception:
         editor.clipboard = previous
         raise
-    return dict(ok=True, unlinked=missing)
+    return dict(ok=True, unlinked=missing, **(result or {}))

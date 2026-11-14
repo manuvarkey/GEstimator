@@ -1668,6 +1668,24 @@ kbd {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 15px;
 }
+.measurement-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.measurement-summary p { margin: 5px 0; }
+.measurement-summary small { color: var(--muted); }
+.measurement-summary .button { flex-shrink: 0; }
+.measurement-column-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; }
+.library-results { display: grid; gap: 6px; max-height: 360px; overflow: auto; margin-block: 12px; }
+.library-item { display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); }
+.library-item span:first-child { min-width: 0; }
+.library-item small { display: block; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.measurement-properties-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.measurement-properties-fields .field { min-width: 0; }
+.workspace-dialog.measurement-properties-dialog { width: min(94vw, 960px); }
+.measurement-property-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.measurement-property-groups fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; gap: 10px; min-width: 0; }
+.measurement-property-groups legend { color: var(--muted); padding-inline: 5px; }
+.measurement-property-groups .field { min-width: 0; flex: 1; margin: 0; }
+.measurement-property-groups input { width: 100%; min-width: 0; }
+.measurement-links .file-input input { width: 100%; min-width: 0; }
 .measurement-links .field {
   min-width: 160px;
   max-width: none;

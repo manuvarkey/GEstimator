@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
@@ -74,7 +74,31 @@ const pricePreview = ref<{
 const page = ref(0);
 const selected = ref<GridRow[]>([]);
 const selectedRecord = ref<GridRow>();
-const templates = ref<{ code: string; name: string }[]>([]);
+const selectedRecords = ref<GridRow[]>([]);
+const recordSelectionIds = ref<string[]>();
+const templates = ref<{ code: string; name: string; label: string; summary: string; note: string; inputs: string[]; outputs: number }[]>([]);
+const templateInfo = computed(() => templates.value.find(template => template.code === form.value.template));
+const recordPage = ref(0);
+const recordCount = ref(10);
+const recordsOpen = ref(false);
+const propertiesOpen = ref(false);
+const properties = ref<{ description: string; links: { code: string; remark: string; label: string }[]; user_data: string[] }>({ description: "", links: [], user_data: [] });
+const propertiesRevision = ref(0);
+const pickerOpen = ref(false);
+const pickerSlot = ref(0);
+const pickerQuery = ref("");
+const pickerPage = ref(0);
+const pickerItems = ref<{ code: string; description: string; unit: string }[]>([]);
+const pickerBusy = ref(false);
+const detailBusy = ref(false);
+const pickerError = ref("");
+let selectionRequest = 0;
+const mainTable = ref<InstanceType<typeof DataTable>>();
+const recordTable = ref<InstanceType<typeof DataTable>>();
+const selectionIds = ref<string[]>();
+const workingSelection = ref<string[]>([]);
+const moveResourcesOpen = ref(false);
+const moveCategory = ref("");
 const formOpen = ref(false);
 const formMode = ref("add");
 const form = ref<Record<string, string>>({});
@@ -225,13 +249,14 @@ const recordColumns = computed<ColumnDefinition[]>(
   () =>
     state.value?.detail?.columns.map((c: any) => ({
       title: c.title,
+      titleFormatter: () => { const label = document.createElement("span"); label.className = "measurement-column-title"; label.textContent = c.title; return label; },
       field: c.field,
       minWidth: c.width || 80,
       width: c.expand ? undefined : c.width || 80,
       widthGrow: c.expand ? 1 : 0,
       hozAlign: c.numeric ? "right" : "left",
       cssClass: c.editable ? "" : "measurement-derived",
-      headerTooltip: c.editable ? `${c.title}: editable measurement input` : `${c.title}: calculated by the measurement template; read-only`,
+      headerTooltip: () => { const label = document.createElement("span"); label.textContent = c.editable ? `${c.title}: editable measurement input; arithmetic expressions are retained` : `${c.title}: calculated by the measurement template; read-only`; return label; },
       editor: c.editable ? "textarea" : undefined,
       editable: !!c.editable,
       formatter: "textarea",
@@ -247,17 +272,35 @@ async function run(work: () => Promise<void>) {
     return true;
   } catch (e) {
     error.value = String(e);
+    // Cell editors update their local value before the backend accepts it.
+    // Restore authoritative rows after a rejected edit or atomic batch.
+    if (props.projectOpen) await refresh().catch(() => {});
     return false;
   } finally {
     busy.value = false;
   }
 }
-async function refresh() {
+const rowActions = computed(() => source.value ? [] : [
+  { label: "Add item after selection", action: "add" },
+  ...(props.view === "schedule" ? [{ label: "Add subitem", action: "child", itemOnly: true, single: true }, { label: "Open analysis", action: "activate", itemOnly: true, single: true }] : [{ label: isMeasurement.value ? "Measurement properties…" : "Edit resource…", action: "properties", single: true, itemOnly: !isMeasurement.value }]),
+  { label: "Copy selected rows", action: "copy" }, { label: "Paste rows here", action: "paste" },
+  { label: "Duplicate selection", action: "duplicate", single: !isMeasurement.value, itemOnly: !isMeasurement.value }, { label: "Delete selection…", action: "delete" },
+]);
+function rowAction(operation: string) {
+  if (operation === "add") void showForm();
+  else if (operation === "child") void showSubitem();
+  else if (operation === "activate" && one.value) activateRow(one.value);
+  else if (operation === "properties") { if (isMeasurement.value) showProperties(); else if (one.value?.rowtype !== "Category") void showForm("edit"); }
+  else if (operation === "delete") void deleteSelection();
+  else if (operation === "duplicate" && !isMeasurement.value) { if (one.value && one.value.rowtype !== "Category") void showForm("duplicate"); }
+  else void command(operation);
+}
+async function refresh(revealId?: string) {
   if (!props.projectOpen) {
     state.value = undefined;
     return;
   }
-  libraries.value = await request("library.list");
+  if (!isMeasurement.value) libraries.value = await request("library.list");
   state.value = await request(
     isMeasurement.value ? "measurement.state" : props.view + ".editor.state",
     {
@@ -265,8 +308,12 @@ async function refresh() {
       source: source.value,
       offset: page.value * 100,
       id: activeMeasurement.value,
+      record_offset: recordPage.value * 100,
+      reveal_id: revealId,
     },
   );
+  if (isMeasurement.value && state.value?.detail) recordPage.value = state.value.detail.offset / 100;
+  if (!isMeasurement.value) page.value = (state.value?.offset || 0) / 100;
 }
 async function command(
   operation: string,
@@ -276,12 +323,15 @@ async function command(
     clipboardMessage.value = "";
     const clipboardParams = { revision: state.value?.revision, id: one.value?.id, ids: selected.value.map(row => row.id), source: source.value, ...params };
     const clipboardKind: ClipboardKind = operation.startsWith("record_") ? "records" : props.view;
+    let result: { selected?: string[]; selected_records?: string[]; record_offset?: number } | undefined;
     if (operation === "copy" || operation === "record_copy") {
       clipboardMessage.value = await copyRows(clipboardKind, clipboardParams);
+      return;
     } else if (operation === "paste" || operation === "record_paste") {
-      const result = await pasteRows(clipboardKind, clipboardParams);
-      clipboardMessage.value = result.unlinked ? `Rows pasted. ${result.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.";
-    } else await request(
+      const pasted = await pasteRows(clipboardKind, clipboardParams);
+      result = pasted;
+      clipboardMessage.value = pasted.unlinked ? `Rows pasted. ${pasted.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.";
+    } else result = await request(
       operation.startsWith("project.")
         ? operation
         : (isMeasurement.value ? "measurement." : props.view + ".editor.") +
@@ -289,12 +339,21 @@ async function command(
       {
         revision: state.value?.revision,
         id: one.value?.id,
-        ids: isMeasurement.value ? selected.value.map((row) => row.id) : undefined,
+        ids: selected.value.map((row) => row.id),
         source: source.value,
+        target_ids: workingSelection.value,
         ...params,
       },
     );
-    await refresh();
+    if (result?.selected && isMeasurement.value) {
+      activeMeasurement.value = result.selected.length === 1 ? result.selected[0] : undefined;
+      recordPage.value = 0;
+    }
+    if (result?.record_offset !== undefined) recordPage.value = result.record_offset / 100;
+    if (result?.selected && !isMeasurement.value) query.value = "";
+    await refresh(!isMeasurement.value ? result?.selected?.[0] : undefined);
+    if (result?.selected) selectionIds.value = result.selected;
+    if (result?.selected_records) recordSelectionIds.value = result.selected_records;
     if (operation === "delete") {
       selected.value = [];
       activeMeasurement.value = undefined;
@@ -403,10 +462,32 @@ async function select(rows: GridRow[]) {
   if (isMeasurement.value && rows.length === 1 &&
       activeMeasurement.value !== rows[0].id) {
     activeMeasurement.value = rows[0].id;
-    await load();
+    recordPage.value = 0;
+    selectedRecord.value = undefined;
+    selectedRecords.value = [];
+    recordSelectionIds.value = undefined;
+    await loadDetail();
   }
 }
-function showForm(mode = "add") {
+async function loadDetail() {
+  const token = ++selectionRequest;
+  const identity = activeMeasurement.value;
+  detailBusy.value = true;
+  try {
+    const detail = await request<Partial<GridState>>("measurement.detail", { id: identity, record_offset: recordPage.value * 100 });
+    if (token === selectionRequest && identity === activeMeasurement.value && state.value && (detail.revision ?? 0) >= state.value.revision)
+      { state.value = { ...state.value, ...detail }; if (detail.detail) recordPage.value = detail.detail.offset / 100; }
+  } catch (reason) { if (token === selectionRequest) error.value = String(reason); }
+  finally { if (token === selectionRequest) detailBusy.value = false; }
+}
+async function changeRecordPage(delta: number) {
+  recordPage.value = Math.max(0, recordPage.value + delta);
+  selectedRecord.value = undefined;
+  selectedRecords.value = [];
+  recordSelectionIds.value = undefined;
+  await loadDetail();
+}
+async function showForm(mode = "add", child = false) {
   formMode.value = mode;
   form.value = {
     code: "",
@@ -421,16 +502,26 @@ function showForm(mode = "add") {
     reference: "",
     template: "",
     ...(mode === "duplicate" ? { code: one.value?.code + "-copy" } : {}),
+    ...(mode === "edit" ? Object.fromEntries(importFields.value.map(field => [field, String(one.value?.[field] ?? "")])) : {}),
   };
+  if (mode === "add" && !isMeasurement.value) {
+    if (!await run(async () => {
+      Object.assign(form.value, await request(props.view + ".editor.defaults", { ids: selected.value.map(row => row.id), child }));
+    })) return;
+  }
   formOpen.value = true;
 }
-function showSubitem() {
+async function showSubitem() {
   if (props.view !== "schedule" || !one.value || one.value.rowtype === "Category") return;
-  const parent = one.value.code;
-  showForm();
-  form.value.parent = parent;
+  await showForm("add", true);
 }
 async function submit() {
+  if (formMode.value === "edit") {
+    const edits = Object.entries(form.value).filter(([field, value]) => importFields.value.includes(field) && value !== String(one.value?.[field] ?? ""))
+      .map(([field, value]) => ({ id: one.value!.id, field, value }));
+    if (!edits.length || await command("edit_many", { edits })) formOpen.value = false;
+    return;
+  }
   const op = isMeasurement.value
     ? formMode.value === "duplicate"
       ? "duplicate"
@@ -445,6 +536,46 @@ async function submit() {
     )
   )
     formOpen.value = false;
+}
+async function showProperties() {
+  if (!one.value || !state.value) return;
+  const identity = one.value.id;
+  if (one.value.type !== "Heading" && state.value.detail?.id !== identity) await loadDetail();
+  if (one.value?.id !== identity) return;
+  const detail = state.value.detail;
+  properties.value = { description: one.value.description, links: detail?.links.map((link: any) => ({ code: link.code, remark: link.remark, label: link.label })) || [], user_data: detail?.user_data.map((field: any) => field.value) || [] };
+  propertiesRevision.value = state.value.revision;
+  error.value = "";
+  propertiesOpen.value = true;
+}
+async function saveProperties() {
+  if (await command("properties", { id: one.value?.id, revision: propertiesRevision.value, ...properties.value })) propertiesOpen.value = false;
+}
+async function searchLinks() {
+  pickerBusy.value = true;
+  pickerError.value = "";
+  try { pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: pickerPage.value * 100 }); }
+  catch (reason) { pickerError.value = String(reason); }
+  finally { pickerBusy.value = false; }
+}
+async function showLinkPicker(slot: number) {
+  pickerSlot.value = slot;
+  pickerQuery.value = "";
+  pickerPage.value = 0;
+  pickerOpen.value = true;
+  await searchLinks();
+}
+async function chooseLink(code: string) {
+  if (propertiesOpen.value) properties.value.links[pickerSlot.value]!.code = code;
+  else if (!await command("link", { id: activeMeasurement.value, slot: pickerSlot.value, code, remark: state.value?.detail.links[pickerSlot.value].remark || "" })) return;
+  pickerOpen.value = false;
+}
+function activateRow(row: GridRow) {
+  if (source.value || row.rowtype === "Category") return;
+  if (props.view === "schedule") emit("analysis", row.code);
+  else if (props.view === "resources") void showForm("edit");
+  else if (state.value?.detail) void nextTick(() => recordTable.value?.focus());
+  else showProperties();
 }
 async function edit(row: GridRow, field: string, value: string) {
   await command(isMeasurement.value ? "edit" : "edit", {
@@ -499,6 +630,17 @@ function keyboard(event: KeyboardEvent) {
       emit("analysis", one.value.code);
       return;
     }
+    if (key === "e" && one.value && props.view !== "schedule") {
+      event.preventDefault(); event.stopPropagation();
+      if (isMeasurement.value) showProperties(); else if (one.value.rowtype !== "Category") void showForm("edit");
+      return;
+    }
+    if (key === "l" && props.view !== "measurement") {
+      event.preventDefault(); event.stopPropagation();
+      if (libraries.value.length) source.value = libraries.value[0]!.id;
+      else emit("libraries");
+      return;
+    }
     if (key === "m" && props.view === "schedule" && selectedScheduleIds.value.length) {
       event.preventDefault();
       event.stopPropagation();
@@ -541,6 +683,7 @@ async function recordAction(operation: string, delta?: number) {
   await command("record_" + operation, {
     id: activeMeasurement.value,
     record_id: selectedRecord.value?.id,
+    record_ids: selectedRecords.value.map(row => row.id),
     delta,
   });
 }
@@ -606,15 +749,30 @@ async function exportBrowse() {
 watch(
   () => props.view,
   async () => {
+    workingSelection.value = [];
+    selectionRequest++;
+    selectedRecords.value = [];
+    recordSelectionIds.value = undefined;
     query.value = "";
     source.value = "";
     page.value = 0;
     selected.value = [];
     activeMeasurement.value = undefined;
+    selectionIds.value = undefined;
+    selectedRecord.value = undefined;
+    recordPage.value = 0;
     await load();
   },
 );
 watch(() => props.projectOpen, load);
+watch(source, async (value, previous) => {
+  if (!previous) workingSelection.value = selected.value.map(row => row.id);
+  selected.value = [];
+  selectionIds.value = undefined;
+  page.value = 0;
+  await load();
+  if (!value) selectionIds.value = workingSelection.value;
+});
 onMounted(async () => {
   await load();
   if (props.projectOpen)
@@ -658,11 +816,6 @@ watch(
                 v-model="source"
                 aria-label="Data source"
                 :disabled="busy"
-                @change="
-                  selected = [];
-                  page = 0;
-                  load();
-                "
               >
                 <option value="">Project working copy</option>
                 <option
@@ -849,6 +1002,8 @@ watch(
           </div>
           <div v-if="view === 'resources'" class="ribbon-group">
             <div class="ribbon-actions ribbon-actions-wide">
+            <button class="ribbon-action ribbon-icon" aria-label="Edit resource" title="Edit all fields of the selected resource together. Only changed fields are saved, as one undoable operation (Ctrl+E or Enter)." :disabled="busy || !one || one.rowtype === 'Category'" @click="showForm('edit')"><AppIcon name="edit" /><span class="ribbon-label">Edit resource</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Move resources…" title="Move selected definitions to another category without making copies or breaking analysis links. Undo restores their previous categories." :disabled="busy || !selected.length || selected.some(row => row.rowtype === 'Category')" @click="moveCategory = state?.categories?.[0] || ''; moveResourcesOpen = true"><AppIcon name="category" /><span class="ribbon-label">Move resources</span></button>
             <button
               class="ribbon-action"
               aria-label="Resource usage"
@@ -967,17 +1122,21 @@ watch(
       /></label>
       <div class="table-panel project-main-grid">
         <DataTable
+          ref="mainTable"
           :key="source"
           :label="title"
           :rows="state?.rows || emptyRows"
           :columns="columns"
           :busy="busy"
           :tree="!isMeasurement"
+          :select-ids="selectionIds"
+          :actions="rowActions"
+          @action="rowAction"
           @selection="select"
           @edit="edit"
           @paste="pasteCells"
           @paste-rows="data => command('paste', { clipboardData: data })"
-          @activate="row => { if (view === 'schedule' && !source && row.rowtype !== 'Category') emit('analysis', row.code); }"
+          @activate="activateRow"
         />
       </div>
       <div v-if="!isMeasurement" class="pagination">
@@ -1002,14 +1161,19 @@ watch(
           Next
         </button>
       </div>
-      <template v-if="isMeasurement && selected.length === 1 && state?.detail">
+      <template v-if="isMeasurement && selected.length === 1 && state && state.detail && state.detail.id === activeMeasurement">
+        <div class="measurement-summary">
+          <div><strong>{{ state.detail.info.label }}</strong><p>{{ state.detail.info.summary }}</p>
+            <small>{{ state.detail.info.note }}</small></div>
+          <button class="button small secondary" title="Edit description, schedule links and template properties together. Save applies one undoable change; Cancel leaves the item unchanged (Ctrl+E)." @click="showProperties"><AppIcon name="settings" />Properties…</button>
+        </div>
         <div class="measurement-links">
           <label
             v-for="(link, index) in state.detail.links"
             :key="index"
             class="field"
-            >Schedule code {{ Number(index) + 1
-            }}<input
+            >{{ link.label }} · Schedule code {{ Number(index) + 1
+            }}<div class="file-input"><input
               :value="link.code"
               :aria-label="'Schedule code ' + (Number(index) + 1)"
               :disabled="busy"
@@ -1021,7 +1185,9 @@ watch(
                   remark: link.remark,
                 })
               "
-            /><input
+            /><button class="icon-button" :aria-label="'Choose schedule item ' + (Number(index) + 1)" :disabled="busy" title="Search project schedule codes and descriptions for this measured quantity." @click="showLinkPicker(Number(index))"><AppIcon name="search" /></button>
+            <button class="icon-button" :aria-label="'Clear schedule link ' + (Number(index) + 1)" :disabled="busy || (!link.code && !link.missing)" title="Remove this schedule association while retaining measurement records and remarks." @click="command('link', { id: activeMeasurement, slot: Number(index), code: '', remark: link.remark })"><AppIcon name="close" /></button></div>
+            <small v-if="link.description" :title="link.description">{{ link.description }} <span v-if="link.unit">({{ link.unit }})</span></small><input
               :value="link.remark"
               :aria-label="'Schedule item remark ' + (Number(index) + 1)"
               :disabled="busy"
@@ -1037,24 +1203,7 @@ watch(
             /><small v-if="link.missing" role="alert"
               >The linked schedule item is missing. Select another code.</small
             ></label
-          ><label
-            v-for="(field, index) in state.detail.user_data"
-            :key="'user' + index"
-            class="field"
-            >{{ field.caption
-            }}<input
-              :value="field.value"
-              :aria-label="field.caption"
-              :inputmode="field.numeric ? 'decimal' : 'text'"
-              :disabled="busy"
-              @change="
-                command('userdata', {
-                  id: activeMeasurement,
-                  slot: Number(index),
-                  value: ($event.target as HTMLInputElement).value,
-                })
-              "
-          /></label>
+          >
         </div>
         <div class="project-tools">
           <strong>Measurement records</strong
@@ -1064,6 +1213,7 @@ watch(
             @click="recordAction('add')"
           >
             <AppIcon name="plus" :size="15" />Add record</button
+          ><button class="icon-button" aria-label="Add multiple records" title="Insert 1 to 1000 blank records in one operation. Undo removes the complete batch." :disabled="busy" @click="recordCount = 10; recordsOpen = true"><AppIcon name="rows" /></button
           ><button
             class="button small secondary"
             :disabled="busy"
@@ -1085,7 +1235,7 @@ watch(
           ><button
             class="button small secondary"
             :disabled="busy || !selectedRecord"
-            title="Copy the selected record to the system clipboard for use in any measurement item with the same template (Ctrl+C in the records table)."
+            title="Copy selected records in their current order to the system clipboard for use in any measurement item with the same template (Ctrl+C in the records table)."
             @click="recordAction('copy')"
           >
             <AppIcon name="copy" :size="15" />Copy record</button
@@ -1118,21 +1268,77 @@ watch(
         </div>
         <div class="table-panel measurement-record-grid">
           <DataTable
+            ref="recordTable"
             :rows="state.detail.rows"
             :columns="recordColumns"
-            :busy="busy"
-            @selection="selectedRecord = $event[0]"
+            :busy="busy || detailBusy"
+            :select-ids="recordSelectionIds"
+            :label="state.detail.info.label + ' records'"
+            :actions="[{ label: 'Insert record', action: 'add' }, { label: 'Duplicate record', action: 'duplicate' }, { label: 'Copy record', action: 'copy' }, { label: 'Paste records here', action: 'paste' }, { label: 'Delete record', action: 'delete' }]"
+            @action="operation => recordAction(operation)"
+            @selection="selectedRecords = $event; selectedRecord = $event[0]"
             @edit="recordEdit"
             @paste="pasteCells"
-            @paste-rows="data => command('record_paste', { id: activeMeasurement, record_id: selectedRecord?.id, clipboardData: data })"
+            @paste-rows="data => command('record_paste', { id: activeMeasurement, record_id: selectedRecord?.id, record_ids: selectedRecords.map(row => row.id), clipboardData: data })"
           />
+        </div>
+        <div class="pagination">
+          <button class="text-button" :disabled="busy || detailBusy || !state.detail.offset" @click="changeRecordPage(-1)">Previous records</button>
+          <span>{{ state.detail.total_records }} records · Page {{ Math.floor(state.detail.offset / 100) + 1 }}</span>
+          <button class="text-button" :disabled="busy || detailBusy || state.detail.offset + 100 >= state.detail.total_records" @click="changeRecordPage(1)">Next records</button>
         </div>
       </template>
     </template>
+    <Dialog v-model:visible="moveResourcesOpen" modal header="Move resources" class="workspace-dialog file-dialog" :closable="!busy">
+      <form @submit.prevent="async () => { if (await command('move_to', { category: moveCategory })) moveResourcesOpen = false; }">
+        <p>Move {{ selected.length }} selected resources, retaining their codes and analysis links.</p>
+        <label class="field">Destination category<select v-model="moveCategory" :disabled="busy"><option v-for="category in state?.categories" :key="category">{{ category }}</option></select></label>
+        <p v-if="error" class="dialog-error" role="alert">{{ error }}</p><div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="moveResourcesOpen = false">Cancel</button><button class="button primary" :disabled="busy">Move resources</button></div>
+      </form>
+    </Dialog>
+    <Dialog v-model:visible="recordsOpen" modal header="Insert measurement records" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy">
+      <form @submit.prevent="async () => { if (await command('record_add', { id: activeMeasurement, record_id: selectedRecord?.id, count: recordCount })) recordsOpen = false; }">
+        <p>Insert blank records after the selected record, or at the end. Undo removes the entire batch.</p>
+        <label class="field">Number of records<input v-model.number="recordCount" type="number" min="1" max="1000" required :disabled="busy" /></label>
+        <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
+        <div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="recordsOpen = false">Cancel</button><button class="button primary" :disabled="busy">Insert records</button></div>
+      </form>
+    </Dialog>
+    <Dialog v-model:visible="propertiesOpen" modal header="Measurement properties" class="workspace-dialog measurement-properties-dialog" :closable="!busy" :close-on-escape="!busy">
+      <form @submit.prevent="saveProperties">
+        <p v-if="state?.detail" class="dialog-intro">{{ state.detail.info.note }}</p>
+        <label class="field">Description / remarks<textarea v-model="properties.description" :disabled="busy" rows="3" /></label>
+        <div class="measurement-properties-fields">
+          <label v-for="(link, index) in properties.links" :key="index" class="field">{{ link.label }} · Schedule code {{ index + 1 }}
+            <div class="file-input"><input v-model="link.code" :aria-label="'Property schedule code ' + (index + 1)" :disabled="busy" />
+              <button type="button" class="icon-button" :aria-label="'Choose property schedule item ' + (index + 1)" @click="showLinkPicker(index)"><AppIcon name="search" /></button>
+              <button type="button" class="icon-button" :aria-label="'Clear property schedule link ' + (index + 1)" @click="link.code = ''"><AppIcon name="close" /></button></div>
+            <input v-model="link.remark" :aria-label="'Property item remark ' + (index + 1)" placeholder="Item remark / column label" :disabled="busy" />
+          </label>
+        </div>
+        <p v-if="state?.detail?.property_groups.length" class="field-hint">Numeric constants accept arithmetic; saving stores the evaluated number.</p>
+        <div class="measurement-property-groups">
+          <fieldset v-for="group in state?.detail?.property_groups || []" :key="group.label"><legend>{{ group.label }}</legend>
+            <label v-for="field in group.fields" :key="field.index" class="field">{{ field.label }}<input v-model="properties.user_data[Number(field.index)]" :aria-label="field.caption" :inputmode="field.numeric ? 'decimal' : 'text'" :disabled="busy" /></label>
+          </fieldset>
+        </div>
+        <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
+        <div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="propertiesOpen = false">Cancel</button><button class="button primary" :disabled="busy">Save properties</button></div>
+      </form>
+    </Dialog>
+    <Dialog v-model:visible="pickerOpen" modal header="Choose schedule item" class="workspace-dialog resource-dialog">
+      <form class="search-field" @submit.prevent="pickerPage = 0; searchLinks()"><input v-model="pickerQuery" aria-label="Find linked schedule item" placeholder="Code or description…" /><button class="button small secondary" :disabled="pickerBusy">Search</button></form>
+      <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
+      <div class="library-results">
+        <button v-for="item in pickerItems" :key="item.code" class="library-item" :disabled="pickerBusy" :title="item.description" @click="chooseLink(item.code)"><span><b>{{ item.code }}</b><small>{{ item.description }}</small></span><span>{{ item.unit }}</span></button>
+        <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
+      </div>
+      <div class="pagination"><button class="text-button" :disabled="pickerBusy || !pickerPage" @click="pickerPage--; searchLinks()">Previous</button><span>Page {{ pickerPage + 1 }}</span><button class="text-button" :disabled="pickerBusy || pickerItems.length < 100" @click="pickerPage++; searchLinks()">Next</button></div>
+    </Dialog>
     <Dialog
       v-model:visible="formOpen"
       modal
-      :header="formMode === 'duplicate' ? 'Duplicate item' : 'Add item'"
+      :header="formMode === 'duplicate' ? 'Duplicate item' : formMode === 'edit' ? 'Edit item' : 'Add item'"
       class="workspace-dialog resource-dialog"
       ><form @submit.prevent="submit">
         <template v-if="isMeasurement"
@@ -1144,9 +1350,9 @@ watch(
                 :key="template.code"
                 :value="template.code"
               >
-                {{ template.name }}
+                {{ template.label }}
               </option>
-            </select></label
+            </select><small v-if="templateInfo">{{ templateInfo.summary }} {{ templateInfo.note }}<br />Inputs: {{ templateInfo.inputs.join(', ') }} · {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? 'quantity' : 'quantities' }}</small></label
           ><label class="field"
             >Description / remarks<textarea
               v-model="form.description"
@@ -1155,12 +1361,11 @@ watch(
         ></template>
         <template v-else
           ><label class="field"
-            >New code<input v-model="form.code" required /></label
-          ><template v-if="formMode === 'add'"
+            >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small v-if="formMode === 'add'">Suggested using the GTK numbering rules. Edit it, or leave blank to generate a code when inserting.</small></label
+          ><template v-if="formMode !== 'duplicate'"
             ><label class="field"
               >Description<textarea
                 v-model="form.description"
-                required
                 rows="3"
               />
             </label>
@@ -1199,7 +1404,7 @@ watch(
           >
             Cancel</button
           ><button class="button primary" :disabled="busy">
-            {{ formMode === "duplicate" ? "Duplicate" : "Add item" }}
+            {{ formMode === "duplicate" ? "Duplicate" : formMode === 'edit' ? 'Save item' : "Add item" }}
           </button>
         </div>
       </form></Dialog

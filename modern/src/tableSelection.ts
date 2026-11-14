@@ -6,10 +6,11 @@ export function resetTablePosition(table: Tabulator, row?: RowComponent) {
   if (row) positions.set(table, { anchor: id(row), focus: id(row) });
   else positions.delete(table);
 }
-export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boolean) {
+export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boolean, tree = true) {
   if (busy || event.defaultPrevented || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return false;
   const selectAll = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a";
-  if (!selectAll && !["Escape", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return false;
+  if (!tree && ["ArrowLeft", "ArrowRight"].includes(event.key)) return false;
+  if (!selectAll && !["Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return false;
   if (event.altKey || (!selectAll && (event.ctrlKey || event.metaKey))) return false;
   event.preventDefault();
   event.stopPropagation();
@@ -17,7 +18,7 @@ export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boo
   function flatten(values: RowComponent[]) {
     for (const row of values) {
       rows.push(row);
-      if (row.isTreeExpanded()) flatten(row.getTreeChildren() || []);
+      if (tree && row.isTreeExpanded()) flatten(row.getTreeChildren() || []);
     }
   }
   flatten(table.getRows());
@@ -28,6 +29,17 @@ export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boo
   const previous = positions.get(table);
   const currentId = previous?.focus || (selected.length ? id(selected[selected.length - 1]!) : "");
   const index = rows.findIndex(row => id(row) === currentId);
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    const current = rows[index];
+    if (!current) return true;
+    if (event.key === "ArrowRight" && current.getTreeChildren().length) current.treeExpand();
+    else if (event.key === "ArrowLeft" && current.isTreeExpanded() && current.getTreeChildren().length) current.treeCollapse();
+    else if (event.key === "ArrowLeft") {
+      const parent = current.getTreeParent();
+      if (parent) { table.deselectRow(); parent.select(); resetTablePosition(table, parent); }
+    }
+    return true;
+  }
   const next = event.key === "Home" ? 0 : event.key === "End" ? rows.length - 1
     : index < 0 ? (event.key === "ArrowUp" ? rows.length - 1 : 0)
     : Math.max(0, Math.min(rows.length - 1, index + (event.key === "ArrowUp" ? -1 : 1)));

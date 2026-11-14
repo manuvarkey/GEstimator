@@ -24,7 +24,7 @@ export async function pasteRows(kind: ClipboardKind, params: Record<string, unkn
     data = fallback.data;
   }
   // A readable clipboard always wins. Never silently paste stale local rows over text.
-  return request<{ ok: boolean; unlinked?: number }>("clipboard.paste", { ...requestParams, kind, data });
+  return request<{ ok: boolean; unlinked?: number; selected?: string[]; selected_records?: string[]; record_offset?: number }>("clipboard.paste", { ...requestParams, kind, data });
 }
 export function isRowClipboard(data: string) {
   try { return JSON.parse(data)?.format === "org.gestimator.rows"; }

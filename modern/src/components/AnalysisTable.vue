@@ -39,6 +39,14 @@ function traverse(rows: RowComponent[], expanded: boolean) {
     traverse(row.getTreeChildren() || [], expanded);
   }
 }
+function keyboard(event: KeyboardEvent) {
+  if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
+  if (tableSelection(event, table, props.busy)) return;
+  if (event.key === "F2" && table.getSelectedRows().length === 1) {
+    event.preventDefault(); event.stopPropagation();
+    table.getSelectedRows()[0]!.getCell("description").edit();
+  }
+}
 watch(
   () => props.rows,
   async (rows) => {
@@ -178,7 +186,7 @@ onMounted(() => {
   table.on("rowSelectionChanged", (data) =>
     emit("selection", data as AnalysisRow[]),
   );
-  table.on("cellClick", (_event, cell) => resetTablePosition(table, cell.getRow()));
+  table.on("cellClick", (event, cell) => { if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
   table.on("cellEdited", (cell) =>
     emit(
       "edit",
@@ -205,6 +213,6 @@ onBeforeUnmount(() => {
     :aria-busy="busy"
     aria-label="Rate analysis table"
     tabindex="0"
-    @keydown.capture="table && tableSelection($event, table, busy)"
+    @keydown.capture="keyboard"
   />
 </template>

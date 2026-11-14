@@ -14,6 +14,8 @@ const props = defineProps<{
   busy: boolean;
   tree?: boolean;
   label?: string;
+  selectIds?: string[];
+  actions?: { label: string; action: string; itemOnly?: boolean; single?: boolean }[];
 }>();
 const emit = defineEmits<{
   selection: [rows: { id: string; [key: string]: any }[]];
@@ -21,6 +23,7 @@ const emit = defineEmits<{
   edit: [row: { id: string; [key: string]: any }, field: string, value: string];
   activate: [row: { id: string; [key: string]: any }];
   pasteRows: [data: string];
+  action: [operation: string];
 }>();
 const element = ref<HTMLDivElement>();
 let table: Tabulator;
@@ -28,9 +31,20 @@ let ready: Promise<void>;
 let alive = true;
 let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
+defineExpose({ focus: () => element.value?.focus() });
 function keyboard(event: KeyboardEvent) {
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
-  if (tableSelection(event, table, props.busy)) return;
+  if (tableSelection(event, table, props.busy, !!props.tree)) return;
+  if (event.key === "F2") {
+    const anchored = anchor ? table.getRow(anchor.id) : undefined;
+    const row = anchored && anchored.isSelected() ? anchored : table.getSelectedRows()[0];
+    if (row) {
+      const cells = row.getCells();
+      const cell = anchor && row.getData().id === anchor.id ? row.getCell(anchor.field) : cells.find(cell => cell.getField() === "description") || cells.find(cell => !!cell.getColumn().getDefinition().editor);
+      if (cell) { event.preventDefault(); event.stopPropagation(); cell.edit(); }
+    }
+    return;
+  }
   if (event.key === "Enter" && !event.ctrlKey && !event.metaKey && !event.altKey && table.getSelectedRows().length === 1) {
     event.preventDefault();
     event.stopPropagation();
@@ -59,7 +73,7 @@ function paste(event: ClipboardEvent) {
   const flatten = (values: any[]) => {
     for (const row of values) {
       rows.push(row);
-      if (row.isTreeExpanded()) flatten(row.getTreeChildren() || []);
+      if (props.tree && row.isTreeExpanded()) flatten(row.getTreeChildren() || []);
     }
   };
   flatten(table.getRows());
@@ -108,37 +122,39 @@ function paste(event: ClipboardEvent) {
 }
 
 watch(
-  () => props.rows,
-  async (rows) => {
+  [() => props.rows, () => props.columns, () => props.selectIds],
+  async ([rows, columns, selectIds], [, previousColumns, previousIds]) => {
     await ready;
     if (!alive) return;
-    const ids = new Set(table.getSelectedData().map((r) => r.id));
+    const ids = new Set(selectIds !== previousIds ? selectIds : table.getSelectedData().map((r) => r.id));
+    const expansion = new Map<string, boolean>();
+    const remember = (rows: RowComponent[]) => { for (const row of rows) { expansion.set(row.getData().id, row.isTreeExpanded()); if (props.tree) remember(row.getTreeChildren()); } };
+    if (props.tree) remember(table.getRows());
     replacingRows = true;
     try {
+      if (JSON.stringify(columns) !== JSON.stringify(previousColumns)) table.setColumns(columns);
       await table.replaceData(rows);
       const restoreSelection = (rows: RowComponent[]) => {
         for (const row of rows) {
-          if (!ids.size) break;
           if (ids.delete(row.getData().id)) row.select();
-          if (props.tree) restoreSelection(row.getTreeChildren());
+          if (props.tree) {
+            if (expansion.get(row.getData().id) === false) row.treeCollapse();
+            restoreSelection(row.getTreeChildren());
+          }
         }
       };
       if (alive) restoreSelection(table.getRows());
+      if (alive && selectIds !== previousIds) {
+        for (const row of table.getSelectedRows()) {
+          if (props.tree) { let parent = row.getTreeParent(); while (parent) { parent.treeExpand(); parent = parent.getTreeParent(); } }
+        }
+        const selected = table.getSelectedRows();
+        if (selected.length) void selected[0]!.scrollTo("nearest", false).catch(() => {});
+      }
     } finally {
       replacingRows = false;
     }
     if (alive) emit("selection", table.getSelectedData());
-  },
-);
-watch(
-  () => props.columns,
-  async (columns, previous) => {
-    if (JSON.stringify(columns) === JSON.stringify(previous)) return;
-    await ready;
-    if (alive) {
-      table.setColumns(columns);
-      await table.replaceData(props.rows);
-    }
   },
 );
 onMounted(() => {
@@ -153,6 +169,13 @@ onMounted(() => {
     selectableRowsRangeMode: "click",
     editTriggerEvent: "dblclick",
     clipboard: false,
+    rowContextMenu: (_event, row) => {
+      if (props.busy || !props.actions?.length) return [];
+      if (!row.isSelected()) { table.deselectRow(); row.select(); }
+      const selected = table.getSelectedData();
+      return props.actions.filter(item => (!item.single || selected.length === 1) && (!item.itemOnly || selected.every(row => row.rowtype !== "Category")))
+        .map(item => ({ label: item.label, action: () => emit("action", item.action) }));
+    },
     columnDefaults: {
       headerSort: false,
       resizable: true,
@@ -191,9 +214,9 @@ onMounted(() => {
   );
   element.value!.tabIndex = 0;
   element.value!.addEventListener("paste", paste);
-  table.on("cellClick", (_event, cell) => {
+  table.on("cellClick", (event, cell) => {
     anchor = { id: cell.getData().id, field: cell.getField() };
-    resetTablePosition(table, cell.getRow());
+    if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow());
   });
   table.on("rowSelectionChanged", (rows) => {
     if (!replacingRows) emit("selection", rows);

@@ -380,6 +380,16 @@ function keyboard(event: KeyboardEvent) {
     }
     return;
   }
+  if (mod && event.key === "Enter") {
+    event.preventDefault();
+    if (canEdit.value && state.value?.project) void w.command("analysis.apply");
+    return;
+  }
+  if (mod && event.key === "Escape" && state.value?.project && state.value.dirty) {
+    event.preventDefault();
+    void navigate(async () => { await w.load(state.value!.code, true); });
+    return;
+  }
   if (mod && ["z", "y", "c", "v", "d"].includes(key)) {
     event.preventDefault();
     if (!canEdit.value) return;
@@ -819,7 +829,7 @@ onBeforeUnmount(() => {
             <button
               class="ribbon-action"
               aria-label="Apply analysis"
-              title="Apply this draft to the project working copy and update dependent rates. Save the project to keep the changes on disk."
+              title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Save the project to keep the changes on disk."
               :disabled="!canEdit || !state?.project"
               @click="w.command('analysis.apply')"
             >
@@ -1624,6 +1634,11 @@ onBeforeUnmount(() => {
           ['Add schedule subitem / custom analysis resource', 'Ctrl / ⌘ + Shift + I'],
           ['Open selected schedule analysis', 'Ctrl / ⌘ + E or Enter'],
           ['Colour selected schedule items', 'Ctrl / ⌘ + M'],
+          ['Edit resource / Measurement properties', 'Ctrl / ⌘ + E'],
+          ['Browse attached schedule / resource library', 'Ctrl / ⌘ + L'],
+          ['Edit selected cell', 'F2'],
+          ['Expand / collapse table group', 'Right / Left'],
+          ['Apply analysis / Confirm draft discard', 'Ctrl / ⌘ + Enter / Escape'],
           ['Duplicate selected rows', 'Ctrl / ⌘ + D'],
           ['Delete selected rows', 'Delete'],
           ['Navigate editable cells', 'Tab / Shift + Tab'],

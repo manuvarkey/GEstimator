@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import sqlite3
 from uuid import uuid4
+from peewee import fn
 from estimator import misc
 from estimator.data import measurement
 from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
@@ -37,8 +38,8 @@ class ProjectEditor:
     def db(self):
         return self.owner.db
 
-    def ensure_ids(self):
-        items = self.db.get_measurement().items
+    def ensure_ids(self, meas=None):
+        items = (meas if meas is not None else self.db.get_measurement()).items
         while len(self.ids) < len(items):
             self.ids.append(uuid4().hex)
         self.ids = self.ids[: len(items)]
@@ -241,9 +242,23 @@ class ProjectEditor:
                 | table.description.contains(query)
                 | category.description.contains(query)
             )
-            .order_by(category.order, table.order, table.id)
+            .order_by(category.order, table.order, *([] if resource else [table.suborder]), table.id)
         )
         total = records.count()
+        if p.get("reveal_id"):
+            revealed = table.get_or_none(table.id == int(p["reveal_id"]))
+            if revealed is None:
+                raise ValueError("Inserted row is no longer available")
+            keys = [(category.order, revealed.category.order), (table.order, revealed.order)]
+            if not resource:
+                keys.append((fn.COALESCE(table.suborder, -1), revealed.suborder if revealed.suborder is not None else -1))
+            keys.append((table.id, revealed.id))
+            earlier, equal = None, None
+            for field, value in keys:
+                less = field < value
+                earlier = (earlier | (equal & less)) if earlier is not None else less
+                equal = (equal & (field == value)) if equal is not None else field == value
+            offset = records.where(earlier).count() // limit * limit
         values = list(records.offset(offset).limit(limit))
         nodes = {}
         categories = {}
@@ -687,6 +702,9 @@ class ProjectEditor:
                 renamed[code] = item.code
         imported = 0
         modified_rates = {}
+        from .insertion import prepare, place
+        target = dict(ids=params.get("target_ids", []), destination=not categories)
+        inserted_codes = []
         for index, row in enumerate(records):
             if index % 100 == 0:
                 progress("Importing library items: " + str(index + 1))
@@ -694,6 +712,7 @@ class ProjectEditor:
                 item = source.get_resource(row.code, modify_code=bool(prefix))
                 if self.db.get_resource(item.code):
                     continue
+                prepare(self, kind, item, target)
                 if not self.db.insert_resource(item):
                     raise ValueError("Unable to import resource")
             else:
@@ -721,9 +740,12 @@ class ProjectEditor:
                 item.parent = renamed.get(item.parent)
                 if modify:
                     modified_rates[item.code] = item.rate
-                if not self.db.insert_item(item):
+                prepare(self, kind, item, target)
+                if not self.insert_schedule_item(item):
                     raise ValueError("Unable to import schedule item")
+            inserted_codes.append(item.code)
             imported += 1
+        place(self, kind, inserted_codes, target)
         if renamed:
             self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
         # GTK Modify & Add retains the selected library item's multiplied stored rate,
@@ -744,10 +766,13 @@ class ProjectEditor:
             return preview(p)
         if method.endswith(".state") and not method.startswith("measurement."):
             return self.state(method.split(".")[0], p)
-        if method == "measurement.state":
-            return self.measurement_state(p)
+        if method in ("measurement.state", "measurement.detail"):
+            return self.measurement_state(p, detail_only=method.endswith("detail"))
         if method == "measurement.templates":
             return self.templates()
+        if method in ("schedule.editor.defaults", "resources.editor.defaults"):
+            from .insertion import defaults
+            return defaults(self, method.split(".")[0], p)
         if method == "resources.editor.usage":
             return self.resource_usage(p)
         if method == "resources.editor.dependents":
@@ -769,6 +794,9 @@ class ProjectEditor:
             edits = p.get("edits", [])
             if not isinstance(edits, list) or not 1 <= len(edits) <= 1000:
                 raise ValueError("Paste between 1 and 1000 editable cells")
+            if method == "measurement.record_edit_many":
+                self.mutate(lambda: self.measurement_record_batch(p, edits))
+                return dict(ok=True)
 
             def apply_cells():
                 for index, edit in enumerate(edits):
@@ -851,6 +879,20 @@ class ProjectEditor:
         resource = kind == "resources"
         table = db.ResourceTable if resource else db.ScheduleTable
         category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
+        if resource and op == "move_to":
+            _, records = self.selection(kind, p.get("ids"), include_descendants=False)
+            destination = category.get_or_none(category.description == text(p.get("category", "")))
+            if not records or destination is None:
+                raise ValueError("Select resources and an existing destination category")
+            records.sort(key=lambda row: (row.category.order, row.order, row.id))
+            previous = {row.category_id for row in records}
+            table.update(category=destination.id).where(table.id.in_([row.id for row in records])).execute()
+            from .insertion import place
+            place(self, kind, [row.code for row in records], dict(id="cat:" + str(destination.id)))
+            for category_id in previous - {destination.id}:
+                for order, row in enumerate(table.select().where(table.category == category_id).order_by(table.order, table.id)):
+                    table.update(order=order).where(table.id == row.id).execute()
+            return dict(selected=[str(row.id) for row in records])
         if not resource and op == "renumber":
             return self.renumber_schedule()
         if not resource and op in ("colour", "update_quantities", "update_rates"):
@@ -905,6 +947,7 @@ class ProjectEditor:
         if op == "paste":
             if not self.clipboard or self.clipboard[0] != kind:
                 raise ValueError("Copy items from this editor first")
+            from .insertion import prepare, place
             renamed = {}
             for original in self.clipboard[1]:
                 item = copy.deepcopy(original)
@@ -921,10 +964,12 @@ class ProjectEditor:
                 item.code = code
                 if not resource and item.parent in renamed:
                     item.parent = renamed[item.parent]
+                prepare(self, kind, item, dict(p, destination=not p.get("preserve_categories")))
                 method = db.insert_resource if resource else self.insert_schedule_item
                 if not method(item):
                     raise ValueError("Unable to paste item")
-            return
+            place(self, kind, list(renamed.values()), p)
+            return dict(selected=[str(table.get(code=code).id) for code in renamed.values()])
         if op == "delete_many":
             return self.delete_selection(kind, p)
         if op == "category_add":
@@ -975,8 +1020,9 @@ class ProjectEditor:
         if op == "delete":
             return self.delete_selection(kind, dict(p, ids=[identity]))
         if op in ("add", "duplicate"):
+            from .insertion import defaults, prepare, place
             data = p.get("data", {})
-            code = text(data["code"])
+            code = text(data.get("code", "")) or defaults(self, kind, dict(p, category=data.get("category"), parent=data.get("parent")))["code"]
             if not code or table.select().where(table.code == code).exists():
                 raise ValueError("Choose a new code")
             if op == "duplicate" and row:
@@ -1011,9 +1057,11 @@ class ProjectEditor:
                     parent=parent,
                 )
             method = db.insert_resource if resource else self.insert_schedule_item
+            prepare(self, kind, item, p)
             if not method(item):
                 raise ValueError("Item could not be inserted")
-            return
+            place(self, kind, [item.code], p)
+            return dict(selected=[str(table.get(code=item.code).id)])
         if op == "move":
             delta = p["delta"]
             if type(delta) is not int or delta not in (-1, 1):
@@ -1125,27 +1173,25 @@ class ProjectEditor:
             self.owner.update_dependent_rates(db, resources={row.code})
 
     def templates(self):
-        rows = []
-        for path in sorted(Path(misc.abs_path("meas_templates")).glob("*.py")):
-            if path.stem == "__init__":
-                continue
-            item = measurement.MeasurementItemCustom(plugin=path.stem)
-            rows.append(dict(code=path.stem, name=item.name))
-        return rows
+        from .measurement_templates import catalog
+        return catalog()
 
-    def measurement_state(self, p):
-        self.ensure_ids()
+    def measurement_state(self, p, detail_only=False):
+        from .measurement_templates import metadata, column_title, link_label, property_groups
         meas = self.db.get_measurement()
+        self.ensure_ids(meas)
         rows = []
-        for identity, item in zip(self.ids, meas.items):
+        totals = {}
+        for identity, item in ([] if detail_only else zip(self.ids, meas.items)):
             heading = isinstance(item, measurement.MeasurementItemHeading)
+            totals[identity] = [] if heading else [str(v) for v in item.get_total()]
             rows.append(
                 dict(
                     id=identity,
                     description=item.remark,
                     type="Heading" if heading else item.name,
                     totals=(
-                        "" if heading else ", ".join(str(v) for v in item.get_total())
+                        ", ".join(totals[identity])
                     ),
                     count=len(item.records),
                 )
@@ -1156,13 +1202,20 @@ class ProjectEditor:
             item = meas.items[index]
             heading = isinstance(item, measurement.MeasurementItemHeading)
             if not heading:
+                offset, limit = p.get("record_offset", 0), p.get("record_limit", 100)
+                if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 200:
+                    raise ValueError("Invalid measurement record page")
+                offset = min(offset, max(0, (len(item.records) - 1) // limit * limit))
+                linked = {row.id: row for row in self.db.ScheduleTable.select().where(self.db.ScheduleTable.id.in_([key for key in item.itemnos if key is not None]))}
                 detail = dict(
                     id=p["id"],
                     description=item.remark,
                     template=item.itemtype,
+                    info=metadata(item), offset=offset, total_records=len(item.records),
+                    property_groups=property_groups(item),
                     columns=[
                         dict(
-                            title=cap, field="c" + str(i), editable=t != misc.MEAS_CUST,
+                            title=column_title(item, i), field="c" + str(i), editable=t != misc.MEAS_CUST,
                             width=item.dimensions[0][i],
                             expand=bool(item.dimensions[1][i]),
                             numeric=t in (misc.MEAS_L, misc.MEAS_NO),
@@ -1182,34 +1235,32 @@ class ProjectEditor:
                             }
                         )
                         for n, (identity, record) in enumerate(
-                            zip(self.record_ids[p["id"]], item.records)
+                            zip(self.record_ids[p["id"]][offset:offset + limit], item.records[offset:offset + limit]), start=offset
                         )
                     ],
                     links=[
                         dict(
-                            code=(
-                                (self.db.get_item_code(key) or "")
-                                if key is not None
-                                else ""
-                            ),
-                            missing=key is not None
-                            and self.db.get_item_code(key) is None,
+                            code=linked[key].code if key in linked else "",
+                            description=linked[key].description if key in linked else "",
+                            unit=linked[key].unit if key in linked else "",
+                            label=link_label(item, index),
+                            missing=key is not None and key not in linked,
                             remark=remark,
                         )
-                        for key, remark in zip(item.itemnos, item.item_remarks)
+                        for index, (key, remark) in enumerate(zip(item.itemnos, item.item_remarks))
                     ],
                     user_data=[
                         dict(caption=cap, value=str(value), numeric=kind in (misc.MEAS_L, misc.MEAS_NO))
                         for cap, value, kind in zip(item.captions_udata, item.user_data, item.columntypes_udata)
                     ],
-                    totals=[str(v) for v in item.get_total()],
+                    totals=totals.get(p["id"]) or [str(v) for v in item.get_total()],
                 )
                 # Raw editable strings preserve measurement expressions and description text.
-                for row, record in zip(detail["rows"], item.records):
+                for row, record in zip(detail["rows"], item.records[offset:offset + limit]):
                     for i, t in enumerate(item.columntypes):
                         if t != misc.MEAS_CUST:
                             row["c" + str(i)] = record.data_string[i]
-        return dict(
+        result = dict(
             rows=rows,
             detail=detail,
             caption=meas.caption,
@@ -1217,12 +1268,43 @@ class ProjectEditor:
             undo=bool(self.history),
             redo=bool(self.future),
         )
+        if detail_only:
+            result.pop("rows")
+        return result
+
+    def measurement_record_batch(self, p, edits):
+        meas = self.db.get_measurement()
+        self.ensure_ids(meas)
+        if p.get("id") not in self.ids:
+            raise ValueError("Select a measurement item")
+        item = meas.items[self.ids.index(p["id"])]
+        if not isinstance(item, measurement.MeasurementItemCustom):
+            raise ValueError("Select a custom measurement item")
+        indexes = {identity: index for index, identity in enumerate(self.record_ids[p["id"]])}
+        values = {}
+        for edit in edits:
+            if not isinstance(edit, dict) or edit.get("id") not in indexes:
+                raise ValueError("Select an existing measurement record")
+            index, field = indexes[edit["id"]], edit.get("field", "")
+            column = int(field[1:]) if isinstance(field, str) and re.fullmatch(r"c\d+", field) else -1
+            if not 0 <= column < item.model_width() or item.columntypes[column] == misc.MEAS_CUST:
+                raise ValueError("Cell is not editable")
+            value = text(edit["value"])
+            if value and item.columntypes[column] in (misc.MEAS_L, misc.MEAS_NO):
+                decimal(value)
+            if index not in values:
+                values[index] = list(item.records[index].data_string)
+            values[index][column] = value
+        for index, raw in values.items():
+            item.records[index] = measurement.RecordCustom(raw, item.cust_funcs, item.total_func_item, item.columntypes)
+        self.db.set_measurement(meas)
 
     def measurement_edit(self, op, p):
         meas = self.db.get_measurement()
-        self.ensure_ids()
+        self.ensure_ids(meas)
         index = self.ids.index(p["id"]) if p.get("id") in self.ids else None
         item = meas.items[index] if index is not None else None
+        result = {}
         if op in ("copy", "duplicate", "delete", "move"):
             ids = p.get("ids", [p.get("id")])
             if not isinstance(ids, list) or not ids or any(
@@ -1254,7 +1336,7 @@ class ProjectEditor:
                         meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
                         self.ids[position], self.ids[other] = self.ids[other], self.ids[position]
             self.db.set_measurement(meas)
-            self.ensure_ids()
+            self.ensure_ids(meas)
             return
         if op == "paste":
             if not self.clipboard or self.clipboard[0] != "measurement":
@@ -1263,6 +1345,7 @@ class ProjectEditor:
             for offset, copied in enumerate(self.clipboard[1]):
                 meas.insert_item(pos + offset, copy.deepcopy(copied))
                 self.ids.insert(pos + offset, uuid4().hex)
+            result = dict(selected=self.ids[pos:pos + len(self.clipboard[1])])
         elif op == "caption":
             meas.caption = text(p["value"])
         elif op == "add":
@@ -1278,6 +1361,23 @@ class ProjectEditor:
             pos = index + 1 if index is not None else 0
             meas.insert_item(pos, new)
             self.ids.insert(pos, uuid4().hex)
+            result = dict(selected=[self.ids[pos]])
+        elif op == "properties":
+            if item is None:
+                raise ValueError("Select a measurement item")
+            item.remark = text(p.get("description", item.remark))
+            if isinstance(item, measurement.MeasurementItemCustom):
+                links, user_data = p.get("links"), p.get("user_data")
+                if not isinstance(links, list) or len(links) != len(item.itemnos) or not isinstance(user_data, list) or len(user_data) != len(item.user_data):
+                    raise ValueError("Properties do not match the measurement template")
+                for slot, link in enumerate(links):
+                    code = text(link["code"])
+                    key = self.db.get_item_key(code) if code else None
+                    if code and key is None:
+                        raise ValueError("Schedule code not found: " + code)
+                    item.itemnos[slot], item.item_remarks[slot] = key, text(link["remark"])
+                item.user_data = [str(decimal(text(value))) if kind in (misc.MEAS_L, misc.MEAS_NO) else text(value)
+                                  for value, kind in zip(user_data, item.columntypes_udata)]
         elif op == "edit":
             if item is None:
                 raise ValueError("Select a measurement item")
@@ -1306,7 +1406,7 @@ class ProjectEditor:
                 raise ValueError("Invalid user-data slot")
             value = text(p["value"])
             if item.columntypes_udata[slot] in (misc.MEAS_L, misc.MEAS_NO):
-                decimal(value)
+                value = str(decimal(value))
             item.user_data[slot] = value
         elif op == "update_quantities":
             self.db.update_qty(rounding=p.get("rounding", "Round to .000"))
@@ -1318,6 +1418,32 @@ class ProjectEditor:
             record_index = (
                 ids.index(p["record_id"]) if p.get("record_id") in ids else None
             )
+            selection = p.get("record_ids")
+            if selection:
+                if not isinstance(selection, list) or len(selection) > 1000 or any(identity not in ids for identity in selection):
+                    raise ValueError("Select existing measurement records")
+                indexes = [index for index, identity in enumerate(ids) if identity in selection]
+                record_index = indexes[-1]
+                if op in ("record_delete", "record_duplicate", "record_move"):
+                    if op == "record_delete":
+                        for index in reversed(indexes):
+                            item.remove_record(index)
+                            ids.pop(index)
+                    elif op == "record_duplicate":
+                        pos = indexes[-1] + 1
+                        item.records[pos:pos] = [copy.deepcopy(item.records[index]) for index in indexes]
+                        ids[pos:pos] = [uuid4().hex for _ in indexes]
+                    else:
+                        delta = p.get("delta")
+                        if type(delta) is not int or delta not in (-1, 1):
+                            raise ValueError("Invalid move")
+                        for index in indexes if delta < 0 else reversed(indexes):
+                            other = index + delta
+                            if 0 <= other < len(ids) and ids[other] not in selection:
+                                item.records[index], item.records[other] = item.records[other], item.records[index]
+                                ids[index], ids[other] = ids[other], ids[index]
+                    self.db.set_measurement(meas)
+                    return
             if op == "record_copy":
                 if record_index is None:
                     raise ValueError("Select a record")
@@ -1364,17 +1490,16 @@ class ProjectEditor:
                 pos = (
                     record_index + 1 if record_index is not None else len(item.records)
                 )
-                item.insert_record(
-                    pos,
-                    measurement.RecordCustom(
-                        copy.deepcopy(self.clipboard[2]),
-                        item.cust_funcs,
-                        item.total_func_item,
-                        item.columntypes,
-                    ),
-                )
-                ids.insert(pos, uuid4().hex)
+                records = self.clipboard[2] if len(self.clipboard) == 4 else [self.clipboard[2]]
+                item.records[pos:pos] = [measurement.RecordCustom(copy.deepcopy(raw), item.cust_funcs, item.total_func_item, item.columntypes) for raw in records]
+                ids[pos:pos] = [uuid4().hex for _ in records]
+                result = dict(selected_records=ids[pos:pos + len(records)], record_offset=pos // 100 * 100)
             elif op in ("record_add", "record_duplicate"):
+                count = p.get("count", 1) if op == "record_add" else 1
+                if type(count) is not int or not 1 <= count <= 1000:
+                    raise ValueError("Insert between 1 and 1000 records")
+                if op == "record_duplicate" and record_index is None:
+                    raise ValueError("Select a record")
                 values = (
                     [""] * item.model_width()
                     if op == "record_add"
@@ -1383,13 +1508,9 @@ class ProjectEditor:
                 pos = (
                     record_index + 1 if record_index is not None else len(item.records)
                 )
-                item.insert_record(
-                    pos,
-                    measurement.RecordCustom(
-                        values, item.cust_funcs, item.total_func_item, item.columntypes
-                    ),
-                )
-                ids.insert(pos, uuid4().hex)
+                item.records[pos:pos] = [measurement.RecordCustom(list(values), item.cust_funcs, item.total_func_item, item.columntypes) for _ in range(count)]
+                ids[pos:pos] = [uuid4().hex for _ in range(count)]
+                result = dict(selected_records=ids[pos:pos + count], record_offset=pos // 100 * 100)
             elif op == "record_delete":
                 if record_index is None:
                     raise ValueError("Select a record")
@@ -1436,7 +1557,8 @@ class ProjectEditor:
         else:
             raise ValueError("Unknown measurement operation")
         self.db.set_measurement(meas)
-        self.ensure_ids()
+        self.ensure_ids(meas)
+        return result
 
     def export(self, p, progress):
         destination = Path(text(p["path"])).resolve()
