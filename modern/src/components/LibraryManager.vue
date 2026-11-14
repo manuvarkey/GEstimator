@@ -1,0 +1,58 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import Dialog from "primevue/dialog";
+import { open } from "@tauri-apps/plugin-dialog";
+import { attachLibrary, forgetLibrary, savedLibraries, libraryStorageError } from "../libraryPreferences";
+
+defineProps<{ projectOpen: boolean }>();
+const visible = defineModel<boolean>({ required: true });
+const emit = defineEmits<{ changed: [] }>();
+const path = ref("");
+const remember = ref(true);
+const busy = ref(false);
+const error = ref("");
+async function attach(value = path.value, close = true) {
+  if (busy.value) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    await attachLibrary(value, remember.value);
+    emit("changed");
+    if (close) visible.value = false;
+  } catch (failure) { error.value = String(failure); }
+  finally { busy.value = false; }
+}
+async function browse() {
+  try {
+    const selected = await open({ multiple: false, filters: [{ name: "GEstimator library", extensions: ["eproj"] }] });
+    if (typeof selected === "string") path.value = selected;
+  } catch (failure) { error.value = String(failure); }
+}
+</script>
+
+<template>
+  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy">
+    <p class="dialog-intro">Browse an external project as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
+    <label class="field">Library project
+      <div class="file-input"><input v-model="path" aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" />
+        <button class="button secondary" :disabled="busy" @click="browse">Browse</button></div>
+    </label>
+    <label class="library-remember"><input v-model="remember" type="checkbox" :disabled="busy" />Remember for future projects</label>
+    <p v-if="!projectOpen" class="field-hint">Open or create a project to attach libraries. Saved entries can be managed here at any time.</p>
+    <div v-if="savedLibraries.length" class="saved-libraries" aria-label="Saved libraries">
+      <h3>Saved libraries</h3>
+      <p class="field-hint">Reopened automatically with each project. Forget removes the saved path; an already attached snapshot remains available until the project closes.</p>
+      <div v-for="library in savedLibraries" :key="library.path" class="saved-library">
+        <strong>{{ library.name }}</strong><code>{{ library.path }}</code>
+        <p v-if="library.error" class="dialog-error" role="status">Unavailable: {{ library.error }}</p>
+        <div class="project-tools">
+          <button class="button small secondary" :disabled="busy || !projectOpen" :aria-label="'Retry library ' + library.name" @click="attach(library.path, false)">Attach / retry</button>
+          <button class="button small secondary" :disabled="busy" :aria-label="'Forget library ' + library.name" @click="forgetLibrary(library.path)">Forget</button>
+        </div>
+      </div>
+    </div>
+    <p v-if="libraryStorageError" class="dialog-error" role="status">{{ libraryStorageError }}</p>
+    <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
+    <div class="dialog-footer"><button class="button primary" :disabled="busy || !projectOpen || !path.trim()" @click="attach()">Attach library</button></div>
+  </Dialog>
+</template>

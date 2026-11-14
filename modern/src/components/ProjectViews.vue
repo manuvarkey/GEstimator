@@ -31,8 +31,10 @@ const emit = defineEmits<{
   busy: [value: boolean];
   analysis: [code: string];
   history: [state: { undo: boolean; redo: boolean }];
+  libraries: [];
 }>();
 const state = ref<GridState>();
+const emptyRows: GridRow[] = [];
 watch(
   () => [state.value?.undo, state.value?.redo],
   () =>
@@ -40,6 +42,7 @@ watch(
 );
 onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
+  reload: () => load(),
   historyAction: (method: "undo" | "redo") => command("project." + method),
   exportWorkbook: () => {
     exportOpen.value = true;
@@ -52,8 +55,6 @@ const error = ref("");
 const query = ref("");
 const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
-const libraryOpen = ref(false);
-const libraryPath = ref("");
 const usageOpen = ref(false);
 const usageCode = ref<string>();
 const priceOpen = ref(false);
@@ -221,7 +222,12 @@ const recordColumns = computed<ColumnDefinition[]>(
     state.value?.detail?.columns.map((c: any) => ({
       title: c.title,
       field: c.field,
-      minWidth: 110,
+      minWidth: c.width || 80,
+      width: c.expand ? undefined : c.width || 80,
+      widthGrow: c.expand ? 1 : 0,
+      hozAlign: c.numeric ? "right" : "left",
+      cssClass: c.editable ? "" : "measurement-derived",
+      headerTooltip: c.editable ? `${c.title}: editable measurement input` : `${c.title}: calculated by the measurement template; read-only`,
       editor: c.editable ? "textarea" : undefined,
       editable: !!c.editable,
       formatter: "textarea",
@@ -380,6 +386,7 @@ async function applyPriceUpdate() {
   }
 }
 async function select(rows: GridRow[]) {
+  if (!rows.length && !selected.value.length) return;
   selected.value = rows;
   if (isMeasurement.value && rows.length === 1 &&
       activeMeasurement.value !== rows[0].id) {
@@ -437,6 +444,7 @@ async function pasteCells(
   });
 }
 function keyboard(event: KeyboardEvent) {
+  if (event.defaultPrevented || busy.value || document.querySelector('[role="dialog"]')) return;
   if (
     (event.target as HTMLElement).closest(
       "input,textarea,select,[contenteditable=true]",
@@ -451,8 +459,26 @@ function keyboard(event: KeyboardEvent) {
       void command(
         key === "y" || event.shiftKey ? "project.redo" : "project.undo",
       );
+      return;
     }
   }
+  const target = event.target as HTMLElement;
+  if (source.value || !target.closest(".project-grid")) return;
+  const records = !!target.closest(".measurement-record-grid");
+  if (records ? !selectedRecord.value : !selected.value.length) return;
+  const duplicate = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d";
+  const remove = event.key === "Delete";
+  const delta = event.altKey && event.key === "ArrowUp" ? -1
+    : event.altKey && event.key === "ArrowDown" ? 1 : 0;
+  if (!duplicate && !remove && !delta) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (records) void recordAction(duplicate ? "duplicate" : remove ? "delete" : "move", delta || undefined);
+  else if (remove) void deleteSelection();
+  else if (duplicate) {
+    if (isMeasurement.value) void command("duplicate");
+    else if (one.value && one.value.rowtype !== "Category") showForm("duplicate");
+  } else if (isMeasurement.value || one.value) void command("move", { delta });
 }
 async function recordEdit(row: GridRow, field: string, value: string) {
   await command("record_edit", {
@@ -468,26 +494,6 @@ async function recordAction(operation: string, delta?: number) {
     record_id: selectedRecord.value?.id,
     delta,
   });
-}
-async function attachLibrary() {
-  await run(async () => {
-    libraries.value = await request("library.attach", {
-      path: libraryPath.value,
-    });
-    libraryOpen.value = false;
-    emit("changed");
-  });
-}
-async function browseLibrary() {
-  try {
-    const path = await open({
-      multiple: false,
-      filters: [{ name: "GEstimator library", extensions: ["eproj"] }],
-    });
-    if (typeof path === "string") libraryPath.value = path;
-  } catch (e) {
-    error.value = String(e);
-  }
 }
 async function previewImport() {
   await run(async () => {
@@ -594,11 +600,13 @@ watch(
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div class="view-ribbon-tools">
-          <div v-if="!isMeasurement" class="project-tools">
-            <label class="source-selector"
-              >Data source
+          <div v-if="!isMeasurement" class="ribbon-group ribbon-source-group">
+            <div class="ribbon-actions ribbon-source-actions">
+              <label class="source-selector"
+              ><span>Data source</span>
               <select
                 v-model="source"
+                aria-label="Data source"
                 :disabled="busy"
                 @change="
                   selected = [];
@@ -614,16 +622,20 @@ watch(
                 >
                   {{ library.name }} (library)
                 </option>
-              </select></label
-            ><button
-              class="button secondary"
+              </select></label>
+            <button
+              class="ribbon-action"
+              aria-label="Attach library…"
+              title="Open an external project as a read-only library snapshot for browsing and importing items."
               :disabled="busy"
-              @click="libraryOpen = true"
+              @click="emit('libraries')"
             >
-              Attach library…</button
+              <AppIcon name="attach" /><span class="ribbon-label">Attach library…</span></button
             ><button
               v-if="source"
-              class="button primary"
+              class="ribbon-action"
+              aria-label="Import selected into project"
+              title="Copy the selected library items or categories and their required resources into the working project. The library file stays unchanged."
               :disabled="busy || !selected.length"
               @click="
                 command('add_from_library', {
@@ -631,143 +643,195 @@ watch(
                 })
               "
             >
-              Import selected into project
+              <AppIcon name="import" /><span class="ribbon-label">Import selected into project</span>
             </button>
+            </div>
+            <small>DATA SOURCE</small>
           </div>
-          <div v-show="!source" class="project-tools">
+          <template v-if="!source">
+          <div class="ribbon-group">
+            <div class="ribbon-actions">
             <button
-              class="button secondary"
+              class="ribbon-action"
+              :aria-label="isMeasurement ? 'Add measurement' : 'Add item'"
+              :title="isMeasurement ? 'Add a heading or a custom measurement item using a shipped measurement template.' : 'Create an item in the current project table with its code, description and numeric fields.'"
               :disabled="busy"
               @click="showForm()"
             >
-              <AppIcon name="plus" :size="15" />{{
-                isMeasurement ? "Add measurement" : "Add item"
-              }}
+              <AppIcon name="plus" :size="15" /><span class="ribbon-label">Add item</span>
             </button>
             <button
               v-if="!isMeasurement"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Add category"
+              title="Create an empty category to organize items in the current project table."
               :disabled="busy"
               @click="categoryOpen = true"
             >
-              Add category
+              <AppIcon name="category" /><span class="ribbon-label">Add category</span>
             </button>
             <button
-              class="button secondary"
+              class="ribbon-action ribbon-icon"
+              aria-label="Duplicate"
+              title="Create a separate copy of the selected item. Measurement selections are duplicated in their current order."
               :disabled="busy || (isMeasurement ? !selected.length : !one || one.rowtype === 'Category')"
               @click="isMeasurement ? command('duplicate') : showForm('duplicate')"
             >
-              Duplicate
+              <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span>
             </button>
+            </div>
+            <small>CREATE</small>
+          </div>
+          <div class="ribbon-group">
+            <div class="ribbon-actions">
             <button
-              class="button danger"
-              :disabled="busy || !selected.length"
-              @click="deleteSelection"
-            >
-              Delete
-            </button>
-            <button
-              class="button secondary"
+              class="ribbon-action ribbon-icon"
+              aria-label="Copy"
+              title="Copy selected items or categories to the session clipboard for pasting within this application window."
               :disabled="busy || !selected.length"
               @click="command('copy', { ids: selected.map((row) => row.id) })"
             >
-              Copy</button
+              <AppIcon name="copy" /><span class="ribbon-label">Copy</span></button
             ><button
-              class="button secondary"
+              class="ribbon-action ribbon-icon"
+              aria-label="Paste"
+              title="Paste items from the session clipboard into this project. Use Undo to restore the previous state."
               :disabled="busy"
               @click="command('paste')"
             >
-              Paste
+              <AppIcon name="paste" /><span class="ribbon-label">Paste</span>
             </button>
+            <button class="ribbon-action ribbon-icon danger" aria-label="Delete" title="Preview deletion of selected items and category contents before confirming. Project Undo restores the operation."
+              :disabled="busy || !selected.length" @click="deleteSelection">
+              <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
+            </div>
+            <small>EDIT</small>
+          </div>
+          <div class="ribbon-group">
+            <div class="ribbon-actions">
             <button
-              class="icon-button"
+              class="ribbon-action ribbon-icon"
               :disabled="busy || (isMeasurement ? !selected.length : !one)"
               aria-label="Move item up"
+              title="Move the selected item or category earlier among its siblings while preserving its contents and links."
               @click="command('move', { delta: -1 })"
             >
-              <AppIcon name="up" /></button
+              <AppIcon name="up" /><span class="ribbon-label">Move up</span></button
             ><button
-              class="icon-button"
+              class="ribbon-action ribbon-icon"
               :disabled="busy || (isMeasurement ? !selected.length : !one)"
               aria-label="Move item down"
+              title="Move the selected item or category later among its siblings while preserving its contents and links."
               @click="command('move', { delta: 1 })"
             >
-              <AppIcon name="down" />
+              <AppIcon name="down" /><span class="ribbon-label">Move down</span>
             </button>
+            </div>
+            <small>ARRANGE</small>
+          </div>
+          <div v-if="view === 'schedule'" class="ribbon-group">
+            <div class="ribbon-actions ribbon-actions-wide">
             <button
-              v-if="view === 'schedule'"
-              class="button primary"
+              class="ribbon-action"
+              aria-label="Edit analysis"
+              title="Open the selected schedule item in the Analysis editor to inspect and edit its rate calculation."
               :disabled="busy || !one || one.rowtype === 'Category'"
               @click="one && emit('analysis', one.code)"
             >
-              Edit analysis
+              <AppIcon name="edit" /><span class="ribbon-label">Edit analysis</span>
             </button>
             <button
-              v-if="view === 'schedule'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Renumber schedule…"
+              title="Choose numbering options for the schedule hierarchy. Item links are preserved and the operation can be undone."
               :disabled="busy || !state?.total"
               @click="error = ''; renumberOpen = true"
             >
-              Renumber schedule…
+              <AppIcon name="calculate" /><span class="ribbon-label">Renumber schedule…</span>
             </button>
             <button
-              v-if="view === 'schedule'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Row colour…"
+              title="Apply or clear a saved background colour for selected schedule items. Categories and unselected descendants are excluded."
               :disabled="busy || !selectedScheduleIds.length"
               @click="showRowColour"
             >
-              Row colour…
+              <AppIcon name="colour" /><span class="ribbon-label">Row colour…</span>
             </button>
             <button
-              v-if="view === 'schedule'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Refresh selected rates"
+              title="Recalculate the selected schedule analyses and dependent rates using the current project resources."
               :disabled="busy || !selectedScheduleIds.length"
               @click="command('update_rates', { ids: selectedScheduleIds })"
             >
-              Refresh selected rates
+              <AppIcon name="refresh" /><span class="ribbon-label">Refresh rates</span>
             </button>
             <button
-              v-if="view === 'schedule'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Quantities from measurements…"
+              title="Choose a rounding rule and update only the selected schedule items from their linked measurement totals."
               :disabled="busy || !selectedScheduleIds.length"
               @click="error = ''; scheduleQuantityOpen = true"
             >
-              Quantities from measurements…
+              <AppIcon name="ruler" /><span class="ribbon-label">Measured quantities</span>
             </button>
             <button
-              v-if="view !== 'measurement'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Resource usage"
+              title="View aggregate project resource quantities and amounts, search totals, and navigate to referencing analyses."
               :disabled="busy"
               @click="usageCode = undefined; usageOpen = true"
             >
-              Resource usage
+              <AppIcon name="chart" /><span class="ribbon-label">Resource usage</span>
+            </button>
+            </div>
+            <small>SCHEDULE</small>
+          </div>
+          <div v-if="view === 'resources'" class="ribbon-group">
+            <div class="ribbon-actions ribbon-actions-wide">
+            <button
+              class="ribbon-action"
+              aria-label="Resource usage"
+              title="View aggregate project resource quantities and amounts, search totals, and navigate to referencing analyses."
+              :disabled="busy"
+              @click="usageCode = undefined; usageOpen = true"
+            >
+              <AppIcon name="chart" /><span class="ribbon-label">Resource usage</span>
             </button>
             <button
-              v-if="view === 'resources'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Find analyses"
+              title="Find schedule analyses that use the selected resource directly or through nested sub-analyses."
               :disabled="busy || !one || one.rowtype === 'Category'"
               @click="usageCode = one?.code; usageOpen = true"
             >
-              Find analyses
+              <AppIcon name="link" /><span class="ribbon-label">Find analyses</span>
             </button>
             <button
-              v-if="view === 'resources'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Update prices from library…"
+              title="Preview matching prices from an attached library and apply them to selected resources with project Undo."
               :disabled="busy || !selected.length || !libraries.length"
               @click="showPriceUpdate"
             >
-              Update prices from library…
+              <AppIcon name="library" /><span class="ribbon-label">Library prices</span>
             </button>
             <button
-              v-if="view === 'resources'"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Update dependent rates"
+              title="Recalculate schedule rates affected by the current resource definitions in the project working copy."
               :disabled="busy"
               @click="command('rates')"
             >
-              Update dependent rates
+              <AppIcon name="refresh" /><span class="ribbon-label">Refresh rates</span>
             </button>
+            </div>
+            <small>RESOURCES</small>
+          </div>
+          <div v-if="isMeasurement" class="ribbon-group">
+            <div class="ribbon-actions ribbon-measure-actions">
             <select
-              v-if="isMeasurement"
               v-model="quantityRounding"
               aria-label="Quantity rounding"
             >
@@ -776,31 +840,44 @@ watch(
               </option>
             </select>
             <button
-              v-if="isMeasurement"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Update schedule quantities"
+              title="Update schedule quantities from linked measurement totals using the selected rounding rule. Project Undo restores the previous quantities."
               :disabled="busy"
               @click="
                 command('update_quantities', { rounding: quantityRounding })
               "
             >
-              Update schedule quantities
+              <AppIcon name="calculate" /><span class="ribbon-label">Update quantities</span>
             </button>
+            </div>
+            <small>QUANTITIES</small>
+          </div>
+          <div class="ribbon-group">
+            <div class="ribbon-actions">
             <button
               v-if="!isMeasurement"
-              class="button secondary"
+              class="ribbon-action"
+              aria-label="Import workbook"
+              title="Preview a schedule or resource worksheet, map columns and choose how duplicate codes are handled before importing."
               :disabled="busy"
               @click="importOpen = true"
             >
-              Import workbook
+              <AppIcon name="import" /><span class="ribbon-label">Import workbook</span>
             </button>
-            <span class="spacer" /><button
-              class="button secondary"
+            <button
+              class="ribbon-action"
+              aria-label="Export workbook"
+              title="Export the project to an Excel workbook containing Schedule, Resources, Measurements, Resource Usage and Analysis sheets."
               :disabled="busy"
               @click="exportOpen = true"
             >
-              Export workbook
+              <AppIcon name="export" /><span class="ribbon-label">Export workbook</span>
             </button>
           </div>
+          <small>WORKBOOK</small>
+          </div>
+          </template>
         </div></Teleport
       >
       <form
@@ -832,13 +909,15 @@ watch(
       <div class="table-panel project-main-grid">
         <DataTable
           :key="source"
-          :rows="state?.rows || []"
+          :label="title"
+          :rows="state?.rows || emptyRows"
           :columns="columns"
           :busy="busy"
           :tree="!isMeasurement"
           @selection="select"
           @edit="edit"
           @paste="pasteCells"
+          @activate="row => { if (view === 'schedule' && !source && row.rowtype !== 'Category') emit('analysis', row.code); }"
         />
       </div>
       <div v-if="!isMeasurement" class="pagination">
@@ -872,6 +951,7 @@ watch(
             >Schedule code {{ Number(index) + 1
             }}<input
               :value="link.code"
+              :aria-label="'Schedule code ' + (Number(index) + 1)"
               :disabled="busy"
               @change="
                 command('link', {
@@ -883,6 +963,7 @@ watch(
               "
             /><input
               :value="link.remark"
+              :aria-label="'Schedule item remark ' + (Number(index) + 1)"
               :disabled="busy"
               placeholder="Item remark"
               @change="
@@ -903,6 +984,8 @@ watch(
             >{{ field.caption
             }}<input
               :value="field.value"
+              :aria-label="field.caption"
+              :inputmode="field.numeric ? 'decimal' : 'text'"
               :disabled="busy"
               @change="
                 command('userdata', {
@@ -920,37 +1003,37 @@ watch(
             :disabled="busy"
             @click="recordAction('add')"
           >
-            Add record</button
+            <AppIcon name="plus" :size="15" />Add record</button
           ><button
             class="button small secondary"
             :disabled="busy"
             @click="error = ''; recordImportOpen = true"
           >
-            Import records…</button
+            <AppIcon name="import" :size="15" />Import records…</button
           ><button
             class="button small secondary"
             :disabled="busy || !selectedRecord"
             @click="recordAction('duplicate')"
           >
-            Duplicate record</button
+            <AppIcon name="duplicate" :size="15" />Duplicate record</button
           ><button
             class="button small danger"
             :disabled="busy || !selectedRecord"
             @click="recordAction('delete')"
           >
-            Delete record</button
+            <AppIcon name="trash" :size="15" />Delete record</button
           ><button
             class="button small secondary"
             :disabled="busy || !selectedRecord"
             @click="recordAction('copy')"
           >
-            Copy record</button
+            <AppIcon name="copy" :size="15" />Copy record</button
           ><button
             class="button small secondary"
             :disabled="busy"
             @click="recordAction('paste')"
           >
-            Paste record</button
+            <AppIcon name="paste" :size="15" />Paste record</button
           ><button
             class="icon-button"
             :disabled="busy || !selectedRecord"
@@ -1383,36 +1466,5 @@ watch(
         </button>
       </div>
     </Dialog>
-    <Dialog
-      v-model:visible="libraryOpen"
-      modal
-      header="Attach resource / schedule library"
-      class="workspace-dialog file-dialog"
-      ><p class="dialog-intro">
-        Browses an isolated copy. Imported items are added to the project
-        working copy; the library file is preserved.
-      </p>
-      <label class="field"
-        >Library project
-        <div class="file-input">
-          <input v-model="libraryPath" /><button
-            class="button secondary"
-            @click="browseLibrary"
-          >
-            Browse
-          </button>
-        </div></label
-      >
-      <div v-if="error" class="dialog-error">{{ error }}</div>
-      <div class="dialog-footer">
-        <button
-          class="button primary"
-          :disabled="busy || !libraryPath"
-          @click="attachLibrary"
-        >
-          Attach library
-        </button>
-      </div></Dialog
-    >
   </section>
 </template>

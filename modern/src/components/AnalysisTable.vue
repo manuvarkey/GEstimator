@@ -7,6 +7,7 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import type { AnalysisRow } from "../backend";
+import { tableSelection, resetTablePosition } from "../tableSelection";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
@@ -178,6 +179,7 @@ onMounted(() => {
   table.on("rowSelectionChanged", (data) =>
     emit("selection", data as AnalysisRow[]),
   );
+  table.on("cellClick", (_event, cell) => resetTablePosition(table, cell.getRow()));
   table.on("cellEdited", (cell) =>
     emit(
       "edit",
@@ -203,5 +205,7 @@ onBeforeUnmount(() => {
     :class="{ blocked: busy, compact }"
     :aria-busy="busy"
     aria-label="Rate analysis table"
+    tabindex="0"
+    @keydown.capture="table && tableSelection($event, table, busy)"
   />
 </template>

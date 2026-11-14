@@ -13,6 +13,10 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
+import LibraryManager from "./components/LibraryManager.vue";
+import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
+import { restoreLibraries, savedLibraries } from "./libraryPreferences";
+import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
@@ -21,6 +25,7 @@ import { useWorkspace } from "./useWorkspace";
 import { request, type AnalysisRow, type RowKind } from "./backend";
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
+const emptyAnalysisRows: AnalysisRow[] = [];
 const {
   state,
   busy,
@@ -41,7 +46,18 @@ const {
   groups,
   selection,
   destinationGroup,
+  projectSession,
 } = w;
+const libraryManagerOpen = ref(false);
+const analysisBatchOpen = ref(false);
+const analysisTemplateMode = ref(false);
+const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
+async function librariesChanged() {
+  await w.run(async () => {
+    await w.refresh();
+    await projectView.value?.reload();
+  }, "Refreshing libraries…");
+}
 const projectView = ref<InstanceType<typeof ProjectViews>>();
 const projectHistory = ref({ undo: false, redo: false });
 const views = [
@@ -130,35 +146,35 @@ const rowKinds: {
     kind: "Group",
     icon: "group",
     label: "Resource group",
-    hint: "Materials, labour or equipment",
+    hint: "Insert a resource group for materials, labour or equipment at the current selection.",
     value: "",
   },
   {
     kind: "Subtotal",
     icon: "sum",
     label: "Subtotal",
-    hint: "Capture the cumulative total",
+    hint: "Insert a subtotal that captures the cumulative total as the base for later weighted additions.",
     value: "",
   },
   {
     kind: "Weight",
     icon: "percent",
     label: "Weighted addition",
-    hint: "Add a fraction of the last base",
+    hint: "Insert a weighted addition calculated as a fraction of the latest group or subtotal base.",
     value: "0.01",
   },
   {
     kind: "Multiply",
     icon: "multiply",
     label: "Multiplier",
-    hint: "Multiply the last base",
+    hint: "Insert a multiplier that replaces the total with the last base multiplied by a factor.",
     value: "1",
   },
   {
     kind: "Round",
     icon: "round",
     label: "Round off",
-    hint: "Round the cumulative total",
+    hint: "Insert a rounding step for the cumulative analysis total using the existing currency rules.",
     value: "2",
   },
 ];
@@ -308,6 +324,7 @@ function beforeUnload(event: BeforeUnloadEvent) {
   }
 }
 function keyboard(event: KeyboardEvent) {
+  if (event.defaultPrevented || document.querySelector('[role="dialog"]')) return;
   if (
     resourceOpen.value ||
     fileMode.value ||
@@ -374,9 +391,13 @@ async function newProject() {
   await navigate(async (discard) => {
     await w.run(async () => {
       await request("project.new", { discard });
+      await restoreLibraries();
       await w.refresh();
+      projectSession.value++;
       schedule.value = [];
       resources.value = [];
+      scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
+      schedulePage.value = resourcePage.value = 0;
       selected.value = [];
       activeView.value = "schedule";
     });
@@ -405,6 +426,16 @@ async function switchView(view: typeof activeView.value) {
     if (discard && state.value?.project) await w.load(state.value.code, true);
     activeView.value = view;
   });
+}
+function navigateTabs(event: KeyboardEvent, index: number) {
+  const last = views.length - 1;
+  const next = event.key === "ArrowRight" ? (index + 1) % views.length
+    : event.key === "ArrowLeft" ? (index + last) % views.length
+    : event.key === "Home" ? 0 : event.key === "End" ? last : -1;
+  if (next < 0) return;
+  event.preventDefault();
+  // Move focus without switching away from a draft; Enter/Space activates the tab.
+  document.getElementById("view-" + views[next]!.key)?.focus();
 }
 async function loadAnalysis(code: string) {
   await navigate(async (discard) => {
@@ -453,17 +484,8 @@ async function applicationAction(action: string) {
     case "settings":
       await showSettings();
       break;
-    case "explorer":
-      sidebar.value = !sidebar.value;
-      break;
-    case "inspector":
-      inspector.value = !inspector.value;
-      break;
-    case "compact":
-      compact.value = !compact.value;
-      break;
-    case "groups":
-      expanded.value = !expanded.value;
+    case "libraries":
+      libraryManagerOpen.value = true;
       break;
     case "reconnect":
       await w.reconnect();
@@ -537,17 +559,13 @@ onBeforeUnmount(() => {
           activeView === 'analysis' ? !!state?.project : !!state?.project_open
         "
         :analysis="activeView === 'analysis'"
-        :explorer="sidebar"
-        :inspector="inspector"
-        :compact="compact"
-        :expanded="expanded"
         @action="applicationAction"
       />
       <div class="quick-actions" role="toolbar" aria-label="Common actions">
         <button
           class="icon-button"
           aria-label="New project"
-          title="New project"
+          title="Create a blank estimate. Unsaved changes prompt you to save or discard before switching projects."
           :disabled="uiBusy"
           @click="newProject"
         >
@@ -556,7 +574,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Open project"
-          title="Open project (Ctrl+O)"
+          title="Open an existing estimate or recover a checkpoint. The project is edited in an isolated working copy (Ctrl+O)."
           :disabled="uiBusy"
           @click="showFile('open')"
         >
@@ -565,7 +583,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Save copy"
-          title="Save project copy (Ctrl+Shift+S)"
+          title="Save the working project to a new file without replacing the opened source (Ctrl+Shift+S)."
           :disabled="uiBusy || !state?.project_open"
           @click="showFile('save')"
         >
@@ -575,7 +593,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Undo"
-          title="Undo (Ctrl+Z)"
+          title="Undo the last analysis draft edit, or the last project operation in other tabs (Ctrl+Z)."
           :disabled="
             uiBusy ||
             !(activeView === 'analysis' ? state?.undo : projectHistory.undo)
@@ -587,7 +605,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Redo"
-          title="Redo (Ctrl+Y)"
+          title="Restore the last undone change in the active editing context (Ctrl+Y)."
           :disabled="
             uiBusy ||
             !(activeView === 'analysis' ? state?.redo : projectHistory.redo)
@@ -595,6 +613,17 @@ onBeforeUnmount(() => {
           @click="historyAction('redo')"
         >
           <AppIcon name="redo" />
+        </button>
+        <span class="quick-actions-separator" />
+        <button
+          class="icon-button"
+          :class="{ pressed: !sidebar }"
+          :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'"
+          :title="sidebar ? 'Hide the project explorer to give the active editor more room.' : 'Show the project explorer to search schedule items and browse resources (Ctrl+K).'"
+          :aria-pressed="!sidebar"
+          @click="sidebar = !sidebar"
+        >
+          <AppIcon name="panel" />
         </button>
       </div>
       <div class="titlebar-project">
@@ -630,14 +659,17 @@ onBeforeUnmount(() => {
     </header>
     <div class="ribbon-tabs" role="tablist" aria-label="Workspace views">
       <button
-        v-for="view in views"
+        v-for="(view, index) in views"
         :key="view.key"
         role="tab"
         :id="'view-' + view.key"
         :aria-selected="activeView === view.key"
+        :tabindex="activeView === view.key ? 0 : -1"
+        :disabled="uiBusy"
         :aria-controls="'tools-' + view.key"
         :class="{ active: activeView === view.key }"
         @click="switchView(view.key)"
+        @keydown="navigateTabs($event, index)"
       >
         {{ view.label }}
       </button>
@@ -649,7 +681,7 @@ onBeforeUnmount(() => {
         }}</span
       >
     </div>
-    <section
+    <RibbonToolbar
       class="ribbon"
       :id="'tools-' + activeView"
       role="tabpanel"
@@ -660,107 +692,136 @@ onBeforeUnmount(() => {
     >
       <template v-if="activeView === 'analysis'">
         <div class="ribbon-group">
-          <div class="ribbon-tools">
+          <div class="ribbon-actions">
             <button
-              class="ribbon-large"
+              class="ribbon-action ribbon-primary"
+              aria-label="Add resource"
+              title="Choose a project or library resource, or define a custom resource, and insert it into the selected analysis group."
               :disabled="!canEdit || !groups.length"
               @click="addResource"
             >
-              <AppIcon name="resource" :size="24" /><span>Add resource</span>
+              <AppIcon name="resource" :size="22" /><span class="ribbon-label">Add resource</span>
             </button>
           </div>
           <small>RESOURCES</small>
         </div>
         <div class="ribbon-group">
-          <div class="ribbon-tools">
+          <div class="ribbon-actions ribbon-actions-wide">
             <button
               v-for="row in rowKinds"
               :key="row.kind"
-              class="ribbon-large"
+              class="ribbon-action"
+              :aria-label="row.label"
               :title="row.hint"
               :disabled="!canEdit"
               @click="w.command('add', { kind: row.kind, value: row.value })"
             >
-              <AppIcon :name="row.icon" :size="24" /><span>{{
+              <AppIcon :name="row.icon" /><span class="ribbon-label">{{
                 row.label
               }}</span>
             </button>
-            <button class="ribbon-large" :disabled="!canEdit"
+            <button class="ribbon-action" aria-label="Default analysis rows"
+              title="Insert the shipped default calculation rows into this analysis draft. Undo restores the previous draft." :disabled="!canEdit"
               @click="w.command('analysis.insert_template')">
-              <AppIcon name="file" :size="24" /><span>Default analysis rows</span>
+              <AppIcon name="file" /><span class="ribbon-label">Default rows</span>
+            </button>
+            <button class="ribbon-action" aria-label="Custom analysis template…" title="Configure, save and preview reusable calculation rows before inserting them as one undoable batch."
+              :disabled="!canEdit" @click="analysisTemplateMode = true; analysisBatchOpen = true">
+              <AppIcon name="settings" /><span class="ribbon-label">Custom template</span>
             </button>
           </div>
           <small>INSERT</small>
         </div>
         <div class="ribbon-group">
-          <div class="ribbon-tools">
-            <div class="ribbon-stack">
-              <button
-                :disabled="!canEdit || !selected.length"
-                @click="w.command('copy')"
-              >
-                <AppIcon name="copy" />Copy rows</button
-              ><button
-                :disabled="!canEdit || !clipboardReady"
-                @click="w.command('paste')"
-              >
-                <AppIcon name="paste" />Paste rows
-              </button>
-            </div>
-            <div class="ribbon-stack">
-              <button
-                :disabled="!canEdit || !selected.length"
-                @click="w.command('duplicate')"
-              >
-                <AppIcon name="plus" />Duplicate</button
-              ><button
-                :disabled="!canEdit || !selected.length"
-                @click="w.command('delete')"
-              >
-                <AppIcon name="trash" />Delete
-              </button>
-            </div>
+          <div class="ribbon-actions ribbon-pairs">
+            <button class="ribbon-action ribbon-icon" aria-label="Copy rows" title="Copy the selected analysis rows to the session clipboard (Ctrl+C)."
+              :disabled="!canEdit || !selected.length" @click="w.command('copy')">
+              <AppIcon name="copy" /><span class="ribbon-label">Copy rows</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Paste rows" title="Insert copied analysis rows at the current selection (Ctrl+V)."
+              :disabled="!canEdit || !clipboardReady" @click="w.command('paste')">
+              <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Duplicate" title="Create another copy of the selected analysis rows in this draft (Ctrl+D)."
+              :disabled="!canEdit || !selected.length" @click="w.command('duplicate')">
+              <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Delete" title="Remove the selected rows from this analysis draft. Use Undo to restore them."
+              :disabled="!canEdit || !selected.length" @click="w.command('delete')">
+              <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Bulk edit analysis…" title="Preview a field change on selected analysis rows and apply the entire batch with one undo step."
+              :disabled="!canEdit || !selected.length" @click="analysisTemplateMode = false; analysisBatchOpen = true">
+              <AppIcon name="edit" />
+            </button>
           </div>
           <small>EDIT</small>
         </div>
         <div class="ribbon-group">
-          <div class="ribbon-tools">
+          <div class="ribbon-actions">
             <button
-              class="ribbon-large"
+              class="ribbon-action ribbon-icon"
+              aria-label="Move up"
+              title="Move the selected analysis row one position earlier in the calculation sequence."
               :disabled="!canEdit || selected.length !== 1"
               @click="w.command('move', { delta: -1 })"
             >
-              <AppIcon name="up" :size="24" /><span>Move up</span></button
+              <AppIcon name="up" /><span class="ribbon-label">Move up</span></button
             ><button
-              class="ribbon-large"
+              class="ribbon-action ribbon-icon"
+              aria-label="Move down"
+              title="Move the selected analysis row one position later in the calculation sequence."
               :disabled="!canEdit || selected.length !== 1"
               @click="w.command('move', { delta: 1 })"
             >
-              <AppIcon name="down" :size="24" /><span>Move down</span>
+              <AppIcon name="down" /><span class="ribbon-label">Move down</span>
             </button>
           </div>
           <small>SEQUENCE</small>
         </div>
         <div class="ribbon-group">
-          <div class="ribbon-tools">
+          <div class="ribbon-actions">
+            <button class="ribbon-action ribbon-icon" aria-label="Compact rows" title="Reduce analysis row spacing to display more calculation rows. Click again to restore normal spacing."
+              :class="{ pressed: compact }" :aria-pressed="compact" @click="compact = !compact">
+              <AppIcon name="rows" /><span class="ribbon-label">Compact rows</span></button>
+            <button class="ribbon-action ribbon-icon"
+              :aria-label="expanded ? 'Collapse groups' : 'Expand groups'"
+              :title="expanded ? 'Hide resource rows inside all analysis groups while keeping group totals visible.' : 'Show resource rows inside all analysis groups.'"
+              :class="{ pressed: !expanded }" :aria-pressed="!expanded"
+              @click="expanded = !expanded">
+              <AppIcon :name="expanded ? 'collapse' : 'expand'" />
+              <span class="ribbon-label">{{ expanded ? "Collapse groups" : "Expand groups" }}</span></button>
+            <button class="ribbon-action ribbon-icon"
+              :aria-label="inspector ? 'Hide analysis inspector' : 'Show analysis inspector'"
+              :title="inspector ? 'Hide the selected-row inspector to give the analysis table more room.' : 'Show the inspector to edit the selected analysis row and resource definition.'"
+              :class="{ pressed: !inspector }" :aria-pressed="!inspector"
+              @click="inspector = !inspector">
+              <AppIcon name="panel" />
+              <span class="ribbon-label">{{ inspector ? "Hide inspector" : "Show inspector" }}</span></button>
+          </div>
+          <small>VIEW</small>
+        </div>
+        <div class="ribbon-group">
+          <div class="ribbon-actions">
             <button
-              class="ribbon-large"
+              class="ribbon-action"
+              aria-label="Apply analysis"
+              title="Apply this draft to the project working copy and update dependent rates. Save the project to keep the changes on disk."
               :disabled="!canEdit || !state?.project"
               @click="w.command('analysis.apply')"
             >
-              <AppIcon name="check" :size="24" /><span
+              <AppIcon name="check" /><span class="ribbon-label"
                 >Apply analysis</span
               ></button
             ><button
-              class="ribbon-large"
+              class="ribbon-action"
+              aria-label="Export analysis"
+              title="Export this analysis, including unapplied draft edits, to an Excel workbook."
               :disabled="!canEdit || !state?.project"
               @click="exportAnalysisOpen = true"
             >
-              <AppIcon name="file" :size="24" /><span>Export analysis</span>
+              <AppIcon name="export" /><span class="ribbon-label">Export analysis</span>
             </button>
-            <button class="ribbon-large" :disabled="!canEdit || !state?.project"
+            <button class="ribbon-action" aria-label="Import analysis" title="Preview an Excel worksheet range and insert its calculation rows into this draft. The import can be undone."
+              :disabled="!canEdit || !state?.project"
               @click="error = ''; importAnalysisOpen = true">
-              <AppIcon name="folder" :size="24" /><span>Import analysis</span>
+              <AppIcon name="import" /><span class="ribbon-label">Import analysis</span>
             </button>
           </div>
           <small>PROJECT</small>
@@ -771,7 +832,7 @@ onBeforeUnmount(() => {
         class="ribbon-tools-host"
         v-show="activeView !== 'analysis'"
       />
-    </section>
+    </RibbonToolbar>
     <div v-if="error" class="error-banner" role="alert">
       <AppIcon name="help" /><span>{{ error }}</span
       ><button
@@ -782,18 +843,13 @@ onBeforeUnmount(() => {
         <AppIcon name="close" :size="16" />
       </button>
     </div>
+    <div v-if="state?.project_open && unavailableLibraries.length" class="library-warning" role="status">
+      <span>{{ unavailableLibraries.length }} saved {{ unavailableLibraries.length === 1 ? 'library is' : 'libraries are' }} unavailable. The project is open and available libraries are attached.</span>
+      <button class="text-button" :disabled="uiBusy" @click="libraryManagerOpen = true">Manage libraries</button>
+    </div>
     <div class="workspace">
       <aside v-show="sidebar" class="explorer">
-        <div class="panel-heading">
-          <span>PROJECT EXPLORER</span
-          ><button
-            class="icon-button"
-            aria-label="Hide explorer"
-            @click="sidebar = false"
-          >
-            <AppIcon name="panel" :size="15" />
-          </button>
-        </div>
+        <div class="panel-heading"><span>PROJECT EXPLORER</span></div>
         <div class="explorer-project">
           <span class="project-icon"><AppIcon name="folder" :size="20" /></span>
           <div>
@@ -980,6 +1036,7 @@ onBeforeUnmount(() => {
       </aside>
       <main class="editor-pane">
         <ProjectViews
+          :key="projectSession"
           ref="projectView"
           v-if="activeView !== 'analysis'"
           :view="activeView"
@@ -988,6 +1045,7 @@ onBeforeUnmount(() => {
           @history="projectHistory = $event"
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
+          @libraries="libraryManagerOpen = true"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
           <div class="analysis-intro">
@@ -1064,18 +1122,11 @@ onBeforeUnmount(() => {
                 @click="addResource"
               >
                 <AppIcon name="plus" :size="15" />Add resource</button
-              ><button
-                class="icon-button"
-                :title="expanded ? 'Collapse groups' : 'Expand groups'"
-                :aria-label="expanded ? 'Collapse groups' : 'Expand groups'"
-                @click="expanded = !expanded"
               >
-                <AppIcon :name="expanded ? 'collapse' : 'expand'" :size="16" />
-              </button>
             </div>
             <AnalysisTable
               ref="analysisTable"
-              :rows="state?.rows || []"
+              :rows="state?.rows || emptyAnalysisRows"
               :busy="busy || !connected"
               :compact="compact"
               :expanded="expanded"
@@ -1551,6 +1602,13 @@ onBeforeUnmount(() => {
           ['Duplicate selected rows', 'Ctrl / ⌘ + D'],
           ['Delete selected rows', 'Delete'],
           ['Navigate editable cells', 'Tab / Shift + Tab'],
+          ['Select table rows', 'Up / Down / Home / End'],
+          ['Extend table selection', 'Shift + Up / Down / Home / End'],
+          ['Select current table page / Clear selection', 'Ctrl / ⌘ + A / Escape'],
+          ['Open selected schedule analysis', 'Enter'],
+          ['Focus ribbon tabs', 'Left / Right / Home / End'],
+          ['Activate focused ribbon tab', 'Enter / Space'],
+          ['Move project item or measurement record', 'Alt + Up / Down'],
         ]"
         :key="label"
       >
@@ -1559,8 +1617,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
     <p class="field-hint">
-      Text fields keep their normal editing shortcuts. Row paste uses the
-      selected resource group.
+      Text fields keep their normal editing shortcuts. Analysis row paste uses
+      the selected resource group. In project tables, Ctrl+D duplicates and Delete
+      removes selected items; these shortcuts apply to records when the measurement
+      record table has focus. Spreadsheet cell paste keeps its normal Ctrl+V behavior.
     </p></Dialog
   >
 
@@ -1647,4 +1707,6 @@ onBeforeUnmount(() => {
       </button>
     </div></Dialog
   >
+  <LibraryManager v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
+  <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
 </template>

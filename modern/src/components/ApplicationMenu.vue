@@ -8,10 +8,6 @@ const props = defineProps<{
   projectOpen: boolean;
   canExport: boolean;
   analysis: boolean;
-  explorer: boolean;
-  inspector: boolean;
-  compact: boolean;
-  expanded: boolean;
 }>();
 const emit = defineEmits<{ action: [name: string] }>();
 const menu = ref<InstanceType<typeof Menu>>();
@@ -47,26 +43,7 @@ const items = computed<MenuItem[]>(() => [
     props.busy || !props.projectOpen,
   ),
   { separator: true },
-  item(props.explorer ? "Hide explorer" : "Show explorer", "explorer", "grid"),
-  item(
-    props.inspector ? "Hide analysis inspector" : "Show analysis inspector",
-    "inspector",
-    "panel",
-    !props.analysis,
-  ),
-  item(
-    "Compact rows",
-    "compact",
-    props.compact ? "check" : "settings",
-    !props.analysis,
-  ),
-  item(
-    props.expanded ? "Collapse groups" : "Expand groups",
-    "groups",
-    "collapse",
-    !props.analysis,
-  ),
-  { separator: true },
+  item("Libraries…", "libraries", "library", props.busy),
   item("Reconnect engine", "reconnect", "check", props.busy),
   item("Keyboard shortcuts", "help", "help"),
   { separator: true },

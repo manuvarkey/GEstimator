@@ -6,16 +6,19 @@ import {
   type RowComponent,
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
+import { tableSelection, resetTablePosition } from "../tableSelection";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
   busy: boolean;
   tree?: boolean;
+  label?: string;
 }>();
 const emit = defineEmits<{
   selection: [rows: { id: string; [key: string]: any }[]];
   paste: [changes: { id: string; field: string; value: string }[]];
   edit: [row: { id: string; [key: string]: any }, field: string, value: string];
+  activate: [row: { id: string; [key: string]: any }];
 }>();
 const element = ref<HTMLDivElement>();
 let table: Tabulator;
@@ -23,6 +26,15 @@ let ready: Promise<void>;
 let alive = true;
 let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
+function keyboard(event: KeyboardEvent) {
+  if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
+  if (tableSelection(event, table, props.busy)) return;
+  if (event.key === "Enter" && !event.ctrlKey && !event.metaKey && !event.altKey && table.getSelectedRows().length === 1) {
+    event.preventDefault();
+    event.stopPropagation();
+    emit("activate", table.getSelectedData()[0]);
+  }
+}
 function paste(event: ClipboardEvent) {
   if (
     props.busy ||
@@ -173,6 +185,7 @@ onMounted(() => {
   element.value!.addEventListener("paste", paste);
   table.on("cellClick", (_event, cell) => {
     anchor = { id: cell.getData().id, field: cell.getField() };
+    resetTablePosition(table, cell.getRow());
   });
   table.on("rowSelectionChanged", (rows) => {
     if (!replacingRows) emit("selection", rows);
@@ -198,5 +211,7 @@ onBeforeUnmount(() => {
     class="analysis-table tabulator project-grid"
     :class="{ blocked: busy }"
     :aria-busy="busy"
+    :aria-label="label || 'Project table'"
+    @keydown.capture="keyboard"
   />
 </template>

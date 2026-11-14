@@ -156,6 +156,9 @@ class Service:
     def call(self, method: str, p: dict, progress=lambda value: None):
         if method == "state":
             return self.state()
+        if method == "analysis.template_rows":
+            kinds = ["Group", "Subtotal", "Weight", "Multiply", "Round"]
+            return [dict(kind=kinds[row["itemtype"]], description=row["description"], value=str(row.get("value", ""))) for row in misc.ana_default_add_items]
         if method == "recovery.list":
             return self.recovery_projects()
         if method == "recovery.discard":
@@ -377,6 +380,14 @@ class Service:
             return dict(saved=str(destination))
         if p.get("revision") != self.revision:
             raise ValueError("Stale edit; reload analysis state")
+        if method == "analysis.batch.preview":
+            original = self.model
+            self.model = copy.deepcopy(original)
+            try:
+                self.edit("analysis.batch", p)
+                return self.state()
+            finally:
+                self.model = original
         if method == "analysis.apply":
             if not self.loaded:
                 raise ValueError("Load an analysis first")
@@ -417,6 +428,24 @@ class Service:
         return self.state()
 
     def edit(self, method, p):
+        if method == "analysis.batch":
+            operations = p.get("operations")
+            if not isinstance(operations, list) or not 1 <= len(operations) <= 500:
+                raise ValueError("Provide between 1 and 500 analysis edits")
+            cursor = p.get("id")
+            for operation in operations:
+                if not isinstance(operation, dict) or operation.get("method") not in ("edit", "add"):
+                    raise ValueError("Batch supports only row edits and calculation-row insertion")
+                params = dict(operation)
+                action = params.pop("method")
+                if action == "add":
+                    params["id"] = cursor
+                    position = self.locate(cursor)[0] + 1 if cursor else 0
+                    self.edit(action, params)
+                    cursor = self.model.ana_items[position]["_id"]
+                else:
+                    self.edit(action, params)
+            return
         if method == "analysis.insert_template":
             position = self.locate(p["id"])[0] + 1 if p.get("id") else 0
             rows = copy.deepcopy(misc.ana_default_add_items)

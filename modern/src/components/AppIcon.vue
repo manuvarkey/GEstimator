@@ -34,6 +34,19 @@ const paths: Record<string, string> = {
   expand: "m8 5 4 4 4-4 M8 19l4-4 4 4",
   settings: "M4 7h16 M4 17h16 M8 4v6 M16 14v6",
   file: "M5 2h9l5 5v15H5Z M14 2v6h5 M8 13h8 M8 17h6",
+  edit: "M4 20h4L19 9l-4-4L4 16v4Z M13 7l4 4",
+  category: "M3 5h7l2 2h9v12H3Z M3 10h18",
+  duplicate: "M8 8h13v13H8Z M3 16V3h13v3",
+  colour: "M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 0-4h-1a2 2 0 0 1-2-2c0-1.1.9-2 2-2h2a6 6 0 0 0-6-10Z M7 11h.01 M9 7h.01 M14 7h.01 M17 11h.01",
+  refresh: "M20 7v5h-5 M4 17v-5h5 M18 12a6 6 0 0 0-10-4L4 12 M6 12a6 6 0 0 0 10 4l4-4",
+  chart: "M4 20V10 M10 20V4 M16 20v-7 M22 20H2",
+  link: "M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1 M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1",
+  import: "M12 3v12 M7 10l5 5 5-5 M4 21h16",
+  export: "M12 16V4 M7 9l5-5 5 5 M4 21h16",
+  calculate: "M5 3h14v18H5Z M8 7h8 M8 11h2 M14 11h2 M8 15h2 M14 15h2",
+  rows: "M4 5h16 M4 9h16 M4 15h16 M4 19h16",
+  ruler: "M4 16 16 4l4 4L8 20Z M13 7l4 4 M10 10l2 2 M7 13l2 2",
+  attach: "M8 12l5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l8-8",
 };
 </script>
 <template>

@@ -1116,7 +1116,10 @@ class ProjectEditor:
                     template=item.itemtype,
                     columns=[
                         dict(
-                            title=cap, field="c" + str(i), editable=t != misc.MEAS_CUST
+                            title=cap, field="c" + str(i), editable=t != misc.MEAS_CUST,
+                            width=item.dimensions[0][i],
+                            expand=bool(item.dimensions[1][i]),
+                            numeric=t in (misc.MEAS_L, misc.MEAS_NO),
                         )
                         for i, (cap, t) in enumerate(
                             zip(item.captions, item.columntypes)
@@ -1150,8 +1153,8 @@ class ProjectEditor:
                         for key, remark in zip(item.itemnos, item.item_remarks)
                     ],
                     user_data=[
-                        dict(caption=cap, value=str(value))
-                        for cap, value in zip(item.captions_udata, item.user_data)
+                        dict(caption=cap, value=str(value), numeric=kind in (misc.MEAS_L, misc.MEAS_NO))
+                        for cap, value, kind in zip(item.captions_udata, item.user_data, item.columntypes_udata)
                     ],
                     totals=[str(v) for v in item.get_total()],
                 )

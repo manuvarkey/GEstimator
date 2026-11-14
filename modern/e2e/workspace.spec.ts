@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 import { resolve } from "node:path";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, copyFile, rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 const python = resolve(
@@ -19,6 +19,7 @@ const pending = new Map<
   { resolve: (value: unknown) => void; reject: (error: Error) => void }
 >();
 let sequence = 0;
+let measurementDelay = 0;
 function call(method: string, params: Record<string, unknown> = {}) {
   const id = String(++sequence);
   return new Promise<any>((resolve, reject) => {
@@ -26,8 +27,7 @@ function call(method: string, params: Record<string, unknown> = {}) {
     child.stdin.write(JSON.stringify({ id, method, params }) + "\n");
   });
 }
-test.beforeEach(async ({ page }) => {
-  directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
+function startBackend() {
   child = spawn(python, ["-m", "modern.backend"], {
     cwd: resolve(".."),
   });
@@ -38,9 +38,16 @@ test.beforeEach(async ({ page }) => {
     pending.delete(message.id);
   });
   child.stderr.on("data", (data) => process.stderr.write(data));
-  await page.exposeBinding("backendTransport", (_source, request) =>
-    call(request.method, request.params),
-  );
+}
+test.beforeEach(async ({ page }) => {
+  directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
+  measurementDelay = 0;
+  startBackend();
+  await page.exposeBinding("backendTransport", async (_source, request) => {
+    if (request.method === "measurement.state" && measurementDelay)
+      await new Promise(resolve => setTimeout(resolve, measurementDelay));
+    return call(request.method, request.params);
+  });
   await page.addInitScript(() => {
     (window as any).isTauri = true;
     let callbackId = 0;
@@ -68,6 +75,178 @@ test.afterEach(async () => {
   child.stdin.end();
   await new Promise<void>((resolve) => child.once("close", () => resolve()));
   await rm(directory, { recursive: true, force: true });
+});
+
+test("saved libraries restore across processes, deduplicate and recover from missing paths", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "library-project.eproj");
+  const library = resolve(directory, "saved-library.eproj");
+  const moved = resolve(directory, "moved-library.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  await copyFile(project, library);
+  const original = await readFile(library);
+  const openProject = async () => {
+    await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Open project", exact: true });
+    await dialog.getByLabel("Project file").fill(project);
+    await dialog.getByRole("button", { name: "Open project", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await page.locator("#view-schedule").click();
+  };
+  const manager = page.getByRole("dialog", { name: "Attach resource / schedule library" });
+  const attach = async (path: string) => {
+    await page.locator(".ribbon").getByRole("button", { name: "Attach library…" }).click();
+    await manager.getByLabel("Library project", { exact: true }).fill(path);
+    await manager.getByRole("button", { name: "Attach library", exact: true }).click();
+    await expect(manager).not.toBeVisible();
+  };
+  const restart = async () => {
+    child.stdin.end();
+    await new Promise<void>(resolve => child.once("close", () => resolve()));
+    startBackend();
+    await page.reload();
+    await expect(page.getByText("Calculation engine connected")).toBeVisible();
+    await openProject();
+  };
+  await openProject();
+  await attach(library);
+  await attach(library);
+  const sources = page.locator(".ribbon").getByLabel("Data source");
+  await expect(sources.locator("option")).toHaveCount(2);
+  await page.reload();
+  await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await page.locator("#view-schedule").click();
+  await expect(sources.locator("option")).toHaveCount(2);
+  await restart();
+  await expect(sources.locator("option")).toHaveCount(2);
+  await rename(library, moved);
+  await restart();
+  await expect(page.locator(".library-warning")).toContainText("1 saved library is unavailable");
+  await expect(sources.locator("option")).toHaveCount(1);
+  await page.getByRole("button", { name: "Manage libraries" }).click();
+  await expect(manager.locator(".saved-library")).toContainText("Unavailable:");
+  await manager.getByLabel("Library project", { exact: true }).fill(moved);
+  await manager.getByRole("button", { name: "Attach library", exact: true }).click();
+  await expect(manager).not.toBeVisible();
+  await page.getByRole("button", { name: "Manage libraries" }).click();
+  await manager.locator(".saved-library").filter({ hasText: library }).getByRole("button", { name: /Forget library/ }).click();
+  await expect(page.locator(".library-warning")).not.toBeVisible();
+  await page.keyboard.press("Escape");
+  await restart();
+  await expect(sources.locator("option")).toHaveCount(2);
+  expect(await readFile(moved)).toEqual(original);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.libraries.v1")!));
+  expect(stored.libraries.map((entry: { path: string }) => entry.path)).toEqual([moved]);
+});
+
+test("bulk analysis preview is atomic and custom templates persist without changing source files", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "batch.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  const source = await readFile(project);
+  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  const open = page.getByRole("dialog", { name: "Open project", exact: true });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.locator("#view-schedule").click();
+  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+  await page.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="kind"]').click();
+  await page.locator(".ribbon").getByRole("button", { name: "Bulk edit analysis…" }).click();
+  const bulk = page.getByRole("dialog", { name: "Bulk edit analysis", exact: true });
+  await bulk.getByLabel("Field to change").selectOption("rate");
+  await bulk.getByLabel("New value").fill("1/0");
+  await bulk.getByRole("button", { name: "Preview changes" }).click();
+  await expect(bulk.getByRole("alert")).toContainText("Invalid numeric");
+  await expect(bulk.getByRole("button", { name: "Apply batch" })).toBeDisabled();
+  await bulk.getByLabel("New value").fill("15.555");
+  await bulk.getByRole("button", { name: "Preview changes" }).click();
+  await expect(bulk.locator(".batch-preview")).toContainText("31.12");
+  await expect(page.locator(".summary-value")).toContainText("20.00");
+  await bulk.getByRole("button", { name: "Apply batch" }).click();
+  await expect(bulk).not.toBeVisible();
+  await expect(page.locator(".summary-value")).toContainText("31.12");
+  await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".summary-value")).toContainText("20.00");
+  await page.locator(".ribbon").getByRole("button", { name: "Custom analysis template…" }).click();
+  const template = page.getByRole("dialog", { name: "Custom analysis template", exact: true });
+  await template.getByLabel("Row 1 description", { exact: true }).fill("CUSTOM MATERIALS");
+  await template.getByRole("button", { name: "Save template", exact: true }).click();
+  await expect(template.getByRole("status").filter({ hasText: "Template saved" })).toBeVisible();
+  await template.getByRole("button", { name: "Apply batch" }).click();
+  await expect(template).not.toBeVisible();
+  await expect(page.locator(".analysis-content")).toContainText("CUSTOM MATERIALS");
+  await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".analysis-content")).not.toContainText("CUSTOM MATERIALS");
+  await page.reload();
+  await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await page.locator(".ribbon").getByRole("button", { name: "Custom analysis template…" }).click();
+  await expect(template.getByLabel("Row 1 description", { exact: true })).toHaveValue("CUSTOM MATERIALS");
+  await expect(template).toHaveCSS("opacity", "1");
+  await page.screenshot({ path: "test-results/custom-analysis-template.png", animations: "disabled" });
+  expect(await readFile(project)).toEqual(source);
+});
+
+test("keyboard table selection opens analysis and wide measurement templates retain their layout", async ({ page }) => {
+  // Hold the first measurement response long enough to exercise the loading state.
+  measurementDelay = 150;
+  const errors: string[] = [];
+  page.on("pageerror", error => { errors.push(error.message); });
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "keyboard-layout.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  const open = page.getByRole("dialog", { name: "Open project", exact: true });
+  await open.getByLabel("Project file").fill(project);
+  await open.getByRole("button", { name: "Open project", exact: true }).click();
+  await expect(open).not.toBeVisible();
+  await page.locator("#view-schedule").click();
+  const table = page.locator(".project-main-grid .project-grid");
+  await table.focus();
+  await page.keyboard.press("Home");
+  await expect(table.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
+  await page.keyboard.press("Shift+End");
+  await expect(table.locator(".tabulator-row.tabulator-selected")).toHaveCount(2);
+  await page.keyboard.press("Escape");
+  await expect(table.locator(".tabulator-row.tabulator-selected")).toHaveCount(0);
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  const analysis = page.getByRole("grid", { name: "Rate analysis table" });
+  await analysis.focus();
+  await page.keyboard.press("ControlOrMeta+a");
+  await expect(page.locator(".table-toolbar")).toContainText("3 selected");
+  await page.keyboard.press("Escape");
+  await expect(analysis.locator(".tabulator-row.tabulator-selected")).toHaveCount(0);
+  await page.locator("#view-measurement").click();
+  await expect(page.locator("#view-measurement")).toHaveAttribute("aria-selected", "true");
+  expect(errors).toEqual([]);
+  await expect(page.locator(".project-view h1")).toHaveText("Measurements");
+  await page.locator(".ribbon").getByRole("button", { name: "Add measurement", exact: true }).click();
+  const add = page.getByRole("dialog", { name: "Add item", exact: true });
+  await add.getByLabel("Measurement template").selectOption("civil_steel_table");
+  await add.getByLabel("Description / remarks").fill("Steel reinforcement");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Steel reinforcement" }).click();
+  await page.locator(".project-view").getByRole("button", { name: "Add record", exact: true }).click();
+  await expect(page.getByLabel("Item 1 constant", { exact: true })).toHaveValue("0.395");
+  await expect(page.getByLabel("Item 6 Label", { exact: true })).toHaveValue("25mm");
+  const records = page.locator(".measurement-record-grid");
+  await expect(records.locator('.tabulator-col[tabulator-field="c1"]')).toHaveCSS("width", "40px");
+  await expect(records.locator('.tabulator-col[tabulator-field="c10"]')).toHaveCSS("width", "50px");
+  const numeric = records.locator('.tabulator-row [tabulator-field="c1"]');
+  await numeric.dblclick();
+  await numeric.locator("textarea").fill("2*3");
+  await page.locator(".project-view h1").click();
+  await expect(numeric).toHaveText("2*3");
+  const calculated = records.locator('.tabulator-row [tabulator-field="c10"]');
+  await calculated.dblclick();
+  await expect(calculated.locator("input,textarea")).toHaveCount(0);
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  await expect.poll(() => page.locator(".measurement-links").evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/steel-measurement-layout.png" });
 });
 
 test("resource editing, authoritative calculations, undo and workspace presentation", async ({
@@ -148,27 +327,30 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.screenshot({ path: "test-results/workspace-light.png" });
 
-  await page
-    .getByRole("button", { name: "Application menu", exact: true })
-    .click();
-  await page
-    .getByRole("menuitem", { name: "Hide analysis inspector", exact: true })
+  const ribbon = page.locator(".ribbon");
+  await ribbon
+    .getByRole("button", { name: "Hide analysis inspector", exact: true })
     .click();
   await expect(page.locator(".inspector")).not.toBeVisible();
-  await page
-    .getByRole("button", { name: "Application menu", exact: true })
+  await ribbon
+    .getByRole("button", { name: "Show analysis inspector", exact: true })
     .click();
-  await page
-    .getByRole("menuitem", { name: "Show analysis inspector", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Application menu", exact: true })
-    .click();
-  await page
-    .getByRole("menuitem", { name: "Compact rows", exact: true })
+  await ribbon
+    .getByRole("button", { name: "Compact rows", exact: true })
     .click();
   await expect(page.locator(".analysis-table")).toHaveClass(/compact/);
+  await ribbon
+    .getByRole("button", { name: "Collapse groups", exact: true })
+    .click();
+  await expect(
+    ribbon.getByRole("button", { name: "Expand groups", exact: true }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 1100, height: 800 });
+  await expect
+    .poll(() =>
+      ribbon.evaluate((element) => element.scrollWidth <= element.clientWidth),
+    )
+    .toBe(true);
   await page.screenshot({ path: "test-results/workspace-compact.png" });
   expect(errors).toEqual([]);
 });
@@ -353,9 +535,8 @@ test("native typography and schedule, resource and measurement editing", async (
   await recordDescriptions.first().dblclick();
   await recordDescriptions.first().locator("textarea").fill("First record");
   await view.locator("h1").click();
-  await view
-    .getByRole("button", { name: "Duplicate record", exact: true })
-    .click();
+  await view.locator(".measurement-record-grid .project-grid").focus();
+  await page.keyboard.press("ControlOrMeta+d");
   await expect(recordDescriptions).toHaveCount(2);
   await recordDescriptions.last().dblclick();
   await recordDescriptions.last().locator("textarea").fill("Second record");
@@ -455,16 +636,27 @@ test("application menu and ribbon views share context-aware header actions", asy
   page,
 }) => {
   const header = page.locator(".titlebar");
-  for (const name of [
+  const quickActionNames = [
     "New project",
     "Open project",
     "Save copy",
     "Undo",
     "Redo",
-  ]) {
+    "Hide explorer",
+  ];
+  for (const name of quickActionNames) {
     const button = header.getByRole("button", { name, exact: true });
     expect((await button.textContent())?.trim()).toBe("");
   }
+  expect(
+    await header.locator(".quick-actions button").evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label")),
+    ),
+  ).toEqual(quickActionNames);
+  await header.getByRole("button", { name: "Hide explorer", exact: true }).click();
+  await expect(page.locator(".explorer")).not.toBeVisible();
+  await header.getByRole("button", { name: "Show explorer", exact: true }).click();
+  await expect(page.locator(".explorer")).toBeVisible();
   await expect(page.locator(".document-tabs")).toHaveCount(0);
   const menuButton = page.getByRole("button", {
     name: "Application menu",
@@ -475,6 +667,15 @@ test("application menu and ribbon views share context-aware header actions", asy
   await expect(
     page.getByRole("menuitem", { name: "Save project copy…", exact: true }),
   ).toHaveAttribute("aria-disabled", "true");
+  for (const moved of [
+    "Hide explorer",
+    "Compact rows",
+    "Collapse groups",
+    "Hide analysis inspector",
+  ])
+    await expect(
+      page.getByRole("menuitem", { name: moved, exact: true }),
+    ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(menuButton).toHaveAttribute("aria-expanded", "false");
   await expect(menuButton).toBeFocused();
@@ -539,6 +740,51 @@ test("application menu and ribbon views share context-aware header actions", asy
       .locator(".ribbon")
       .getByRole("button", { name: "Update dependent rates", exact: true }),
   ).toHaveCount(0);
+  const ribbonHeights = new Set<number>();
+  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements"]) {
+    await page
+      .locator(".ribbon-tabs")
+      .getByRole("tab", { name: tab, exact: true })
+      .click();
+    ribbonHeights.add(
+      await page.locator(".ribbon").evaluate((element) => element.clientHeight),
+    );
+  }
+  expect(ribbonHeights.size).toBe(1);
+  const scheduleTab = page.getByRole("tab", { name: "Schedule", exact: true }).first();
+  await scheduleTab.focus();
+  await page.keyboard.press("ArrowRight");
+  const analysisTab = page.locator("#view-analysis");
+  await expect(analysisTab).toBeFocused();
+  // Focusing a tab alone must not switch the editor or discard a draft.
+  await expect(page.locator("#view-measurement")).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Enter");
+  await expect(analysisTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".ribbon").getByRole("button", { name: "Apply analysis", exact: true }))
+    .toHaveAttribute("title", /working copy.*Save the project/);
+  for (const width of [1600, 1366, 1280, 1100, 800, 700]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const tab of ["Schedule", "Analysis", "Resources", "Measurements"]) {
+      await page.locator(".ribbon-tabs").getByRole("tab", { name: tab, exact: true }).click();
+      await expect.poll(() => page.locator(".ribbon").evaluate(element =>
+        element.scrollWidth <= element.clientWidth,
+      ), { message: `${tab} ribbon should fit at ${width}px` }).toBe(true);
+    }
+  }
+  const originalFontSize = await page.locator("html").evaluate(element => {
+    const previous = element.style.fontSize;
+    element.style.fontSize = "20px";
+    return previous;
+  });
+  await page.setViewportSize({ width: 1100, height: 1000 });
+  for (const tab of ["Schedule", "Analysis", "Resources", "Measurements"]) {
+    await page.locator(".ribbon-tabs").getByRole("tab", { name: tab, exact: true }).click();
+    await expect.poll(() => page.locator(".ribbon").evaluate(element =>
+      element.scrollWidth <= element.clientWidth,
+    ), { message: `${tab} ribbon should fit with enlarged system text` }).toBe(true);
+  }
+  await page.locator("html").evaluate((element, size) => { element.style.fontSize = size; }, originalFontSize);
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await page.screenshot({ path: "test-results/context-ribbon.png" });
 });
 

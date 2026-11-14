@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { restoreLibraries } from "./libraryPreferences";
 import {
   request,
   type AnalysisRow,
@@ -8,6 +9,7 @@ import {
 
 export function useWorkspace() {
   const state = ref<AnalysisState>();
+  const projectSession = ref(0);
   const busy = ref(false);
   const error = ref("");
   const status = ref("Connecting to calculation engine…");
@@ -82,6 +84,10 @@ export function useWorkspace() {
   async function reconnect() {
     await run(async () => {
       await refresh();
+      if (state.value?.project_open) {
+        await restoreLibraries();
+        await refresh();
+      }
       connected.value = true;
     }, "Connecting to engine…");
   }
@@ -129,7 +135,9 @@ export function useWorkspace() {
     return run(async () => {
       if (recovery) await request("recovery.open", { id: path, discard });
       else await request("project.open", { path, discard });
+      await restoreLibraries();
       await refresh();
+      projectSession.value++;
       scheduleQuery.value = "";
       resourceQuery.value = "";
       resourceSource.value = "";
@@ -165,6 +173,7 @@ export function useWorkspace() {
     return saved;
   }
   return {
+    projectSession,
     state,
     busy,
     error,

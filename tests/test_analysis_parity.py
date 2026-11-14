@@ -54,6 +54,45 @@ class AnalysisParity(unittest.TestCase):
         self.command("undo")
         self.assertEqual(self.s.state()["ana_remarks"], "")
 
+    def test_batch_preview_apply_atomic_undo_and_validation(self):
+        group = self.s.state()["rows"][0]["id"]
+        self.resource(group, qty="2")
+        row = self.s.state()["rows"][0]["_children"][0]
+        original = self.s.state()
+        history = len(self.s.history)
+        operations = [dict(method="edit", id=row["id"], field="value", value="3*2"), dict(method="edit", id=row["id"], field="rate", value="15.555")]
+        preview = self.command("analysis.batch.preview", operations=operations)
+        self.assertEqual(preview["rows"][0]["_children"][0]["amount"], "93.36")
+        self.assertEqual(self.s.state(), original)
+        self.assertEqual(len(self.s.history), history)
+        applied = self.command("analysis.batch", operations=operations)
+        self.assertEqual(applied["rate"], preview["rate"])
+        self.assertEqual(len(self.s.history), history + 1)
+        self.command("undo")
+        self.assertEqual(self.s.state()["rows"], original["rows"])
+        self.command("redo")
+        before = self.s.state()
+        for method in ("analysis.batch", "analysis.batch.preview"):
+            with self.assertRaises(ValueError):
+                self.command(method, operations=[dict(method="edit", id=row["id"], field="value", value="9"), dict(method="edit", id=row["id"], field="rate", value="1/0")])
+            self.assertEqual(self.s.state(), before)
+        with self.assertRaises(ValueError):
+            self.command("analysis.batch", operations=[dict(method="project.save")])
+        with self.assertRaises(ValueError):
+            self.s.call("analysis.batch", dict(revision=original["revision"], operations=operations))
+
+    def test_configurable_template_uses_existing_rows_and_one_undo(self):
+        rows = self.s.call("analysis.template_rows", {})
+        group = self.s.state()["rows"][0]["id"]
+        original = self.s.state()["rows"]
+        operations = [dict(method="add", **row) for row in rows]
+        preview = self.command("analysis.batch.preview", id=group, operations=operations)
+        result = self.command("analysis.batch", id=group, operations=operations)
+        self.assertEqual([r["description"] for r in result["rows"][1:1+len(rows)]], [r["description"] for r in rows])
+        self.assertEqual(result["rate"], preview["rate"])
+        self.command("undo")
+        self.assertEqual(self.s.state()["rows"], original)
+
     def test_independent_duplicate_and_resource_replacement(self):
         group = self.s.state()["rows"][0]["id"]
         self.resource(group, qty="2")

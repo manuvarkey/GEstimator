@@ -293,6 +293,70 @@ class ProjectEditors(unittest.TestCase):
         self.assertEqual(self.s.db.get_item("A").ana_remarks, "First save")
         self.call("project.save_copy", path=str(Path(self.temp.name) / "alternate.eproj"))
 
+    def test_failed_save_preserves_source_draft_and_cleans_staging(self):
+        from unittest.mock import patch
+        self.call("analysis.load", code="A")
+        self.call("analysis.edit", field="ana_remarks", value="Unsaved after failure")
+        original = self.source.read_bytes()
+        before = self.s.state()
+        def fail_write(path):
+            path.write_bytes(b"interrupted snapshot")
+            raise OSError("Snapshot interrupted")
+        faults = [
+            patch.object(self.s, "write_project_snapshot", side_effect=fail_write),
+            patch("modern.backend.persistence.shutil.copyfile", side_effect=OSError("Backup failed")),
+            patch("pathlib.Path.replace", side_effect=PermissionError("Destination held open")),
+        ]
+        for fault in faults:
+            with fault, self.assertRaises(OSError):
+                self.call("project.save")
+            self.assertEqual(self.source.read_bytes(), original)
+            self.assertEqual(self.s.state(), before)
+            self.assertFalse(list(self.source.parent.glob(".gestimator-*.tmp")))
+        result = self.call("project.save")
+        self.assertEqual(Path(result["backup"]).read_bytes(), original)
+        self.assertFalse(self.s.dirty)
+
+    def test_concurrent_save_lock_and_stale_second_window_preserve_drafts(self):
+        from modern.backend.persistence import save_lock
+        other = Service()
+        self.addCleanup(other.close)
+        other.call("project.open", dict(path=str(self.source)))
+        self.call("analysis.load", code="A")
+        self.call("analysis.edit", field="ana_remarks", value="First window")
+        other.call("analysis.load", dict(code="B"))
+        other.call("analysis.edit", dict(revision=other.revision, field="ana_remarks", value="Second window"))
+        before = other.state()
+        original = self.source.read_bytes()
+        with save_lock(self.source):
+            with self.assertRaisesRegex(ValueError, "Another GEstimator window"):
+                other.call("project.save", {})
+        self.assertEqual(other.state(), before)
+        self.assertEqual(self.source.read_bytes(), original)
+        self.call("project.save")
+        saved = self.source.read_bytes()
+        with self.assertRaisesRegex(ValueError, "changed on disk"):
+            other.call("project.save", {})
+        self.assertEqual(self.source.read_bytes(), saved)
+        self.assertEqual(other.state(), before)
+
+    def test_interrupted_recovery_keeps_last_complete_checkpoint(self):
+        from unittest.mock import patch
+        from modern.backend.persistence import write_recovery
+        checkpoint = Path(self.temp.name) / "last.eproj"
+        checkpoint.write_bytes(self.source.read_bytes())
+        original = checkpoint.read_bytes()
+        def partial(path):
+            path.write_bytes(b"partial checkpoint")
+            raise OSError("Interrupted")
+        with self.assertRaises(OSError):
+            write_recovery(checkpoint, partial)
+        self.assertEqual(checkpoint.read_bytes(), original)
+        with patch("pathlib.Path.replace", side_effect=PermissionError("Publish failed")), self.assertRaises(OSError):
+            write_recovery(checkpoint, lambda path: path.write_bytes(b"complete new checkpoint"))
+        self.assertEqual(checkpoint.read_bytes(), original)
+        self.assertFalse(list(checkpoint.parent.glob(".gestimator-*.tmp")))
+
     def test_recovery_restores_workspace_and_pending_analysis_to_new_file(self):
         recovery = Path(self.temp.name) / "recovery"
         self.s.recovery_dir = recovery
@@ -606,6 +670,9 @@ class ProjectEditors(unittest.TestCase):
             identity = self.call("measurement.state")["rows"][0]["id"]
             self.call("measurement.record_add", id=identity)
             state = self.call("measurement.state", id=identity)
+            self.assertEqual([column["width"] for column in state["detail"]["columns"]], expected.dimensions[0])
+            self.assertEqual([column["expand"] for column in state["detail"]["columns"]], expected.dimensions[1])
+            self.assertEqual([column["numeric"] for column in state["detail"]["columns"]], [kind in (misc.MEAS_L, misc.MEAS_NO) for kind in expected.columntypes])
             record = state["detail"]["rows"][0]["id"]
             edits = [
                 dict(id=record, field="c" + str(index), value=value)
@@ -631,7 +698,47 @@ class ProjectEditors(unittest.TestCase):
         self.assertTrue(
             any(cell.value == "Reference" for row in workbook["DOM"] for cell in row)
         )
+        def signature(book):
+            return [(
+                sheet.title,
+                [(cell.coordinate, cell.value, cell.data_type, cell.number_format, str(cell._style)) for row in sheet for cell in row],
+                str(sheet.merged_cells), str(sheet.page_setup), str(sheet.page_margins),
+                str(sheet.print_options), str(sheet.print_area), sheet.print_title_rows, sheet.print_title_cols,
+                [(key, str(value)) for key, value in sheet.column_dimensions.items()],
+                [(key, str(value)) for key, value in sheet.row_dimensions.items()],
+            ) for sheet in book]
+        expected_signature = signature(workbook)
         workbook.close()
+        class Progress:
+            def add_message(self, message): pass
+            def set_fraction(self, value): pass
+            def pulse(self, *args, **kwargs): pass
+        reference = Path(self.temp.name) / "legacy-reference.xlsx"
+        spreadsheet = misc.Spreadsheet()
+        self.s.db.export_sch_spreadsheet(spreadsheet, False)
+        self.s.db.export_res_spreadsheet(spreadsheet)
+        self.s.db.export_meas_spreadsheet(spreadsheet, False)
+        self.s.db.export_res_usage_spreadsheet(spreadsheet)
+        self.s.db.export_ana_spreadsheet(spreadsheet, Progress(), [0.3, 0.9])
+        spreadsheet.save(reference)
+        legacy = load_workbook(reference)
+        self.assertEqual(signature(legacy), expected_signature)
+        names = legacy.sheetnames
+        legacy.close()
+        # Optional real-office check, using an isolated profile and disposable output.
+        import shutil
+        import subprocess
+        if office := shutil.which("libreoffice"):
+            folder = Path(self.temp.name) / "recalculated"
+            folder.mkdir()
+            profile = (Path(self.temp.name) / "office-profile").as_uri()
+            result = subprocess.run([office, "-env:UserInstallation=" + profile, "--headless", "--convert-to", "xlsx", "--outdir", str(folder), str(output)], capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            recalculated = load_workbook(folder / output.name, data_only=True)
+            self.assertEqual(recalculated.sheetnames, names)
+            errors = [(sheet.title, cell.coordinate, cell.value) for sheet in recalculated for row in sheet for cell in row if cell.data_type == "e"]
+            self.assertEqual(errors, [])
+            recalculated.close()
 
     def test_empty_categories_are_visible_renamable_and_ordered(self):
         self.call("schedule.editor.category_add", description="Empty category")
