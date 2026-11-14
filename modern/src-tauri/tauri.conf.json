@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "GEstimator",
+        "decorations": false,
         "width": 1440,
         "height": 900
       }

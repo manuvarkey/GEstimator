@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { cellNavigation } from "../cellNavigation";
 import {
   TabulatorFull as Tabulator,
   type ColumnDefinition,
@@ -15,6 +16,7 @@ const props = defineProps<{
   tree?: boolean;
   label?: string;
   selectIds?: string[];
+  saveCell?: (row: any, field: string, value: string) => Promise<boolean>;
   actions?: { label: string; action: string; itemOnly?: boolean; single?: boolean }[];
 }>();
 const emit = defineEmits<{
@@ -31,8 +33,11 @@ let ready: Promise<void>;
 let alive = true;
 let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
+let navigation: ReturnType<typeof cellNavigation>;
+let replacement: Promise<unknown> = Promise.resolve();
 defineExpose({ focus: () => element.value?.focus() });
 function keyboard(event: KeyboardEvent) {
+  if (navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
   if (tableSelection(event, table, props.busy, !!props.tree)) return;
   if (event.key === "F2") {
@@ -127,18 +132,16 @@ watch(
     await ready;
     if (!alive) return;
     const ids = new Set(selectIds !== previousIds ? selectIds : table.getSelectedData().map((r) => r.id));
-    const expansion = new Map<string, boolean>();
-    const remember = (rows: RowComponent[]) => { for (const row of rows) { expansion.set(row.getData().id, row.isTreeExpanded()); if (props.tree) remember(row.getTreeChildren()); } };
-    if (props.tree) remember(table.getRows());
     replacingRows = true;
     try {
       if (JSON.stringify(columns) !== JSON.stringify(previousColumns)) table.setColumns(columns);
-      await table.replaceData(rows);
+      replacement = table.replaceData(rows);
+      await replacement;
       const restoreSelection = (rows: RowComponent[]) => {
         for (const row of rows) {
           if (ids.delete(row.getData().id)) row.select();
           if (props.tree) {
-            if (expansion.get(row.getData().id) === false) row.treeCollapse();
+            row.treeExpand();
             restoreSelection(row.getTreeChildren());
           }
         }
@@ -153,6 +156,7 @@ watch(
       }
     } finally {
       replacingRows = false;
+      navigation?.replaced(selectIds !== previousIds);
     }
     if (alive) emit("selection", table.getSelectedData());
   },
@@ -164,6 +168,8 @@ onMounted(() => {
     index: "id",
     dataTree: props.tree,
     dataTreeStartExpanded: true,
+    dataTreeExpandElement: '<span class="tree-spacer" aria-hidden="true"></span>',
+    dataTreeCollapseElement: '<span class="tree-spacer" aria-hidden="true"></span>',
     dataTreeElementColumn: "description",
     selectableRows: true,
     selectableRowsRangeMode: "click",
@@ -207,6 +213,15 @@ onMounted(() => {
       }
     },
   });
+  navigation = cellNavigation(table, element.value!, {
+    busy: () => props.busy, tree: !!props.tree, settled: () => replacement,
+    position: (id, field) => { anchor = { id, field }; },
+    save: async cell => {
+      const row = cell.getData(), field = cell.getField(), value = String(cell.getValue());
+      if (props.saveCell) return props.saveCell(row, field, value);
+      emit("edit", row as any, field, value); return true;
+    },
+  });
   ready = new Promise<void>((resolve) =>
     table.on("tableBuilt", () => {
       void table.replaceData(props.rows);
@@ -216,23 +231,17 @@ onMounted(() => {
   element.value!.tabIndex = 0;
   element.value!.addEventListener("paste", paste);
   table.on("cellClick", (event, cell) => {
+    navigation.clicked(cell);
     anchor = { id: cell.getData().id, field: cell.getField() };
     if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow());
   });
   table.on("rowSelectionChanged", (rows) => {
     if (!replacingRows) emit("selection", rows);
   });
-  table.on("cellEdited", (cell) =>
-    emit(
-      "edit",
-      cell.getData() as { id: string; [key: string]: any },
-      cell.getField(),
-      String(cell.getValue()),
-    ),
-  );
 });
 onBeforeUnmount(() => {
   alive = false;
+  navigation?.destroy();
   element.value?.removeEventListener("paste", paste);
   table?.destroy();
 });

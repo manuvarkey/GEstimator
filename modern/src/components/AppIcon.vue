@@ -52,6 +52,9 @@ const paths: Record<string, string> = {
   attach: "M8 12l5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l8-8",
   play: "m8 4 12 8-12 8Z",
   stop: "M5 5h14v14H5Z",
+  filter: "M3 5h18l-7 8v6l-4 2v-8Z",
+  minimize: "M5 17h14",
+  maximize: "M5 5h14v14H5Z",
 };
 </script>
 <template>

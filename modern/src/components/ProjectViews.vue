@@ -8,6 +8,7 @@ import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import DatabasePicker from "./DatabasePicker.vue";
+import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import { programSettings } from "../programSettings";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
@@ -58,6 +59,8 @@ onBeforeUnmount(() => emit("busy", false));
 const error = ref("");
 const clipboardMessage = ref("");
 const query = ref("");
+const categoryFilters = ref<string[]>([]);
+watch(categoryFilters, () => { page.value = 0; void load(); });
 const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
@@ -209,7 +212,6 @@ const columns = computed<ColumnDefinition[]>(() => {
           "vat",
           "discount",
           "reference",
-          "category",
         ]
       : [
           "code",
@@ -219,8 +221,6 @@ const columns = computed<ColumnDefinition[]>(() => {
           "qty",
           "amount",
           "remarks",
-          "category",
-          "parent",
         ];
   return fields.map((field) => ({
     title: field.toUpperCase(),
@@ -305,6 +305,7 @@ async function refresh(revealId?: string) {
     isMeasurement.value ? "measurement.state" : props.view + ".editor.state",
     {
       query: query.value,
+      categories: categoryFilters.value,
       source: source.value,
       offset: page.value * 100,
       id: activeMeasurement.value,
@@ -312,6 +313,15 @@ async function refresh(revealId?: string) {
       reveal_id: revealId,
     },
   );
+  if (!isMeasurement.value) {
+    const retained = categoryFilters.value.filter(name => state.value?.categories?.includes(name));
+    if (retained.length !== categoryFilters.value.length) {
+      categoryFilters.value = retained;
+      page.value = 0;
+      await refresh(revealId);
+      return;
+    }
+  }
   if (isMeasurement.value && state.value?.detail) recordPage.value = state.value.detail.offset / 100;
   if (!isMeasurement.value) page.value = (state.value?.offset || 0) / 100;
 }
@@ -350,7 +360,7 @@ async function command(
       recordPage.value = 0;
     }
     if (result?.record_offset !== undefined) recordPage.value = result.record_offset / 100;
-    if (result?.selected && !isMeasurement.value) query.value = "";
+    if (result?.selected && !isMeasurement.value) { query.value = ""; categoryFilters.value = []; }
     await refresh(!isMeasurement.value ? result?.selected?.[0] : undefined);
     if (result?.selected) selectionIds.value = result.selected;
     if (result?.selected_records) recordSelectionIds.value = result.selected_records;
@@ -561,7 +571,7 @@ function activateRow(row: GridRow) {
   else showProperties();
 }
 async function edit(row: GridRow, field: string, value: string) {
-  await command(isMeasurement.value ? "edit" : "edit", {
+  return command("edit", {
     id: row.id,
     field,
     value,
@@ -654,7 +664,7 @@ function keyboard(event: KeyboardEvent) {
   } else if (isMeasurement.value || one.value) void command("move", { delta });
 }
 async function recordEdit(row: GridRow, field: string, value: string) {
-  await command("record_edit", {
+  return command("record_edit", {
     id: activeMeasurement.value,
     record_id: row.id,
     field,
@@ -736,6 +746,7 @@ watch(
     selectedRecords.value = [];
     recordSelectionIds.value = undefined;
     query.value = "";
+    categoryFilters.value = [];
     source.value = "";
     page.value = 0;
     selected.value = [];
@@ -769,15 +780,7 @@ watch(
 </script>
 <template>
   <section class="project-view" @keydown="keyboard">
-    <div class="analysis-heading">
-      <div>
-        <div class="eyebrow">PROJECT WORKSPACE</div>
-        <h1>{{ title }}</h1>
-        <p>
-          Edits are applied to the project working copy. Save the project to keep them.
-        </p>
-      </div>
-    </div>
+    <h1 class="sr-only">{{ title }}</h1>
     <div v-if="!projectOpen" class="empty-explorer">
       <AppIcon name="folder" :size="35" /><strong
         >Open a project to use this editor.</strong
@@ -942,7 +945,7 @@ watch(
           </div>
           <div v-if="view === 'resources'" class="ribbon-group">
             <div class="ribbon-actions ribbon-actions-wide">
-            <button class="ribbon-action ribbon-icon" aria-label="Edit resource" title="Edit all fields of the selected resource together. Only changed fields are saved, as one undoable operation (Ctrl+E or Enter)." :disabled="busy || !one || one.rowtype === 'Category'" @click="showForm('edit')"><AppIcon name="edit" /><span class="ribbon-label">Edit resource</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Edit resource" title="Edit all fields of the selected resource together. Only changed fields are saved, as one undoable operation (Ctrl+E). Enter edits the focused cell." :disabled="busy || !one || one.rowtype === 'Category'" @click="showForm('edit')"><AppIcon name="edit" /><span class="ribbon-label">Edit resource</span></button>
             <button class="ribbon-action ribbon-icon" aria-label="Move resources…" title="Move selected definitions to another category without making copies or breaking analysis links. Undo restores their previous categories." :disabled="busy || !selected.length || selected.some(row => row.rowtype === 'Category')" @click="moveCategory = state?.categories?.[0] || ''; moveResourcesOpen = true"><AppIcon name="category" /><span class="ribbon-label">Move resources</span></button>
             <button
               class="ribbon-action"
@@ -1025,7 +1028,7 @@ watch(
           </template>
         </div></Teleport
       >
-      <form
+      <div v-if="!isMeasurement" class="project-filter-bar"><form
         v-if="!isMeasurement"
         class="search-field project-search"
         @submit.prevent="
@@ -1040,8 +1043,8 @@ watch(
         /><button class="button small secondary" :disabled="busy">
           Search
         </button>
-      </form>
-      <label v-else class="field"
+      </form><CategoryFilter v-model="categoryFilters" :categories="state?.categories || []" :disabled="busy" /></div>
+      <label v-else class="field measurement-caption"
         >Measurement caption<input
           :value="state?.caption"
           :disabled="busy"
@@ -1062,9 +1065,9 @@ watch(
           :tree="!isMeasurement"
           :select-ids="selectionIds"
           :actions="rowActions"
+          :save-cell="edit"
           @action="rowAction"
           @selection="select"
-          @edit="edit"
           @paste="pasteCells"
           @paste-rows="data => command('paste', { clipboardData: data })"
           @activate="activateRow"
@@ -1094,8 +1097,7 @@ watch(
       </div>
       <template v-if="isMeasurement && selected.length === 1 && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">
-          <div><strong>{{ state.detail.info.label }}</strong><p>{{ state.detail.info.summary }}</p>
-            <small>{{ state.detail.info.note }}</small></div>
+          <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
           <button class="button small secondary" title="Edit description, schedule links and template properties together. Save applies one undoable change; Cancel leaves the item unchanged (Ctrl+E)." @click="showProperties"><AppIcon name="settings" />Properties…</button>
         </div>
         <div class="measurement-links">
@@ -1208,7 +1210,7 @@ watch(
             :actions="[{ label: 'Insert record', action: 'add' }, { label: 'Duplicate record', action: 'duplicate' }, { label: 'Copy record', action: 'copy' }, { label: 'Paste records here', action: 'paste' }, { label: 'Delete record', action: 'delete' }]"
             @action="operation => recordAction(operation)"
             @selection="selectedRecords = $event; selectedRecord = $event[0]"
-            @edit="recordEdit"
+            :save-cell="recordEdit"
             @paste="pasteCells"
             @paste-rows="data => command('record_paste', { id: activeMeasurement, record_id: selectedRecord?.id, record_ids: selectedRecords.map(row => row.id), clipboardData: data })"
           />

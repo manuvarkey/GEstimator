@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import secrets
 from threading import Thread, Lock
+from .mcp_operations import OPERATIONS, execute
 
 VERSION = "2025-11-25"
 VERSIONS = (VERSION, "2025-06-18", "2025-03-26")
@@ -33,6 +34,8 @@ TOOLS = [
 
 
 def read_tool(service, name, arguments):
+    if name in OPERATIONS:
+        return execute(service, name, arguments)
     definition = next((item for item in TOOLS if item["name"] == name), None)
     if not definition:
         raise ValueError("Unknown read-only tool")
@@ -77,23 +80,37 @@ class MCPServer:
         self.lock = Lock()
         self.requests = 0
         self.last_activity = ""
+        self.access = "read"
+        self.change_seq = 0
+        self.project_epoch = 0
+        self.generation = 0
 
-    def status(self):
+    def tools(self):
+        return TOOLS + [operation["definition"] for operation in OPERATIONS.values() if self.access == "read-write" or not operation["write"]]
+
+    def status(self, include_tools=True):
         with self.lock:
-            return dict(running=self.server is not None, port=self.port, token=self.token,
+            result = dict(running=self.server is not None, port=self.port, token=self.token,
                         url=f"http://127.0.0.1:{self.port}/mcp", requests=self.requests,
-                        last_activity=self.last_activity, protocol=VERSION, tools=TOOLS)
+                        last_activity=self.last_activity, protocol=VERSION,
+                        access=self.access, change_seq=self.change_seq, project_epoch=self.project_epoch)
+            if include_tools:
+                result["tools"] = self.tools()
+            return result
 
     def configure(self, params):
         if self.server:
             raise ValueError("Stop the MCP server before changing its configuration")
         port = params.get("port", self.port)
         token = params.get("token", self.token)
+        access = params.get("access", self.access)
+        if access not in ("read", "read-write"):
+            raise ValueError("Choose read or read-write access")
         if type(port) is not int or not 1024 <= port <= 65535:
             raise ValueError("Port must be an integer from 1024 to 65535")
         if not isinstance(token, str) or not 32 <= len(token) <= 128 or not all(char.isascii() and (char.isalnum() or char in "-_") for char in token):
             raise ValueError("Use a connection token of 32–128 letters, digits, hyphens or underscores")
-        self.port, self.token = port, token
+        self.port, self.token, self.access = port, token, access
         return self.status()
 
     def start(self):
@@ -102,6 +119,7 @@ class MCPServer:
         if not self.dispatch:
             raise ValueError("MCP requires the application's serialized service runtime")
         owner = self
+        generation = self.generation + 1
 
         class Handler(BaseHTTPRequestHandler):
             server_version = "GEstimator-MCP"
@@ -176,15 +194,19 @@ class MCPServer:
                 if method == "initialize":
                     result = dict(protocolVersion=params.get("protocolVersion") if params.get("protocolVersion") in VERSIONS else VERSION,
                                   capabilities=dict(tools=dict(listChanged=False)), serverInfo=dict(name="GEstimator", version="0.1.0"),
-                                  instructions="Read-only access to the project currently open in GEstimator. Analysis includes the active draft; rates and totals use the existing Python engine.")
+                                  instructions="GEstimator estimate workspace. Read state/get_project for the current revision and IDs. Every write requires that revision. Work in the isolated project, load/edit/apply analyses, then save explicitly. Use database.inspect/analysis/resource to inspect attached sources without replacing the active draft. Measurement fields cN come from template metadata; preserve raw expressions. Native application tools return data and the next revision; legacy read aliases keep their flat payloads. Unsaved drafts, invalid data and stale writes use the application guards. Access mode: " + owner.access)
                 elif method == "ping":
                     result = {}
                 elif method == "tools/list":
-                    result = dict(tools=TOOLS)
+                    result = dict(tools=owner.tools())
                 elif method == "tools/call":
                     try:
-                        value = owner.dispatch("mcp.read", params)
+                        # Stamp the accepted listener, never a client-supplied
+                        # value. The owner thread rechecks it at execution time.
+                        value = owner.dispatch("mcp.read", dict(name=params.get("name"), arguments=params.get("arguments", {}), _listener=generation))
                         result = dict(content=[dict(type="text", text=json.dumps(value, ensure_ascii=False))], isError=False)
+                        if isinstance(value, dict):
+                            result["structuredContent"] = value
                     except Exception as exc:
                         result = dict(content=[dict(type="text", text=str(exc))], isError=True)
                 else:
@@ -196,6 +218,7 @@ class MCPServer:
             block_on_close = False
 
         server = Server(("127.0.0.1", self.port), Handler)
+        self.generation = generation
         self.server = server
         self.thread = Thread(target=server.serve_forever, kwargs=dict(poll_interval=0.1), daemon=True, name="mcp-http")
         self.thread.start()
@@ -203,6 +226,7 @@ class MCPServer:
 
     def stop(self):
         if self.server:
+            self.generation += 1
             self.server.shutdown()
             self.server.server_close()
             self.thread.join(timeout=2)

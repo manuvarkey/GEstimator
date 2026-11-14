@@ -225,6 +225,9 @@ class ProjectEditor:
         table = db.ResourceTable if resource else db.ScheduleTable
         category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
         query = text(p.get("query", ""))
+        filters = p.get("categories", [])
+        if not isinstance(filters, list) or len(filters) > 200 or any(not isinstance(value, str) or len(value) > 10000 for value in filters):
+            raise ValueError("Choose up to 200 category names")
         offset = p.get("offset", 0)
         limit = p.get("limit", 100)
         if (
@@ -244,6 +247,11 @@ class ProjectEditor:
             )
             .order_by(category.order, table.order, *([] if resource else [table.suborder]), table.id)
         )
+        if filters:
+            criterion = category.description.in_(filters)
+            if "" in filters:
+                criterion |= category.description.is_null(True)
+            records = records.where(criterion)
         total = records.count()
         if p.get("reveal_id"):
             revealed = table.get_or_none(table.id == int(p["reveal_id"]))
@@ -272,7 +280,7 @@ class ProjectEditor:
             )
             .order_by(category.order)
         ):
-            if not query or query.lower() in cat.description.lower():
+            if (not filters or (cat.description or "") in filters) and (not query or query.lower() in (cat.description or "").lower()):
                 categories[cat.id] = dict(
                     id="cat:" + str(cat.id),
                     rowtype="Category",
@@ -361,7 +369,7 @@ class ProjectEditor:
             redo=bool(self.future),
             revision=self.owner.revision,
             categories=[
-                r.description for r in category.select().order_by(category.order)
+                r.description or "" for r in category.select().order_by(category.order)
             ],
         )
 

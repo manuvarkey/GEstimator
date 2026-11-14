@@ -14,7 +14,12 @@ class Runtime:
         self.thread.start()
 
     def run(self, recovery_dir):
-        service = Service(recovery_dir, dispatch=lambda method, params: self.call(method, params, timeout=30))
+        from .mcp_operations import OPERATIONS
+        def dispatch(method, params):
+            name = params.get("name")
+            write = isinstance(name, str) and OPERATIONS.get(name, {}).get("write", False)
+            return self.call(method, params, timeout=110 if write else 30)
+        service = Service(recovery_dir, dispatch=dispatch)
         try:
             while True:
                 job = self.queue.get()

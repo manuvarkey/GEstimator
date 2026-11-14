@@ -82,13 +82,30 @@ const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
   "analysis",
 );
 const activeTab = ref<(typeof views)[number]["key"]>("analysis");
-watch(activeTab, tab => {
-  if (mcpPoll) clearInterval(mcpPoll);
-  if (tab === "mcp") {
-    void refreshMCP();
-    mcpPoll = setInterval(() => { if (!mcpSettingsOpen.value && !uiBusy.value) void refreshMCP(); }, 3000);
-  }
-});
+watch(activeTab, tab => { if (tab === "mcp") void refreshMCP(); });
+let observedMCPChange = 0;
+let observedMCPProject = 0;
+async function syncMCPChanges() {
+  if (!mcpStatus.value || (!mcpStatus.value.running && mcpStatus.value.change_seq === observedMCPChange) || uiBusy.value || document.querySelector('.tabulator-editing,[role="dialog"]')) return;
+  if (!await refreshMCP()) return;
+  if (mcpStatus.value.change_seq === observedMCPChange) return;
+  await w.run(async () => {
+    if (mcpStatus.value!.project_epoch !== observedMCPProject) {
+      projectSession.value++;
+      selected.value = [];
+      scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
+      schedulePage.value = resourcePage.value = 0;
+    }
+    await w.refresh();
+    await projectView.value?.reload();
+    if (state.value?.project_open) {
+      schedule.value = await request("schedule.list", { query: scheduleQuery.value, offset: schedulePage.value * 100 });
+      resources.value = await request("resources.search", { query: resourceQuery.value, offset: resourcePage.value * 100, source: resourceSource.value });
+    }
+    observedMCPChange = mcpStatus.value!.change_seq;
+    observedMCPProject = mcpStatus.value!.project_epoch;
+  }, "Updated by MCP");
+}
 const projectBusy = ref(false);
 const uiBusy = computed(() => busy.value || projectBusy.value);
 
@@ -102,7 +119,6 @@ const explorer = ref("schedule");
 const sidebar = ref(true);
 const inspector = ref(true);
 const compact = ref(false);
-const expanded = ref(true);
 const helpOpen = ref(false);
 const theme = ref(localStorage.getItem("gestimator-theme") || "dark");
 watch(
@@ -329,7 +345,7 @@ async function insertResource(libraryCode?: string) {
   }
 }
 async function edit(row: AnalysisRow, field: string, value: string) {
-  await w.command("edit", { id: row.id, field, value });
+  return w.command("edit", { id: row.id, field, value });
 }
 function editField(event: Event, field: string) {
   if (selection.value)
@@ -462,6 +478,9 @@ async function saveSettings() {
     settingsOpen.value = false;
 }
 async function switchView(view: typeof activeTab.value) {
+  if (view === "analysis" && state.value?.dirty) {
+    activeView.value = "analysis"; activeTab.value = "analysis"; return;
+  }
   if (view === "databases" || view === "mcp" || view === activeView.value) {
     activeTab.value = view;
     return;
@@ -590,6 +609,7 @@ onMounted(async () => {
   }
   await w.reconnect();
   await initializeMCP();
+  mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
   await refreshRecovery();
   if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
 });
@@ -602,7 +622,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <div class="app-shell">
-    <header class="titlebar">
+    <header class="titlebar" data-tauri-drag-region>
       <ApplicationMenu
         :busy="uiBusy"
         :project-open="!!state?.project_open"
@@ -677,7 +697,7 @@ onBeforeUnmount(() => {
           <AppIcon name="panel" />
         </button>
       </div>
-      <div class="titlebar-project">
+      <div class="titlebar-project" data-tauri-drag-region>
         <AppIcon name="folder" :size="15" /><span>{{ projectName }}</span
         ><span
           v-if="state?.dirty || state?.workspace_dirty"
@@ -706,6 +726,11 @@ onBeforeUnmount(() => {
         >
           <AppIcon name="help" />
         </button>
+      </div>
+      <div v-if="isTauri()" class="window-controls" role="toolbar" aria-label="Window controls">
+        <button class="icon-button" aria-label="Minimize window" title="Minimize" @click="getCurrentWindow().minimize()"><AppIcon name="minimize" /></button>
+        <button class="icon-button" aria-label="Maximize or restore window" title="Maximize or restore" @click="getCurrentWindow().toggleMaximize()"><AppIcon name="maximize" :size="15" /></button>
+        <button class="icon-button window-close" aria-label="Close window" title="Close" :disabled="uiBusy" @click="getCurrentWindow().close()"><AppIcon name="close" /></button>
       </div>
     </header>
     <div class="ribbon-tabs" role="tablist" aria-label="Workspace views">
@@ -832,13 +857,6 @@ onBeforeUnmount(() => {
               :class="{ pressed: compact }" :aria-pressed="compact" @click="compact = !compact">
               <AppIcon name="rows" /><span class="ribbon-label">Compact rows</span></button>
             <button class="ribbon-action ribbon-icon"
-              :aria-label="expanded ? 'Collapse groups' : 'Expand groups'"
-              :title="expanded ? 'Hide resource rows inside all analysis groups while keeping group totals visible.' : 'Show resource rows inside all analysis groups.'"
-              :class="{ pressed: !expanded }" :aria-pressed="!expanded"
-              @click="expanded = !expanded">
-              <AppIcon :name="expanded ? 'collapse' : 'expand'" />
-              <span class="ribbon-label">{{ expanded ? "Collapse groups" : "Expand groups" }}</span></button>
-            <button class="ribbon-action ribbon-icon"
               :aria-label="inspector ? 'Hide analysis inspector' : 'Show analysis inspector'"
               :title="inspector ? 'Hide the selected-row inspector to give the analysis table more room.' : 'Show the inspector to edit the selected analysis row and resource definition.'"
               :class="{ pressed: !inspector }" :aria-pressed="!inspector"
@@ -882,9 +900,9 @@ onBeforeUnmount(() => {
         <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Attach database…" title="Open the database manager to attach several databases, retry saved paths or forget entries. The editor stays in place." @click="libraryManagerOpen = true"><AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button><button class="ribbon-action" aria-label="Open database folder" title="Open the custom database folder in your file manager. Refresh available databases in the attachment dialog after adding files." @click="libraryManager?.openDirectory()"><AppIcon name="folder" /><span class="ribbon-label">Database folder</span></button></div><small>DATABASES</small></div>
       </template>
       <template v-else-if="activeTab === 'mcp'">
-        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Start MCP server" title="Start the local authenticated MCP server, giving connected clients read-only access to the currently open project." :disabled="mcpBusy || !mcpStatus || mcpStatus.running" @click="startMCP"><AppIcon name="play" /><span class="ribbon-label">Start server</span></button><button class="ribbon-action" aria-label="Stop MCP server" title="Stop listening and prevent further MCP requests. The current project and editor stay open." :disabled="mcpBusy || !mcpStatus?.running" @click="stopMCP"><AppIcon name="stop" /><span class="ribbon-label">Stop server</span></button></div><small>SERVER</small></div>
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Start MCP server" title="Start the authenticated local MCP server using the access mode selected in Configure server." :disabled="mcpBusy || !mcpStatus || mcpStatus.running" @click="startMCP"><AppIcon name="play" /><span class="ribbon-label">Start server</span></button><button class="ribbon-action" aria-label="Stop MCP server" title="Stop listening and prevent further MCP requests. The current project and editor stay open." :disabled="mcpBusy || !mcpStatus?.running" @click="stopMCP"><AppIcon name="stop" /><span class="ribbon-label">Stop server</span></button></div><small>SERVER</small></div>
         <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Configure MCP server" title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration." :disabled="mcpBusy" @click="mcpSettingsOpen = true"><AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button><button class="ribbon-action" aria-label="Copy MCP client configuration" title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client." :disabled="mcpBusy || !mcpStatus" @click="copyMCPConfig"><AppIcon name="copy" /><span class="ribbon-label">Client config</span></button><button class="ribbon-action ribbon-icon" aria-label="Refresh MCP status" title="Refresh server status and client activity without changing the project." :disabled="mcpBusy" @click="refreshMCP"><AppIcon name="refresh" /></button></div><small>CONNECTION</small></div>
-        <span class="ribbon-note" role="status">{{ mcpStatus?.running ? 'Running' : 'Stopped' }} · Read only<br />{{ mcpStatus?.url || 'Connecting…' }}</span>
+        <span class="ribbon-note" role="status">{{ mcpStatus?.running ? 'Running' : 'Stopped' }} · {{ mcpStatus?.access === 'read-write' ? 'Read and write' : 'Read only' }}<br />{{ mcpStatus?.url || 'Connecting…' }}</span>
       </template>
       <div
         id="project-ribbon-tools"
@@ -1193,9 +1211,8 @@ onBeforeUnmount(() => {
               :rows="state?.rows || emptyAnalysisRows"
               :busy="busy || !connected"
               :compact="compact"
-              :expanded="expanded"
+              :save-cell="edit"
               @selection="selected = $event"
-              @edit="edit"
               @action="w.command($event)"
             />
             <div class="table-caption">
@@ -1665,12 +1682,15 @@ onBeforeUnmount(() => {
           ['Copy / Paste rows', 'Ctrl / ⌘ + C / V'],
           ['Add item / measurement record / analysis resource', 'Ctrl / ⌘ + I'],
           ['Add schedule subitem / custom analysis resource', 'Ctrl / ⌘ + Shift + I'],
-          ['Open selected schedule analysis', 'Ctrl / ⌘ + E or Enter'],
+          ['Open selected schedule analysis', 'Ctrl / ⌘ + E'],
           ['Colour selected schedule items', 'Ctrl / ⌘ + M'],
           ['Edit resource / Measurement properties', 'Ctrl / ⌘ + E'],
           ['Browse attached schedule / resource library', 'Ctrl / ⌘ + L'],
           ['Edit selected cell', 'F2'],
-          ['Expand / collapse table group', 'Right / Left'],
+          ['Edit focused cell', 'Enter / F2'],
+          ['Accept and edit next / previous cell', 'Tab / Shift + Tab'],
+          ['Accept and edit adjacent cell', 'Arrow keys'],
+          ['New line while editing text', 'Shift / Ctrl + Enter'],
           ['Apply analysis / Confirm draft discard', 'Ctrl / ⌘ + Enter / Escape'],
           ['Duplicate selected rows', 'Ctrl / ⌘ + D'],
           ['Delete selected rows', 'Delete'],

@@ -8,11 +8,12 @@ import {
 import "tabulator-tables/dist/css/tabulator.min.css";
 import type { AnalysisRow } from "../backend";
 import { tableSelection, resetTablePosition } from "../tableSelection";
+import { cellNavigation } from "../cellNavigation";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
   compact: boolean;
-  expanded: boolean;
+  saveCell: (row: AnalysisRow, field: string, value: string) => Promise<boolean>;
 }>();
 const emit = defineEmits<{
   selection: [rows: AnalysisRow[]];
@@ -23,6 +24,8 @@ const element = ref<HTMLDivElement>();
 let table: Tabulator;
 let built: Promise<void>;
 let active = true;
+let navigation: ReturnType<typeof cellNavigation>;
+let replacement: Promise<unknown> = Promise.resolve();
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
 function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
@@ -33,13 +36,8 @@ function kindBadge(cell: CellComponent) {
   label.title = row.kind === "Resource" ? `Resource ${row.code}` : row.kind;
   return label;
 }
-function traverse(rows: RowComponent[], expanded: boolean) {
-  for (const row of rows) {
-    expanded ? row.treeExpand() : row.treeCollapse();
-    traverse(row.getTreeChildren() || [], expanded);
-  }
-}
 function keyboard(event: KeyboardEvent) {
+  if (navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
   if (tableSelection(event, table, props.busy)) return;
   if (event.key === "F2" && table.getSelectedRows().length === 1) {
@@ -53,25 +51,17 @@ watch(
     await built;
     if (!active) return;
     const selected = table.getSelectedData().map((r) => r.id);
-    const expansion = new Map(
-      table.getRows().map((row) => [row.getData().id, row.isTreeExpanded()]),
-    );
-    await table.replaceData(rows);
+    replacement = table.replaceData(rows);
+    await replacement;
     table.selectRow(selected.filter((id) => rows.some((r) => r.id === id)));
     // Resource rows are children; select them using their row components.
     for (const row of table.getRows())
       for (const child of row.getTreeChildren() || [])
         if (selected.includes(child.getData().id)) child.select();
     for (const row of table.getRows()) {
-      const open = expansion.get(row.getData().id) ?? props.expanded;
-      open ? row.treeExpand() : row.treeCollapse();
+      row.treeExpand();
     }
-  },
-);
-watch(
-  () => props.expanded,
-  (value) => {
-    if (table) traverse(table.getRows(), value);
+    navigation?.replaced();
   },
 );
 watch(
@@ -86,6 +76,8 @@ onMounted(() => {
     editTriggerEvent: "dblclick",
     dataTree: true,
     dataTreeStartExpanded: true,
+    dataTreeExpandElement: '<span class="tree-spacer" aria-hidden="true"></span>',
+    dataTreeCollapseElement: '<span class="tree-spacer" aria-hidden="true"></span>',
     dataTreeElementColumn: "kind",
     dataTreeSelectPropagate: false,
     selectableRows: true,
@@ -176,6 +168,10 @@ onMounted(() => {
       },
     ],
   });
+  navigation = cellNavigation(table, element.value!, {
+    busy: () => props.busy, tree: true, settled: () => replacement,
+    save: cell => props.saveCell(cell.getData() as AnalysisRow, cell.getField(), String(cell.getValue())),
+  });
   built = new Promise<void>((resolve) => table.on("tableBuilt", resolve));
   table.on("rowContext", (_event, row) => {
     if (!row.isSelected()) {
@@ -186,15 +182,7 @@ onMounted(() => {
   table.on("rowSelectionChanged", (data) =>
     emit("selection", data as AnalysisRow[]),
   );
-  table.on("cellClick", (event, cell) => { if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
-  table.on("cellEdited", (cell) =>
-    emit(
-      "edit",
-      cell.getData() as AnalysisRow,
-      cell.getField(),
-      String(cell.getValue()),
-    ),
-  );
+  table.on("cellClick", (event, cell) => { navigation.clicked(cell); if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
   table.on("tableBuilt", () => {
     void table.replaceData(props.rows);
   });
@@ -202,6 +190,7 @@ onMounted(() => {
 defineExpose({ clearSelection: () => table?.deselectRow() });
 onBeforeUnmount(() => {
   active = false;
+  navigation?.destroy();
   table?.destroy();
 });
 </script>

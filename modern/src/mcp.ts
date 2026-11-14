@@ -4,7 +4,8 @@ import { request } from "./backend";
 
 export interface MCPStatus {
   running: boolean; port: number; token: string; url: string; protocol: string;
-  requests: number; last_activity: string; tools: { name: string; description: string }[];
+  access: "read" | "read-write"; change_seq: number; project_epoch: number;
+  requests: number; last_activity: string; tools: { name: string; description: string; annotations?: { readOnlyHint: boolean } }[];
 }
 const key = "gestimator.mcp.v1";
 export const mcpStatus = ref<MCPStatus>();
@@ -18,19 +19,24 @@ async function command(method: string, params = {}, quiet = false) {
   if (mcpBusy.value) return false;
   mcpBusy.value = true;
   if (!quiet) { mcpError.value = ""; mcpMessage.value = ""; }
-  try { mcpStatus.value = await request<MCPStatus>(method, params); return true; }
+  try {
+    const next = await request<MCPStatus>(method, params);
+    mcpStatus.value = { ...mcpStatus.value, ...next, tools: next.tools ?? mcpStatus.value?.tools ?? [] };
+    return true;
+  }
   catch (failure) { mcpError.value = String(failure); return false; }
   finally { mcpBusy.value = false; }
 }
 export const refreshMCP = () => command("mcp.status", {}, true);
+export const refreshMCPTools = () => command("mcp.status", { include_tools: true }, true);
 export const startMCP = () => command("mcp.start");
 export const stopMCP = () => command("mcp.stop");
 function remember() {
   if (!mcpStatus.value) return;
-  localStorage.setItem(key, JSON.stringify({ version: 1, port: mcpStatus.value.port, token: mcpStatus.value.token, autostart: mcpAutostart.value }));
+  localStorage.setItem(key, JSON.stringify({ version: 1, port: mcpStatus.value.port, token: mcpStatus.value.token, access: mcpStatus.value.access, autostart: mcpAutostart.value }));
 }
-export async function saveMCP(port: number, autostart: boolean) {
-  if (!await command("mcp.configure", { port })) return false;
+export async function saveMCP(port: number, autostart: boolean, access: "read" | "read-write") {
+  if (!await command("mcp.configure", { port, access })) return false;
   mcpAutostart.value = autostart;
   try { remember(); mcpMessage.value = "MCP settings saved."; return true; }
   catch { mcpError.value = "Settings are active for this session, but could not be saved for the next launch."; return false; }
@@ -46,12 +52,12 @@ export async function copyMCPConfig() {
   catch { mcpError.value = "Clipboard unavailable. Copy the client configuration from Configure MCP server."; }
 }
 export async function initializeMCP() {
-  if (!await refreshMCP()) return;
+  if (!await refreshMCPTools()) return;
   try {
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (saved) {
       if (saved.version !== 1 || typeof saved.autostart !== "boolean" || typeof saved.port !== "number" || typeof saved.token !== "string") throw new Error("Invalid preferences");
-      if (!mcpStatus.value?.running && !await command("mcp.configure", { port: saved.port, token: saved.token })) return;
+      if (!mcpStatus.value?.running && !await command("mcp.configure", { port: saved.port, token: saved.token, access: saved.access ?? "read" })) return;
       mcpAutostart.value = saved.autostart;
       if (saved.autostart && !mcpStatus.value?.running) await startMCP();
     } else remember();

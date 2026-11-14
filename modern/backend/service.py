@@ -158,7 +158,7 @@ class Service:
     def call(self, method: str, p: dict, progress=lambda value: None):
         if method.startswith("mcp."):
             if method == "mcp.status":
-                return self.mcp.status()
+                return self.mcp.status(include_tools=p.get("include_tools", False))
             if method == "mcp.configure":
                 return self.mcp.configure(p)
             if method == "mcp.start":
@@ -169,6 +169,8 @@ class Service:
                 from secrets import token_urlsafe
                 return self.mcp.configure(dict(token=token_urlsafe(32)))
             if method == "mcp.read":
+                if "_listener" in p and (self.mcp.server is None or p["_listener"] != self.mcp.generation):
+                    raise ValueError("MCP listener stopped; reconnect and read state before retrying")
                 from .mcp_server import read_tool
                 return read_tool(self, p.get("name"), p.get("arguments", {}))
             raise ValueError("Unknown MCP operation")

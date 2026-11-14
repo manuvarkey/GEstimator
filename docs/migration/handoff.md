@@ -1,6 +1,6 @@
 # Vue/Tauri migration handoff
 
-Resume on `migration/vue-tauri-desktop`. The database-selector checkpoint is `c28a449`, following `c813c2c` (editor efficiency), `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the ribbon/MCP continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
+Resume on `migration/vue-tauri-desktop`. The ribbon/MCP checkpoint is `fe9cd45`, following `c28a449` (database selectors), `c813c2c` (editor efficiency), `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the compact workbench/read-write agent continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
 
 ## Completed through the checkpoint
 
@@ -17,6 +17,7 @@ Resume on `migration/vue-tauri-desktop`. The database-selector checkpoint is `c2
 | `c649ec6` | Portable row clipboard and GTK insertion shortcuts |
 | `c813c2c` | Selection-aware insertion, resource editing and efficient measurement templates |
 | `c28a449` | Database item/rate dialogs, themed menus and original measurement expression/Breakup display |
+| `fe9cd45` | Ribbon-only application tabs, aligned full-action icons and initial local MCP controls/read tools |
 
 GTK remains available through `gestimator.py`. Keep the legacy calculation engine and workbook exporters as the comparison reference.
 
@@ -55,6 +56,12 @@ Record evidence in the validation log and update the ledger as each milestone la
 Databases now changes only the ribbon; its separate page and embedded manager were removed. The attachment dialog retains its non-closing workflow. MCP is also a ribbon-only tab. The active editor, selection, draft, inspector and undo context remain in place while either application tab is selected. Full ribbon actions reserve equal caption height so one/two-line labels align their icons.
 
 The MCP ribbon controls a local authenticated, read-only HTTP server: Start/Stop, port, optional automatic startup, token rotation, client configuration copy/reveal, tool inspection and activity. A bounded queue serializes HTTP reads with desktop requests on one service/SQLite owner thread. Computation and database implementations are retained. Shutdown closes the listener; start conflicts and invalid saved settings remain visible outside the MCP tab. See [server setup, tools and protocol boundaries](mcp-server.md). Validate third-party client setup and native Windows/macOS behavior next.
+
+## Workbench and agent editing continuation — 2026-11-15
+
+The current continuation adds higher contrast, compact content-focused spacing, two-row minor ribbon actions and client-side window decorations. Trees remain expanded without controls; schedule category/parent and resource category columns are hidden, bold category rows remain, and SQL category filters run before paging. A shared cell-navigation controller commits through the backend, then restores focus and continues editing with Tab/Shift+Tab/arrows. Enter/F2 starts editing; calculated cells remain read-only; invalid/stale inputs reopen for correction. See [workbench behavior](workbench-refinement.md).
+
+MCP now has read/read-write access modes, 110 typed application operations and seven legacy read aliases. Agent edits share existing transactions/undo and require current revisions. It supports preparing estimates end to end, full database metadata/definition reads, measurement evaluation, save/export and source preservation. Lightweight change-sequence polling updates the desktop while deferring active cell/dialog edits. See the [agent workflow](mcp-server.md). All 87 Python tests and 28 browser workflows pass, as do the native Linux build and three complete read/write HTTP contracts against the frozen executable. Target-platform window/input behavior, third-party clients and the broader release/corpus gates remain.
 
 ## Editor continuation — 2026-11-14
 

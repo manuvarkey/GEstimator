@@ -33,7 +33,6 @@ export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boo
     const current = rows[index];
     if (!current) return true;
     if (event.key === "ArrowRight" && current.getTreeChildren().length) current.treeExpand();
-    else if (event.key === "ArrowLeft" && current.isTreeExpanded() && current.getTreeChildren().length) current.treeCollapse();
     else if (event.key === "ArrowLeft") {
       const parent = current.getTreeParent();
       if (parent) { table.deselectRow(); parent.select(); resetTablePosition(table, parent); }

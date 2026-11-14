@@ -45,7 +45,8 @@ class MCPServerTests(unittest.TestCase):
         self.assertEqual(message["result"]["capabilities"], dict(tools=dict(listChanged=False)))
         self.assertEqual(self.http(message=dict(jsonrpc="2.0", method="notifications/initialized")), (202, None))
         tools = self.http(message=dict(jsonrpc="2.0", id=2, method="tools/list"))[1]["result"]["tools"]
-        self.assertEqual(len(tools), 7)
+        self.assertGreater(len(tools), 7)
+        self.assertIn("database.inspect", {tool["name"] for tool in tools})
         self.assertTrue(all(tool["annotations"]["readOnlyHint"] for tool in tools))
         self.assertEqual(self.http(method="GET")[0], 405)
         self.assertEqual(self.http(raw="{")[1]["error"]["code"], -32700)
