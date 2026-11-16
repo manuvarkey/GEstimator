@@ -168,7 +168,10 @@ onMounted(() => {
     void table.replaceData(props.rows);
   });
 });
-defineExpose({ clearSelection: () => table?.deselectRow() });
+defineExpose({
+  focus: async () => { await built; await replacement; element.value?.focus({ preventScroll: true }); },
+  clearSelection: () => table?.deselectRow(),
+});
 onBeforeUnmount(() => {
   active = false;
   navigation?.destroy();

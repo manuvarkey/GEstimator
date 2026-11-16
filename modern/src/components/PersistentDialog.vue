@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, ref, useId, watch } from "vue";
 import vFocusTrap from "primevue/focustrap";
 import AppIcon from "./AppIcon.vue";
+import { dialogPrimary } from "../uiActions";
 
 // Lazy modal whose content stays mounted, including expensive table instances.
 defineOptions({ inheritAttrs: false });
@@ -29,7 +30,7 @@ watch(visible, async opened => {
     created.value = true;
     document.addEventListener("keydown", keyboard);
     await nextTick();
-    const field = panel.value?.querySelector<HTMLElement>('[data-primary-input]:not(:disabled)') || panel.value?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),button:not(:disabled)');
+    const field = panel.value && dialogPrimary(panel.value);
     field?.focus({ preventScroll: true });
     emit("show");
   } else {

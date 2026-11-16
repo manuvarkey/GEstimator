@@ -10,6 +10,7 @@ import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
+import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 
@@ -54,6 +55,7 @@ watch(
 onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
   reload: () => refreshChanges(),
+  focus: focusTable,
   revealCode,
   handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") => command("project." + method),
@@ -175,7 +177,7 @@ const importFields = computed(() =>
         "parent",
       ],
 );
-const activeMeasurement = ref<string>();
+const activeMeasurement = ref<string | undefined>(props.entryId);
 const one = computed(() =>
   selected.value.length === 1 ? selected.value[0] : undefined,
 );
@@ -197,11 +199,11 @@ const mainRows = computed(() => {
   let current: GridRow | undefined;
   for (const row of state.value?.rows || []) {
     if (row.type === "Heading") {
-      current = { ...row, rowtype: "Category", type: "Category", _children: [] };
+      current = { ...row, rowtype: "Category", type: "", _children: [] };
       categories.push(current);
     } else {
       if (!current) {
-        current = { id: "measurement:uncategorised", rowtype: "Category", type: "Category", description: "Uncategorised", _children: [] };
+        current = { id: "measurement:uncategorised", rowtype: "Category", type: "", description: "Uncategorised", _children: [] };
         categories.push(current);
       }
       current._children.push(row);
@@ -210,13 +212,28 @@ const mainRows = computed(() => {
   return categories;
 });
 watch(() => props.entryId, async identity => {
-  if (!identity) return;
+  if (!identity) {
+    if (activeMeasurement.value) selectionIds.value = [activeMeasurement.value];
+    await focusTable();
+    return;
+  }
   activeMeasurement.value = identity;
   const row = state.value?.rows.find(row => row.id === identity);
   if (row) selected.value = [row];
   recordPage.value = 0;
   await loadDetail();
+  await focusTable();
 });
+let cancelFocus: (() => void) | undefined;
+onBeforeUnmount(() => cancelFocus?.());
+async function focusTable() {
+  cancelFocus?.();
+  await nextTick();
+  if (!props.active) return;
+  cancelFocus = afterDialogsClose(async () => {
+    if (props.active) await (props.entryId ? recordTable.value : mainTable.value)?.focus();
+  });
+}
 
 function editable(cell: CellComponent) {
   return cell.getData().rowtype !== "Category";
@@ -224,7 +241,6 @@ function editable(cell: CellComponent) {
 const columns = computed<ColumnDefinition[]>(() => {
   if (isMeasurement.value)
     return [
-      { title: "TYPE", field: "type", width: 180 },
       {
         title: "DESCRIPTION / REMARKS",
         field: "description",
@@ -232,6 +248,7 @@ const columns = computed<ColumnDefinition[]>(() => {
         editable: cell => cell.getData().rowtype === "Category" && cell.getData().id !== "measurement:uncategorised",
         minWidth: 260,
       },
+      { title: "TYPE", field: "type", width: 180 },
       { title: "RECORDS", field: "count", width: 90 },
       { title: "TOTALS", field: "totals", width: 180 },
     ];
@@ -494,7 +511,7 @@ async function refreshChanges() {
   if (busy.value) await update();
   else await run(update);
 }
-watch(() => props.active, async active => { if (active) await refreshChanges(); });
+watch(() => props.active, async active => { if (active) { await refreshChanges(); await focusTable(); } else cancelFocus?.(); });
 async function load() {
   await run(refresh);
 }
@@ -692,7 +709,7 @@ function keyboard(event: KeyboardEvent) {
   }
   const target = event.target as HTMLElement;
   if (source.value) return;
-  const records = !!target.closest(".measurement-record-grid");
+  const records = !!props.entryId;
   if (event.ctrlKey || event.metaKey) {
     const key = event.key.toLowerCase();
     if (key === "i") {
@@ -852,6 +869,7 @@ onMounted(async () => {
   await load();
   if (props.projectOpen)
     templates.value = await request("measurement.templates");
+  await focusTable();
 });
 watch(
   () => props.projectOpen,
@@ -874,6 +892,27 @@ watch(
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div v-show="active" class="view-ribbon-tools">
+          <template v-if="isMeasurement && entryId">
+            <div class="ribbon-group"><div class="ribbon-actions">
+              <button class="ribbon-action" aria-label="Add record" :disabled="busy || detailBusy" @click="recordAction('add')"><AppIcon name="plus" /><span class="ribbon-label">Add record</span></button>
+              <button class="ribbon-action" aria-label="Add multiple records" :disabled="busy || detailBusy" @click="recordCount = 10; recordsOpen = true"><AppIcon name="rows" /><span class="ribbon-label">Add multiple records</span></button>
+              <button class="ribbon-action" aria-label="Duplicate record" :disabled="busy || !selectedRecord" @click="recordAction('duplicate')"><AppIcon name="duplicate" /><span class="ribbon-label">Duplicate record</span></button>
+            </div><small>CREATE</small></div>
+            <div class="ribbon-group"><div class="ribbon-actions">
+              <button class="ribbon-action ribbon-icon" aria-label="Copy record" :disabled="busy || !selectedRecord" @click="recordAction('copy')"><AppIcon name="copy" /><span class="ribbon-label">Copy record</span></button>
+              <button class="ribbon-action ribbon-icon" aria-label="Paste record" :disabled="busy" @click="recordAction('paste')"><AppIcon name="paste" /><span class="ribbon-label">Paste record</span></button>
+              <button class="ribbon-action ribbon-icon danger" aria-label="Delete record" :disabled="busy || !selectedRecord" @click="recordAction('delete')"><AppIcon name="trash" /><span class="ribbon-label">Delete record</span></button>
+            </div><small>EDIT</small></div>
+            <div class="ribbon-group"><div class="ribbon-actions">
+              <button class="ribbon-action ribbon-icon" aria-label="Move record up" :disabled="busy || !selectedRecord" @click="recordAction('move', -1)"><AppIcon name="up" /><span class="ribbon-label">Move up</span></button>
+              <button class="ribbon-action ribbon-icon" aria-label="Move record down" :disabled="busy || !selectedRecord" @click="recordAction('move', 1)"><AppIcon name="down" /><span class="ribbon-label">Move down</span></button>
+            </div><small>ARRANGE</small></div>
+            <div class="ribbon-group"><div class="ribbon-actions">
+              <button class="ribbon-action" aria-label="Import records…" :disabled="busy || detailBusy" @click="error = ''; recordImportOpen = true"><AppIcon name="import" /><span class="ribbon-label">Import records</span></button>
+              <button class="ribbon-action" aria-label="Properties…" :disabled="busy || detailBusy" @click="showProperties"><AppIcon name="settings" /><span class="ribbon-label">Properties</span></button>
+            </div><small>MEASUREMENT</small></div>
+          </template>
+          <template v-else>
           <div v-if="!isMeasurement" class="ribbon-group">
             <div class="ribbon-actions">
               <button class="ribbon-action" :aria-label="view === 'schedule' ? 'Add item from database' : 'Add resources from database'" title="Select items from attached databases in a separate dialog. The working table and its insertion selection remain in place (Ctrl+L)." :disabled="busy" @click="showDatabase()"><AppIcon name="database" /><span class="ribbon-label">Add from database</span></button>
@@ -940,6 +979,10 @@ watch(
             <button class="ribbon-action ribbon-icon danger" aria-label="Delete" title="Preview deletion of selected items and category contents before confirming. Project Undo restores the operation."
               :disabled="busy || !selected.length" @click="deleteSelection">
               <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
+            <template v-if="view === 'resources'">
+            <button class="ribbon-action ribbon-icon" aria-label="Edit resource" title="Edit all fields of the selected resource together. Only changed fields are saved, as one undoable operation (Ctrl+E). Enter edits the focused cell." :disabled="busy || !one || one.rowtype === 'Category'" @click="showForm('edit')"><AppIcon name="edit" /><span class="ribbon-label">Edit resource</span></button>
+            <button class="ribbon-action ribbon-icon" aria-label="Move resources…" title="Move selected definitions to another category without making copies or breaking analysis links. Undo restores their previous categories." :disabled="busy || !selected.length || selected.some(row => row.rowtype === 'Category')" @click="moveCategory = state?.categories?.[0] || ''; moveResourcesOpen = true"><AppIcon name="category" /><span class="ribbon-label">Move resources</span></button>
+            </template>
             </div>
             <small>EDIT</small>
           </div>
@@ -1027,8 +1070,6 @@ watch(
           </div>
           <div v-if="view === 'resources'" class="ribbon-group">
             <div class="ribbon-actions ribbon-actions-wide">
-            <button class="ribbon-action ribbon-icon" aria-label="Edit resource" title="Edit all fields of the selected resource together. Only changed fields are saved, as one undoable operation (Ctrl+E). Enter edits the focused cell." :disabled="busy || !one || one.rowtype === 'Category'" @click="showForm('edit')"><AppIcon name="edit" /><span class="ribbon-label">Edit resource</span></button>
-            <button class="ribbon-action ribbon-icon" aria-label="Move resources…" title="Move selected definitions to another category without making copies or breaking analysis links. Undo restores their previous categories." :disabled="busy || !selected.length || selected.some(row => row.rowtype === 'Category')" @click="moveCategory = state?.categories?.[0] || ''; moveResourcesOpen = true"><AppIcon name="category" /><span class="ribbon-label">Move resources</span></button>
             <button
               class="ribbon-action"
               aria-label="Resource usage"
@@ -1108,6 +1149,7 @@ watch(
           <small>WORKBOOK</small>
           </div>
           </template>
+          </template>
         </div></Teleport
       >
       <div v-if="state?.enrichment" class="project-filter-bar" role="note">
@@ -1179,7 +1221,6 @@ watch(
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">
           <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
-          <button class="button small secondary" title="Edit description, schedule links and template properties together. Save applies one undoable change; Cancel leaves the item unchanged (Ctrl+E)." @click="showProperties"><AppIcon name="settings" />Properties…</button>
         </div>
         <div class="measurement-links">
           <label
@@ -1219,67 +1260,7 @@ watch(
             ></label
           >
         </div>
-        <div class="project-tools">
-          <strong>Measurement records</strong
-          ><button
-            class="button small secondary"
-            :disabled="busy"
-            @click="recordAction('add')"
-          >
-            <AppIcon name="plus" :size="15" />Add record</button
-          ><button class="icon-button" aria-label="Add multiple records" title="Insert 1 to 1000 blank records in one operation. Undo removes the complete batch." :disabled="busy" @click="recordCount = 10; recordsOpen = true"><AppIcon name="rows" /></button
-          ><button
-            class="button small secondary"
-            :disabled="busy"
-            @click="error = ''; recordImportOpen = true"
-          >
-            <AppIcon name="import" :size="15" />Import records…</button
-          ><button
-            class="button small secondary"
-            :disabled="busy || !selectedRecord"
-            @click="recordAction('duplicate')"
-          >
-            <AppIcon name="duplicate" :size="15" />Duplicate record</button
-          ><button
-            class="button small danger"
-            :disabled="busy || !selectedRecord"
-            @click="recordAction('delete')"
-          >
-            <AppIcon name="trash" :size="15" />Delete record</button
-          ><button
-            class="button small secondary"
-            :disabled="busy || !selectedRecord"
-            title="Copy selected records in their current order to the system clipboard for use in any measurement item with the same template (Ctrl+C in the records table)."
-            @click="recordAction('copy')"
-          >
-            <AppIcon name="copy" :size="15" />Copy record</button
-          ><button
-            class="button small secondary"
-            :disabled="busy"
-            title="Insert a copied record after the selected record, or at the end. The destination must use the same measurement template; Undo restores the previous records (Ctrl+V in the records table)."
-            @click="recordAction('paste')"
-          >
-            <AppIcon name="paste" :size="15" />Paste record</button
-          ><button
-            class="icon-button"
-            :disabled="busy || !selectedRecord"
-            aria-label="Move record up"
-            title="Move record up"
-            @click="recordAction('move', -1)"
-          >
-            <AppIcon name="up" /></button
-          ><button
-            class="icon-button"
-            :disabled="busy || !selectedRecord"
-            aria-label="Move record down"
-            title="Move record down"
-            @click="recordAction('move', 1)"
-          >
-            <AppIcon name="down" /></button
-          ><span class="spacer" /><span
-            >Totals: {{ state.detail.totals.join(" · ") }}</span
-          >
-        </div>
+        <div class="measurement-record-summary"><strong>Measurement records</strong><span>Totals: {{ state.detail.totals.join(" · ") }}</span></div>
         <div class="table-panel measurement-record-grid">
           <DataTable
             ref="recordTable"
@@ -1308,14 +1289,14 @@ watch(
     <Dialog v-model:visible="moveResourcesOpen" modal header="Move resources" class="workspace-dialog file-dialog" :closable="!busy">
       <form @submit.prevent="async () => { if (await command('move_to', { category: moveCategory })) moveResourcesOpen = false; }">
         <p>Move {{ selected.length }} selected resources, retaining their codes and analysis links.</p>
-        <label class="field">Destination category<select v-model="moveCategory" :disabled="busy"><option v-for="category in state?.categories" :key="category">{{ category }}</option></select></label>
+        <label class="field">Destination category<select v-model="moveCategory" data-primary-input autofocus :disabled="busy"><option v-for="category in state?.categories" :key="category">{{ category }}</option></select></label>
         <p v-if="error" class="dialog-error" role="alert">{{ error }}</p><div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="moveResourcesOpen = false">Cancel</button><button class="button primary" :disabled="busy">Move resources</button></div>
       </form>
     </Dialog>
     <Dialog v-model:visible="recordsOpen" modal header="Insert measurement records" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy">
       <form @submit.prevent="async () => { if (await command('record_add', { id: activeMeasurement, record_id: selectedRecord?.id, count: recordCount })) recordsOpen = false; }">
         <p>Insert blank records after the selected record, or at the end. Undo removes the entire batch.</p>
-        <label class="field">Number of records<input v-model.number="recordCount" type="number" min="1" max="1000" required :disabled="busy" /></label>
+        <label class="field">Number of records<input v-model.number="recordCount" data-primary-input autofocus type="number" min="1" max="1000" required :disabled="busy" /></label>
         <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
         <div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="recordsOpen = false">Cancel</button><button class="button primary" :disabled="busy">Insert records</button></div>
       </form>
@@ -1323,7 +1304,7 @@ watch(
     <Dialog v-model:visible="propertiesOpen" modal header="Measurement properties" class="workspace-dialog measurement-properties-dialog" :closable="!busy" :close-on-escape="!busy">
       <form @submit.prevent="saveProperties">
         <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>
-        <label class="field">Description / remarks<textarea v-model="properties.description" :disabled="busy" rows="3" /></label>
+        <label class="field">Description / remarks<textarea v-model="properties.description" data-primary-input autofocus :disabled="busy" rows="3" /></label>
         <div class="measurement-properties-fields">
           <label v-for="(link, index) in properties.links" :key="index" class="field">{{ link.label }} · Schedule code {{ index + 1 }}
             <div class="file-input"><input v-model="link.code" :aria-label="'Property schedule code ' + (index + 1)" :disabled="busy" />
@@ -1343,7 +1324,7 @@ watch(
       </form>
     </Dialog>
     <PersistentDialog :busy="pickerBusy" v-model:visible="pickerOpen" modal header="Choose schedule item" class="workspace-dialog resource-dialog">
-      <form class="search-field" @submit.prevent="pickerPage = 0; searchLinks()"><input v-model="pickerQuery" aria-label="Find linked schedule item" placeholder="Code or description…" /><button class="button small secondary" :disabled="pickerBusy">Search</button></form>
+      <form class="search-field" @submit.prevent="pickerPage = 0; searchLinks()"><input v-model="pickerQuery" data-primary-input autofocus aria-label="Find linked schedule item" placeholder="Code or description…" /><button class="button small secondary" :disabled="pickerBusy">Search</button></form>
       <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
       <div class="library-results">
         <button v-for="item in pickerItems" :key="item.code" class="library-item" :disabled="pickerBusy" :title="item.description" @click="chooseLink(item.code)"><span><b>{{ item.code }}</b><small>{{ item.description }}</small></span><span>{{ item.unit }}</span></button>
@@ -1366,7 +1347,7 @@ watch(
               </optgroup>
             </select><small v-if="templateInfo">{{ templateInfo.summary }} {{ templateInfo.note }}<br />Inputs: {{ templateInfo.inputs.join(', ') }} · {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? 'quantity' : 'quantities' }}</small></label
           ><label class="field">Category<select v-model="form.category"><option value="">Uncategorised</option><option v-for="category in mainRows.filter(row => row.id !== 'measurement:uncategorised')" :key="category.id" :value="category.description">{{ category.description }}</option></select></label><label class="field"
-            >Description / remarks<textarea data-primary-input
+            >Description / remarks<textarea data-primary-input autofocus
               v-model="form.description"
               rows="3"
             /></label
@@ -1376,7 +1357,7 @@ watch(
             >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small v-if="formMode === 'add'">Suggested using the GTK numbering rules. Edit it, or leave blank to generate a code when inserting.</small></label
           ><template v-if="formMode !== 'duplicate'"
             ><label class="field"
-              >Description<textarea data-primary-input
+              >Description<textarea data-primary-input autofocus
                 v-model="form.description"
                 rows="3"
               />
@@ -1463,7 +1444,7 @@ watch(
           </button>
           <button
             v-if="deletion.used_resources.length"
-            class="button secondary"
+            class="button danger"
             :disabled="busy"
             @click="confirmDeletion('unused')"
           >
@@ -1493,7 +1474,7 @@ watch(
       header="Add category"
       class="workspace-dialog file-dialog"
       ><label class="field"
-        >Category name<input v-model="categoryName"
+        >Category name<input v-model="categoryName" data-primary-input autofocus
       /></label>
       <div class="dialog-footer">
         <button
@@ -1523,7 +1504,7 @@ watch(
       <label class="field"
         >Workbook
         <div class="file-input">
-          <input v-model="importPath" aria-label="Workbook" /><button
+          <input v-model="importPath" data-primary-input autofocus aria-label="Workbook" /><button
             class="button secondary"
             @click="browseImport"
           >

@@ -2,7 +2,30 @@
 
 The MCP efficiency work is checkpointed separately in `cca316f`
 (`feat(mcp)!: streamline estimate workflows`). The changes described here follow
-that checkpoint.
+that checkpoint. The first workbench feedback implementation is committed as
+`2245ced` (`feat(workbench): streamline editing and navigation`).
+
+## Follow-up interaction refinements
+
+- Search fields and category buttons share their height and baseline. Full ribbon
+  buttons reserve the same caption height and align their icons, including
+  single-line captions such as Duplicate. Explorer uses a left-pane icon;
+  Inspector uses a normal full ribbon button. Delete actions use red text/icons.
+- Resource Edit and Move actions are grouped under EDIT.
+- Opening measurement records replaces the list ribbon with record creation,
+  duplication, copy/paste/delete, move, import and properties actions. The
+  Measurements caption uses a green contextual accent and an accessible mode
+  description. This follows the color-coded contextual-tab convention in the
+  [Windows Ribbon documentation](https://learn.microsoft.com/en-us/windows/desktop/windowsribbon/windowsribbon-element-ribbon-contextualtabs).
+  The duplicate body toolbar is removed; totals remain beside the record table.
+- Measurement descriptions are the first column. Category names are bold parent
+  rows, with indented measurement items; the category's Type cell is blank.
+- Dragging near or beyond either vertical table edge scrolls the viewport and
+  extends selection while the pointer is held. The same implementation serves
+  editors and database pickers, retaining row-only selection in import pickers.
+- Main dialog fields use autofocus, including reused dialogs. Editor focus is
+  restored after modal close transitions and when entering or leaving Analysis
+  and measurement records; the corresponding parent item remains selected.
 
 ## Navigation and refresh
 
@@ -122,3 +145,9 @@ The production frontend and standalone backend builds passed. The frozen backend
 also passed a smoke test for dictionary-based desktop search and incremental
 refresh. Native file dialogs are exercised through the mocked Tauri transport in
 browser tests.
+
+Follow-up verification: all 42 browser workflows passed across the full run and
+the focused alignment/focus/drag rerun; the production build passed. Screenshots
+were reviewed for the measurement hierarchy, contextual record ribbon and shared
+resource/search alignment. No backend or project-file format changes are part of
+this follow-up.

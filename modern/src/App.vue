@@ -9,6 +9,7 @@ import {
   watch,
 } from "vue";
 import Dialog from "primevue/dialog";
+import { afterDialogsClose } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -123,6 +124,15 @@ const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
 );
 const activeTab = ref<(typeof views)[number]["key"]>("analysis");
 const measurementEntry = ref<string>();
+let cancelAnalysisFocus: (() => void) | undefined;
+watch(activeView, async view => {
+  cancelAnalysisFocus?.();
+  if (view === "analysis") {
+    await nextTick();
+    cancelAnalysisFocus = afterDialogsClose(async () => { if (activeView.value === "analysis") await analysisTable.value?.focus(); });
+  }
+}, { flush: "post" });
+onBeforeUnmount(() => cancelAnalysisFocus?.());
 watch(activeView, view => { if (view !== "analysis" && !visitedViews.value.includes(view)) visitedViews.value.push(view); }, { immediate: true });
 watch(projectSession, () => { visitedViews.value = activeView.value === "analysis" ? [] : [activeView.value]; });
 function bindProjectView(view: ProjectView, instance: unknown) { projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined; }
@@ -165,6 +175,7 @@ async function returnToSchedule() {
     activeView.value = "schedule"; activeTab.value = "schedule";
     await nextTick();
     if (code) await projectView.value?.revealCode(code);
+    await projectView.value?.focus();
   });
 }
 
@@ -843,7 +854,9 @@ onBeforeUnmount(() => {
         :tabindex="activeTab === view.key ? 0 : -1"
         :disabled="uiBusy"
         :aria-controls="'tools-' + view.key"
-        :class="{ active: activeTab === view.key }"
+        :class="{ active: activeTab === view.key, 'record-context': view.key === 'measurement' && !!measurementEntry }"
+        :title="view.key === 'measurement' && measurementEntry ? 'Measurement records mode' : undefined"
+        :aria-description="view.key === 'measurement' && measurementEntry ? 'Measurement records mode' : undefined"
         @click="switchView(view.key)"
         @keydown="navigateTabs($event, index)"
       >
@@ -911,7 +924,7 @@ onBeforeUnmount(() => {
               :disabled="!canEdit" @click="w.command('paste')">
               <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span></button>
 
-            <button class="ribbon-action ribbon-icon" aria-label="Delete" title="Remove the selected rows from this analysis draft. Use Undo to restore them."
+            <button class="ribbon-action ribbon-icon danger" aria-label="Delete" title="Remove the selected rows from this analysis draft. Use Undo to restore them."
               :disabled="!canEdit || !selected.length" @click="w.command('delete')">
               <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
 
@@ -942,8 +955,8 @@ onBeforeUnmount(() => {
         </div>
         <div class="ribbon-group">
           <div class="ribbon-actions">
-            <button class="ribbon-action" :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'" @click="sidebar = !sidebar"><AppIcon name="panel" /><span class="ribbon-label">{{ sidebar ? 'Hide explorer' : 'Show explorer' }}</span></button>
-            <button class="ribbon-action ribbon-icon"
+            <button class="ribbon-action" :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'" @click="sidebar = !sidebar"><AppIcon name="panel-left" /><span class="ribbon-label">{{ sidebar ? 'Hide explorer' : 'Show explorer' }}</span></button>
+            <button class="ribbon-action"
               :aria-label="inspector ? 'Hide analysis inspector' : 'Show analysis inspector'"
               :title="inspector ? 'Hide the selected-row inspector to give the analysis table more room.' : 'Show the inspector to edit the selected analysis row and resource definition.'"
               :class="{ pressed: !inspector }" :aria-pressed="!inspector"
@@ -1506,7 +1519,7 @@ onBeforeUnmount(() => {
         >Project file
         <div class="file-input">
           <input
-            v-model="filePath"
+            v-model="filePath" data-primary-input
             :placeholder="
               fileMode === 'open'
                 ? '/path/to/project.eproj'
@@ -1588,7 +1601,7 @@ onBeforeUnmount(() => {
         /></label>
       </div>
       <label class="field"
-        >Description<textarea data-primary-input
+        >Description<textarea data-primary-input autofocus
           v-model="form.description"
           required
           rows="3"
@@ -1730,7 +1743,7 @@ onBeforeUnmount(() => {
       entry with zero quantity.
     </p>
     <label class="field"
-      >New resource code<input v-model="duplicateCode"
+      >New resource code<input v-model="duplicateCode" data-primary-input autofocus
     /></label>
     <div v-if="error" class="dialog-error">{{ error }}</div>
     <div class="dialog-footer">

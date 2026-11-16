@@ -16,12 +16,14 @@
   --accent-soft: #213653;
   --green: #70c5a2;
   --amber: #e0b775;
+  --danger: #ff8a8a;
   --shadow: 0 16px 70px #0008;
   color-scheme: dark;
   color: var(--text);
   background: var(--bg);
 }
 :root[data-theme="light"] {
+  --danger: #b42332;
   --bg: #edf1f6;
   --panel: #fff;
   --raised: #f7f9fc;
@@ -176,7 +178,7 @@ textarea::placeholder {
   padding: 6px 10px;
 }
 .button.danger {
-  color: #f39c9c;
+  color: var(--danger);
   background: #cc484812;
   border-color: #cc484844;
 }
@@ -394,7 +396,7 @@ textarea::placeholder {
   color: var(--accent);
 }
 .ribbon-action.danger:not(:disabled) svg {
-  color: #d66;
+  color: var(--danger);
 }
 .ribbon-label {
   display: -webkit-box;
@@ -1602,7 +1604,7 @@ kbd {
   border-left: 1px solid var(--line) !important;
 }
 :root[data-theme="light"] .button.danger {
-  color: #a73636;
+  color: var(--danger);
 }
 :root[data-theme="light"] .error-banner,
 :root[data-theme="light"] .dialog-error {
@@ -2095,7 +2097,17 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 .library-item > span:first-child { flex: 1; min-width: 0; }
 .library-item small { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
 .library-results { max-width: 100%; overflow-x: hidden; }
-.ribbon-measure-actions { align-items: center; overflow: visible; }
+.ribbon-measure-actions { align-items: stretch; overflow: visible; }
 .ribbon-measure-actions select { align-self: center; margin: 3px 0; }
 .cell-range-selected { box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
 .ribbon-measure-actions select { grid-row: 1 / -1; height: 30px; margin: 0; }
+
+.project-filter-bar > .search-field { margin: 0; height: 32px; }
+.project-filter-bar > button { height: 32px; }
+.ribbon:not([data-compact]) .ribbon-action:not(.ribbon-icon):not([data-ribbon-mini]) { justify-content: flex-start; padding-top: 5px; }
+.ribbon-action:not(.ribbon-icon):not([data-ribbon-mini]) .ribbon-label { height: 2.1em; flex: 0 0 auto; }
+button.danger, .ribbon-action.danger, button.danger svg { color: var(--danger); }
+button.danger:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.ribbon-tabs button.record-context { color: var(--green); box-shadow: inset 0 2px var(--green); }
+.ribbon-tabs button.record-context.active { border-bottom-color: var(--green); }
+.measurement-record-summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; }

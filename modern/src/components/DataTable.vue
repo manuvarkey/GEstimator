@@ -74,7 +74,7 @@ watch(() => props.active, async active => {
 });
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
-  focus: () => element.value?.focus(),
+  focus: async () => { await ready; await replacement; await nextTick(); element.value?.focus({ preventScroll: true }); },
   patchRows: async (updates: { id: string; [key: string]: any }[]) => {
     await ready;
     const collect = (rows: RowComponent[]): RowComponent[] => rows.flatMap(row => [row, ...collect(row.getTreeChildren() || [])]);
@@ -226,6 +226,7 @@ onMounted(() => {
     index: "id",
     dataTree: props.tree,
     dataTreeStartExpanded: true,
+    dataTreeChildIndent: 20,
     dataTreeSelectPropagate: false,
     dataTreeExpandElement: '<span class="tree-spacer" aria-hidden="true"></span>',
     dataTreeCollapseElement: '<span class="tree-spacer" aria-hidden="true"></span>',

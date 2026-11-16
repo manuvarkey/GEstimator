@@ -11,6 +11,9 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
   let drag: { rows: RowComponent[]; start: number; x: number; y: number; base: RowComponent[]; moved: boolean; end: number; column: number; lastColumn: number; header: boolean } | undefined;
   let suppressClick = false;
   let resetClick = 0;
+  let scrollFrame = 0;
+  let pointer = { x: 0, y: 0 };
+  let lastFrame = 0;
   function rowAt(target: EventTarget | null) {
     if (!(target instanceof Element)) return;
     const element = target.closest<HTMLElement>(".tabulator-row");
@@ -23,13 +26,11 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     append(table.getRows());
     return result;
   }
-  function move(event: MouseEvent) {
+  function selectAt(target: EventTarget | null) {
     if (!drag) return;
-    if (!(event.buttons & 1) || options.busy()) { end(); return; }
-    if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 4) return;
-    const row = rowAt(event.target);
+    const row = rowAt(target);
     const columns = table.getColumns().filter(column => column.getField());
-    const field = (event.target as Element).closest("[tabulator-field]")?.getAttribute("tabulator-field");
+    const field = target instanceof Element ? target.closest("[tabulator-field]")?.getAttribute("tabulator-field") : undefined;
     const column = columns.findIndex(column => column.getField() === field);
     const index = drag.header ? drag.rows.length - 1 : row ? drag.rows.indexOf(row) : -1;
     if (index < 0 || (drag.moved && index === drag.end && column === drag.lastColumn)) return;
@@ -40,11 +41,43 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     const range = drag.rows.slice(Math.min(drag.start, index), Math.max(drag.start, index) + 1)
       .filter(row => row.getData().rowtype !== "Category");
     if (options.cells !== false && drag.column >= 0 && column >= 0) for (const selectedRow of range) {
-      for (const selectedColumn of columns.slice(Math.min(drag.column, column), Math.max(drag.column, column) + 1))
-        selectedRow.getCell(selectedColumn.getField()).getElement().classList.add("cell-range-selected");
+      for (const selectedColumn of columns.slice(Math.min(drag.column, column), Math.max(drag.column, column) + 1)) {
+        const cell = selectedRow.getCell(selectedColumn.getField());
+        if (cell) cell.getElement()?.classList.add("cell-range-selected");
+      }
     }
     table.deselectRow();
     table.selectRow(Array.from(new Set([...drag.base, ...range])));
+  }
+  function scroll(time: number) {
+    if (!drag || options.busy()) { end(); return; }
+    const viewport = host.querySelector<HTMLElement>('.tabulator-tableholder');
+    if (drag.moved && !drag.header && viewport) {
+      const bounds = viewport.getBoundingClientRect();
+      const elapsed = Math.min(32, lastFrame ? time - lastFrame : 16.7) / 16.7;
+      if (pointer.x >= bounds.left - 24 && pointer.x <= bounds.right + 24) {
+        const distance = pointer.y < bounds.top + 28 ? pointer.y - bounds.top - 28
+          : pointer.y > bounds.bottom - 28 ? pointer.y - bounds.bottom + 28 : 0;
+        const speed = Math.sign(distance) * Math.min(24, Math.abs(distance) * .55);
+        if (speed) {
+          viewport.scrollTop += speed * elapsed;
+          // Hit-test inside the viewport, even when the pointer is above/below it.
+          selectAt(document.elementFromPoint(Math.max(bounds.left + 2, Math.min(bounds.right - 2, pointer.x)),
+            Math.max(bounds.top + 2, Math.min(bounds.bottom - 2, pointer.y))));
+        }
+      }
+    }
+    lastFrame = time;
+    scrollFrame = requestAnimationFrame(scroll);
+  }
+  function move(event: MouseEvent) {
+    if (!drag) return;
+    if (!(event.buttons & 1) || options.busy()) { end(); return; }
+    pointer = { x: event.clientX, y: event.clientY };
+    if (!drag.moved && Math.hypot(pointer.x - drag.x, pointer.y - drag.y) < 4) return;
+    // Start scrolling even if the initial move goes directly beyond the table.
+    drag.moved = true;
+    selectAt(event.target);
     event.preventDefault();
   }
   function end() {
@@ -53,8 +86,11 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
       resetClick = window.setTimeout(() => { suppressClick = false; }, 0);
     }
     drag = undefined;
+    cancelAnimationFrame(scrollFrame);
+    lastFrame = 0;
     document.removeEventListener("mousemove", move);
     document.removeEventListener("mouseup", end);
+    window.removeEventListener("blur", end);
   }
   function start(event: MouseEvent) {
     if (event.button !== 0 || options.busy() || (event.target as Element).closest("input,textarea,select,button,[contenteditable=true]")) return;
@@ -73,8 +109,11 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
     host.focus({ preventScroll: true });
+    pointer = { x: event.clientX, y: event.clientY };
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", end);
+    window.addEventListener("blur", end);
+    scrollFrame = requestAnimationFrame(scroll);
   }
   function click(event: MouseEvent) {
     if (suppressClick) { event.preventDefault(); event.stopImmediatePropagation(); suppressClick = false; }

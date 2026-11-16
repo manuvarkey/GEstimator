@@ -62,7 +62,7 @@ async function browse() {
     <button class="text-button" :disabled="busy" @click="discover">Refresh available databases</button>
     <p v-for="warning in catalogWarnings" :key="warning" class="dialog-error" role="status">{{ warning }}</p>
     <label class="field">Library project
-      <div class="file-input"><input v-model="path" aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" @keydown.enter.prevent="attach()" />
+      <div class="file-input"><input v-model="path" data-primary-input autofocus aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" @keydown.enter.prevent="attach()" />
         <button class="button secondary" :disabled="busy" @click="browse">Browse</button></div>
     </label>
     <label class="library-remember"><input v-model="remember" type="checkbox" :disabled="busy" />Remember for future projects</label>

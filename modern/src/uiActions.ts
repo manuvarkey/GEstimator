@@ -3,6 +3,33 @@ export function debugAction(action: string, details: Record<string, unknown> = {
   console.debug("[GEstimator]", action, details);
 }
 
+export function dialogPrimary(dialog: Element) {
+  const content = dialog.querySelector('.p-dialog-content') || dialog;
+  const visible = (selector: string) => Array.from(content.querySelectorAll<HTMLElement>(selector))
+    .find(field => !field.matches(':disabled,[readonly]') && field.getClientRects().length && getComputedStyle(field).visibility !== 'hidden');
+  return visible('[data-primary-input]') || visible('[autofocus]')
+    || visible('.search-field input,input[type="search"]') || visible('textarea')
+    || visible('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') || visible('select');
+}
+
+/** Wait for closing modal transitions before restoring a newly raised editor. */
+export function afterDialogsClose(action: () => void | Promise<void>) {
+  let cancelled = false;
+  let observer: MutationObserver | undefined;
+  let frame = 0;
+  const run = () => {
+    if (document.querySelector('[role="dialog"]')) return;
+    observer?.disconnect();
+    frame = requestAnimationFrame(() => { if (!cancelled) void action(); });
+  };
+  if (document.querySelector('[role="dialog"]')) {
+    observer = new MutationObserver(run);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['role'] });
+  }
+  run();
+  return () => { cancelled = true; observer?.disconnect(); cancelAnimationFrame(frame); };
+}
+
 export function installUIActions() {
   document.addEventListener("click", event => {
     const button = (event.target as Element)?.closest<HTMLElement>('button,[role="menuitem"],[role="tab"]');
@@ -13,19 +40,26 @@ export function installUIActions() {
       debugAction("ui.shortcut", { key: event.key, ctrl: event.ctrlKey, meta: event.metaKey, alt: event.altKey, shift: event.shiftKey });
   }, true);
   const focused = new WeakMap<Element, Element>();
+  let previousDialogs = new Set<Element>();
   let scheduled = false;
   const focus = () => {
     scheduled = false;
-    for (const dialog of Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))) {
-      if (!dialog.getClientRects().length) { focused.delete(dialog); continue; }
-      const primary = dialog.querySelector<HTMLElement>('[data-primary-input]:not(:disabled),[autofocus]:not(:disabled)');
-      if (focused.has(dialog) && (!primary || focused.get(dialog) === primary)) continue;
-      const field = dialog.querySelector<HTMLElement>('[data-primary-input]:not(:disabled),[autofocus]:not(:disabled)')
-        || dialog.querySelector<HTMLElement>('.search-field input:not(:disabled),textarea:not(:disabled),input:not(:disabled):not([type="checkbox"]):not([type="hidden"]),select:not(:disabled)');
-      if (field) { focused.set(dialog, field); field.focus({ preventScroll: true }); }
+    const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
+      .filter(dialog => dialog.getClientRects().length && getComputedStyle(dialog).visibility !== 'hidden' && !dialog.closest('[inert],[aria-hidden="true"]'));
+    for (const previous of previousDialogs) if (!dialogs.includes(previous as HTMLElement)) focused.delete(previous);
+    previousDialogs = new Set(dialogs);
+    dialogs.sort((a, b) => Number(getComputedStyle(a.closest('.p-dialog-mask,.persistent-dialog-mask') || a).zIndex || 0) - Number(getComputedStyle(b.closest('.p-dialog-mask,.persistent-dialog-mask') || b).zIndex || 0));
+    const dialog = dialogs.at(-1);
+    const field = dialog && dialogPrimary(dialog);
+    if (dialog && field && focused.get(dialog) !== field) {
+      // PrimeVue's enter transition also uses autofocus. Give it the same target.
+      dialog.querySelectorAll('[autofocus]').forEach(other => { if (other !== field) other.removeAttribute('autofocus'); });
+      field.setAttribute('autofocus', '');
+      focused.set(dialog, field);
+      field.focus({ preventScroll: true });
     }
   };
   new MutationObserver(() => {
     if (!scheduled) { scheduled = true; requestAnimationFrame(focus); }
-  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "aria-hidden"] });
+  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class", "role", "aria-hidden", "disabled"] });
 }

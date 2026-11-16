@@ -105,7 +105,7 @@ function openAnalysis(code: string) {
     </template>
     <template v-else>
       <form class="search-field" @submit.prevent="load(0, '', query)">
-        <input v-model="query" aria-label="Search resource usage" placeholder="Search resources…" />
+        <input v-model="query" data-primary-input autofocus aria-label="Search resource usage" placeholder="Search resources…" />
         <button class="button secondary" :disabled="busy">Search</button>
       </form>
       <div v-if="usage.rows.length" class="resource-usage-table">

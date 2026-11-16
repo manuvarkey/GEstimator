@@ -22,6 +22,7 @@ const paths: Record<string, string> = {
   chevron: "m9 5 7 7-7 7",
   close: "m6 6 12 12 M6 18 18 6",
   panel: "M3 4h18v16H3Z M15 4v16",
+  "panel-left": "M3 4h18v16H3Z M9 4v16",
   sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v2 M12 20v2 M2 12h2 M20 12h2 M5 5l1 1 M18 18l1 1 M5 19l1-1 M18 6l1-1",
   moon: "M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z",
   help: "M12 17h.01 M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",

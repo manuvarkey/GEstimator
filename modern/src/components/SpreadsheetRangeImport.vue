@@ -62,7 +62,7 @@ async function apply() {
       <label class="field">
         Workbook
         <div class="file-input">
-          <input v-model="path" :disabled="busy" required />
+          <input v-model="path" data-primary-input autofocus :disabled="busy" required />
           <button type="button" class="button secondary" :disabled="busy" @click="browse">Browse</button>
         </div>
       </label>
