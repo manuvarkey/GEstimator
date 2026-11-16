@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import { cellNavigation } from "../cellNavigation";
+import { rowDragSelection } from "../rowDragSelection";
 import {
   TabulatorFull as Tabulator,
   type ColumnDefinition,
@@ -14,6 +15,8 @@ const props = defineProps<{
   columns: ColumnDefinition[];
   busy: boolean;
   tree?: boolean;
+  dragSelectRows?: boolean;
+  activateOnDoubleClick?: boolean;
   label?: string;
   selectIds?: string[];
   saveCell?: (row: any, field: string, value: string) => Promise<boolean>;
@@ -35,7 +38,12 @@ let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
 let navigation: ReturnType<typeof cellNavigation>;
 let replacement: Promise<unknown> = Promise.resolve();
-defineExpose({ focus: () => element.value?.focus() });
+let stopDragSelection: (() => void) | undefined;
+defineExpose({
+  focus: () => element.value?.focus(),
+  redraw: async () => { await ready; if (alive) table.redraw(); },
+  clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
+});
 function keyboard(event: KeyboardEvent) {
   if (navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
@@ -228,6 +236,9 @@ onMounted(() => {
       resolve();
     }),
   );
+  if (props.dragSelectRows) stopDragSelection = rowDragSelection(table, element.value!, {
+    tree: !!props.tree, busy: () => props.busy, anchor: () => anchor?.id,
+  });
   element.value!.tabIndex = 0;
   element.value!.addEventListener("paste", paste);
   table.on("cellClick", (event, cell) => {
@@ -238,10 +249,14 @@ onMounted(() => {
   table.on("rowSelectionChanged", (rows) => {
     if (!replacingRows) emit("selection", rows);
   });
+  table.on("cellDblClick", (_event, cell) => {
+    if (props.activateOnDoubleClick && !props.busy) emit("activate", cell.getData() as { id: string; [key: string]: any });
+  });
 });
 onBeforeUnmount(() => {
   alive = false;
   navigation?.destroy();
+  stopDragSelection?.();
   element.value?.removeEventListener("paste", paste);
   table?.destroy();
 });
@@ -250,7 +265,7 @@ onBeforeUnmount(() => {
   <div
     ref="element"
     class="analysis-table tabulator project-grid"
-    :class="{ blocked: busy }"
+    :class="{ blocked: busy, 'row-drag-select': dragSelectRows }"
     :aria-busy="busy"
     :aria-label="label || 'Project table'"
     @keydown.capture="keyboard"

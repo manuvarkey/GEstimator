@@ -2,6 +2,7 @@
 defineProps<{ name: string; size?: number }>();
 const paths: Record<string, string> = {
   blank: "",
+  back: "M20 12H4 M10 6l-6 6 6 6",
   database: "M4 6a8 3 0 0 0 16 0 8 3 0 0 0-16 0 M4 6v12a8 3 0 0 0 16 0V6 M4 12a8 3 0 0 0 16 0",
   folder:
     "M3 7V5a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z M3 9h18",

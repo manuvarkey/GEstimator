@@ -195,6 +195,9 @@ class Service:
         if method == "analysis.template_rows":
             kinds = ["Group", "Subtotal", "Weight", "Multiply", "Round"]
             return [dict(kind=kinds[row["itemtype"]], description=row["description"], value=str(row.get("value", ""))) for row in misc.ana_default_add_items]
+        if method == "analysis.rules.validate":
+            from .analysis_rules import validate
+            return validate(p.get("rules"))
         if method == "recovery.list":
             return self.recovery_projects()
         if method == "recovery.discard":

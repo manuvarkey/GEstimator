@@ -6,14 +6,14 @@ The MCP ribbon keeps the active editor in place. Configure server controls port 
 
 ## Agent operations
 
-The server exposes **110 typed application operations**, plus seven compatible read aliases. Read-only mode advertises 40 read tools. Read-and-write mode advertises all 117 tools. `tools/list` is the authoritative source for input schemas, required fields, bounds and annotations; the [operation registry](../../modern/backend/mcp_operations.py) defines the application adapters.
+The server exposes **113 typed application operations**, plus seven compatible read aliases. Read-only mode advertises 42 read tools. Read-and-write mode advertises all 120 tools. `tools/list` is the authoritative source for input schemas, required fields, bounds and annotations; the [operation registry](../../modern/backend/mcp_operations.py) defines the application adapters.
 
 | Area | Operations |
 |---|---|
 | Project/files | `state`, `project.new/open/save/save_copy`, project settings, transaction undo/redo, recovery list/open/discard, full workbook export and mapped workbook preview/import. |
 | Database reads | `program.libraries`, `library.list/attach`, `database.inspect` (all project metadata, categories and counts), `database.analysis/resource` (complete stored definitions). Attached sources remain isolated read-only snapshots. |
 | Schedule/resources | Paged hierarchy/search/category filters, numbering defaults, add/duplicate/edit/batch edit, category creation/rename/move/delete, deletion previews/policies, source imports/Modify & Add, selected database-rate preview/apply, renumbering, colours, measurement quantities, dependent rates and usage. |
-| Analysis | Load a schedule analysis; add calculation rows; add/duplicate resources; edit cells/remarks; copy/paste/duplicate/delete/reorder rows; draft undo/redo; batch preview/apply; insert templates; import/export workbooks; apply to the working project. |
+| Analysis | Load a schedule analysis; add calculation rows; add/duplicate resources; edit cells/remarks; copy/paste/duplicate/delete/reorder rows; draft undo/redo; batch preview/apply; insert templates; import/export workbooks; apply to the working project; [project matching rules](analysis-rules.md) via `schedule.editor.analysis_rules.preview/apply` and project-independent `analysis.rules.validate`. |
 | Measurements | Template discovery, item/heading creation and editing, caption, links, remarks, template properties, ordered item/record operations, record batches and worksheet imports, full totals and schedule quantity updates. |
 | Portable transfer | `clipboard.export/paste` exchange bounded JSON and dependencies without requiring OS clipboard access. Prefer this over a shared session copy buffer when multiple clients are connected. |
 | Import options | Read shipped program defaults and validate supplied Modify & Add settings. Application UI preferences remain in the UI; supply explicit settings/rows for agent imports/templates. |

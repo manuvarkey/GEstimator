@@ -74,7 +74,7 @@ const previewRows = computed(() => preview.value?.rows.flatMap(row => [row, ...(
 </script>
 
 <template>
-  <Dialog v-model:visible="visible" modal :header="template ? 'Custom analysis template' : 'Bulk edit analysis'" class="workspace-dialog batch-dialog" :closable="!busy" :close-on-escape="!busy">
+  <Dialog v-model:visible="visible" modal :header="template ? 'Custom analysis template' : 'Edit selected analysis rows'" class="workspace-dialog batch-dialog" :closable="!busy" :close-on-escape="!busy">
     <p class="dialog-intro">{{ template ? 'Configure reusable calculation rows and preview their insertion after the selection. Saving this template changes application preferences only.' : `Set one field on ${selected.length} selected rows. Resource definition changes also affect other uses of the same resource in this draft.` }} Preview leaves the draft unchanged. Applying the preview is one analysis undo step; apply the analysis and save the project to retain it.</p>
     <template v-if="template">
       <AnalysisRowEditor v-model="rows" :disabled="busy" />

@@ -100,6 +100,16 @@ operation("schedule.editor.renumber", "Apply original schedule hierarchy numberi
 operation("schedule.editor.colour", "Set selected schedule item colours to #RRGGBB or null to clear.", dict(ids=IDS, colour=dict(type=["string", "null"], maxLength=7)), ("ids", "colour"), write=True)
 operation("schedule.editor.update_rates", "Recalculate selected schedule analyses and their dependents.", dict(ids=IDS), ("ids",), write=True)
 operation("schedule.editor.update_quantities", "Update selected item quantities from linked measurements with a GTK rounding label, e.g. No rounding or Round to .000.", dict(ids=IDS, rounding=S), ("ids", "rounding"), write=True)
+RULE_CONDITION = obj(dict(field=enum("description", "code", "value", "remarks"), operator=enum("equals", "not_equals", "contains", "not_contains", "starts_with", "ends_with", "glob", "is_empty", "not_empty", "numeric_eq", "numeric_ne", "gt", "gte", "lt", "lte", "between"), value=S, value2=S), ("field", "operator"))
+RULE_CHILD = RULE_CONDITION
+for _depth in range(2):
+    RULE_GROUP = obj(dict(mode=enum("all", "any"), conditions=array(RULE_CHILD, 8)), ("conditions",))
+    RULE_CHILD = dict(obj(extra=True), anyOf=[RULE_CONDITION, RULE_GROUP])
+RULE_MATCH = obj(dict(kind=enum("Any", "Group", "Resource", "Subtotal", "Weight", "Multiply", "Round"), mode=enum("all", "any"), occurrence=enum("all", "first", "last"), case_sensitive=BOOL, conditions=array(RULE_CHILD, 8)))
+ANALYSIS_RULE = obj(dict(match=RULE_MATCH, action=enum("set", "multiply", "add", "replace_text", "delete", "insert_before", "insert_after", "replace", "append", "prepend"), field=enum("description", "code", "value", "remarks"), value=S, find=S, rows=array(ROW, 100)), ("action",))
+operation("analysis.rules.validate", "Validate ordered analysis rules and bounded nested All/Any groups without changing a project or requiring one. Useful before saving reusable rule presets.", dict(rules=array(ANALYSIS_RULE, 50)), ("rules",))
+for action in ("preview", "apply"):
+    operation("schedule.editor.analysis_rules." + action, "Preview ordered match/modify analysis rules across selected schedule IDs/categories (including children), current code or the whole schedule. Actions edit entry quantities/factors/text, swap existing resource codes, delete or insert/replace calculation rows. Resource definitions remain unchanged. Preview includes dependent rates; apply is one project undo transaction and protects dirty drafts.", dict(scope=enum("selected", "all"), ids=IDS, code=S, rules=array(ANALYSIS_RULE, 50)), ("rules",), write=action == "apply", revision=action == "preview")
 
 operation("analysis.load", "Load the selected project schedule code into the active analysis. Protects an existing dirty draft unless discard=true.", dict(code=S, discard=BOOL), ("code",), write=True)
 operation("analysis.template_rows", "Read shipped default analysis calculation rows.")

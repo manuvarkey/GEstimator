@@ -16,6 +16,8 @@ import ApplicationMenu from "./components/ApplicationMenu.vue";
 import SelectMenus from "./components/SelectMenus.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
+import DatabasePicker from "./components/DatabasePicker.vue";
+import AnalysisRulesDialog from "./components/AnalysisRulesDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
 import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
@@ -56,6 +58,39 @@ const libraryManagerOpen = ref(false);
 const programSettingsOpen = ref(false);
 const analysisBatchOpen = ref(false);
 const analysisTemplateMode = ref(false);
+const analysisRulesOpen = ref(false);
+const analysisRuleIds = ref<string[]>([]);
+const analysisRuleCode = ref("");
+function showAnalysisRules(ids: string[] = []) {
+  analysisRuleIds.value = ids;
+  analysisRuleCode.value = activeView.value === "analysis" && state.value?.project ? state.value.code : "";
+  analysisRulesOpen.value = true;
+}
+async function applyAnalysisRules(params: Record<string, unknown>) {
+  const ok = await w.run(async () => {
+    await request("schedule.editor.analysis_rules.apply", params);
+    await w.refresh();
+    await projectView.value?.reload();
+  }, "Updating project analyses…");
+  if (ok) { activeView.value = "schedule"; activeTab.value = "schedule"; }
+  return ok;
+}
+const databasePickers = ref({
+  schedule: { open: false, mode: "add" as "add" | "rates", revision: 0, targetIds: [] as string[] },
+  resources: { open: false, mode: "add" as "add" | "rates", revision: 0, targetIds: [] as string[] },
+});
+const databaseError = ref("");
+const databaseRatesPicker = ref({ open: false, kind: "resources" as "schedule" | "resources", revision: 0, targetIds: [] as string[] });
+function showDatabase(options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }) {
+  databaseError.value = "";
+  if (options.mode === "rates") { Object.assign(databaseRatesPicker.value, options, { open: true }); return; }
+  Object.assign(databasePickers.value[options.kind], options, { open: true });
+}
+async function applyDatabase(params: Record<string, unknown>) {
+  const ok = await projectView.value?.applyDatabase(params) ?? false;
+  databaseError.value = ok ? "" : projectView.value?.lastError() || "The import could not be applied. Close the picker, refresh the project and try again.";
+  return ok;
+}
 const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
 async function librariesChanged() {
   await w.run(async () => {
@@ -368,6 +403,11 @@ function keyboard(event: KeyboardEvent) {
     return;
   const key = event.key.toLowerCase();
   const mod = event.ctrlKey || event.metaKey;
+  if (event.altKey && event.key === "ArrowLeft" && activeView.value === "analysis" && state.value?.project_open) {
+    event.preventDefault();
+    if (!uiBusy.value) void switchView("schedule");
+    return;
+  }
   if (mod && ["o", "s", "k"].includes(key)) {
     event.preventDefault();
     if (busy.value || projectBusy.value) return;
@@ -816,19 +856,20 @@ onBeforeUnmount(() => {
             <button class="ribbon-action ribbon-icon" aria-label="Paste rows" title="Insert analysis rows copied from this or another GEstimator window at the current selection. Existing project resource definitions are reused by code (Ctrl+V)."
               :disabled="!canEdit" @click="w.command('paste')">
               <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span></button>
-            <button class="ribbon-action ribbon-icon" aria-label="Duplicate" title="Create another copy of the selected analysis rows in this draft (Ctrl+D)."
+            <button class="ribbon-action" aria-label="Duplicate" title="Create another copy of the selected analysis rows in this draft (Ctrl+D)."
               :disabled="!canEdit || !selected.length" @click="w.command('duplicate')">
               <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span></button>
             <button class="ribbon-action ribbon-icon" aria-label="Delete" title="Remove the selected rows from this analysis draft. Use Undo to restore them."
               :disabled="!canEdit || !selected.length" @click="w.command('delete')">
               <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
-            <button class="ribbon-action ribbon-icon" aria-label="Bulk edit analysis…" title="Preview a field change on selected analysis rows and apply the entire batch with one undo step."
+            <button class="ribbon-action ribbon-icon" aria-label="Edit selected analysis rows…" title="Preview a field change on selected rows in this analysis draft and apply it with one draft undo step."
               :disabled="!canEdit || !selected.length" @click="analysisTemplateMode = false; analysisBatchOpen = true">
-              <AppIcon name="edit" />
+              <AppIcon name="edit" /><span class="ribbon-label">Edit rows</span>
             </button>
           </div>
           <small>EDIT</small>
         </div>
+        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Bulk edit analysis…" title="Match and modify analysis rows across selected schedule items or the whole schedule using ordered rules. Preview changes and dependent rates before one project undo step." :disabled="uiBusy || !state?.project_open" @click="showAnalysisRules()"><AppIcon name="filter" /><span class="ribbon-label">Bulk edit analysis</span></button></div><small>PROJECT RULES</small></div>
         <div class="ribbon-group">
           <div class="ribbon-actions">
             <button
@@ -1128,6 +1169,8 @@ onBeforeUnmount(() => {
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
           @libraries="libraryManagerOpen = true"
+          @database="showDatabase"
+          @analysis-rules="showAnalysisRules"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
           <div class="analysis-intro">
@@ -1137,6 +1180,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="analysis-heading">
               <div>
+                <button v-if="state?.project_open" class="button small secondary analysis-back" aria-label="Back to schedule" title="Return to the schedule (Alt+Left). Unsaved analysis changes use the normal Apply / Discard / Cancel prompt." :disabled="uiBusy" @click="switchView('schedule')"><AppIcon name="back" :size="16" />Schedule</button>
                 <div class="eyebrow">
                   RATE ANALYSIS<span v-if="state?.code" class="code-tag">{{
                     state.code
@@ -1806,5 +1850,8 @@ onBeforeUnmount(() => {
   <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">{{ mcpMessage }}</div>
   <SelectMenus />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
+  <DatabasePicker v-for="kind in (['schedule', 'resources'] as const)" :key="projectSession + kind" v-model="databasePickers[kind].open" :kind="kind" :mode="databasePickers[kind].mode" :revision="databasePickers[kind].revision" :target-ids="databasePickers[kind].targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />
+  <DatabasePicker :key="projectSession + 'rates'" v-model="databaseRatesPicker.open" :kind="databaseRatesPicker.kind" mode="rates" :revision="databaseRatesPicker.revision" :target-ids="databaseRatesPicker.targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />
   <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
+  <AnalysisRulesDialog v-if="analysisRulesOpen && state" v-model="analysisRulesOpen" :revision="state.revision" :ids="analysisRuleIds" :code="analysisRuleCode" :dirty="state.dirty" :apply="applyAnalysisRules" />
 </template>

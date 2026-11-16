@@ -807,6 +807,9 @@ class ProjectEditor:
         ):
             raise ValueError("Stale project edit; refresh the view")
         self.owner.guard_draft(p)
+        if method in ("schedule.editor.analysis_rules.preview", "schedule.editor.analysis_rules.apply"):
+            from .analysis_rules import run
+            return run(self, p, apply=method.endswith(".apply"))
         if method == "project.import_apply":
             from .importing import apply
 

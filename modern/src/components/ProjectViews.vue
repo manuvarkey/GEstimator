@@ -7,7 +7,6 @@ import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
-import DatabasePicker from "./DatabasePicker.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import { programSettings } from "../programSettings";
@@ -36,6 +35,8 @@ const emit = defineEmits<{
   analysis: [code: string];
   history: [state: { undo: boolean; redo: boolean }];
   libraries: [];
+  database: [options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }];
+  analysisRules: [ids: string[]];
 }>();
 const state = ref<GridState>();
 const emptyRows: GridRow[] = [];
@@ -49,6 +50,8 @@ defineExpose({
   reload: () => load(),
   handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") => command("project." + method),
+  applyDatabase,
+  lastError: () => error.value,
   exportWorkbook: () => {
     exportOpen.value = true;
   },
@@ -65,10 +68,6 @@ const source = ref("");
 const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
 const usageCode = ref<string>();
-const databaseOpen = ref(false);
-const databaseMode = ref<"add" | "rates">("add");
-const databaseTargetIds = ref<string[]>([]);
-const databaseRevision = ref(0);
 const page = ref(0);
 const selected = ref<GridRow[]>([]);
 const selectedRecord = ref<GridRow>();
@@ -439,11 +438,8 @@ function showPriceUpdate() {
 }
 function showDatabase(mode: "add" | "rates" = "add") {
   if (!state.value || isMeasurement.value) return;
-  databaseMode.value = mode;
-  databaseTargetIds.value = selected.value.map(row => row.id);
-  databaseRevision.value = state.value.revision;
   error.value = "";
-  databaseOpen.value = true;
+  emit("database", { kind: props.view === "resources" ? "resources" : "schedule", mode, revision: state.value.revision, targetIds: selected.value.map(row => row.id) });
 }
 async function applyDatabase(params: Record<string, unknown>) {
   const { operation, ...values } = params;
@@ -795,7 +791,7 @@ watch(
           <div v-if="!isMeasurement" class="ribbon-group">
             <div class="ribbon-actions">
               <button class="ribbon-action" :aria-label="view === 'schedule' ? 'Add item from database' : 'Add resources from database'" title="Select items from attached databases in a separate dialog. The working table and its insertion selection remain in place (Ctrl+L)." :disabled="busy" @click="showDatabase()"><AppIcon name="database" /><span class="ribbon-label">Add from database</span></button>
-              <button class="ribbon-action" aria-label="Refresh selected rates from database" title="Choose an attached database, preview rates matching selected project codes, and apply as one undoable update." :disabled="busy || !selected.length" @click="showPriceUpdate"><AppIcon name="refresh" /><span class="ribbon-label">Database rates</span></button>
+              <button v-if="view === 'resources'" class="ribbon-action" aria-label="Refresh selected rates from database" title="Choose an attached database, preview rates matching selected project codes, and apply as one undoable update." :disabled="busy || !selected.length" @click="showPriceUpdate"><AppIcon name="refresh" /><span class="ribbon-label">Database rates</span></button>
             </div><small>DATABASE</small>
           </div>
           <template v-if="!source">
@@ -810,7 +806,7 @@ watch(
             >
               <AppIcon name="plus" :size="15" /><span class="ribbon-label">Add item</span>
             </button>
-            <button v-if="view === 'schedule'" class="ribbon-action ribbon-icon" aria-label="Add subitem"
+            <button v-if="view === 'schedule'" class="ribbon-action" aria-label="Add subitem"
               title="Create a child of the selected schedule item. Its category follows the parent; the parent code is filled in for you (Ctrl+Shift+I)."
               :disabled="busy || !one || one.rowtype === 'Category'" @click="showSubitem">
               <AppIcon name="child" /><span class="ribbon-label">Add subitem</span>
@@ -826,7 +822,7 @@ watch(
               <AppIcon name="category" /><span class="ribbon-label">Add category</span>
             </button>
             <button
-              class="ribbon-action ribbon-icon"
+              class="ribbon-action"
               aria-label="Duplicate"
               title="Create a separate copy of the selected item. Measurement selections are duplicated in their current order."
               :disabled="busy || (isMeasurement ? !selected.length : !one || one.rowtype === 'Category')"
@@ -895,6 +891,7 @@ watch(
             >
               <AppIcon name="edit" /><span class="ribbon-label">Edit analysis</span>
             </button>
+            <button class="ribbon-action" aria-label="Bulk edit analysis…" title="Match and modify analysis rows across selected schedule items/categories or the whole schedule. Preview ordered rules and rate changes before applying as one project undo step." :disabled="busy" @click="emit('analysisRules', selected.map(row => row.id))"><AppIcon name="filter" /><span class="ribbon-label">Bulk edit analysis</span></button>
             <button
               class="ribbon-action"
               aria-label="Renumber schedule…"
@@ -1634,6 +1631,5 @@ watch(
         </button>
       </div>
     </Dialog>
-    <DatabasePicker v-if="view !== 'measurement'" v-model="databaseOpen" :kind="view === 'resources' ? 'resources' : 'schedule'" :mode="databaseMode" :revision="databaseRevision" :target-ids="databaseTargetIds" :apply="applyDatabase" :parent-error="error" @manage="emit('libraries')" />
   </section>
 </template>
