@@ -5,6 +5,7 @@ owner thread as desktop requests; they never access ORM connections directly.
 """
 
 import hmac
+import logging
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import secrets
@@ -12,6 +13,7 @@ from threading import Thread, Lock
 from .mcp_operations import OPERATIONS, execute, ToolError
 
 VERSION = "2025-11-25"
+log = logging.getLogger("gestimator.actions")
 VERSIONS = (VERSION, "2025-06-18", "2025-03-26")
 INSTRUCTIONS = """GEstimator estimate workspace. Items use codes within a source (project, an attached id, bundled:<file>, or an .eproj path; naming a source attaches a snapshot).
 1. Start with get_state; use describe_source for unfamiliar databases.
@@ -130,11 +132,14 @@ class MCPServer:
                     self.reply(404); return False
                 hosts = {f"127.0.0.1:{owner.port}", f"localhost:{owner.port}"}
                 if self.headers.get("Host") not in hosts:
+                    log.debug("mcp.access.denied reason=host_or_origin")
                     self.reply(403); return False
                 origin = self.headers.get("Origin")
                 if origin and origin not in {"http://" + host for host in hosts}:
+                    log.debug("mcp.access.denied reason=host_or_origin")
                     self.reply(403); return False
                 if not hmac.compare_digest(self.headers.get("Authorization", "").encode("utf-8"), ("Bearer " + owner.token).encode("utf-8")):
+                    log.debug("mcp.access.denied reason=bearer_token")
                     self.reply(401); return False
                 return True
 
@@ -171,6 +176,7 @@ class MCPServer:
                 with owner.lock:
                     owner.requests += 1
                     owner.last_activity = method if method != "tools/call" else "Tool: " + str(params.get("name", ""))[:100]
+                log.debug("mcp.request method=%s tool=%s access=%s", method, str(params.get("name", ""))[:64], owner.access)
                 if method == "initialize":
                     result = dict(protocolVersion=params.get("protocolVersion") if params.get("protocolVersion") in VERSIONS else VERSION,
                                   capabilities=dict(tools=dict(listChanged=False)), serverInfo=dict(name="GEstimator", version="0.1.0"),

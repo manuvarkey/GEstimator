@@ -1,3 +1,4 @@
+import { debugAction } from "./uiActions";
 import { invoke } from "@tauri-apps/api/core";
 export type RowKind =
   | "Group"
@@ -55,9 +56,18 @@ export async function request<T>(
   method: string,
   params: Record<string, unknown> = {},
 ): Promise<T> {
-  const response = await invoke<Response<T>>("backend_request", {
-    request: { id: crypto.randomUUID(), method, params },
-  });
+  const started = performance.now();
+  debugAction("request.start", { method, fields: Object.keys(params) });
+  let response: Response<T>;
+  try {
+    response = await invoke<Response<T>>("backend_request", {
+      request: { id: crypto.randomUUID(), method, params },
+    });
+  } catch (error) {
+    debugAction("request.failed", { method, ms: Math.round(performance.now() - started), code: "transport" });
+    throw error;
+  }
+  debugAction(response.error ? "request.failed" : "request.done", { method, ms: Math.round(performance.now() - started), code: response.error?.code });
   if (response.error) throw new Error(response.error.message);
   return response.result as T;
 }

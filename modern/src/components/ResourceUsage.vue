@@ -169,3 +169,10 @@ th:nth-last-child(-n + 3), td:nth-last-child(-n + 3) {
 .resource-dependents { list-style: none; margin: 0; padding: 0; }
 .resource-dependents li + li { margin-top: 6px; }
 </style>
+
+<style scoped>
+.resource-dependents li { min-width: 0; }
+.resource-dependents button { display: block; width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.resource-usage-table table { table-layout: fixed; }
+.resource-usage-table td { overflow-wrap: anywhere; white-space: normal; }
+</style>

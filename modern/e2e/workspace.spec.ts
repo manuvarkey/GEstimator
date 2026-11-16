@@ -18,6 +18,8 @@ let measurementDelay = 0;
 let systemClipboard = "";
 let clipboardUnavailable = false;
 let frontendRequests: string[] = [];
+let frontendCalls: { method: string; params: Record<string, any> }[] = [];
+let nativeDialogResults: (string | null)[] = [];
 let backend: ReturnType<typeof createBackend>;
 function call(method: string, params: Record<string, unknown> = {}) {
   return backend.call(method, params);
@@ -56,11 +58,13 @@ function startBackend() {
 }
 async function connectDesktop(page: Page, transport = call) {
   await page.exposeBinding("backendTransport", async (_source, request) => {
+    frontendCalls.push(request);
     frontendRequests.push(request.method + (request.params?.source ? ":library" : ""));
     if (request.method === "measurement.state" && measurementDelay)
       await new Promise(resolve => setTimeout(resolve, measurementDelay));
     return transport(request.method, request.params);
   });
+  await page.exposeBinding("nativeDialogTransport", () => nativeDialogResults.shift() ?? null);
   await page.exposeBinding("clipboardTransport", (_source, method, text) => {
     if (clipboardUnavailable) throw new Error("Clipboard unavailable");
     if (method === "write_text") systemClipboard = text;
@@ -80,10 +84,13 @@ async function connectDesktop(page: Page, transport = call) {
           return Promise.resolve({ family: "Iosevka", size: "11pt" });
         if (method.startsWith("plugin:event|")) return Promise.resolve(1);
         if (method === "backend_request")
-          return (window as any).backendTransport(args.request);
+          return (window as any).backendTransport(args.request).then((response: any) => {
+            if (args.request.method === "project.open" && response.result) (window as any).openedProjectPath = args.request.params.path;
+            return response;
+          });
         if (method.startsWith("plugin:clipboard-manager|"))
           return (window as any).clipboardTransport(method.split("|")[1], args?.text);
-        if (method.startsWith("plugin:dialog|")) return Promise.resolve(null);
+        if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
         if (method.startsWith("plugin:window|")) {
           ((window as any).windowCommands ||= []).push(method);
           return Promise.resolve();
@@ -101,6 +108,8 @@ test.beforeEach(async ({ page }) => {
   systemClipboard = "";
   clipboardUnavailable = false;
   frontendRequests = [];
+  frontendCalls = [];
+  nativeDialogResults = [];
   startBackend();
   await connectDesktop(page);
 });
@@ -111,11 +120,25 @@ test.afterEach(async () => {
 });
 
 async function openFixture(page: Page, path: string) {
+  const hasRecent = await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]").length > 0);
+  if (!hasRecent) nativeDialogResults.push(path);
   await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Open project", exact: true });
-  await dialog.getByLabel("Project file").fill(path);
-  await dialog.getByRole("button", { name: "Open project", exact: true }).click();
-  await expect(dialog).not.toBeVisible();
+  if (hasRecent) {
+    const dialog = page.getByRole("dialog", { name: "Open project", exact: true });
+    await dialog.getByLabel("Project file").fill(path);
+    await dialog.getByRole("button", { name: "Open project", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+  }
+  await expect.poll(() => page.evaluate(() => (window as any).openedProjectPath)).toBe(path);
+}
+async function openMeasurementEntry(page: Page) {
+  if (await page.getByRole("button", { name: "Back to measurements", exact: true }).isVisible()) return;
+  if (await page.locator("#view-measurement").getAttribute("aria-selected") !== "true") return;
+  const list = page.getByRole("grid", { name: "Measurements", exact: true });
+  const selected = list.locator('.tabulator-row.tabulator-selected[data-kind="Resource"]');
+  const row = await selected.count() ? selected.first() : list.locator('.tabulator-row[data-kind="Resource"]').last();
+  await row.locator('[tabulator-field="description"]').dblclick();
+  await expect(page.locator(".measurement-record-grid")).toBeVisible();
 }
 async function pasteDocument(page: Page, selector: string, data: string) {
   await page.locator(selector).evaluate((table, text) => {
@@ -152,7 +175,7 @@ async function refinementFixture(page: Page) {
 
 test("compact contrast, category filters, expanded trees and client window controls", async ({ page }) => {
   await refinementFixture(page);
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await expect(grid.locator('.tabulator-col[tabulator-field="category"],.tabulator-col[tabulator-field="parent"]')).toHaveCount(0);
   await expect(grid.locator(".tabulator-data-tree-control")).toHaveCount(0);
   await expect(grid.locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first()).toHaveCSS("font-weight", "700");
@@ -184,7 +207,7 @@ test("compact contrast, category filters, expanded trees and client window contr
   const buttons = await minor.locator(".ribbon-action").evaluateAll(elements => elements.map(element => element.getBoundingClientRect()));
   expect(new Set(buttons.map(button => Math.round(button.top))).size).toBe(3);
   expect(Math.max(...buttons.map(button => button.left)) - Math.min(...buttons.map(button => button.left))).toBeLessThan(1);
-  const full = page.locator('.ribbon-action').filter({ has: page.locator('.ribbon-label').filter({ hasText: /^Add from database$/ }) });
+  const full = page.locator('.ribbon-action:visible').filter({ has: page.locator('.ribbon-label').filter({ hasText: /^Add from database$/ }) });
   expect((await full.boundingBox())!.width).toBeLessThan(80);
   expect(await full.locator(".ribbon-label").evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
   await expect(page.locator(".titlebar-project")).toHaveAttribute("data-tauri-drag-region", "");
@@ -195,7 +218,7 @@ test("compact contrast, category filters, expanded trees and client window contr
 
 test("cell navigation commits and continues editing across schedule resources measurements and analysis", async ({ page }) => {
   await refinementFixture(page);
-  const main = page.locator(".project-main-grid");
+  const main = page.locator(".project-view:visible .project-main-grid");
   const row = (code: string) => main.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: new RegExp(`^${code}$`) }) });
   const active = (grid = main) => grid.locator('.tabulator-cell.tabulator-editing input,.tabulator-cell.tabulator-editing textarea');
   const field = async (name: string, grid = main) => { await expect(grid.locator(`.cell-focused[tabulator-field="${name}"] input,.cell-focused[tabulator-field="${name}"] textarea`)).toBeFocused(); };
@@ -246,6 +269,7 @@ test("cell navigation commits and continues editing across schedule resources me
   await add.getByLabel("Description / remarks").fill("Dimensions");
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
+  await openMeasurementEntry(page);
   for (let index = 0; index < 2; index++) await page.getByRole("button", { name: "Add record", exact: true }).click();
   const records = page.locator(".measurement-record-grid");
   await records.locator('.tabulator-row [tabulator-field="c1"]').first().click();
@@ -283,16 +307,15 @@ test("cell navigation commits and continues editing across schedule resources me
   await page.keyboard.press("Enter");
   await active(analysis).fill("2*3");
   await active(analysis).press("Tab");
-  await field("rate", analysis);
-  await active(analysis).fill("5");
-  await active(analysis).press("ArrowRight");
-  await field("vat", analysis);
-  await active(analysis).fill("10");
-  await active(analysis).press("Shift+Tab");
-  await field("rate", analysis);
+  await active(analysis).press("Escape");
+  await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
+  await page.locator(".inspector").getByLabel("Base rate", { exact: true }).fill("5");
+  await page.locator(".inspector").getByLabel("Base rate", { exact: true }).press("Tab");
+  await page.locator(".inspector").getByLabel("VAT %", { exact: true }).fill("10");
+  await page.locator(".inspector").getByLabel("VAT %", { exact: true }).press("Tab");
   await expect(page.locator(".summary-value")).toContainText("33.00");
-  await active(analysis).press("ArrowLeft");
-  await field("value", analysis);
+  await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
+  await page.keyboard.press("Enter");
   await active(analysis).press("Enter");
   await expect(analysis.locator('.tabulator-row[data-kind="Round"] [tabulator-field="value"] input')).toBeFocused();
   await active(analysis).press("ArrowUp");
@@ -300,12 +323,8 @@ test("cell navigation commits and continues editing across schedule resources me
   await active(analysis).press("Escape");
   await expect(analysis.locator(".tabulator-data-tree-control")).toHaveCount(0);
   await page.setViewportSize({ width: 1100, height: 1000 });
-  await analysis.focus();
+  await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.keyboard.press("Enter");
-  await active(analysis).press("Tab");
-  await field("rate", analysis);
-  await active(analysis).press("ArrowRight");
-  await field("vat", analysis);
   const editorBounds = (await active(analysis).boundingBox())!;
   const fixedHeader = analysis.locator('.tabulator-col[tabulator-field="amount"]');
   await expect(fixedHeader).toHaveCSS("background-color", "rgb(29, 34, 43)");
@@ -345,7 +364,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   await page.locator("#view-schedule").click();
   await agent("upsert_items", { kind: "schedule", items: [{ code: item.code, description: "Edited by agent" }] }, true);
   await page.clock.runFor(1600);
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await expect(grid.getByText("Edited by agent", { exact: true })).toBeVisible();
   const qty = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) }).locator('[tabulator-field="qty"]');
   await qty.click();
@@ -355,7 +374,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   await page.clock.runFor(1700);
   await expect(qty.locator("input")).toHaveValue("13");
   await qty.locator("input").press("Tab");
-  await expect(page.locator(".project-view").getByRole("alert")).toContainText("Stale");
+  await expect(page.locator(".project-view:visible").getByRole("alert")).toContainText("Stale");
   await expect(qty.locator("input")).toHaveValue("13");
   await qty.locator("input").press("Tab");
   await expect(qty).toHaveText("13");
@@ -395,7 +414,7 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await expect(manager).not.toBeVisible();
   await expect(page.locator(".database-view")).toHaveCount(0);
-  await expect(page.locator(".project-view h1")).toHaveText("Schedule of quantities");
+  await expect(page.locator(".project-view:visible h1")).toHaveText("Schedule of quantities");
   await page.locator("#view-schedule").click();
   const ribbon = page.locator(".ribbon");
   await expect(ribbon.getByLabel("Data source")).toHaveCount(0);
@@ -406,7 +425,7 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   await picker.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await picker.getByRole("button", { name: "Add selected items", exact: true }).click();
   await expect(picker).not.toBeVisible();
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await expect(grid.locator('.tabulator-selected [tabulator-field="code"]')).toHaveText("A");
   await expect(grid.locator('.tabulator-row [tabulator-field="rate"]').last()).toHaveText("50");
   await expect(ribbon.getByRole("button", { name: "Refresh selected rates from database", exact: true })).toHaveCount(0);
@@ -490,11 +509,12 @@ for (const kind of ["schedule", "resources"] as const) test(`database ${kind} pi
   await page.mouse.up();
   await expect(picker.locator(".pagination")).toContainText("2 selected");
   await expect(grid.locator('.tabulator-selected[data-kind="Group"]')).toHaveCount(0);
+  await expect(grid.locator(".cell-range-selected,.cell-focused")).toHaveCount(0);
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
   await page.screenshot({ path: `test-results/database-${kind}-row-selection.png`, animations: "disabled" });
   await picker.getByRole("button", { name: "Add selected items", exact: true }).click();
   await expect(picker).not.toBeVisible();
-  const project = page.locator(".project-main-grid");
+  const project = page.locator(".project-view:visible .project-main-grid");
   await expect(project.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: new RegExp(`^(${firstCode}|${secondCode})$`) })).toHaveCount(2);
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(project.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: new RegExp(`^(${firstCode}|${secondCode})$`) })).toHaveCount(0);
@@ -571,7 +591,7 @@ test("project analysis rules preview multiple items, apply once, undo and return
   const original = await readFile(path);
   await openFixture(page, path);
   await page.locator("#view-schedule").click();
-  const ribbon = page.locator(".ribbon"), grid = page.locator(".project-main-grid");
+  const ribbon = page.locator(".ribbon"), grid = page.locator(".project-view:visible .project-main-grid");
   for (const name of ["Duplicate", "Add subitem"]) await expect(ribbon.getByRole("button", { name, exact: true })).not.toHaveClass(/ribbon-icon/);
   await grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ }).click();
   await grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^B$/ }).click({ modifiers: ["Control"] });
@@ -605,16 +625,12 @@ test("project analysis rules preview multiple items, apply once, undo and return
   await expect(grid.locator('.tabulator-row [tabulator-field="rate"]').filter({ hasText: /^22(?:\.00)?$/ })).toHaveCount(2);
   await grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ }).click();
   await ribbon.getByRole("button", { name: "Edit analysis", exact: true }).click();
-  await expect(ribbon.getByRole("button", { name: "Bulk edit analysis…", exact: true }).locator(".ribbon-label")).toHaveText("Bulk edit analysis");
+  await expect(ribbon.getByRole("button", { name: "Bulk edit analysis…", exact: true })).not.toBeVisible();
   await expect(ribbon.getByRole("button", { name: "Duplicate", exact: true })).not.toHaveClass(/ribbon-icon/);
-  await ribbon.getByRole("button", { name: "Bulk edit analysis…", exact: true }).click();
-  await expect(dialog.getByLabel("Schedule scope")).toHaveValue("selected");
-  await expect(dialog.getByLabel("Schedule scope")).toContainText("Current schedule item A");
-  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Back to schedule", exact: true }).click();
   await expect(grid).toBeVisible();
   await ribbon.getByRole("button", { name: "Bulk edit analysis…", exact: true }).click();
-  await expect(dialog.getByLabel("Schedule scope")).toHaveValue("all");
+  await expect(dialog.getByLabel("Schedule scope")).toHaveValue("selected");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ }).click();
   await ribbon.getByRole("button", { name: "Edit analysis", exact: true }).click();
@@ -719,7 +735,7 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   await expect(selected).toHaveText("A");
   for (const tab of ["databases", "mcp"]) {
     await page.locator("#view-" + tab).click();
-    await expect(page.locator(".project-view h1")).toHaveText("Schedule of quantities");
+    await expect(page.locator(".project-view:visible h1")).toHaveText("Schedule of quantities");
     await expect(selected).toHaveText("A");
   }
   const ribbon = page.locator(".ribbon");
@@ -759,7 +775,7 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   for (const tab of ["databases", "mcp", "analysis"]) {
     await page.locator("#view-" + tab).click();
     await expect(page.getByRole("dialog", { name: /Unsaved/ })).toHaveCount(0);
-    await expect(page.locator(".analysis-table")).toBeVisible();
+    await expect(page.locator(".analysis-table:visible")).toBeVisible();
   }
   expect((await call("state")).result).toEqual(before);
   await page.locator("#view-mcp").click();
@@ -839,7 +855,8 @@ test("themed template groups and Enter editing retain measurement eval and origi
   await expect(description).toHaveValue("Dimensions\nSecond line\nThird line");
   await description.press("Enter");
   await expect(add).not.toBeVisible();
-  await expect(page.locator('.project-main-grid .tabulator-row [tabulator-field="description"]')).toHaveText("Dimensions\nSecond line\nThird line");
+  await expect(page.locator('.project-main-grid .tabulator-row[data-kind="Resource"] [tabulator-field="description"]')).toHaveText("Dimensions\nSecond line\nThird line");
+  await openMeasurementEntry(page);
   await page.getByRole("button", { name: "Add record", exact: true }).click();
   const records = page.locator(".measurement-record-grid");
   const count = records.locator('.tabulator-row [tabulator-field="c2"]');
@@ -951,8 +968,9 @@ test("measurement clipboard transfers whole items and template records with expl
     await connectDesktop(destination, other.call);
     await destination.locator("#view-measurement").click();
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
-    await destination.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Copied dimensions" }).click();
+    await destination.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Copied dimensions" }).dblclick();
     await expect(destination.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]')).toHaveText("6");
+    await openMeasurementEntry(page);
     await page.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]').click();
     await page.keyboard.press("ControlOrMeta+c");
     await expect.poll(() => JSON.parse(systemClipboard).kind).toBe("records");
@@ -980,7 +998,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   await openFixture(page, project);
   await page.locator("#view-schedule").click();
-  const main = page.locator(".project-main-grid");
+  const main = page.locator(".project-view:visible .project-main-grid");
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.keyboard.press("ControlOrMeta+Shift+i");
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -1002,15 +1020,16 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
   await page.getByRole("grid", { name: "Rate analysis table" }).focus();
   await page.keyboard.press("ControlOrMeta+i");
-  const resource = page.getByRole("dialog", { name: "Add resource", exact: true });
-  await expect(resource.getByRole("tab", { name: "From library" })).toHaveAttribute("aria-selected", "true");
-  await resource.getByRole("button", { name: "Close", exact: true }).click();
+  const resource = page.getByRole("dialog", { name: "Add analysis resources from database", exact: true });
+  await expect(resource).toBeVisible();
+  await resource.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(resource).not.toBeVisible();
   await page.getByRole("grid", { name: "Rate analysis table" }).focus();
   await page.keyboard.press("ControlOrMeta+Shift+i");
-  await expect(resource.getByRole("tab", { name: "Custom resource" })).toHaveAttribute("aria-selected", "true");
-  await resource.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(resource).not.toBeVisible();
+  const custom = page.getByRole("dialog", { name: "Add custom resource", exact: true });
+  await expect(custom).toBeVisible();
+  await custom.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(custom).not.toBeVisible();
   await page.locator("#view-resources").click();
   await main.locator('[tabulator-field="description"]').filter({ hasText: /^Materials$/ }).click();
   // GTK accelerators also work while focus is in the active ribbon.
@@ -1027,6 +1046,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Dimensions" }).click();
+  await openMeasurementEntry(page);
   await page.locator(".measurement-record-grid .project-grid").focus();
   await page.keyboard.press("ControlOrMeta+i");
   await expect(page.locator(".measurement-record-grid .tabulator-row")).toHaveCount(1);
@@ -1047,12 +1067,13 @@ test("measurement properties, searchable links and paged batch records keep atom
   await add.getByLabel("Description / remarks").fill("Steel quantities");
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
+  await openMeasurementEntry(page);
   await expect(page.getByRole("button", { name: "Properties…", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Properties…", exact: true }).click();
   const properties = page.getByRole("dialog", { name: "Measurement properties", exact: true });
   await properties.getByLabel("Description / remarks").fill("Discarded change");
   await properties.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.locator(".project-main-grid")).not.toContainText("Discarded change");
+  await expect(page.locator(".project-view:visible .project-main-grid")).not.toContainText("Discarded change");
   await page.getByRole("button", { name: "Properties…", exact: true }).click();
   await properties.getByLabel("Item 1 constant", { exact: true }).fill("1/0");
   await properties.getByRole("button", { name: "Save properties", exact: true }).click();
@@ -1081,28 +1102,28 @@ test("measurement properties, searchable links and paged batch records keep atom
   await insert.getByRole("button", { name: "Insert records", exact: true }).click();
   await expect(insert).not.toBeVisible();
   const records = page.locator(".measurement-record-grid .project-grid");
-  await expect(page.locator(".project-view .pagination")).toContainText("120 records · Page 1");
+  await expect(page.locator(".project-view:visible .pagination:visible")).toContainText("120 records · Page 1");
   await page.getByRole("button", { name: "Next records", exact: true }).click();
   await expect(records.locator(".tabulator-row")).toHaveCount(20);
   await expect(records).toHaveAttribute("aria-busy", "false");
-  await expect(page.locator(".project-main-grid .tabulator-selected")).toHaveCount(1);
+  await expect(page.locator(".measurement-entry-heading")).toContainText("Steel quantities");
   await records.focus();
   await expect(records).toBeFocused();
   await page.keyboard.press("ControlOrMeta+a");
   expect(errors).toEqual([]);
   await expect(records.locator(".tabulator-selected")).toHaveCount(20);
   await expect(page.getByRole("button", { name: "Copy record", exact: true })).toBeEnabled();
-  await expect(page.locator(".project-main-grid .tabulator-selected")).toHaveCount(1);
+  await expect(page.locator(".measurement-entry-heading")).toContainText("Steel quantities");
   await page.keyboard.press("ControlOrMeta+c");
   await expect.poll(() => { try { return JSON.parse(systemClipboard).items.length; } catch { return 0; } }).toBe(20);
   await page.getByRole("button", { name: "Paste record", exact: true }).click();
-  await expect(page.locator(".project-view .pagination")).toContainText("140 records");
+  await expect(page.locator(".project-view:visible .pagination:visible")).toContainText("140 records");
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(page.locator(".project-view .pagination")).toContainText("120 records");
+  await expect(page.locator(".project-view:visible .pagination:visible")).toContainText("120 records");
   await records.focus();
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
-  await expect(page.locator(".project-view .pagination")).toContainText("100 records");
+  await expect(page.locator(".project-view:visible .pagination:visible")).toContainText("100 records");
   await expect(page.getByRole("button", { name: "Next records", exact: true })).toBeDisabled();
   const firstCount = records.locator('.tabulator-row [tabulator-field="c1"]').first();
   await firstCount.click();
@@ -1110,8 +1131,8 @@ test("measurement properties, searchable links and paged batch records keep atom
   await expect(firstCount).toHaveText("6");
   await firstCount.dblclick();
   await firstCount.locator("textarea").fill("1/0");
-  await page.locator(".project-main-grid .tabulator-header").click();
-  await expect(page.locator(".project-view").getByRole("alert")).toContainText("Invalid numeric");
+  await page.locator(".tabulator-header:visible").click();
+  await expect(page.locator(".project-view:visible").getByRole("alert")).toContainText("Invalid numeric");
   await expect(firstCount).toHaveText("6");
   expect(errors).toEqual([]);
 });
@@ -1136,7 +1157,7 @@ test("insertion reveals new rows, F2 edits the selection and resource moves pres
   await table.focus();
   await page.keyboard.press("F2");
   await table.locator('textarea').fill("Revised work");
-  await page.locator(".project-main-grid .tabulator-header").click();
+  await page.locator(".tabulator-header:visible").click();
   await expect(table.locator('.tabulator-selected [tabulator-field="description"]')).toContainText("Revised work");
   await table.getByRole("gridcell", { name: "Foundation", exact: true }).click({ button: "right" });
   await page.getByText("Open analysis", { exact: true }).click();
@@ -1214,33 +1235,25 @@ test("saved libraries restore across processes, deduplicate and recover from mis
   expect(stored.libraries.map((entry: { path: string }) => entry.path)).toEqual([moved]);
 });
 
-test("bulk analysis preview is atomic and custom templates persist without changing source files", async ({ page }) => {
+test("inspector edits are atomic and custom templates persist without changing source files", async ({ page }) => {
   const { execFileSync } = await import("node:child_process");
   const project = resolve(directory, "batch.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const source = await readFile(project);
-  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project", exact: true });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.locator("#view-schedule").click();
   await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
   await page.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="kind"]').click();
-  await page.locator(".ribbon").getByRole("button", { name: "Edit selected analysis rows…" }).click();
-  const bulk = page.getByRole("dialog", { name: "Edit selected analysis rows", exact: true });
-  await bulk.getByLabel("Field to change").selectOption("rate");
-  await bulk.getByLabel("New value").fill("1/0");
-  await bulk.getByRole("button", { name: "Preview changes" }).click();
-  await expect(bulk.getByRole("alert")).toContainText("Invalid numeric");
-  await expect(bulk.getByRole("button", { name: "Apply batch" })).toBeDisabled();
-  await bulk.getByLabel("New value").fill("15.555");
-  await bulk.getByRole("button", { name: "Preview changes" }).click();
-  await expect(bulk.locator(".batch-preview")).toContainText("31.12");
+  const rate = page.locator(".inspector").getByLabel("Base rate", { exact: true });
+  await rate.fill("1/0");
+  await rate.press("Tab");
+  await expect(page.getByRole("alert")).toContainText("Invalid numeric");
   await expect(page.locator(".summary-value")).toContainText("20.00");
-  await bulk.getByRole("button", { name: "Apply batch" }).click();
-  await expect(bulk).not.toBeVisible();
+  await rate.fill("15.555");
+  await rate.press("Tab");
   await expect(page.locator(".summary-value")).toContainText("31.12");
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".summary-value")).toContainText("20.00");
@@ -1271,10 +1284,8 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   const { execFileSync } = await import("node:child_process");
   const project = resolve(directory, "keyboard-layout.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
-  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project", exact: true });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.locator("#view-schedule").click();
   const table = page.locator(".project-main-grid .project-grid");
@@ -1297,15 +1308,15 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   await page.locator("#view-measurement").click();
   await expect(page.locator("#view-measurement")).toHaveAttribute("aria-selected", "true");
   expect(errors).toEqual([]);
-  await expect(page.locator(".project-view h1")).toHaveText("Measurements");
+  await expect(page.locator(".project-view:visible h1")).toHaveText("Measurements");
   await page.locator(".ribbon").getByRole("button", { name: "Add measurement", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
   await add.getByLabel("Measurement template").selectOption("civil_steel_table");
   await add.getByLabel("Description / remarks").fill("Steel reinforcement");
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
-  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Steel reinforcement" }).click();
-  await page.locator(".project-view").getByRole("button", { name: "Add record", exact: true }).click();
+  await openMeasurementEntry(page);
+  await page.locator(".project-view:visible").getByRole("button", { name: "Add record", exact: true }).click();
   await page.getByRole("button", { name: "Properties…", exact: true }).click();
   await expect(page.getByLabel("Item 1 constant", { exact: true })).toHaveValue("0.395");
   await expect(page.getByLabel("Item 6 Label", { exact: true })).toHaveValue("25mm");
@@ -1316,7 +1327,7 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   const numeric = records.locator('.tabulator-row [tabulator-field="c1"]');
   await numeric.dblclick();
   await numeric.locator("textarea").fill("2*3");
-  await page.locator(".project-main-grid .tabulator-header").click();
+  await page.locator(".tabulator-header:visible").click();
   await expect(numeric).toHaveText("6");
   const calculated = records.locator('.tabulator-row [tabulator-field="c10"]');
   await calculated.dblclick();
@@ -1376,7 +1387,7 @@ test("program settings persist, control Modify & Add, default rows and workbook 
   await picker.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await picker.getByRole("button", { name: "Modify & Add", exact: true }).click();
   await expect(picker).not.toBeVisible();
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await expect(grid.locator('.tabulator-row [tabulator-field="rate"]').last()).toHaveText(/^40(\.0+)?$/);
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(grid).not.toContainText("Foundation");
@@ -1384,14 +1395,12 @@ test("program settings persist, control Modify & Add, default rows and workbook 
   const description = grid.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" });
   await description.dblclick();
   await grid.locator('[tabulator-field="description"] textarea').fill("First line\nSecond line");
-  await page.locator(".project-main-grid .tabulator-header").click();
+  await page.locator(".tabulator-header:visible").click();
   const exportWorkbook = async (name: string) => {
-    await ribbon.getByRole("button", { name: "Export workbook", exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: "Export project workbook", exact: true });
     const output = resolve(directory, name);
-    await dialog.getByLabel(/New Excel file/).fill(output);
-    await dialog.getByRole("button", { name: "Export workbook", exact: true }).click();
-    await expect(dialog).not.toBeVisible();
+    nativeDialogResults.push(output);
+    await ribbon.getByRole("button", { name: "Export workbook", exact: true }).click();
+    await expect.poll(async () => readFile(output).then(() => true).catch(() => false)).toBe(true);
     return JSON.parse(execFileSync(python, ["-c", "import json,sys;from openpyxl import load_workbook;b=load_workbook(sys.argv[1]);print(json.dumps([c.value for row in b['Schedule'] for c in row if isinstance(c.value,str)]));b.close()", output], { encoding: "utf8" }));
   };
   expect(await exportWorkbook("joined.xlsx")).toContain("First line\nSecond line");
@@ -1468,12 +1477,11 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page
-    .getByRole("button", { name: "Add resource", exact: true })
+    .getByRole("button", { name: "Add custom resource", exact: true })
     .first()
     .click();
-  await page.getByRole("tab", { name: "Custom resource" }).click();
   const dialog = page.getByRole("dialog", {
-    name: "Add resource",
+    name: "Add custom resource",
     exact: true,
   });
   await dialog.getByLabel("Resource code").fill("MAT-001");
@@ -1495,10 +1503,10 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await expect(page.locator(".inspector")).toContainText("MAT-001");
   const descriptionCell = row.locator('[tabulator-field="description"]');
   await descriptionCell.dblclick();
-  await descriptionCell
-    .locator("textarea")
-    .fill("Concrete constituent\nEdited multiline description");
-  await page.locator(".analysis-heading h1").click();
+  await expect(descriptionCell.locator("textarea")).toHaveCount(0);
+  const inspectorDescription = page.locator(".inspector").getByLabel("Description");
+  await inspectorDescription.fill("Concrete constituent\nEdited multiline description");
+  await inspectorDescription.press("Tab");
   await expect(
     page.locator(".inspector").getByLabel("Description"),
   ).toHaveValue("Concrete constituent\nEdited multiline description");
@@ -1523,6 +1531,11 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await expect(
     page.locator('.tabulator-row[data-kind="Weight"]'),
   ).toBeVisible();
+  const weightedRow = page.locator('.tabulator-row[data-kind="Weight"]');
+  const weightedHeight = (await weightedRow.boundingBox())!.height;
+  await weightedRow.locator('[tabulator-field="description"]').dblclick();
+  expect((await weightedRow.boundingBox())!.height).toBeLessThanOrEqual(weightedHeight + 2);
+  await weightedRow.locator('textarea').press("Enter");
   await expect(page.locator(".tabulator-col").first()).toHaveCSS(
     "display",
     "inline-flex",
@@ -1548,10 +1561,8 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await ribbon
     .getByRole("button", { name: "Show analysis inspector", exact: true })
     .click();
-  await ribbon
-    .getByRole("button", { name: "Compact rows", exact: true })
-    .click();
-  await expect(page.locator(".analysis-table")).toHaveClass(/compact/);
+  await expect(ribbon.getByRole("button", { name: "Compact rows", exact: true })).toHaveCount(0);
+  await expect(page.locator(".analysis-table:visible")).toHaveClass(/compact/);
   await expect(ribbon.getByRole("button", { name: /Collapse groups|Expand groups/ })).toHaveCount(0);
   await expect(page.locator(".analysis-table .tabulator-data-tree-control")).toHaveCount(0);
   await page.setViewportSize({ width: 1100, height: 800 });
@@ -1567,22 +1578,13 @@ test("resource editing, authoritative calculations, undo and workspace presentat
 test("real project navigation protects unsaved drafts and save-copy clears dirty state", async ({
   page,
 }) => {
-  await page
-    .getByRole("button", { name: "Open project", exact: true })
-    .first()
-    .click();
+  await openFixture(page, resolve("../estimator/database/DSREM2022.eproj"));
   let dialog = page.getByRole("dialog", { name: "Open project", exact: true });
-  await dialog
-    .getByLabel("Project file")
-    .fill(resolve("../estimator/database/DSREM2022.eproj"));
-  await dialog
-    .getByRole("button", { name: "Open project", exact: true })
-    .click();
   await expect(dialog).not.toBeVisible();
   const search = page.getByRole("textbox", { name: "Find schedule items" });
   await search.fill("1.1.1");
   await search.press("Enter");
-  await expect(page.locator(".item-card").first()).toBeVisible();
+  await expect(page.locator(".item-card").first().locator(".item-code")).toHaveText("1.1.1");
   await page.locator(".item-card").first().click();
   await expect(page.locator(".code-tag")).toBeVisible();
   await page
@@ -1616,13 +1618,10 @@ test("real project navigation protects unsaved drafts and save-copy clears dirty
   ).toBeVisible();
   await page.getByRole("button", { name: "Keep editing" }).click();
   await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
+  const output = resolve(directory, "review.eproj");
+  nativeDialogResults.push(output);
   await page.getByRole("button", { name: "Save copy", exact: true }).click();
-  dialog = page.getByRole("dialog", { name: "Save project copy" });
-  await dialog
-    .getByLabel("Project file")
-    .fill(resolve(directory, "review.eproj"));
-  await dialog.getByRole("button", { name: "Save copy", exact: true }).click();
-  await expect(dialog).not.toBeVisible({ timeout: 45000 });
+  await expect.poll(async () => readFile(output).then(() => true).catch(() => false), { timeout: 45000 }).toBe(true);
   await expect(page.locator(".draft-badge")).toContainText("Up to date");
 });
 
@@ -1641,30 +1640,23 @@ test("native typography and schedule, resource and measurement editing", async (
     "Iosevka, system-ui",
   );
   await expect(page.locator("html")).toHaveCSS("font-size", "14.6667px");
-  await page
-    .getByRole("button", { name: "Open project", exact: true })
-    .first()
-    .click();
+  await openFixture(page, fixture);
   const fileDialog = page.getByRole("dialog", {
     name: "Open project",
     exact: true,
   });
-  await fileDialog.getByLabel("Project file").fill(fixture);
-  await fileDialog
-    .getByRole("button", { name: "Open project", exact: true })
-    .click();
   await expect(fileDialog).not.toBeVisible();
   await page
     .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Schedule", exact: true })
     .click();
-  const view = page.locator(".project-view");
+  const view = page.locator(".project-view:visible");
   const quantity = view
     .locator('.tabulator-row [tabulator-field="qty"]')
     .last();
   await quantity.dblclick();
   await quantity.locator("textarea,input").fill("2*3");
-  await view.locator(".project-main-grid .tabulator-header").click();
+  await view.locator(".tabulator-header:visible").click();
   await expect(quantity).toHaveText("6");
   await page
     .locator(".titlebar")
@@ -1693,7 +1685,7 @@ test("native typography and schedule, resource and measurement editing", async (
   const rate = view.locator('.tabulator-row [tabulator-field="rate"]').last();
   await rate.dblclick();
   await rate.locator("textarea,input").fill("15");
-  await view.locator(".project-main-grid .tabulator-header").click();
+  await view.locator(".tabulator-header:visible").click();
   await expect(rate).toHaveText("15");
   await page.screenshot({ path: "test-results/resources-desktop.png" });
   await page
@@ -1712,7 +1704,7 @@ test("native typography and schedule, resource and measurement editing", async (
   await view
     .locator('.project-main-grid [tabulator-field="description"]')
     .filter({ hasText: "Foundation dimensions" })
-    .click();
+    .dblclick();
   await expect(
     view.getByRole("button", { name: "Add record", exact: true }),
   ).toBeVisible();
@@ -1728,7 +1720,7 @@ test("native typography and schedule, resource and measurement editing", async (
     );
     await cell.dblclick();
     await cell.locator("textarea").fill(value);
-    await view.locator(".project-main-grid .tabulator-header").click();
+    await view.locator(".tabulator-header:visible").click();
   }
   await expect(
     view.locator(
@@ -1743,13 +1735,13 @@ test("native typography and schedule, resource and measurement editing", async (
   );
   await recordDescriptions.first().dblclick();
   await recordDescriptions.first().locator("textarea").fill("First record");
-  await view.locator(".project-main-grid .tabulator-header").click();
+  await view.locator(".tabulator-header:visible").click();
   await view.locator(".measurement-record-grid .project-grid").focus();
   await page.keyboard.press("ControlOrMeta+d");
   await expect(recordDescriptions).toHaveCount(2);
   await recordDescriptions.last().dblclick();
   await recordDescriptions.last().locator("textarea").fill("Second record");
-  await view.locator(".project-main-grid .tabulator-header").click();
+  await view.locator(".tabulator-header:visible").click();
   await recordDescriptions.last().click();
   await view
     .getByRole("button", { name: "Move record up", exact: true })
@@ -1797,7 +1789,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
     workbook,
   ]);
   await page.getByRole("button", { name: "New project", exact: true }).click();
-  const view = page.locator(".project-view");
+  const view = page.locator(".project-view:visible");
   await expect(view.locator("h1")).toHaveText("Schedule of quantities");
   await page
     .locator(".ribbon")
@@ -1846,12 +1838,13 @@ test("application menu and ribbon views share context-aware header actions", asy
 }) => {
   const header = page.locator(".titlebar");
   const quickActionNames = [
+    "Go back",
+    "Go forward",
     "New project",
     "Open project",
     "Save copy",
     "Undo",
     "Redo",
-    "Hide explorer",
   ];
   for (const name of quickActionNames) {
     const button = header.getByRole("button", { name, exact: true });
@@ -1862,9 +1855,9 @@ test("application menu and ribbon views share context-aware header actions", asy
       buttons.map((button) => button.getAttribute("aria-label")),
     ),
   ).toEqual(quickActionNames);
-  await header.getByRole("button", { name: "Hide explorer", exact: true }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Hide explorer", exact: true }).click();
   await expect(page.locator(".explorer")).not.toBeVisible();
-  await header.getByRole("button", { name: "Show explorer", exact: true }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Show explorer", exact: true }).click();
   await expect(page.locator(".explorer")).toBeVisible();
   await expect(page.locator(".document-tabs")).toHaveCount(0);
   const menuButton = page.getByRole("button", {
@@ -1908,22 +1901,22 @@ test("application menu and ribbon views share context-aware header actions", asy
     .fill("Header history test");
   await dialog.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(page.locator(".project-view")).toContainText(
+  await expect(page.locator(".project-view:visible")).toContainText(
     "Header history test",
   );
   await header.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(page.locator(".project-main-grid")).not.toContainText(
+  await expect(page.locator(".project-view:visible .project-main-grid")).not.toContainText(
     "Header history test",
   );
   await header.getByRole("button", { name: "Redo", exact: true }).click();
-  await expect(page.locator(".project-main-grid")).toContainText(
+  await expect(page.locator(".project-view:visible .project-main-grid")).toContainText(
     "Header history test",
   );
   await page
     .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Resources", exact: true })
     .click();
-  await expect(page.locator(".project-view h1")).toHaveText("Resource library");
+  await expect(page.locator(".project-view:visible h1")).toHaveText("Resource library");
   await expect(
     page
       .locator(".ribbon")
@@ -1938,7 +1931,7 @@ test("application menu and ribbon views share context-aware header actions", asy
     .locator(".ribbon-tabs")
     .getByRole("tab", { name: "Measurements", exact: true })
     .click();
-  await expect(page.locator(".project-view h1")).toHaveText("Measurements");
+  await expect(page.locator(".project-view:visible h1")).toHaveText("Measurements");
   await expect(
     page
       .locator(".ribbon")
@@ -2017,23 +2010,16 @@ test("category lifecycle, library category import and used-resource deletion", a
     ["-m", "modern.e2e.create_fixture", fixture],
     { cwd: resolve("..") },
   );
-  await page
-    .locator(".titlebar")
-    .getByRole("button", { name: "Open project", exact: true })
-    .click();
+  await openFixture(page, fixture);
   const openDialog = page.getByRole("dialog", {
     name: "Open project",
     exact: true,
   });
-  await openDialog.getByLabel("Project file").fill(fixture);
-  await openDialog
-    .getByRole("button", { name: "Open project", exact: true })
-    .click();
   await expect(openDialog).not.toBeVisible();
   const tabs = page.locator(".ribbon-tabs");
   const ribbon = page.locator(".ribbon");
   const header = page.locator(".titlebar");
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await tabs.getByRole("tab", { name: "Schedule", exact: true }).click();
   await ribbon
     .getByRole("button", { name: "Add category", exact: true })
@@ -2148,15 +2134,13 @@ test("selected resources can preview and apply library prices", async ({ page })
       cwd: resolve(".."),
     });
   }
-  await page.locator(".titlebar").getByRole("button", { name: "Open project" }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project" });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
 
   const tabs = page.locator(".ribbon-tabs");
   const ribbon = page.locator(".ribbon");
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   await tabs.getByRole("tab", { name: "Resources", exact: true }).click();
   await attachDatabase(page, library, "resources");
   await grid.getByText("Materials", { exact: true }).first().click();
@@ -2183,10 +2167,8 @@ test("resource usage shows project totals and opens a referencing analysis", asy
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], {
     cwd: resolve(".."),
   });
-  await page.locator(".titlebar").getByRole("button", { name: "Open project" }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project" });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.locator(".ribbon-tabs").getByRole("tab", { name: "Resources" }).click();
   const ribbon = page.locator(".ribbon");
@@ -2206,14 +2188,12 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   const project = resolve(directory, "colours.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const header = page.locator(".titlebar");
-  await header.getByRole("button", { name: "Open project" }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project" });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.locator(".ribbon-tabs").getByRole("tab", { name: "Schedule" }).click();
   const ribbon = page.locator(".ribbon");
-  const grid = page.locator(".project-main-grid");
+  const grid = page.locator(".project-view:visible .project-main-grid");
   const colour = ribbon.getByRole("button", { name: "Row colour…" });
   await grid.getByRole("gridcell", { name: "Work", exact: true }).first().click();
   await expect(colour).toBeDisabled();
@@ -2221,15 +2201,15 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   await row.getByRole("gridcell", { name: "Foundation", exact: true }).click();
   await colour.click();
   const dialog = page.getByRole("dialog", { name: "Schedule row colour" });
-  await dialog.getByLabel("Row colour").fill("#253657");
+  await dialog.getByRole("button", { name: "Colour #455a64", exact: true }).click();
   await dialog.getByRole("button", { name: "Apply colour" }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(row).toHaveCSS("background-color", "rgb(37, 54, 87)");
+  await expect(row).toHaveCSS("background-color", "rgb(69, 90, 100)");
   await expect(row).toHaveCSS("color", "rgb(255, 255, 255)");
   await header.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(row).not.toHaveAttribute("data-schedule-colour", /./);
   await header.getByRole("button", { name: "Redo", exact: true }).click();
-  await expect(row).toHaveAttribute("data-schedule-colour", "#253657");
+  await expect(row).toHaveAttribute("data-schedule-colour", /^#455a64$/i);
   await colour.click();
   await dialog.getByRole("button", { name: "Clear colour" }).click();
   await expect(row).not.toHaveAttribute("data-schedule-colour", /./);
@@ -2249,17 +2229,15 @@ test("in-place save keeps a backup and the project appears in recent projects", 
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const original = await readFile(project);
   const header = page.locator(".titlebar");
-  await header.getByRole("button", { name: "Open project" }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project" });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.locator(".ribbon-tabs").getByRole("tab", { name: "Schedule" }).click();
   const quantity = page.locator('.project-main-grid .tabulator-row [tabulator-field="qty"]').last();
   await expect(quantity).toHaveText("1");
   await quantity.dblclick();
   await quantity.locator("input,textarea").fill("8");
-  await page.locator(".project-main-grid .tabulator-header").click();
+  await page.locator(".tabulator-header:visible").click();
   await expect(quantity).toHaveText("8");
   await expect(page.locator(".statusbar")).toContainText("Unsaved draft");
   await expect(header.getByRole("button", { name: "Save copy" })).toBeEnabled();
@@ -2286,10 +2264,8 @@ test("Excel analysis import previews a calculated rate and can be undone", async
     "book.save(sys.argv[1])",
   ].join("\n"), workbook]);
   const header = page.locator(".titlebar");
-  await header.getByRole("button", { name: "Open project" }).click();
+  await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project" });
-  await open.getByLabel("Project file").fill(project);
-  await open.getByRole("button", { name: "Open project", exact: true }).click();
   await expect(open).not.toBeVisible();
   await page.getByRole("navigation", { name: "Schedule items" }).getByRole("button", { name: /A Foundation/ }).click();
   await page.locator(".ribbon").getByRole("button", { name: "Import analysis" }).click();
@@ -2321,4 +2297,202 @@ test("optional enrichment is labelled and clearing it is undoable", async ({ pag
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.getByText("AI-generated", { exact: true })).toBeVisible();
   expect(await readFile(project)).toEqual(original);
+});
+
+test("feedback: native open, cached navigation, incremental refresh and analysis limits", async ({ page }) => {
+  await refinementFixture(page);
+  await expect(page.getByRole("dialog", { name: "Open project", exact: true })).toHaveCount(0);
+  await expect(page.locator(".explorer")).not.toBeVisible();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const item = grid.locator('[tabulator-field="description"]').filter({ hasText: /^Foundation$/ });
+  await item.click();
+  await grid.evaluate(element => (element as any).retained = true);
+  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+  await expect(page.locator(".explorer")).toBeVisible();
+  const analysis = page.getByRole("grid", { name: "Rate analysis table" });
+  await expect(analysis.locator('.tabulator-col[tabulator-field="rate"],.tabulator-col[tabulator-field="vat"],.tabulator-col[tabulator-field="discount"]')).toHaveCount(0);
+  await expect(analysis.locator('.tabulator-col[tabulator-field="effective_rate"]')).toContainText("RATE");
+  await expect(page.getByRole("button", { name: "Compact rows", exact: true })).toHaveCount(0);
+  const resource = analysis.locator('.tabulator-row[data-kind="Resource"]').first();
+  await resource.locator('[tabulator-field="description"]').dblclick();
+  await expect(resource.locator("textarea")).toHaveCount(0);
+  const quantity = resource.locator('[tabulator-field="value"]');
+  await quantity.dblclick();
+  await quantity.locator("input").fill("3");
+  await page.locator(".analysis-heading h1").click();
+  await page.locator(".ribbon").getByRole("button", { name: "Apply analysis", exact: true }).click();
+  frontendCalls = [];
+  await page.getByRole("button", { name: "Back to schedule", exact: true }).click();
+  await expect(grid.locator('[tabulator-field="rate"]').filter({ hasText: /^30$/ })).toBeVisible();
+  await expect(grid).toHaveJSProperty("retained", true);
+  await expect(item.locator("..")).toHaveClass(/tabulator-selected/);
+  expect(frontendCalls.some(c => c.method === "schedule.editor.state" && typeof c.params.since === "number")).toBe(true);
+  await page.getByRole("button", { name: "Go back", exact: true }).click();
+  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Alt+ArrowRight");
+  await expect(page.locator("#view-schedule")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".explorer")).not.toBeVisible();
+});
+
+test("feedback: custom resources generate codes and database picker adds multiple", async ({ page }) => {
+  await refinementFixture(page);
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  await grid.locator('[tabulator-field="description"]').filter({ hasText: /^Foundation$/ }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+  await page.getByRole("button", { name: "Add custom resource", exact: true }).click();
+  const custom = page.getByRole("dialog", { name: "Add custom resource", exact: true });
+  await expect(custom.getByLabel("Description")).toBeFocused();
+  await custom.getByLabel("Description").fill("Custom resource without code");
+  await custom.getByLabel("Unit", { exact: true }).fill("kg");
+  await custom.getByLabel("Base rate").fill("5");
+  await custom.getByRole("button", { name: "Add resource", exact: true }).click();
+  const analysis = page.getByRole("grid", { name: "Rate analysis table" });
+  await expect(analysis).toContainText("MR.1");
+  await page.getByRole("button", { name: "Add resources from database", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Add analysis resources from database", exact: true });
+  await expect(picker.getByLabel("Find database items")).toBeFocused();
+  const rows = picker.locator('.tabulator-row[data-kind="Resource"]');
+  await expect(rows).toHaveCount(2);
+  const first = await rows.first().boundingBox(); const last = await rows.last().boundingBox();
+  await page.mouse.move(first!.x + 100, first!.y + 10); await page.mouse.down();
+  await page.mouse.move(last!.x + 180, last!.y + 10, { steps: 8 }); await page.mouse.up();
+  await expect(picker.locator('.tabulator-row.tabulator-selected')).toHaveCount(2);
+  await picker.getByRole("button", { name: "Add selected items", exact: true }).click();
+  await expect(analysis.locator('.tabulator-row[data-kind="Resource"]')).toHaveCount(4);
+  await page.getByRole("tab", { name: "Resources", exact: true }).last().click();
+  await page.getByRole("navigation", { name: "Resource library" }).getByRole("button").filter({ hasText: "Material" }).click();
+  await expect(analysis.locator('.tabulator-row[data-kind="Resource"]')).toHaveCount(5);
+  await expect(page.getByRole("dialog", { name: "Add custom resource", exact: true })).toHaveCount(0);
+});
+
+test("feedback: measurements use categories and a separate reusable entry view", async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator("#view-measurement").click();
+  const ribbon = page.locator(".ribbon");
+  await ribbon.getByRole("button", { name: "Add category", exact: true }).click();
+  const category = page.getByRole("dialog", { name: "Add category", exact: true });
+  await category.getByLabel("Category name").fill("Ground floor");
+  await category.getByRole("button", { name: "Add category", exact: true }).click();
+  await ribbon.getByRole("button", { name: "Add measurement", exact: true }).click();
+  const add = page.getByRole("dialog", { name: "Add item", exact: true });
+  await add.getByLabel("Description / remarks").fill("Room dimensions");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  const list = page.locator(".project-view:visible .project-main-grid");
+  await expect(list).toContainText("Ground floor");
+  await expect(list).toContainText("Room dimensions");
+  await expect(page.getByLabel("Measurement caption")).toHaveCount(0);
+  await expect(page.locator(".measurement-record-grid")).toHaveCount(0);
+  await list.getByText("Room dimensions", { exact: true }).dblclick();
+  await expect(list).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to measurements", exact: true })).toBeVisible();
+  await expect(page.locator(".measurement-record-grid")).toBeVisible();
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  const record = page.locator('.measurement-record-grid .tabulator-row').first();
+  const before = (await record.boundingBox())!.height;
+  await record.locator('[tabulator-field="c3"]').dblclick();
+  await expect(record.locator("textarea")).toBeVisible();
+  expect((await record.boundingBox())!.height).toBeLessThanOrEqual(before + 2);
+  await record.locator("textarea").fill("3");
+  await page.locator(".measurement-entry-heading").click();
+  await page.getByRole("button", { name: "Choose schedule item 1", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Choose schedule item", exact: true });
+  await picker.getByLabel("Find linked schedule item").evaluate(el => (el as any).retained = true);
+  await picker.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.getByRole("button", { name: "Choose schedule item 1", exact: true }).click();
+  await expect(picker.getByLabel("Find linked schedule item")).toHaveJSProperty("retained", true);
+  expect(await picker.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await picker.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.getByRole("button", { name: "Back to measurements", exact: true }).click();
+  await expect(list).toBeVisible();
+  const summaryRow = list.locator('.tabulator-row').filter({ has: page.getByText("Room dimensions", { exact: true }) });
+  await expect(summaryRow.locator('[tabulator-field="count"]')).toHaveText("1");
+  await page.getByRole("button", { name: "Go back", exact: true }).click();
+  await expect(page.locator(".measurement-record-grid")).toBeVisible();
+  await page.screenshot({ path: "test-results/feedback-measurement-entry.png", animations: "disabled" });
+});
+
+test("feedback: scroll position, zero formatting, palette and native save/export", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const path = resolve(directory, "scroll.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
+  execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);[d.insert_item_atomic(ScheduleItemModel(str(i),'Item '+str(i),'m',rate=0,qty=0,category='Work')) for i in range(80)];d.close_database()", path], { cwd: resolve("..") });
+  await openFixture(page, path);
+  await page.locator("#view-schedule").click();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const zero = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="description"]').filter({ hasText: /^Item 0$/ }) });
+  await expect(zero.locator('[tabulator-field="rate"]')).toBeEmpty();
+  await expect(zero.locator('[tabulator-field="qty"]')).toBeEmpty();
+  const nextRow = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="description"]').filter({ hasText: /^Item 1$/ }) });
+  const start = (await zero.locator('[tabulator-field="description"]').boundingBox())!;
+  const end = (await nextRow.locator('[tabulator-field="qty"]').boundingBox())!;
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect(grid.locator('.tabulator-row.tabulator-selected')).toHaveCount(2);
+  await expect(grid.locator('.cell-range-selected')).toHaveCount(8);
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+  await zero.locator('[tabulator-field="description"]').click();
+  await page.getByRole("button", { name: "Row colour…", exact: true }).click();
+  const colour = page.getByRole("dialog", { name: "Schedule row colour" });
+  await expect(colour.locator('input[type="color"]')).toHaveCount(0);
+  await expect(colour.getByRole("group", { name: "Row colour palette" }).getByRole("button")).toHaveCount(16);
+  await colour.getByRole("button", { name: "Close", exact: true }).click();
+  const holder = grid.locator(".tabulator-tableholder");
+  await holder.evaluate(element => element.scrollTop = 700);
+  await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(700);
+  await page.locator("#view-resources").click();
+  await page.locator("#view-schedule").click();
+  await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(700);
+  const copy = resolve(directory, "copied.eproj");
+  nativeDialogResults.push(copy);
+  await page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }).click();
+  await expect.poll(async () => readFile(copy).then(() => true).catch(() => false)).toBe(true);
+  await expect(page.getByRole("dialog", { name: "Save project copy" })).toHaveCount(0);
+  const workbook = resolve(directory, "exported.xlsx");
+  nativeDialogResults.push(workbook);
+  await page.locator(".ribbon").getByRole("button", { name: "Export workbook", exact: true }).click();
+  await expect.poll(async () => readFile(workbook).then(() => true).catch(() => false)).toBe(true);
+  await expect(page.getByRole("dialog", { name: "Export project workbook" })).toHaveCount(0);
+});
+
+test("feedback: analysis and measurement records share cell-range dragging", async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator('.project-view:visible [tabulator-field="description"]').filter({ hasText: /^Foundation$/ }).click();
+  await page.getByRole("button", { name: "Edit analysis", exact: true }).click();
+  const analysis = page.getByRole("grid", { name: "Rate analysis table" });
+  const first = analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="description"]').first();
+  const last = analysis.locator('.tabulator-row[data-kind="Subtotal"] [tabulator-field="value"]').first();
+  const drag = async (from: ReturnType<Page["locator"]>, to: ReturnType<Page["locator"]>) => {
+    const start = (await from.boundingBox())!, end = (await to.boundingBox())!;
+    await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 8 });
+    await page.mouse.up();
+  };
+  await drag(first, last);
+  await expect(analysis.locator('.tabulator-row.tabulator-selected')).toHaveCount(2);
+  await expect(analysis.locator('.cell-range-selected')).toHaveCount(6);
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+  await page.screenshot({ path: "test-results/analysis-cell-selection.png", animations: "disabled" });
+  await analysis.focus();
+  await page.keyboard.press("Escape");
+  await expect(analysis.locator('.cell-range-selected')).toHaveCount(0);
+  await page.locator('#view-measurement').click();
+  await page.getByRole("button", { name: "Add measurement", exact: true }).click();
+  const add = page.getByRole("dialog", { name: "Add item", exact: true });
+  await add.getByLabel("Description / remarks").fill("Drag entry");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await openMeasurementEntry(page);
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  await page.getByRole("button", { name: "Add record", exact: true }).click();
+  const records = page.locator('.measurement-record-grid');
+  await expect(records.locator('.tabulator-row')).toHaveCount(2);
+  await drag(records.locator('.tabulator-row [tabulator-field="c0"]').first(), records.locator('.tabulator-row [tabulator-field="c2"]').last());
+  await expect(records.locator('.tabulator-row.tabulator-selected')).toHaveCount(2);
+  await expect(records.locator('.cell-range-selected')).toHaveCount(6);
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+  await page.screenshot({ path: "test-results/measurement-cell-selection.png", animations: "disabled" });
+  await records.locator('.tabulator-row [tabulator-field="c0"]').first().dblclick();
+  await expect(records.locator('textarea')).toBeFocused();
 });

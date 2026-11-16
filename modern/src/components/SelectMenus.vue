@@ -40,6 +40,20 @@ async function show(select: HTMLSelectElement) {
   await nextTick();
   menu.value?.show({ currentTarget: select, target: select } as unknown as Event);
 }
+function shown() {
+  opened.value = true; target.value?.setAttribute("aria-expanded", "true");
+  requestAnimationFrame(() => {
+    const popup = document.getElementById("themed-select-options");
+    if (!popup) return;
+    const masks = Array.from(document.querySelectorAll<HTMLElement>('.p-dialog-mask,.persistent-dialog-mask'))
+      .filter(mask => mask.getClientRects().length && getComputedStyle(mask).visibility !== "hidden");
+    popup.style.zIndex = String(Math.max(Number(getComputedStyle(popup).zIndex) || 0,
+      ...masks.map(mask => (Number(getComputedStyle(mask).zIndex) || 0) + 1)));
+    const bounds = popup.getBoundingClientRect();
+    popup.style.top = Math.max(8, Math.min(bounds.top, window.innerHeight - bounds.height - 8)) + window.scrollY + "px";
+    popup.style.left = Math.max(8, Math.min(bounds.left, window.innerWidth - bounds.width - 8)) + window.scrollX + "px";
+  });
+}
 function pointer(event: MouseEvent) {
   if (!(event.target instanceof HTMLSelectElement) || event.target.disabled || event.target.multiple || event.target.size > 1) return;
   event.preventDefault();
@@ -54,7 +68,7 @@ onMounted(() => { document.addEventListener("mousedown", pointer, true); documen
 onBeforeUnmount(() => { document.removeEventListener("mousedown", pointer, true); document.removeEventListener("keydown", keyboard, true); });
 </script>
 <template>
-  <Menu ref="menu" id="themed-select-options" popup :model="items" class="application-menu themed-select-menu" :style="{ minWidth: width }" :aria-label="target?.getAttribute('aria-label') || 'Choose option'" @show="opened = true; target?.setAttribute('aria-expanded', 'true')" @hide="opened = false; target?.setAttribute('aria-expanded', 'false')">
+  <Menu ref="menu" id="themed-select-options" popup :model="items" class="application-menu themed-select-menu" :style="{ minWidth: width }" :aria-label="target?.getAttribute('aria-label') || 'Choose option'" @show="shown" @hide="opened = false; target?.setAttribute('aria-expanded', 'false')">
     <template #item="{ item, props }"><a v-bind="props.action" class="application-menu-item" :aria-current="item.selected ? 'true' : undefined"><AppIcon :name="item.selected ? 'check' : 'blank'" :size="16" /><span>{{ item.label }}</span></a></template>
   </Menu>
 </template>

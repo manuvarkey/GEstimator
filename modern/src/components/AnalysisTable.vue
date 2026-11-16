@@ -7,12 +7,13 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import type { AnalysisRow } from "../backend";
+import { tableTextEditor } from "../tableTextEditor";
+import { rowDragSelection } from "../rowDragSelection";
 import { tableSelection, resetTablePosition } from "../tableSelection";
 import { cellNavigation } from "../cellNavigation";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
-  compact: boolean;
   saveCell: (row: AnalysisRow, field: string, value: string) => Promise<boolean>;
 }>();
 const emit = defineEmits<{
@@ -26,6 +27,8 @@ let built: Promise<void>;
 let active = true;
 let navigation: ReturnType<typeof cellNavigation>;
 let replacement: Promise<unknown> = Promise.resolve();
+let stopDragSelection: (() => void) | undefined;
+let anchorId: string | undefined;
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
 function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
@@ -63,10 +66,6 @@ watch(
     }
     navigation?.replaced();
   },
-);
-watch(
-  () => props.compact,
-  () => requestAnimationFrame(() => table?.redraw(true)),
 );
 onMounted(() => {
   table = new Tabulator(element.value!, {
@@ -113,7 +112,9 @@ onMounted(() => {
       {
         title: "DESCRIPTION",
         field: "description",
-        editor: "textarea",
+        editor: tableTextEditor,
+        editorParams: () => ({ grow: false }),
+        editable: cell => !isResource(cell),
         formatter: "textarea",
         variableHeight: true,
         minWidth: 235,
@@ -122,8 +123,6 @@ onMounted(() => {
       {
         title: "UNIT",
         field: "unit",
-        editor: "input",
-        editable: isResource,
         width: 60,
       },
       {
@@ -135,30 +134,7 @@ onMounted(() => {
         editable: (cell) =>
           !["Group", "Subtotal"].includes(cell.getData().kind),
       },
-      {
-        title: "BASE RATE",
-        field: "rate",
-        editor: "input",
-        editable: isResource,
-        hozAlign: "right",
-        width: 90,
-      },
-      {
-        title: "VAT %",
-        field: "vat",
-        editor: "input",
-        editable: isResource,
-        hozAlign: "right",
-        width: 65,
-      },
-      {
-        title: "DISC. %",
-        field: "discount",
-        editor: "input",
-        editable: isResource,
-        hozAlign: "right",
-        width: 65,
-      },
+      { title: "RATE", field: "effective_rate", hozAlign: "right", width: 110 },
       {
         title: "AMOUNT",
         field: "amount",
@@ -170,7 +146,12 @@ onMounted(() => {
   });
   navigation = cellNavigation(table, element.value!, {
     busy: () => props.busy, tree: true, settled: () => replacement,
+    position: id => { anchorId = id; },
     save: cell => props.saveCell(cell.getData() as AnalysisRow, cell.getField(), String(cell.getValue())),
+  });
+  stopDragSelection = rowDragSelection(table, element.value!, {
+    tree: true, busy: () => props.busy, anchor: () => anchorId,
+    position: cell => navigation.clicked(cell),
   });
   built = new Promise<void>((resolve) => table.on("tableBuilt", resolve));
   table.on("rowContext", (_event, row) => {
@@ -191,14 +172,15 @@ defineExpose({ clearSelection: () => table?.deselectRow() });
 onBeforeUnmount(() => {
   active = false;
   navigation?.destroy();
+  stopDragSelection?.();
   table?.destroy();
 });
 </script>
 <template>
   <div
     ref="element"
-    class="analysis-table tabulator"
-    :class="{ blocked: busy, compact }"
+    class="analysis-table tabulator compact"
+    :class="{ blocked: busy }"
     :aria-busy="busy"
     aria-label="Rate analysis table"
     tabindex="0"

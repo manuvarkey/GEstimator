@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
+import PersistentDialog from "./PersistentDialog.vue";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
@@ -18,6 +19,9 @@ interface GridRow {
   [key: string]: any;
 }
 interface GridState {
+  view_seq?: number;
+  delta?: boolean;
+  updates?: GridRow[];
   rows: GridRow[];
   total?: number;
   offset?: number;
@@ -29,11 +33,12 @@ interface GridState {
   categories?: string[];
   enrichment?: { ai_generated: boolean; summary: string } | null;
 }
-const props = defineProps<{ view: View; projectOpen: boolean }>();
+const props = withDefaults(defineProps<{ view: View; projectOpen: boolean; active?: boolean; entryId?: string }>(), { active: true });
 const emit = defineEmits<{
   changed: [];
   busy: [value: boolean];
   analysis: [code: string];
+  entry: [id: string | undefined];
   history: [state: { undo: boolean; redo: boolean }];
   libraries: [];
   database: [options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }];
@@ -48,14 +53,14 @@ watch(
 );
 onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
-  reload: () => load(),
+  reload: () => refreshChanges(),
+  revealCode,
   handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") => command("project." + method),
   applyDatabase,
   lastError: () => error.value,
-  exportWorkbook: () => {
-    exportOpen.value = true;
-  },
+  exportWorkbook,
+
 });
 const busy = ref(false);
 watch(busy, (value) => emit("busy", value));
@@ -80,6 +85,7 @@ const recordPage = ref(0);
 const recordCount = ref(10);
 const recordsOpen = ref(false);
 const propertiesOpen = ref(false);
+const propertiesDetail = ref<any>();
 const properties = ref<{ description: string; links: { code: string; remark: string; label: string }[]; user_data: string[] }>({ description: "", links: [], user_data: [] });
 const propertiesRevision = ref(0);
 const pickerOpen = ref(false);
@@ -105,6 +111,7 @@ const categoryName = ref("");
 const colourOpen = ref(false);
 const renumberOpen = ref(false);
 const rowColour = ref("#ffe082");
+const rowColours = ["#ffffff", "#eeeeee", "#ffe082", "#ffcc80", "#ffab91", "#f8bbd0", "#e1bee7", "#c5cae9", "#bbdefb", "#b2dfdb", "#c8e6c9", "#dcedc8", "#795548", "#455a64", "#263238", "#000000"];
 const scheduleQuantityOpen = ref(false);
 const scheduleRounding = ref("Round to 0");
 const deleteOpen = ref(false);
@@ -168,8 +175,6 @@ const importFields = computed(() =>
         "parent",
       ],
 );
-const exportOpen = ref(false);
-const exportPath = ref("");
 const activeMeasurement = ref<string>();
 const one = computed(() =>
   selected.value.length === 1 ? selected.value[0] : undefined,
@@ -186,6 +191,33 @@ const title = computed(
     })[props.view],
 );
 const isMeasurement = computed(() => props.view === "measurement");
+const mainRows = computed(() => {
+  if (!isMeasurement.value) return state.value?.rows || emptyRows;
+  const categories: GridRow[] = [];
+  let current: GridRow | undefined;
+  for (const row of state.value?.rows || []) {
+    if (row.type === "Heading") {
+      current = { ...row, rowtype: "Category", type: "Category", _children: [] };
+      categories.push(current);
+    } else {
+      if (!current) {
+        current = { id: "measurement:uncategorised", rowtype: "Category", type: "Category", description: "Uncategorised", _children: [] };
+        categories.push(current);
+      }
+      current._children.push(row);
+    }
+  }
+  return categories;
+});
+watch(() => props.entryId, async identity => {
+  if (!identity) return;
+  activeMeasurement.value = identity;
+  const row = state.value?.rows.find(row => row.id === identity);
+  if (row) selected.value = [row];
+  recordPage.value = 0;
+  await loadDetail();
+});
+
 function editable(cell: CellComponent) {
   return cell.getData().rowtype !== "Category";
 }
@@ -197,6 +229,7 @@ const columns = computed<ColumnDefinition[]>(() => {
         title: "DESCRIPTION / REMARKS",
         field: "description",
         editor: "textarea",
+        editable: cell => cell.getData().rowtype === "Category" && cell.getData().id !== "measurement:uncategorised",
         minWidth: 260,
       },
       { title: "RECORDS", field: "count", width: 90 },
@@ -235,6 +268,7 @@ const columns = computed<ColumnDefinition[]>(() => {
           : "input",
     editable: (cell) =>
       !source.value && (field === "description" || editable(cell)),
+    formatter: ["qty", "rate"].includes(field) ? cell => { const value = String(cell.getValue() ?? ""); return value !== "" && Number(value) === 0 ? "" : value; } : "textarea",
     hozAlign: ["qty", "rate", "amount", "vat", "discount"].includes(field)
       ? "right"
       : "left",
@@ -301,18 +335,21 @@ async function refresh(revealId?: string) {
     return;
   }
   if (!isMeasurement.value) libraries.value = await request("library.list");
-  state.value = await request(
-    isMeasurement.value ? "measurement.state" : props.view + ".editor.state",
+  const detailOnly = isMeasurement.value && !!props.entryId && !!state.value;
+  const next = await request<GridState>(
+    isMeasurement.value ? detailOnly ? "measurement.detail" : "measurement.state" : props.view + ".editor.state",
     {
       query: query.value,
       categories: categoryFilters.value,
       source: source.value,
       offset: page.value * 100,
-      id: activeMeasurement.value,
+      id: props.entryId ? activeMeasurement.value : undefined,
       record_offset: recordPage.value * 100,
       reveal_id: revealId,
     },
   );
+  state.value = detailOnly ? { ...state.value!, ...next } : next;
+  syncMeasurementSummary();
   if (!isMeasurement.value) {
     const retained = categoryFilters.value.filter(name => state.value?.categories?.includes(name));
     if (retained.length !== categoryFilters.value.length) {
@@ -325,13 +362,22 @@ async function refresh(revealId?: string) {
   if (isMeasurement.value && state.value?.detail) recordPage.value = state.value.detail.offset / 100;
   if (!isMeasurement.value) page.value = (state.value?.offset || 0) / 100;
 }
+function syncMeasurementSummary() {
+  const detail = state.value?.detail;
+  const row = detail && state.value?.rows.find(row => row.id === detail.id);
+  if (row) Object.assign(row, { description: detail.description, count: detail.total_records, totals: detail.totals.join(", ") });
+}
+function selectedItemIds() {
+  return [...new Set(selected.value.flatMap(row => isMeasurement.value && row.rowtype === "Category" ? [row.id, ...(row._children || []).map((item: GridRow) => item.id)] : [row.id]))]
+    .filter(id => id !== "measurement:uncategorised");
+}
 async function command(
   operation: string,
   params: Record<string, unknown> = {},
 ) {
   return run(async () => {
     clipboardMessage.value = "";
-    const clipboardParams = { revision: state.value?.revision, id: one.value?.id, ids: selected.value.map(row => row.id), source: source.value, ...params };
+    const clipboardParams = { revision: state.value?.revision, id: one.value?.id, ids: selectedItemIds(), source: source.value, ...params };
     const clipboardKind: ClipboardKind = operation.startsWith("record_") ? "records" : props.view;
     let result: { selected?: string[]; selected_records?: string[]; record_offset?: number } | undefined;
     if (operation === "copy" || operation === "record_copy") {
@@ -349,9 +395,10 @@ async function command(
       {
         revision: state.value?.revision,
         id: one.value?.id,
-        ids: selected.value.map((row) => row.id),
+        ids: selectedItemIds(),
         source: source.value,
         target_ids: workingSelection.value,
+        ...(isMeasurement.value && operation === "move" && one.value?.rowtype === "Category" ? { category: true } : {}),
         ...params,
       },
     );
@@ -361,7 +408,8 @@ async function command(
     }
     if (result?.record_offset !== undefined) recordPage.value = result.record_offset / 100;
     if (result?.selected && !isMeasurement.value) { query.value = ""; categoryFilters.value = []; }
-    await refresh(!isMeasurement.value ? result?.selected?.[0] : undefined);
+    if (!isMeasurement.value && !result?.selected && state.value?.view_seq !== undefined) await refreshChanges();
+    else await refresh(!isMeasurement.value ? result?.selected?.[0] : undefined);
     if (result?.selected) selectionIds.value = result.selected;
     if (result?.selected_records) recordSelectionIds.value = result.selected_records;
     if (operation === "delete") {
@@ -374,7 +422,11 @@ async function command(
 }
 async function deleteSelection() {
   if (isMeasurement.value) {
-    await command("delete");
+    if (selected.value.some(row => row.rowtype === "Category")) {
+      const ids = selectedItemIds();
+      deletion.value = { ids, revision: state.value!.revision, items: ids.length, categories: selected.value.filter(row => row.rowtype === "Category").length, used_resources: [], measurement_references: 0 };
+      deleteOpen.value = true;
+    } else await command("delete");
     return;
   }
   const ids = selected.value.map((row) => row.id);
@@ -400,7 +452,7 @@ async function deleteSelection() {
 async function confirmDeletion(policy: "protect" | "unused" | "all") {
   if (!deletion.value) return;
   if (
-    await command("delete_many", {
+    await command(isMeasurement.value ? "delete" : "delete_many", {
       ids: deletion.value.ids,
       revision: deletion.value.revision,
       policy,
@@ -410,6 +462,39 @@ async function confirmDeletion(policy: "protect" | "unused" | "all") {
     deletion.value = undefined;
   }
 }
+async function revealCode(code: string) {
+  if (isMeasurement.value) return;
+  const rows = (values: GridRow[]): GridRow[] => values.flatMap(row => [row, ...rows(row._children || [])]);
+  let row = rows(state.value?.rows || []).find(row => row.code === code);
+  if (!row) {
+    const result = await request<{ id: string }>(props.view + ".editor.locate", { code });
+    query.value = ""; categoryFilters.value = [];
+    await refresh(result.id);
+    row = rows(state.value?.rows || []).find(row => row.id === result.id);
+  }
+  if (row) selectionIds.value = [row.id];
+}
+async function refreshChanges() {
+  if (!state.value || isMeasurement.value || source.value) { await load(); return; }
+  const flatten = (rows: GridRow[]): GridRow[] => rows.flatMap(row => [row, ...flatten(row._children || [])]);
+  const current = flatten(state.value.rows);
+  const update = async () => {
+    const next = await request<GridState>(props.view + ".editor.state", {
+      since: state.value!.view_seq, visible_ids: current.map(row => row.id),
+      query: query.value, categories: categoryFilters.value, offset: page.value * 100,
+    });
+    if (next.delta) {
+      for (const update of next.updates || []) Object.assign(current.find(row => row.id === update.id) || {}, update);
+      Object.assign(state.value!, { revision: next.revision, view_seq: next.view_seq, undo: next.undo, redo: next.redo, enrichment: next.enrichment });
+      await mainTable.value?.patchRows(next.updates || []);
+    } else state.value = next;
+    await nextTick();
+    await mainTable.value?.redraw();
+  };
+  if (busy.value) await update();
+  else await run(update);
+}
+watch(() => props.active, async active => { if (active) await refreshChanges(); });
 async function load() {
   await run(refresh);
 }
@@ -456,7 +541,7 @@ async function select(rows: GridRow[]) {
     selectedRecord.value = undefined;
     selectedRecords.value = [];
     recordSelectionIds.value = undefined;
-    await loadDetail();
+    if (props.entryId) await loadDetail();
   }
 }
 async function loadDetail() {
@@ -466,7 +551,7 @@ async function loadDetail() {
   try {
     const detail = await request<Partial<GridState>>("measurement.detail", { id: identity, record_offset: recordPage.value * 100 });
     if (token === selectionRequest && identity === activeMeasurement.value && state.value && (detail.revision ?? 0) >= state.value.revision)
-      { state.value = { ...state.value, ...detail }; if (detail.detail) recordPage.value = detail.detail.offset / 100; }
+      { state.value = { ...state.value, ...detail }; syncMeasurementSummary(); if (detail.detail) recordPage.value = detail.detail.offset / 100; }
   } catch (reason) { if (token === selectionRequest) error.value = String(reason); }
   finally { if (token === selectionRequest) detailBusy.value = false; }
 }
@@ -490,10 +575,13 @@ async function showForm(mode = "add", child = false) {
     category: one.value?.category || (one.value?.rowtype === "Category" ? one.value.description : ""),
     parent: "",
     reference: "",
-    template: "",
+    template: isMeasurement.value ? "_1_NLBH" : "",
     ...(mode === "duplicate" ? { code: one.value?.code + "-copy" } : {}),
     ...(mode === "edit" ? Object.fromEntries(importFields.value.map(field => [field, String(one.value?.[field] ?? "")])) : {}),
   };
+  if (isMeasurement.value) {
+    form.value.category = one.value?.rowtype === "Category" ? one.value.description : mainRows.value.find(category => category._children?.some((row: GridRow) => row.id === one.value?.id))?.description || "";
+  }
   if (mode === "add" && !isMeasurement.value) {
     if (!await run(async () => {
       Object.assign(form.value, await request(props.view + ".editor.defaults", { ids: selected.value.map(row => row.id), child }));
@@ -521,18 +609,19 @@ async function submit() {
     await command(
       op,
       isMeasurement.value
-        ? { template: form.value.template, description: form.value.description }
+        ? { template: form.value.template, description: form.value.description, id: mainRows.value.find(category => category.description === form.value.category && category.id !== "measurement:uncategorised")?.id }
         : { data: form.value },
     )
   )
     formOpen.value = false;
 }
 async function showProperties() {
-  if (!one.value || !state.value) return;
+  if (!one.value || !state.value || one.value.id === "measurement:uncategorised") return;
   const identity = one.value.id;
-  if (one.value.type !== "Heading" && state.value.detail?.id !== identity) await loadDetail();
+  if (one.value.type !== "Heading" && one.value.rowtype !== "Category" && state.value.detail?.id !== identity) await loadDetail();
   if (one.value?.id !== identity) return;
-  const detail = state.value.detail;
+  const detail = one.value.rowtype === "Category" ? undefined : state.value.detail;
+  propertiesDetail.value = detail;
   properties.value = { description: one.value.description, links: detail?.links.map((link: any) => ({ code: link.code, remark: link.remark, label: link.label })) || [], user_data: detail?.user_data.map((field: any) => field.value) || [] };
   propertiesRevision.value = state.value.revision;
   error.value = "";
@@ -564,7 +653,7 @@ function activateRow(row: GridRow) {
   if (source.value || row.rowtype === "Category") return;
   if (props.view === "schedule") emit("analysis", row.code);
   else if (props.view === "resources") void showForm("edit");
-  else if (state.value?.detail) void nextTick(() => recordTable.value?.focus());
+  else if (row.type !== "Heading") emit("entry", row.id);
   else showProperties();
 }
 async function edit(row: GridRow, field: string, value: string) {
@@ -725,15 +814,11 @@ async function applyImport() {
     importResult.value = `Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`;
   });
 }
-async function exportBrowse() {
+async function exportWorkbook() {
   try {
-    const path = await save({
-      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-    });
-    if (path) exportPath.value = path;
-  } catch (e) {
-    error.value = String(e);
-  }
+    const path = await save({ filters: [{ name: "Excel workbook", extensions: ["xlsx"] }], defaultPath: "estimate.xlsx" });
+    if (typeof path === "string") await command("project.export_xlsx", { path, break_lines: programSettings.value?.export_break_items ?? true });
+  } catch (reason) { error.value = String(reason); }
 }
 watch(
   () => props.view,
@@ -788,7 +873,7 @@ watch(
       <p v-if="clipboardMessage" role="status">{{ clipboardMessage }}</p>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
-        ><div class="view-ribbon-tools">
+        ><div v-show="active" class="view-ribbon-tools">
           <div v-if="!isMeasurement" class="ribbon-group">
             <div class="ribbon-actions">
               <button class="ribbon-action" :aria-label="view === 'schedule' ? 'Add item from database' : 'Add resources from database'" title="Select items from attached databases in a separate dialog. The working table and its insertion selection remain in place (Ctrl+L)." :disabled="busy" @click="showDatabase()"><AppIcon name="database" /><span class="ribbon-label">Add from database</span></button>
@@ -801,7 +886,7 @@ watch(
             <button
               class="ribbon-action"
               :aria-label="isMeasurement ? 'Add measurement' : 'Add item'"
-              :title="isMeasurement ? 'Add a heading or a custom measurement item using a shipped measurement template (Ctrl+I).' : 'Create an item in the selected category with its code, description and numeric fields (Ctrl+I).'"
+              :title="isMeasurement ? 'Add a measurement using a shipped template in the selected category (Ctrl+I).' : 'Create an item in the selected category with its code, description and numeric fields (Ctrl+I).'"
               :disabled="busy"
               @click="showForm()"
             >
@@ -813,7 +898,6 @@ watch(
               <AppIcon name="child" /><span class="ribbon-label">Add subitem</span>
             </button>
             <button
-              v-if="!isMeasurement"
               class="ribbon-action"
               aria-label="Add category"
               title="Create an empty category to organize items in the current project table."
@@ -841,7 +925,7 @@ watch(
               aria-label="Copy"
               title="Copy selected items or categories, including off-page contents, to the system clipboard for use in this or another GEstimator window (Ctrl+C)."
               :disabled="busy || !selected.length"
-              @click="command('copy', { ids: selected.map((row) => row.id) })"
+              @click="command('copy', { ids: isMeasurement ? selectedItemIds() : selected.map((row) => row.id) })"
             >
               <AppIcon name="copy" /><span class="ribbon-label">Copy</span></button
             ><button
@@ -863,7 +947,7 @@ watch(
             <div class="ribbon-actions">
             <button
               class="ribbon-action ribbon-icon"
-              :disabled="busy || (isMeasurement ? !selected.length : !one)"
+              :disabled="busy || (isMeasurement ? !selected.length || one?.id === 'measurement:uncategorised' : !one)"
               aria-label="Move item up"
               title="Move the selected item or category earlier among its siblings while preserving its contents and links."
               @click="command('move', { delta: -1 })"
@@ -871,7 +955,7 @@ watch(
               <AppIcon name="up" /><span class="ribbon-label">Move up</span></button
             ><button
               class="ribbon-action ribbon-icon"
-              :disabled="busy || (isMeasurement ? !selected.length : !one)"
+              :disabled="busy || (isMeasurement ? !selected.length || one?.id === 'measurement:uncategorised' : !one)"
               aria-label="Move item down"
               title="Move the selected item or category later among its siblings while preserving its contents and links."
               @click="command('move', { delta: 1 })"
@@ -1016,7 +1100,7 @@ watch(
               aria-label="Export workbook"
               title="Export the project to an Excel workbook containing Schedule, Resources, Measurements, Resource Usage and Analysis sheets."
               :disabled="busy"
-              @click="exportOpen = true"
+              @click="exportWorkbook"
             >
               <AppIcon name="export" /><span class="ribbon-label">Export workbook</span>
             </button>
@@ -1047,25 +1131,18 @@ watch(
           Search
         </button>
       </form><CategoryFilter v-model="categoryFilters" :categories="state?.categories || []" :disabled="busy" /></div>
-      <label v-else class="field measurement-caption"
-        >Measurement caption<input
-          :value="state?.caption"
-          :disabled="busy"
-          @change="
-            command('caption', {
-              value: ($event.target as HTMLInputElement).value,
-            })
-          "
-      /></label>
-      <div class="table-panel project-main-grid">
+      <div v-show="!entryId" class="table-panel project-main-grid">
         <DataTable
           ref="mainTable"
+          :active="active && !entryId"
           :key="source"
           :label="title"
-          :rows="state?.rows || emptyRows"
+          :rows="mainRows"
           :columns="columns"
           :busy="busy"
-          :tree="!isMeasurement"
+          tree
+          drag-select-rows
+          :activate-on-double-click="isMeasurement"
           :select-ids="selectionIds"
           :actions="rowActions"
           :save-cell="edit"
@@ -1098,7 +1175,8 @@ watch(
           Next
         </button>
       </div>
-      <template v-if="isMeasurement && selected.length === 1 && state && state.detail && state.detail.id === activeMeasurement">
+      <div v-if="isMeasurement && entryId" class="measurement-entry-heading"><button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button><h2>{{ state?.detail?.description || 'Measurement entry' }}</h2></div>
+      <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">
           <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
           <button class="button small secondary" title="Edit description, schedule links and template properties together. Save applies one undoable change; Cancel leaves the item unchanged (Ctrl+E)." @click="showProperties"><AppIcon name="settings" />Properties…</button>
@@ -1205,6 +1283,8 @@ watch(
         <div class="table-panel measurement-record-grid">
           <DataTable
             ref="recordTable"
+            drag-select-rows
+            :active="active && !!entryId"
             :rows="state.detail.rows"
             :columns="recordColumns"
             :busy="busy || detailBusy"
@@ -1242,7 +1322,7 @@ watch(
     </Dialog>
     <Dialog v-model:visible="propertiesOpen" modal header="Measurement properties" class="workspace-dialog measurement-properties-dialog" :closable="!busy" :close-on-escape="!busy">
       <form @submit.prevent="saveProperties">
-        <p v-if="state?.detail" class="dialog-intro">{{ state.detail.info.note }}</p>
+        <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>
         <label class="field">Description / remarks<textarea v-model="properties.description" :disabled="busy" rows="3" /></label>
         <div class="measurement-properties-fields">
           <label v-for="(link, index) in properties.links" :key="index" class="field">{{ link.label }} · Schedule code {{ index + 1 }}
@@ -1252,9 +1332,9 @@ watch(
             <input v-model="link.remark" :aria-label="'Property item remark ' + (index + 1)" placeholder="Item remark / column label" :disabled="busy" />
           </label>
         </div>
-        <p v-if="state?.detail?.property_groups.length" class="field-hint">Numeric constants accept arithmetic; saving stores the evaluated number.</p>
+        <p v-if="propertiesDetail?.property_groups.length" class="field-hint">Numeric constants accept arithmetic; saving stores the evaluated number.</p>
         <div class="measurement-property-groups">
-          <fieldset v-for="group in state?.detail?.property_groups || []" :key="group.label"><legend>{{ group.label }}</legend>
+          <fieldset v-for="group in propertiesDetail?.property_groups || []" :key="group.label"><legend>{{ group.label }}</legend>
             <label v-for="field in group.fields" :key="field.index" class="field">{{ field.label }}<input v-model="properties.user_data[Number(field.index)]" :aria-label="field.caption" :inputmode="field.numeric ? 'decimal' : 'text'" :disabled="busy" /></label>
           </fieldset>
         </div>
@@ -1262,7 +1342,7 @@ watch(
         <div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="propertiesOpen = false">Cancel</button><button class="button primary" :disabled="busy">Save properties</button></div>
       </form>
     </Dialog>
-    <Dialog v-model:visible="pickerOpen" modal header="Choose schedule item" class="workspace-dialog resource-dialog">
+    <PersistentDialog :busy="pickerBusy" v-model:visible="pickerOpen" modal header="Choose schedule item" class="workspace-dialog resource-dialog">
       <form class="search-field" @submit.prevent="pickerPage = 0; searchLinks()"><input v-model="pickerQuery" aria-label="Find linked schedule item" placeholder="Code or description…" /><button class="button small secondary" :disabled="pickerBusy">Search</button></form>
       <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
       <div class="library-results">
@@ -1270,7 +1350,7 @@ watch(
         <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
       </div>
       <div class="pagination"><button class="text-button" :disabled="pickerBusy || !pickerPage" @click="pickerPage--; searchLinks()">Previous</button><span>Page {{ pickerPage + 1 }}</span><button class="text-button" :disabled="pickerBusy || pickerItems.length < 100" @click="pickerPage++; searchLinks()">Next</button></div>
-    </Dialog>
+    </PersistentDialog>
     <Dialog
       v-model:visible="formOpen"
       modal
@@ -1280,13 +1360,13 @@ watch(
         <template v-if="isMeasurement"
           ><label v-if="formMode === 'add'" class="field"
             >Measurement template<select v-model="form.template">
-              <option value="">Heading</option>
+
               <optgroup v-for="group in ['General', 'Civil', 'E&M']" :key="group" :label="group">
                 <option v-for="template in templates.filter(item => item.group === group)" :key="template.code" :value="template.code">{{ template.label }}</option>
               </optgroup>
             </select><small v-if="templateInfo">{{ templateInfo.summary }} {{ templateInfo.note }}<br />Inputs: {{ templateInfo.inputs.join(', ') }} · {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? 'quantity' : 'quantities' }}</small></label
-          ><label class="field"
-            >Description / remarks<textarea
+          ><label class="field">Category<select v-model="form.category"><option value="">Uncategorised</option><option v-for="category in mainRows.filter(row => row.id !== 'measurement:uncategorised')" :key="category.id" :value="category.description">{{ category.description }}</option></select></label><label class="field"
+            >Description / remarks<textarea data-primary-input
               v-model="form.description"
               rows="3"
             /></label
@@ -1296,7 +1376,7 @@ watch(
             >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small v-if="formMode === 'add'">Suggested using the GTK numbering rules. Edit it, or leave blank to generate a code when inserting.</small></label
           ><template v-if="formMode !== 'duplicate'"
             ><label class="field"
-              >Description<textarea
+              >Description<textarea data-primary-input
                 v-model="form.description"
                 rows="3"
               />
@@ -1420,7 +1500,7 @@ watch(
           class="button primary"
           :disabled="busy || !categoryName"
           @click="
-            command('category_add', { description: categoryName }).then(
+            command(isMeasurement ? 'add' : 'category_add', { description: categoryName, ...(isMeasurement ? { category: true } : {}) }).then(
               (ok) => {
                 if (ok) categoryOpen = false;
               },
@@ -1428,41 +1508,6 @@ watch(
           "
         >
           Add category
-        </button>
-      </div></Dialog
-    >
-    <Dialog
-      v-model:visible="exportOpen"
-      modal
-      header="Export project workbook"
-      class="workspace-dialog file-dialog"
-      ><p class="dialog-intro">
-        Exports the applied working copy using the original schedule, resource,
-        measurement and analysis spreadsheet writers.
-      </p>
-      <label class="field"
-        >New Excel file
-        <div class="file-input">
-          <input
-            v-model="exportPath"
-            placeholder="/path/to/estimate.xlsx"
-          /><button class="button secondary" @click="exportBrowse">
-            Browse
-          </button>
-        </div></label
-      >
-      <div v-if="error" class="dialog-error">{{ error }}</div>
-      <div class="dialog-footer">
-        <button
-          class="button primary"
-          :disabled="busy || !exportPath"
-          @click="
-            command('project.export_xlsx', { path: exportPath, break_lines: programSettings?.export_break_items ?? true }).then((ok) => {
-              if (ok) exportOpen = false;
-            })
-          "
-        >
-          Export workbook
         </button>
       </div></Dialog
     >
@@ -1605,7 +1650,7 @@ watch(
     >
       <label class="field">
         Row colour
-        <input v-model="rowColour" type="color" :disabled="busy" />
+        <div class="colour-palette" role="group" aria-label="Row colour palette"><button v-for="colour in rowColours" :key="colour" type="button" :aria-label="'Colour ' + colour" :aria-pressed="rowColour === colour" :style="{ backgroundColor: colour }" @click="rowColour = colour" /></div>
       </label>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <div class="dialog-footer">

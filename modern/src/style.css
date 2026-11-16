@@ -2078,3 +2078,24 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 .dialog-footer { margin-top: 10px; gap: 6px; }
 
 .enrichment-badge { border: 1px solid currentColor; border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+
+/* Editing keeps the displayed row height unless measurement text adds a line. */
+.analysis-table .tabulator-cell .table-text-editor { display: block; width: 100%; box-sizing: border-box; min-height: 0; resize: none; padding: 3px 7px; line-height: 1.35; overflow-y: auto; }
+.analysis-table .tabulator-cell:not(.tabulator-editing) { user-select: none; }
+.analysis-table .tabulator-cell input, .analysis-table .tabulator-cell textarea { user-select: text; }
+.colour-palette { display: grid; grid-template-columns: repeat(8, 30px); gap: 8px; padding: 10px 0; }
+.colour-palette button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 3px; }
+.colour-palette button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.measurement-entry-heading { display: flex; align-items: center; gap: 14px; }
+.measurement-entry-heading h2 { margin: 4px 0; font-size: 1.1rem; }
+.measurement-links { padding: 8px 0; gap: 12px; }
+.measurement-links .field { gap: 7px; padding: 4px; min-width: 0; }
+.measurement-links input { padding: 6px 8px; }
+.library-item { max-width: 100%; min-width: 0; align-items: start; }
+.library-item > span:first-child { flex: 1; min-width: 0; }
+.library-item small { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.library-results { max-width: 100%; overflow-x: hidden; }
+.ribbon-measure-actions { align-items: center; overflow: visible; }
+.ribbon-measure-actions select { align-self: center; margin: 3px 0; }
+.cell-range-selected { box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.ribbon-measure-actions select { grid-row: 1 / -1; height: 30px; margin: 0; }

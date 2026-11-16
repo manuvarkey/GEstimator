@@ -34,6 +34,9 @@ class ProjectEditor:
         self.library_paths = {}
         self._compound = False
         self.ensure_ids()
+        if self.db is not None:
+            from .editor_changes import EditorChanges
+            self.changes = EditorChanges(self.db)
 
     @property
     def db(self):
@@ -67,6 +70,7 @@ class ProjectEditor:
             src.backup(self.db.database.connection())
         path.unlink()
         self.db.stack.clear()
+        self.changes.invalidate()
         self.owner.workspace_dirty = True
         self.reload_analysis(active_id)
 
@@ -280,6 +284,38 @@ class ProjectEditor:
         for identity, code in changes.items():
             table.update(code=code).where(table.id == identity).execute()
 
+    def serialize_row(self, row, resource):
+        cat = row.category
+        data = dict(
+            id=str(row.id),
+            rowtype="Resource" if resource else "Schedule",
+            code=row.code,
+            description=row.description,
+            unit=row.unit or "",
+            rate=str(row.rate or 0),
+            category=cat.description,
+            remarks=getattr(row, "remarks", None) or "",
+        )
+        if resource:
+            data.update(
+                vat=str(row.vat or 0),
+                discount=str(row.discount or 0),
+                reference=row.reference or "",
+            )
+        else:
+            data.update(
+                qty=str(row.qty or 0),
+                colour=row.colour,
+                amount=(
+                    str(Currency((row.rate or 0) * (row.qty or 0)))
+                    if row.unit
+                    else ""
+                ),
+                parent=row.parent.code if row.parent else "",
+                _children=[],
+            )
+        return data
+
     def state(self, kind, p):
         from .metadata import presentation
         if p.get("source") and p["source"] not in self.libraries:
@@ -305,14 +341,23 @@ class ProjectEditor:
             or not 1 <= limit <= 200
         ):
             raise ValueError("Invalid page")
+        if not p.get("source") and "since" in p and not p.get("reveal_id"):
+            changed = self.changes.changed_ids(kind, p["since"], query)
+            visible = p.get("visible_ids", [])
+            if not isinstance(visible, list) or len(visible) > 2000 or any(not isinstance(value, str) for value in visible):
+                raise ValueError("Invalid visible row selection")
+            if changed is not None:
+                ids = changed.intersection(int(value) for value in visible if value.isdecimal())
+                updates = []
+                for row in table.select().where(table.id.in_(ids)):
+                    data = self.serialize_row(row, resource)
+                    data.pop("_children", None)
+                    updates.append(data)
+                return dict(delta=True, updates=updates, view_seq=self.changes.sequence,
+                    revision=self.owner.revision, undo=bool(self.history), redo=bool(self.future), enrichment=presentation(db))
         records = (
             table.select()
             .join(category)
-            .where(
-                table.code.contains(query)
-                | table.description.contains(query)
-                | category.description.contains(query)
-            )
             .order_by(category.order, table.order, *([] if resource else [table.suborder]), table.id)
         )
         if filters:
@@ -320,8 +365,26 @@ class ProjectEditor:
             if "" in filters:
                 criterion |= category.description.is_null(True)
             records = records.where(criterion)
-        total = records.count()
-        if p.get("reveal_id"):
+        ranks = None
+        search_engine = None
+        if query.strip():
+            from .search import desktop_codes
+            ranked, search_engine = desktop_codes(self.owner, db, kind, query)
+            if filters:
+                allowed = {row.code for row in records.select(table.code)}
+                ranked = [code for code in ranked if code in allowed]
+            ranks = {code: index for index, code in enumerate(ranked)}
+            total = len(ranked)
+            if p.get("reveal_id"):
+                revealed = table.get_or_none(table.id == int(p["reveal_id"]))
+                if revealed is None or revealed.code not in ranks:
+                    raise ValueError("Inserted row is no longer available")
+                offset = ranks[revealed.code] // limit * limit
+            values = list(records.where(table.code.in_(ranked[offset:offset + limit])))
+            values.sort(key=lambda row: ranks[row.code])
+        else:
+            total = records.count()
+        if ranks is None and p.get("reveal_id"):
             revealed = table.get_or_none(table.id == int(p["reveal_id"]))
             if revealed is None:
                 raise ValueError("Inserted row is no longer available")
@@ -335,7 +398,8 @@ class ProjectEditor:
                 earlier = (earlier | (equal & less)) if earlier is not None else less
                 equal = (equal & (field == value)) if equal is not None else field == value
             offset = records.where(earlier).count() // limit * limit
-        values = list(records.offset(offset).limit(limit))
+        if ranks is None:
+            values = list(records.offset(offset).limit(limit))
         nodes = {}
         categories = {}
         # Empty categories remain editable, including before the first item is added.
@@ -366,14 +430,15 @@ class ProjectEditor:
                     if all(r.id != parent.id for r in values):
                         values.append(parent)
                     parent = parent.parent
-            values.sort(
-                key=lambda r: (
-                    r.category.order,
-                    r.order,
-                    -1 if r.suborder is None else r.suborder,
-                    r.id,
+            if ranks is None:
+                values.sort(
+                    key=lambda r: (
+                        r.category.order,
+                        r.order,
+                        -1 if r.suborder is None else r.suborder,
+                        r.id,
+                    )
                 )
-            )
         for row in values:
             cat = row.category
             if cat.id not in categories:
@@ -385,34 +450,7 @@ class ProjectEditor:
                     _children=[],
                 )
                 categories[cat.id] = group
-            data = dict(
-                id=str(row.id),
-                rowtype="Resource" if resource else "Schedule",
-                code=row.code,
-                description=row.description,
-                unit=row.unit or "",
-                rate=str(row.rate or 0),
-                category=cat.description,
-                remarks=getattr(row, "remarks", None) or "",
-            )
-            if resource:
-                data.update(
-                    vat=str(row.vat or 0),
-                    discount=str(row.discount or 0),
-                    reference=row.reference or "",
-                )
-            else:
-                data.update(
-                    qty=str(row.qty or 0),
-                    colour=row.colour,
-                    amount=(
-                        str(Currency((row.rate or 0) * (row.qty or 0)))
-                        if row.unit
-                        else ""
-                    ),
-                    parent=row.parent.code if row.parent else "",
-                    _children=[],
-                )
+            data = self.serialize_row(row, resource)
             nodes[row.id] = data
         for row in values:
             data = nodes[row.id]
@@ -429,6 +467,16 @@ class ProjectEditor:
                 categories.items(), key=lambda entry: category_order[entry[0]]
             )
         ]
+        if ranks is not None:
+            def rank_tree(nodes):
+                ranked_nodes = []
+                for node in nodes:
+                    child_rank = rank_tree(node.get("_children", []))
+                    ranked_nodes.append((min(ranks.get(node.get("code"), total), child_rank), node))
+                ranked_nodes.sort(key=lambda pair: pair[0])
+                nodes[:] = [node for _, node in ranked_nodes]
+                return ranked_nodes[0][0] if ranked_nodes else total
+            rank_tree(rows)
         return dict(
             rows=rows,
             total=total,
@@ -436,7 +484,9 @@ class ProjectEditor:
             undo=bool(self.history),
             redo=bool(self.future),
             revision=self.owner.revision,
+            view_seq=self.changes.sequence if not p.get("source") else 0,
             enrichment=presentation(db),
+            search_engine=search_engine,
             categories=[
                 r.description or "" for r in category.select().order_by(category.order)
             ],
@@ -726,7 +776,7 @@ class ProjectEditor:
         if identity not in self.libraries:
             raise ValueError("Choose an attached library")
         source = self.libraries[identity][1]
-        categories, records = self.selection(kind, params.get("ids"), source)
+        categories, records = self.selection(kind, params.get("ids"), source, include_descendants=False)
         if kind == "schedule" and params.get("include_parents", False):
             selected = {row.id: row for row in records}
             for row in list(records):
@@ -902,6 +952,12 @@ class ProjectEditor:
             from .importing import preview
 
             return preview(p)
+        if method.endswith(".locate"):
+            table = self.db.ResourceTable if method.startswith("resources.") else self.db.ScheduleTable
+            row = table.get_or_none(table.code == text(p.get("code", "")))
+            if row is None:
+                raise ValueError("Item code not found")
+            return dict(id=str(row.id))
         if method.endswith(".state") and not method.startswith("measurement."):
             return self.state(method.split(".")[0], p)
         if method in ("measurement.state", "measurement.detail"):
@@ -922,7 +978,10 @@ class ProjectEditor:
         self.owner.guard_draft(p)
         if method == "project.enrichment.clear":
             from .metadata import clear
-            self.mutate(lambda: clear(self.db))
+            def clear_enrichment():
+                clear(self.db)
+                self.changes.invalidate()
+            self.mutate(clear_enrichment)
             return dict(ok=True)
         if method in ("schedule.editor.analysis_rules.preview", "schedule.editor.analysis_rules.apply"):
             from .analysis_rules import run
@@ -1478,11 +1537,23 @@ class ProjectEditor:
                 delta = p["delta"]
                 if type(delta) is not int or delta not in (-1, 1):
                     raise ValueError("Invalid move")
-                for position in (indexes if delta < 0 else reversed(indexes)):
-                    other = position + delta
-                    if 0 <= other < len(self.ids) and self.ids[other] not in selection:
-                        meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
-                        self.ids[position], self.ids[other] = self.ids[other], self.ids[position]
+                if p.get("category"):
+                    starts = [i for i, row in enumerate(meas.items) if isinstance(row, measurement.MeasurementItemHeading)]
+                    if index not in starts:
+                        raise ValueError("Select a measurement category")
+                    sibling = starts.index(index) + delta
+                    if 0 <= sibling < len(starts):
+                        first, second = sorted((starts.index(index), sibling))
+                        a, b = starts[first], starts[second]
+                        end = starts[second + 1] if second + 1 < len(starts) else len(self.ids)
+                        meas.items[a:end] = meas.items[b:end] + meas.items[a:b]
+                        self.ids[a:end] = self.ids[b:end] + self.ids[a:b]
+                else:
+                    for position in (indexes if delta < 0 else reversed(indexes)):
+                        other = position + delta
+                        if 0 <= other < len(self.ids) and self.ids[other] not in selection:
+                            meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
+                            self.ids[position], self.ids[other] = self.ids[other], self.ids[position]
             self.db.set_measurement(meas)
             self.ensure_ids(meas)
             return
@@ -1507,6 +1578,8 @@ class ProjectEditor:
                     [text(p.get("description", "Heading"))]
                 )
             pos = index + 1 if index is not None else 0
+            if p.get("category"):
+                pos = next((i for i in range(pos, len(meas.items)) if isinstance(meas.items[i], measurement.MeasurementItemHeading)), len(meas.items))
             meas.insert_item(pos, new)
             self.ids.insert(pos, uuid4().hex)
             result = dict(selected=[self.ids[pos]])

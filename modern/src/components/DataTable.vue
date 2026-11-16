@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { onMounted, onBeforeUnmount, nextTick, ref, watch } from "vue";
+import { tableTextEditor } from "../tableTextEditor";
 import { cellNavigation } from "../cellNavigation";
 import { rowDragSelection } from "../rowDragSelection";
 import {
@@ -14,8 +15,10 @@ const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
   busy: boolean;
+  active?: boolean;
   tree?: boolean;
   dragSelectRows?: boolean;
+  rowOnlySelection?: boolean;
   activateOnDoubleClick?: boolean;
   label?: string;
   selectIds?: string[];
@@ -38,14 +41,54 @@ let replacingRows = false;
 let anchor: { id: string; field: string } | undefined;
 let navigation: ReturnType<typeof cellNavigation>;
 let replacement: Promise<unknown> = Promise.resolve();
+let savedPosition = { top: 0, left: 0 };
+let suspended = false;
+function rememberPosition(event: Event) {
+  const viewport = event.target as HTMLElement;
+  if (!suspended && props.active !== false && viewport.classList.contains("tabulator-tableholder") && viewport.getClientRects().length)
+    savedPosition = { top: viewport.scrollTop, left: viewport.scrollLeft };
+}
+function restorePosition() {
+  const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+  if (viewport) { viewport.scrollTop = savedPosition.top; viewport.scrollLeft = savedPosition.left; }
+}
+async function redraw() {
+  await ready;
+  if (!alive) return;
+  const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+  const position = props.active === undefined && viewport ? { top: viewport.scrollTop, left: viewport.scrollLeft } : { ...savedPosition };
+  table.redraw();
+  savedPosition = position;
+  restorePosition();
+  requestAnimationFrame(restorePosition);
+}
+watch(() => props.active, async active => {
+  if (active === false) {
+    const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+    if (viewport?.getClientRects().length) savedPosition = { top: viewport.scrollTop, left: viewport.scrollLeft };
+    suspended = true; return;
+  }
+  await nextTick();
+  await redraw();
+  requestAnimationFrame(() => { restorePosition(); suspended = false; });
+});
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
   focus: () => element.value?.focus(),
-  redraw: async () => { await ready; if (alive) table.redraw(); },
+  patchRows: async (updates: { id: string; [key: string]: any }[]) => {
+    await ready;
+    const collect = (rows: RowComponent[]): RowComponent[] => rows.flatMap(row => [row, ...collect(row.getTreeChildren() || [])]);
+    const rows = collect(table.getRows());
+    for (const update of updates) await rows.find(row => row.getData().id === update.id)?.update(update);
+  },
+  redraw,
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
 });
+function editorColumns(columns: ColumnDefinition[]) {
+  return columns.map(column => column.editor === "textarea" ? { ...column, editor: tableTextEditor } : column);
+}
 function keyboard(event: KeyboardEvent) {
-  if (navigation?.keyboard(event)) return;
+  if (!props.rowOnlySelection && navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
   if (tableSelection(event, table, props.busy, !!props.tree)) return;
   if (event.key === "F2") {
@@ -136,15 +179,22 @@ function paste(event: ClipboardEvent) {
 
 watch(
   [() => props.rows, () => props.columns, () => props.selectIds],
-  async ([rows, columns, selectIds], [, previousColumns, previousIds]) => {
+  async ([rows, columns, selectIds], [previousRows, previousColumns, previousIds]) => {
     await ready;
     if (!alive) return;
     const ids = new Set(selectIds !== previousIds ? selectIds : table.getSelectedData().map((r) => r.id));
     replacingRows = true;
     try {
-      if (JSON.stringify(columns) !== JSON.stringify(previousColumns)) table.setColumns(columns);
-      replacement = table.replaceData(rows);
-      await replacement;
+      const columnsChanged = JSON.stringify(columns) !== JSON.stringify(previousColumns);
+      if (columnsChanged) table.setColumns(editorColumns(columns));
+      if (selectIds !== previousIds) table.deselectRow();
+      if (rows !== previousRows || columnsChanged) {
+        const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+        const top = viewport?.scrollTop || 0, left = viewport?.scrollLeft || 0;
+        replacement = table.replaceData(rows);
+        await replacement;
+        if (viewport && selectIds === previousIds) { viewport.scrollTop = top; viewport.scrollLeft = left; }
+      }
       const restoreSelection = (rows: RowComponent[]) => {
         for (const row of rows) {
           if (ids.delete(row.getData().id)) row.select();
@@ -176,6 +226,7 @@ onMounted(() => {
     index: "id",
     dataTree: props.tree,
     dataTreeStartExpanded: true,
+    dataTreeSelectPropagate: false,
     dataTreeExpandElement: '<span class="tree-spacer" aria-hidden="true"></span>',
     dataTreeCollapseElement: '<span class="tree-spacer" aria-hidden="true"></span>',
     dataTreeElementColumn: "description",
@@ -198,7 +249,7 @@ onMounted(() => {
       formatter: "textarea",
       variableHeight: true,
     },
-    columns: props.columns,
+    columns: editorColumns(props.columns),
     placeholder: "No items. Add an item or adjust your search.",
     rowFormatter: (row) => {
       const data = row.getData();
@@ -238,11 +289,16 @@ onMounted(() => {
   );
   if (props.dragSelectRows) stopDragSelection = rowDragSelection(table, element.value!, {
     tree: !!props.tree, busy: () => props.busy, anchor: () => anchor?.id,
+    cells: !props.rowOnlySelection, position: cell => {
+      anchor = { id: String(cell.getData().id), field: cell.getField() };
+      if (!props.rowOnlySelection) navigation.clicked(cell);
+    },
   });
   element.value!.tabIndex = 0;
   element.value!.addEventListener("paste", paste);
+  element.value!.addEventListener("scroll", rememberPosition, true);
   table.on("cellClick", (event, cell) => {
-    navigation.clicked(cell);
+    if (!props.rowOnlySelection) navigation.clicked(cell);
     anchor = { id: cell.getData().id, field: cell.getField() };
     if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow());
   });
@@ -258,6 +314,7 @@ onBeforeUnmount(() => {
   navigation?.destroy();
   stopDragSelection?.();
   element.value?.removeEventListener("paste", paste);
+  element.value?.removeEventListener("scroll", rememberPosition, true);
   table?.destroy();
 });
 </script>

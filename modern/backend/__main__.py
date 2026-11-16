@@ -11,7 +11,8 @@ from .runtime import Runtime
 def main():
     sys.stdin.reconfigure(encoding="utf-8")
     sys.stdout.reconfigure(encoding="utf-8")
-    logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.getLogger("gestimator.actions").setLevel(getattr(logging, os.environ.get("GESTIMATOR_LOG_LEVEL", "DEBUG").upper(), logging.DEBUG))
     recovery = os.environ.get("GESTIMATOR_RECOVERY_DIR")
     service = Runtime(Path(recovery) if recovery else None)
 

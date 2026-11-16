@@ -100,7 +100,8 @@ def search(service, db, kind, query, limit=20, category=None, user_path=None, us
         # Expansion broadens recall; it must not overwhelm the user's original
         # terms. Fuse both rankings, weighting literal evidence more strongly.
         scores, candidates = {}, {}
-        for weight, ranked in ((3, index.original.rank(query, 100, category)), (1, index.rank(expanded, 100, category))):
+        candidate_limit = max(100, limit)
+        for weight, ranked in ((3, index.original.rank(query, candidate_limit, category)), (1, index.rank(expanded, candidate_limit, category))):
             for rank, row in enumerate(ranked, 1):
                 candidates[row["code"]] = row
                 scores[row["code"]] = scores.get(row["code"], 0) + weight / (60 + rank)
@@ -111,3 +112,26 @@ def search(service, db, kind, query, limit=20, category=None, user_path=None, us
     if exact:
         matches = [dict(exact, score=(matches[0]["score"] + 1 if matches else 1))] + [r for r in matches if r["code"] != exact["code"]]
     return dict(items=matches[:limit], engine="fts5" if index.fts else "bm25", dictionary_version=dictionary.fingerprint(index.entries))
+
+
+def desktop_codes(service, db, kind, query):
+    """Shared ranked search, with partial-code lookup and substring fallback.
+
+    Return all matching codes so callers can paginate before loading full ORM
+    rows. Empty-query browsing remains the caller's normal project ordering.
+    """
+    from .program_settings import library_directory
+    resource = kind in ("resources", "resource")
+    table = db.ResourceTable if resource else db.ScheduleTable
+    category = db.ResourceCategoryTable if resource else db.ScheduleCategoryTable
+    result = search(service, db, "resource" if resource else "schedule", query,
+                    max(1, table.select().count()), user_path=library_directory().parent / "dictionary.user.json")
+    folded = query.strip().casefold()
+    code_matches = [row.code for row in table.select(table.code).where(table.code.contains(query.strip()))]
+    code_matches.sort(key=lambda code: (code.casefold() != folded, not code.casefold().startswith(folded), code.casefold()))
+    ranked = [row["code"] for row in result["items"]]
+    # Retain infix matching for users entering only part of a word or category.
+    fallback = [row.code for row in table.select(table.code).join(category).where(
+        table.description.contains(query.strip()) | category.description.contains(query.strip())
+    ).order_by(category.order, table.order, table.id)]
+    return list(dict.fromkeys([*code_matches, *ranked, *fallback])), result["engine"]

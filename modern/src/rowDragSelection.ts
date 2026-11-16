@@ -1,12 +1,14 @@
-import type { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
+import type { TabulatorFull as Tabulator, RowComponent, CellComponent } from "tabulator-tables";
 
-/** Plain pointer-drag selection for read-only item pickers, using public table APIs. */
+/** Shared pointer-drag selection; import pickers opt into whole rows only. */
 export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
   tree: boolean;
   busy: () => boolean;
   anchor: () => string | undefined;
+  cells?: boolean;
+  position?: (cell: CellComponent) => void;
 }) {
-  let drag: { rows: RowComponent[]; start: number; x: number; y: number; base: RowComponent[]; moved: boolean; end: number } | undefined;
+  let drag: { rows: RowComponent[]; start: number; x: number; y: number; base: RowComponent[]; moved: boolean; end: number; column: number; lastColumn: number; header: boolean } | undefined;
   let suppressClick = false;
   let resetClick = 0;
   function rowAt(target: EventTarget | null) {
@@ -26,13 +28,21 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     if (!(event.buttons & 1) || options.busy()) { end(); return; }
     if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 4) return;
     const row = rowAt(event.target);
-    const index = row ? drag.rows.indexOf(row) : -1;
-    if (index < 0 || (drag.moved && index === drag.end)) return;
-    drag.moved = true; drag.end = index;
+    const columns = table.getColumns().filter(column => column.getField());
+    const field = (event.target as Element).closest("[tabulator-field]")?.getAttribute("tabulator-field");
+    const column = columns.findIndex(column => column.getField() === field);
+    const index = drag.header ? drag.rows.length - 1 : row ? drag.rows.indexOf(row) : -1;
+    if (index < 0 || (drag.moved && index === drag.end && column === drag.lastColumn)) return;
+    drag.moved = true; drag.end = index; drag.lastColumn = column;
+    host.querySelectorAll(".cell-range-selected").forEach(cell => cell.classList.remove("cell-range-selected"));
     // Crossing a group heading should not import all its off-page children.
     // Clicking a category still provides the explicit whole-category shortcut.
     const range = drag.rows.slice(Math.min(drag.start, index), Math.max(drag.start, index) + 1)
       .filter(row => row.getData().rowtype !== "Category");
+    if (options.cells !== false && drag.column >= 0 && column >= 0) for (const selectedRow of range) {
+      for (const selectedColumn of columns.slice(Math.min(drag.column, column), Math.max(drag.column, column) + 1))
+        selectedRow.getCell(selectedColumn.getField()).getElement().classList.add("cell-range-selected");
+    }
     table.deselectRow();
     table.selectRow(Array.from(new Set([...drag.base, ...range])));
     event.preventDefault();
@@ -47,13 +57,19 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     document.removeEventListener("mouseup", end);
   }
   function start(event: MouseEvent) {
-    if (event.button !== 0 || options.busy()) return;
+    if (event.button !== 0 || options.busy() || (event.target as Element).closest("input,textarea,select,button,[contenteditable=true]")) return;
     const row = rowAt(event.target);
-    if (!row) return;
+    const header = (event.target as Element).closest(".tabulator-col");
+    if (header && options.cells === false) return;
+    if (!row && !header || (event.target as Element).closest(".tabulator-col-resize-handle")) return;
     const values = rows();
+    const field = (event.target as Element).closest("[tabulator-field]")?.getAttribute("tabulator-field");
+    const column = table.getColumns().filter(column => column.getField()).findIndex(column => column.getField() === field);
+    host.querySelectorAll(".cell-range-selected").forEach(cell => cell.classList.remove("cell-range-selected"));
     const anchored = event.shiftKey ? values.findIndex(row => String(row.getData().id) === options.anchor()) : -1;
-    drag = { rows: values, start: anchored >= 0 ? anchored : values.indexOf(row), x: event.clientX, y: event.clientY,
-      base: event.ctrlKey || event.metaKey ? table.getSelectedRows() : [], moved: false, end: -1 };
+    if (row && field) options.position?.(row.getCell(field));
+    drag = { rows: values, start: header ? 0 : anchored >= 0 ? anchored : values.indexOf(row!), x: event.clientX, y: event.clientY,
+      base: event.ctrlKey || event.metaKey ? table.getSelectedRows() : [], moved: false, end: -1, column, lastColumn: column, header: !!header };
     event.preventDefault();
     window.getSelection()?.removeAllRanges();
     host.focus({ preventScroll: true });
@@ -63,12 +79,18 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
   function click(event: MouseEvent) {
     if (suppressClick) { event.preventDefault(); event.stopImmediatePropagation(); suppressClick = false; }
   }
+  function clearRange(event: KeyboardEvent) {
+    if (event.key === "Escape" && !(event.target as Element).closest("input,textarea,[contenteditable=true]"))
+      host.querySelectorAll(".cell-range-selected").forEach(cell => cell.classList.remove("cell-range-selected"));
+  }
   host.addEventListener("mousedown", start, true);
   host.addEventListener("click", click, true);
+  host.addEventListener("keydown", clearRange, true);
   return () => {
     end();
     window.clearTimeout(resetClick);
     host.removeEventListener("mousedown", start, true);
     host.removeEventListener("click", click, true);
+    host.removeEventListener("keydown", clearRange, true);
   };
 }

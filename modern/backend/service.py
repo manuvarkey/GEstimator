@@ -358,13 +358,13 @@ class Service:
                 else selected_db.ResourceTable
             )
             query = text(p.get("query", ""))
-            records = (
-                table.select()
-                .where(table.code.contains(query) | table.description.contains(query))
-                .order_by(table.id)
-                .offset(offset)
-                .limit(limit)
-            )
+            if query.strip():
+                from .search import desktop_codes
+                codes, _ = desktop_codes(self, selected_db, "schedule" if method == "schedule.list" else "resources", query)
+                positions = {code: index for index, code in enumerate(codes[offset:offset + limit])}
+                records = sorted(table.select().where(table.code.in_(list(positions))), key=lambda row: positions[row.code])
+            else:
+                records = table.select().order_by(table.id).offset(offset).limit(limit)
             return [
                 dict(
                     code=r.code,
@@ -473,6 +473,18 @@ class Service:
         return self.state()
 
     def edit(self, method, p):
+        if method == "analysis.resources_add":
+            source_id = p.get("source")
+            if source_id and source_id not in self.project_editor.libraries:
+                raise ValueError("Resource database is no longer attached")
+            source = self.project_editor.libraries[source_id][1] if source_id else self.db
+            _, rows = self.project_editor.selection("resources", p.get("ids"), source, include_descendants=False)
+            cursor = p.get("id")
+            for row in sorted(rows, key=lambda row: (row.category.order, row.order, row.id)):
+                self.edit("resource.add", dict(id=cursor, code=row.code, source=source_id, library=True, qty=p.get("qty", "0")))
+                index, _ = self.locate(cursor)
+                cursor = self.model.ana_items[index]["_resource_ids"][0] if cursor == self.model.ana_items[index]["_id"] else self.model.ana_items[index]["_resource_ids"][self.locate(cursor)[1] + 1]
+            return
         if method == "analysis.batch":
             operations = p.get("operations")
             if not isinstance(operations, list) or not 1 <= len(operations) <= 500:
@@ -589,8 +601,12 @@ class Service:
                 if resource is None:
                     raise ValueError("Unknown resource")
             else:
-                code = text(p["code"])
-                if not code or code in self.model.resources:
+                code = text(p.get("code", ""))
+                if not code:
+                    code = self.db.get_new_resource_code(exclude=self.model.resources) if self.db else "MR.1"
+                    while code in self.model.resources:
+                        code = "MR." + str(int(code.split(".")[-1]) + 1)
+                if code in self.model.resources:
                     raise ValueError("Use a new resource code")
                 resource = ResourceItemModel(
                     code,
