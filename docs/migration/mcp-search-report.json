@@ -1,0 +1,33 @@
+{
+  "results": [
+    {
+      "database": "DSREM2022.eproj",
+      "setup": "FTS5",
+      "queries": 30,
+      "recall_at_5": 0.8667,
+      "mrr_at_5": 0.8
+    },
+    {
+      "database": "DSREM2022.eproj",
+      "setup": "FTS5 + dictionary",
+      "queries": 30,
+      "recall_at_5": 0.8667,
+      "mrr_at_5": 0.8167
+    },
+    {
+      "database": "DSR2021.eproj",
+      "setup": "FTS5",
+      "queries": 30,
+      "recall_at_5": 0.9,
+      "mrr_at_5": 0.6761
+    },
+    {
+      "database": "DSR2021.eproj",
+      "setup": "FTS5 + dictionary",
+      "queries": 30,
+      "recall_at_5": 0.9,
+      "mrr_at_5": 0.6744
+    }
+  ],
+  "embeddings": "Not installed/evaluated. Require a measured improvement before adding ONNX or enriched bundles."
+}

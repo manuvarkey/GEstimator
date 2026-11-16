@@ -1,0 +1,19 @@
+{
+  "name": "House electrical estimate",
+  "source": "bundled:DSREM2022.eproj",
+  "notes": "Reproducible representative fixture, not a reconstruction of the unavailable historical trial. Rates use the existing recalculation engine rather than stored library prices.",
+  "grand_total": "58660.00",
+  "items": [
+    {"code":"1.10.1","qty":"12","rate":"1061","parent_code":"1.10"},
+    {"code":"1.10.2","qty":"8","rate":"1235","parent_code":"1.10"},
+    {"code":"1.10.3","qty":"3","rate":"1533","parent_code":"1.10"},
+    {"code":"1.23.4","qty":"12","rate":"72","parent_code":"1.23"},
+    {"code":"1.23.5","qty":"6","rate":"143","parent_code":"1.23"},
+    {"code":"1.25","qty":"4","rate":"385","parent_code":null},
+    {"code":"1.44","qty":"4","rate":"222","parent_code":null},
+    {"code":"2.16","qty":"1","rate":"1222","parent_code":null},
+    {"code":"2.19","qty":"1","rate":"2707","parent_code":null},
+    {"code":"5.1","qty":"2","rate":"5610","parent_code":null},
+    {"code":"7.1.1","qty":"30","rate":"405","parent_code":"7.1"}
+  ]
+}

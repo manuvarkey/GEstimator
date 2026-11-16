@@ -27,6 +27,7 @@ interface GridState {
   caption?: string;
   detail?: any;
   categories?: string[];
+  enrichment?: { ai_generated: boolean; summary: string } | null;
 }
 const props = defineProps<{ view: View; projectOpen: boolean }>();
 const emit = defineEmits<{
@@ -1025,6 +1026,11 @@ watch(
           </template>
         </div></Teleport
       >
+      <div v-if="state?.enrichment" class="project-filter-bar" role="note">
+        <small class="enrichment-badge">AI-generated</small>
+        <span>{{ state.enrichment.summary || 'Optional database enrichment' }}</span>
+        <button v-if="!source" class="text-button" :disabled="busy" @click="command('project.enrichment.clear')">Clear enrichment</button>
+      </div>
       <div v-if="!isMeasurement" class="project-filter-bar"><form
         v-if="!isMeasurement"
         class="search-field project-search"

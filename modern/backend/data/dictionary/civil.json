@@ -1,0 +1,23 @@
+[
+  {
+    "term": "DPC",
+    "expand": [
+      "damp proof course"
+    ],
+    "scope": "civil"
+  },
+  {
+    "term": "RCC",
+    "expand": [
+      "reinforced cement concrete"
+    ],
+    "scope": "civil"
+  },
+  {
+    "term": "PCC",
+    "expand": [
+      "plain cement concrete"
+    ],
+    "scope": "civil"
+  }
+]

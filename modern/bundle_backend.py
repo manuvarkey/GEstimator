@@ -45,6 +45,8 @@ subprocess.run(
             for database in (root / "estimator/database").glob("*.eproj")
             for argument in ("--add-data", str(database) + ":estimator/database")
         ],
+        "--add-data",
+        str(modern / "backend/data/dictionary") + ":modern/backend/data/dictionary",
         str(modern / "backend/entry.py"),
     ],
     cwd=root,

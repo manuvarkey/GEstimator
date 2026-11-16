@@ -1,6 +1,6 @@
 # MCP efficiency: rationalized tools, optional metadata and search
 
-Implementation brief for AI coding tools. This brief covers changes to `modern/backend` only. It must work for **any** `.eproj` database: bundled, custom or user-made. Nothing here may require users to write metadata.
+Implementation brief for AI coding tools. This brief covers the MCP backend, its tests and developer evaluation tools, plus the desktop enrichment badge and Clear action. It must work for **any** `.eproj` database: bundled, custom or user-made. Nothing here may require users to write metadata.
 
 **This is a breaking change.** The current 120 tools (113 operations plus 7 legacy aliases) are replaced by the **19 tools** below. There is no backward-compatibility toolset. The application adapters in `mcp_operations.py` remain as internal functions; only the tools exposed to MCP clients change.
 
@@ -10,9 +10,9 @@ A trial session built an E&M estimate for a typical house through the current se
 
 | Cause | Cost |
 |---|---|
-| `tools/list` has 120 tools and is about 61 KB; ~100 descriptions repeat the same revision sentence; several tools are duplicates or legacy aliases | ~14k tokens on every turn |
+| `tools/list` had 120 tools and measured 111,597 bytes before migration; ~100 descriptions repeat the same revision sentence; several tools are duplicates or legacy aliases | ~14k tokens on every turn |
 | Every result is sent twice, as `content[].text` and as `structuredContent` | ~2× result tokens |
-| A `get_project` call is needed before every write to get the revision | 2× round trips |
+| Clients sometimes refreshed state before every write despite revisions being returned by writes | avoidable round trips; optional `if_revision` also simplifies sequential writes |
 | `add_from_library` drops parent items; new items go to the end of a category; `move` only steps ±1 | ~90 calls to rebuild the hierarchy |
 | There is no search by meaning, so all 1,337 items were dumped to find the right ones | ~12k tokens |
 | Trade abbreviations (TPN, RCCB, FRLS, DPC, SWG) don't match plain-language queries | missed matches |
@@ -255,10 +255,36 @@ Each step is one PR with tests under `tests/`.
    *Test:* the five-setup report, and search still works with the add-on uninstalled.
 8. **Developer enrichment tool.** Add `tools/enrich_database.py` (metadata, dictionary, optional embeddings). Run it on the bundled databases and commit the results after review.
 
-**Acceptance for steps 1–3:**
-- `tools/list` has exactly 19 tools, no duplicate or alias names, and is at most 16 KB.
+**Acceptance for steps 1–3 (one coordinated public API migration):**
+- `tools/list` in read/write mode has exactly 19 tools (read-only mode has eight), no duplicate or alias names, and is at most 16 KB.
 - The server instructions are at most about 300 tokens.
 
 ## Prompt for an AI coding tool
 
 > Read `docs/migration/mcp-efficiency.md` and `docs/migration/mcp-server.md`, then `modern/backend/mcp_server.py` and `modern/backend/mcp_operations.py`. Implement step N only. Reuse the existing service methods and transactions rather than new data paths; the old tools are removed from MCP exposure, not their underlying adapters. Add or port tests under `tests/` that cover the step's acceptance criteria, and run the full MCP test suite. Report `tools/list` size, test results and, for search steps, the test-set report.
+
+
+## Implemented core and validation
+
+The 19-tool interface, response envelopes, optional MCP revisions, compound undo/rollback,
+parent-aware imports, direct placement, analysis/measurement intents, guarded SQL views,
+metadata fallback/desktop controls, dictionaries and FTS5/BM25 search are implemented.
+The desktop service API and `.eproj` source preservation remain intact. See
+[mcp-server.md](mcp-server.md) for exact argument conventions and lifecycle behavior.
+
+`tests/data/mcp_canonical.json` defines a representative house electrical estimate:
+11 priced items plus three ancestors, measurements, recalculation, export and save/reopen
+in 15 actual HTTP tool calls, with an expected total of 58,660.00. The historical trial's
+inputs were not available; this is a reproducible replacement benchmark rather than a
+claim to replay that trial. Tests verify quantities, rates, hierarchy and source hashes.
+
+`tests/data/search_eval.json` contains 30 curated queries for each bundled database.
+`tools/evaluate_search.py` reports FTS5 and dictionary-assisted FTS5 results in
+[mcp-search-report.json](mcp-search-report.json). Expansion supplements literal matching;
+it does not replace original terms. Both rankings are fused with literal evidence weighted
+more strongly. Index invalidation includes project revisions and source/dictionary changes.
+
+Embeddings, the ONNX download, bulk AI generation and modified bundled databases are deferred.
+The three embedding-related evaluation setups are explicitly not evaluated. No AI service
+or user-written metadata is required. The enrichment table and reader/writer support remain
+available for a later reviewed developer enrichment workflow.

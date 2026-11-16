@@ -27,6 +27,7 @@ let loaded = false;
 const page = ref(0);
 const rows = ref<{ id: string; [key: string]: any }[]>([]);
 const total = ref(0);
+const enrichment = ref<{ summary: string } | null>(null);
 const selected = ref<{ id: string; [key: string]: any }[]>([]);
 const busy = ref(false);
 const error = ref("");
@@ -47,13 +48,14 @@ async function load() {
   try {
     await pickerTable.value?.clearSelection();
     if (token !== loadRequest) return;
-    const result = await request<{ rows: typeof rows.value; total: number; categories: string[] }>(props.kind + ".editor.state", { source: source.value, query: query.value, categories: categoryFilters.value, offset: page.value * 100 });
-    if (token === loadRequest) { rows.value = result.rows; total.value = result.total; categories.value = result.categories; loaded = true; }
+    const result = await request<{ rows: typeof rows.value; total: number; categories: string[]; enrichment: typeof enrichment.value }>(props.kind + ".editor.state", { source: source.value, query: query.value, categories: categoryFilters.value, offset: page.value * 100 });
+    if (token === loadRequest) { rows.value = result.rows; total.value = result.total; categories.value = result.categories; enrichment.value = result.enrichment; loaded = true; }
   } catch (failure) { if (token === loadRequest) { error.value = String(failure); rows.value = []; total.value = 0; } }
   finally { if (token === loadRequest) busy.value = false; }
 }
 function changeSource() {
   loaded = false;
+  enrichment.value = null;
   categoryFilters.value = []; categories.value = []; rows.value = []; total.value = 0; page.value = 0;
   void load();
 }
@@ -92,6 +94,7 @@ async function apply(modify = false, ids = selected.value.map(row => row.id)) {
     <label class="field">Database<select v-model="source" aria-label="Database" :disabled="busy" @change="changeSource"><option v-if="!libraries.length" value="">No attached databases</option><option v-for="library in libraries" :key="library.id" :value="library.id">{{ library.name }}</option></select></label>
     <p v-if="!libraries.length">Attach databases in the Databases tab, then return here.</p>
     <template v-if="mode === 'add' && libraries.length">
+      <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>
       <div class="project-filter-bar"><form class="search-field" @submit.prevent="page = 0; load()"><AppIcon name="search" :size="16" /><input v-model="query" aria-label="Find database items" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
       <div class="database-picker-grid"><DataTable :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="row => { if (row.rowtype !== 'Category') apply(false, [row.id]); }" /></div>
       <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="page--; load()">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="page++; load()">Next</button></div>

@@ -225,6 +225,7 @@ class Service:
             new.create_new_database(str(target))
             if p.get("discard") is True:
                 self.clear_recovery()
+            self.clear_mcp_indexes()
             if hasattr(self, "project_editor"):
                 self.project_editor.close()
             if self.db:
@@ -287,6 +288,7 @@ class Service:
             new.open_database(str(target))
             if p.get("discard") is True:
                 self.clear_recovery()
+            self.clear_mcp_indexes()
             if hasattr(self, "project_editor"):
                 self.project_editor.close()
             if self.db:
@@ -316,6 +318,7 @@ class Service:
                 "project.redo",
                 "project.export",
                 "project.settings.edit",
+                "project.enrichment.clear",
                 "project.import",
             )
         ):
@@ -884,8 +887,16 @@ class Service:
             scratch.close_database()
         return dict(saved=str(destination))
 
+    def clear_mcp_indexes(self):
+        for _, index in getattr(self, "_mcp_search", {}).values():
+            index.close()
+        self._mcp_search = {}
+
     def close(self):
         self.mcp.stop()
+        self.clear_mcp_indexes()
+        if hasattr(self, "_mcp_catalog"):
+            self._mcp_catalog.close()
         if hasattr(self, "project_editor"):
             self.project_editor.close()
         if self.db:

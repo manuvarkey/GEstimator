@@ -9,65 +9,45 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import secrets
 from threading import Thread, Lock
-from .mcp_operations import OPERATIONS, execute
+from .mcp_operations import OPERATIONS, execute, ToolError
 
 VERSION = "2025-11-25"
 VERSIONS = (VERSION, "2025-06-18", "2025-03-26")
-PAGE = dict(query=dict(type="string", maxLength=500), offset=dict(type="integer", minimum=0))
-
-
-def tool(name, description, properties=None, required=None):
-    return dict(name=name, description=description,
-                inputSchema=dict(type="object", properties=properties or {}, required=required or [], additionalProperties=False),
-                annotations=dict(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False))
-
-
-TOOLS = [
-    tool("get_project", "Read the current project name, revision and unsaved-state flags. No files are opened or saved."),
-    tool("list_schedule", "Search the open project's schedule hierarchy, 100 items per page. Includes current stored rates and quantities.", PAGE),
-    tool("list_resources", "Search the open project's resource hierarchy, 100 items per page. Includes base rates, VAT and discounts.", PAGE),
-    tool("get_analysis", "Read the active analysis, including its unsaved draft and original Python calculation results. Does not change the selected item."),
-    tool("list_measurements", "List the open project's measurement items, links and totals. Returns at most 100 items per page.", dict(offset=dict(type="integer", minimum=0))),
-    tool("get_measurement", "Read one measurement's template, raw expressions, rendered cells, Breakup and calculated totals, at most 100 records per page.", dict(id=dict(type="string", minLength=1, maxLength=100), record_offset=dict(type="integer", minimum=0)), ["id"]),
-    tool("list_databases", "List attached read-only database snapshots available in the application."),
-]
+INSTRUCTIONS = """GEstimator estimate workspace. Items use codes within a source (project, an attached id, bundled:<file>, or an .eproj path; naming a source attaches a snapshot).
+1. Start with get_state; use describe_source for unfamiliar databases.
+2. Find with search_items; browse explores a category or parent.
+3. import_items includes ancestors; upsert_items creates/edits items. Placement defaults to natural code order.
+4. get_measurements section=templates exposes real columns; edit_measurements accepts records keyed by title. recalculate what=quantities pushes totals.
+5. batch groups writes into one undo step. Optional if_revision rejects stale writes; every response returns revision. Save/export explicitly.
+6. Verify with get_summary. query is a read-only fallback over documented views when no typed read fits.
+7. Errors contain code, field, allowed values and a hint. Fix the field instead of retrying blindly.
+Analysis ops use r0/r0:0 positional IDs or ref labels. Stored reads exclude unsaved desktop drafts; edits protect them.
+"""
 
 
 def read_tool(service, name, arguments):
-    if name in OPERATIONS:
-        return execute(service, name, arguments)
-    definition = next((item for item in TOOLS if item["name"] == name), None)
-    if not definition:
-        raise ValueError("Unknown read-only tool")
-    schema = definition["inputSchema"]
-    if not isinstance(arguments, dict) or set(arguments) - set(schema["properties"]) or any(key not in arguments for key in schema["required"]):
-        raise ValueError("Invalid tool arguments")
-    for key, value in arguments.items():
-        rule = schema["properties"][key]
-        if rule["type"] == "integer":
-            if type(value) is not int or not 0 <= value <= 1_000_000:
-                raise ValueError("Invalid page offset")
-        elif not isinstance(value, str) or not rule.get("minLength", 0) <= len(value) <= rule["maxLength"]:
-            raise ValueError("Invalid text argument")
-    if name == "get_project":
-        return dict(project_open=service.db is not None, name=service.db.get_project_settings().get("project_name", "") if service.db else "",
-                    revision=service.revision, analysis_dirty=service.dirty, project_dirty=service.workspace_dirty)
-    if name == "get_analysis":
-        return service.state()
-    if not service.db:
-        raise ValueError("Open a project in GEstimator first")
-    method = {"list_schedule": "schedule.editor.state", "list_resources": "resources.editor.state",
-              "list_measurements": "measurement.state", "get_measurement": "measurement.detail", "list_databases": "library.list"}[name]
-    result = service.call(method, arguments)
-    if name == "list_measurements":
-        offset = arguments.get("offset", 0)
-        rows = result["rows"]
-        result["total"] = len(rows)
-        result["offset"] = offset
-        result["rows"] = rows[offset:offset + 100]
-    if name == "get_measurement" and not result.get("detail"):
-        raise ValueError("Measurement no longer exists or is a heading")
-    return result
+    return execute(service, name, arguments)
+
+
+def error_result(error):
+    if isinstance(error, ToolError):
+        detail = error.detail
+    elif isinstance(error, KeyError):
+        detail = dict(code="invalid_arguments", message="Missing required field", field=str(error.args[0]))
+    else:
+        message = str(error)
+        code = "draft_conflict" if "Unsaved analysis" in message else "not_found" if isinstance(error, FileNotFoundError) else "invalid_arguments" if isinstance(error, (ValueError, TypeError)) else "operation_failed"
+        detail = dict(code=code, message=message)
+    return dict(content=[dict(type="text", text=detail["message"].replace("\n", " ")[:300])], structuredContent=dict(error=detail), isError=True)
+
+
+def success_result(name, value):
+    data = value["data"]
+    count = len(data["items"]) if isinstance(data, dict) and isinstance(data.get("items"), list) else None
+    summary = name + (f": {count} items." if count is not None else " completed.") + f" revision {value['revision']}"
+    if value["warnings"]:
+        summary += f"; {len(value['warnings'])} warnings"
+    return dict(content=[dict(type="text", text=summary)], structuredContent=value, isError=False)
 
 
 class MCPServer:
@@ -86,7 +66,7 @@ class MCPServer:
         self.generation = 0
 
     def tools(self):
-        return TOOLS + [operation["definition"] for operation in OPERATIONS.values() if self.access == "read-write" or not operation["write"]]
+        return [operation["definition"] for operation in OPERATIONS.values() if self.access == "read-write" or not operation["write"]]
 
     def status(self, include_tools=True):
         with self.lock:
@@ -132,7 +112,7 @@ class MCPServer:
                 pass  # Never log headers, connection tokens or project contents.
 
             def reply(self, status, body=None):
-                data = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else b""
+                data = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8") if body is not None else b""
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
@@ -194,7 +174,7 @@ class MCPServer:
                 if method == "initialize":
                     result = dict(protocolVersion=params.get("protocolVersion") if params.get("protocolVersion") in VERSIONS else VERSION,
                                   capabilities=dict(tools=dict(listChanged=False)), serverInfo=dict(name="GEstimator", version="0.1.0"),
-                                  instructions="GEstimator estimate workspace. Read state/get_project for the current revision and IDs. Every write requires that revision. Work in the isolated project, load/edit/apply analyses, then save explicitly. Use database.inspect/analysis/resource to inspect attached sources without replacing the active draft. Measurement fields cN come from template metadata; preserve raw expressions. Native application tools return data and the next revision; legacy read aliases keep their flat payloads. Unsaved drafts, invalid data and stale writes use the application guards. Access mode: " + owner.access)
+                                  instructions=INSTRUCTIONS + "Access mode: " + owner.access)
                 elif method == "ping":
                     result = {}
                 elif method == "tools/list":
@@ -204,11 +184,9 @@ class MCPServer:
                         # Stamp the accepted listener, never a client-supplied
                         # value. The owner thread rechecks it at execution time.
                         value = owner.dispatch("mcp.read", dict(name=params.get("name"), arguments=params.get("arguments", {}), _listener=generation))
-                        result = dict(content=[dict(type="text", text=json.dumps(value, ensure_ascii=False))], isError=False)
-                        if isinstance(value, dict):
-                            result["structuredContent"] = value
+                        result = success_result(params.get("name"), value)
                     except Exception as exc:
-                        result = dict(content=[dict(type="text", text=str(exc))], isError=True)
+                        result = error_result(exc)
                 else:
                     self.reply(200, dict(jsonrpc="2.0", id=identity, error=dict(code=-32601, message="Method not found"))); return
                 self.reply(200, dict(jsonrpc="2.0", id=identity, result=result))

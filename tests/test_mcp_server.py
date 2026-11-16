@@ -6,7 +6,7 @@ import unittest
 from modern.backend.runtime import Runtime
 
 
-class MCPServerTests(unittest.TestCase):
+class MCPFixture(unittest.TestCase):
     def setUp(self):
         self.runtime = Runtime()
         self.addCleanup(self.runtime.close)
@@ -36,6 +36,9 @@ class MCPServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         return response["result"]
 
+
+
+class MCPServerTests(MCPFixture):
     def test_protocol_discovery_notifications_and_invalid_transport(self):
         self.assertFalse(self.status["running"])
         self.assertTrue(self.start()["running"])
@@ -46,7 +49,9 @@ class MCPServerTests(unittest.TestCase):
         self.assertEqual(self.http(message=dict(jsonrpc="2.0", method="notifications/initialized")), (202, None))
         tools = self.http(message=dict(jsonrpc="2.0", id=2, method="tools/list"))[1]["result"]["tools"]
         self.assertGreater(len(tools), 7)
-        self.assertIn("database.inspect", {tool["name"] for tool in tools})
+        self.assertEqual(len(tools), 8)
+        self.assertIn("query", {tool["name"] for tool in tools})
+        self.assertTrue(all("outputSchema" in tool for tool in tools))
         self.assertTrue(all(tool["annotations"]["readOnlyHint"] for tool in tools))
         self.assertEqual(self.http(method="GET")[0], 405)
         self.assertEqual(self.http(raw="{")[1]["error"]["code"], -32700)
@@ -66,21 +71,22 @@ class MCPServerTests(unittest.TestCase):
 
     def test_live_project_and_measurements_are_read_only(self):
         self.start()
-        self.assertFalse(json.loads(self.tool("get_project")["content"][0]["text"])["project_open"])
-        self.assertTrue(self.tool("list_schedule")["isError"])
+        self.assertFalse(self.tool("get_state")["structuredContent"]["data"]["project_open"])
+        self.assertTrue(self.tool("browse", dict(kind="schedule"))["isError"])
         state = self.runtime.call("project.new")
         self.runtime.call("schedule.editor.add", dict(revision=state["revision"], data=dict(code="A", description="Live item", rate="17", category="Work")))
         state = self.runtime.call("state")
         before = self.runtime.call("schedule.editor.state")
-        result = self.tool("list_schedule", dict(query="Live"))
+        result = self.tool("search_items", dict(kind="schedule", query="Live"))
         self.assertFalse(result["isError"])
-        self.assertIn("Live item", result["content"][0]["text"])
+        self.assertIn("Live item", result["structuredContent"]["data"]["items"][0]["short"])
+        self.assertLess(len(result["content"][0]["text"]), 100)
         self.assertEqual(self.runtime.call("state"), state)
         self.assertEqual(self.runtime.call("schedule.editor.state"), before)
-        self.assertTrue(self.tool("project.save")["isError"])
-        self.assertTrue(self.tool("list_schedule", dict(source="arbitrary"))["isError"])
-        self.assertTrue(self.tool("list_schedule", dict(offset=True))["isError"])
-        self.assertTrue(self.tool("list_schedule", dict(query="x" * 501))["isError"])
+        self.assertTrue(self.tool("project", dict(action="save"))["isError"])
+        self.assertTrue(self.tool("browse", dict(kind="schedule", source="arbitrary"))["isError"])
+        self.assertTrue(self.tool("browse", dict(kind="schedule", offset=True))["isError"])
+        self.assertTrue(self.tool("search_items", dict(kind="schedule", query="x" * 501))["isError"])
         identity = self.runtime.call("measurement.add", dict(revision=state["revision"], template="_1_NLBH"))["selected"][0]
         state = self.runtime.call("state")
         self.runtime.call("measurement.record_add", dict(revision=state["revision"], id=identity))
@@ -88,12 +94,12 @@ class MCPServerTests(unittest.TestCase):
         row = self.runtime.call("measurement.state", dict(id=identity))["detail"]["rows"][0]
         self.runtime.call("measurement.record_edit", dict(revision=state["revision"], id=identity, record_id=row["id"], field="c2", value="2*3"))
         state = self.runtime.call("state")
-        detail = json.loads(self.tool("get_measurement", dict(id=identity))["content"][0]["text"])["detail"]
+        detail = self.tool("get_measurements", dict(id=identity))["structuredContent"]["data"]
         self.assertEqual(detail["rows"][0]["c2"], "2*3")
         self.assertEqual(detail["rows"][0]["_display"]["c1"], "[2*3,,,]")
         self.assertEqual(detail["rows"][0]["_display"]["c2"], "6")
-        self.assertEqual(json.loads(self.tool("list_measurements")["content"][0]["text"])["total"], 1)
-        self.assertTrue(self.tool("get_measurement", dict(id="missing"))["isError"])
+        self.assertEqual(self.tool("get_measurements")["structuredContent"]["data"]["total"], 1)
+        self.assertTrue(self.tool("get_measurements", dict(id="missing"))["isError"])
         self.assertEqual(self.runtime.call("state"), state)
 
     def test_parallel_http_and_desktop_reads_share_owner_thread(self):
@@ -102,9 +108,9 @@ class MCPServerTests(unittest.TestCase):
         def read(index):
             if index % 2:
                 return self.runtime.call("schedule.editor.state")["total"]
-            result = self.tool("list_schedule")
+            result = self.tool("browse", dict(kind="schedule"))
             self.assertFalse(result["isError"])
-            return json.loads(result["content"][0]["text"])["total"]
+            return result["structuredContent"]["data"]["total"]
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             self.assertEqual(list(pool.map(read, range(24))), [0] * 24)
 

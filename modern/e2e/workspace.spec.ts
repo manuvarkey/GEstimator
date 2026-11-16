@@ -336,14 +336,14 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   const connection = (await call("mcp.status")).result;
   async function agent(name: string, args: Record<string, unknown> = {}, write = false) {
     const revision = (await call("state")).result.revision;
-    const response = await fetch(connection.url, { method: "POST", headers: { Authorization: "Bearer " + connection.token, "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: { ...args, ...(write ? { revision } : {}) } } }) });
+    const response = await fetch(connection.url, { method: "POST", headers: { Authorization: "Bearer " + connection.token, "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: { ...args, ...(write ? { if_revision: revision } : {}) } } }) });
     const value = (await response.json()).result;
     expect(value.isError).toBe(false);
     return value.structuredContent;
   }
-  const item = (await agent("schedule.editor.state")).data.rows.find((row: any) => row.description === "Work")._children[0];
+  const item = (await agent("get_items", { kind: "schedule", codes: ["A"] })).data.items[0];
   await page.locator("#view-schedule").click();
-  await agent("schedule.editor.edit", { id: item.id, field: "description", value: "Edited by agent" }, true);
+  await agent("upsert_items", { kind: "schedule", items: [{ code: item.code, description: "Edited by agent" }] }, true);
   await page.clock.runFor(1600);
   const grid = page.locator(".project-main-grid");
   await expect(grid.getByText("Edited by agent", { exact: true })).toBeVisible();
@@ -351,7 +351,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   await qty.click();
   await page.keyboard.press("Enter");
   await qty.locator("input").fill("13");
-  await agent("schedule.editor.edit", { id: item.id, field: "description", value: "Agent changed another field" }, true);
+  await agent("upsert_items", { kind: "schedule", items: [{ code: item.code, description: "Agent changed another field" }] }, true);
   await page.clock.runFor(1700);
   await expect(qty.locator("input")).toHaveValue("13");
   await qty.locator("input").press("Tab");
@@ -361,14 +361,12 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   await expect(qty).toHaveText("13");
   await expect(grid.getByText("Agent changed another field", { exact: true })).toBeVisible();
   await grid.locator('.tabulator-editing textarea').press("Escape");
-  const analysis = (await agent("analysis.load", { code: "A" }, true)).data;
-  await agent("analysis.edit_cell", { id: analysis.rows[0]._children[0].id, field: "value", value: "3" }, true);
+  await agent("edit_analysis", { code: "A", ops: [{ action: "edit", id: "r0:0", field: "value", value: "3" }] }, true);
   await page.clock.runFor(1700);
-  await page.locator("#view-analysis").click();
+  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
   await expect(page.getByRole("dialog", { name: /Unsaved analysis/ })).toHaveCount(0);
   await expect(page.locator(".summary-value")).toContainText("30.00");
-  await agent("analysis.apply", {}, true);
-  await agent("project.new", { discard: true }, true);
+  await agent("project", { action: "new", discard: true }, true);
   await page.clock.runFor(1700);
   await expect(page.locator('.analysis-heading h1')).toHaveText("Select a schedule item");
   await expect(page.getByRole("grid", { name: "Rate analysis table" }).locator(".tabulator-row")).toHaveCount(0);
@@ -746,9 +744,9 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   }
   expect((await rpc("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "browser-test", version: "1" } })).result.serverInfo.name).toBe("GEstimator");
   expect((await rpc("tools/list")).result.tools.length).toBeGreaterThan(7);
-  const result = await rpc("tools/call", { name: "list_schedule", arguments: { query: "Foundation" } });
+  const result = await rpc("tools/call", { name: "search_items", arguments: { kind: "schedule", query: "Foundation" } });
   expect(result.result.isError).toBe(false);
-  expect(result.result.content[0].text).toContain("Foundation");
+  expect(result.result.structuredContent.data.items[0].short).toContain("Foundation");
   await expect(selected).toHaveText("A");
   await page.locator("#view-schedule").click();
   await ribbon.getByRole("button", { name: "Edit analysis", exact: true }).click();
@@ -774,7 +772,7 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   await page.reload();
   await page.locator("#view-mcp").click();
   await expect(ribbon.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
-  expect((await rpc("tools/call", { name: "get_project", arguments: {} })).result.isError).toBe(false);
+  expect((await rpc("tools/call", { name: "get_state", arguments: {} })).result.isError).toBe(false);
   await ribbon.getByRole("button", { name: "Configure MCP server", exact: true }).click();
   await expect(settings.getByLabel("Port", { exact: true })).toBeDisabled();
   await settings.getByRole("button", { name: "Stop server", exact: true }).click();
@@ -2304,4 +2302,23 @@ test("Excel analysis import previews a calculated rate and can be undone", async
   await expect(page.locator(".summary-value")).toContainText("21.00");
   await header.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".summary-value")).toContainText("20.00");
+});
+
+
+test("optional enrichment is labelled and clearing it is undoable", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "enriched.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase;from estimator.undo import Stack;from modern.backend.metadata import write;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);write(d,dict(schema=1,provenance=dict(generator='ai',reviewed=False),database=dict(summary='Sample database overview')));d.close_database()", project], { cwd: resolve("..") });
+  const original = await readFile(project);
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  await expect(page.getByText("AI-generated", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sample database overview", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/enrichment.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Clear enrichment", exact: true }).click();
+  await expect(page.getByText("AI-generated", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.getByText("AI-generated", { exact: true })).toBeVisible();
+  expect(await readFile(project)).toEqual(original);
 });

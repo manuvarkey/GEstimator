@@ -2076,3 +2076,5 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 .inspector-bottom { display: none; }
 .mcp-tools { max-height: 35vh; overflow: auto; }
 .dialog-footer { margin-top: 10px; gap: 6px; }
+
+.enrichment-badge { border: 1px solid currentColor; border-radius: 4px; padding: 2px 6px; white-space: nowrap; }

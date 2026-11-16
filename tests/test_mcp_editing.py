@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import http.client
 import json
@@ -11,146 +12,162 @@ from unittest.mock import patch
 from http.server import BaseHTTPRequestHandler
 from modern.backend.mcp_operations import OPERATIONS
 from modern.backend.service import Service
-import test_mcp_server as transport
+from test_mcp_server import MCPFixture
 
 
-class MCPEditingTests(transport.MCPServerTests):
-    # Reuse the real HTTP/runtime fixture, without repeating its transport tests.
-    test_protocol_discovery_notifications_and_invalid_transport = None
-    test_bearer_host_and_origin_guards = None
-    test_live_project_and_measurements_are_read_only = None
-    test_parallel_http_and_desktop_reads_share_owner_thread = None
-    test_configuration_conflict_rotation_and_shutdown_release_socket = None
-
+class MCPEditingTests(MCPFixture):
     def writable(self):
         self.runtime.call("mcp.configure", dict(access="read-write"))
         self.start()
 
     def agent(self, name, **arguments):
-        if OPERATIONS[name]["write"] or "revision" in OPERATIONS[name]["definition"]["inputSchema"]["required"]:
-            arguments.setdefault("revision", self.runtime.call("state")["revision"])
         response = self.tool(name, arguments)
         self.assertFalse(response["isError"], response)
-        return json.loads(response["content"][0]["text"])
+        self.assertLess(len(response["content"][0]["text"]), 150)
+        return response["structuredContent"]
+
+    def setup_estimate(self):
+        self.agent("project", action="new")
+        self.agent("batch", ops=[
+            dict(tool="upsert_items", args=dict(kind="resource", items=[dict(code="R", description="Material", unit="kg", rate="10", category="Materials")])),
+            dict(tool="upsert_items", args=dict(kind="schedule", items=[dict(code="A", description="Work", unit="m3", category="Civil")])),
+            dict(tool="edit_analysis", args=dict(code="A", ops=[dict(action="add", kind="Group", ref="materials"), dict(action="add", target="resource", id="materials", code="R", qty="4")]))])
 
     def test_agent_prepares_calculates_measures_exports_saves_and_reopens(self):
         self.writable()
-        definitions = {tool["name"]: tool for tool in self.status["tools"]}
-        self.assertTrue(definitions["schedule.editor.edit"]["annotations"]["destructiveHint"])
-        self.assertFalse(definitions["schedule.editor.edit"]["annotations"]["readOnlyHint"])
-        self.assertTrue(definitions["database.inspect"]["annotations"]["readOnlyHint"])
-        self.agent("project.new")
-        self.agent("project.settings.edit", settings=dict(project_name="Agent estimate"))
-        self.agent("resources.editor.add", data=dict(code="R", description="Material", unit="kg", rate="10", category="Materials"))
-        schedule = self.agent("schedule.editor.add", data=dict(code="A", description="Work", unit="m3", category="Civil"))["data"]["selected"][0]
-        self.agent("analysis.load", code="A")
-        group = self.agent("analysis.add_row", kind="Group", description="Materials")["data"]["rows"][0]["id"]
-        analysis = self.agent("analysis.resource_add", id=group, code="R", library=True, qty="2*3")["data"]
-        self.assertEqual(Decimal(analysis["rate"]), 60)
-        resource = analysis["rows"][0]["_children"][0]["id"]
-        before = self.runtime.call("state")
-        edits = [dict(method="edit", id=resource, field="value", value="4")]
-        preview = self.agent("analysis.batch.preview", operations=edits)
-        self.assertEqual(Decimal(preview["data"]["rate"]), 40)
-        self.assertEqual(self.runtime.call("state"), before)
-        self.agent("analysis.batch", operations=edits)
-        self.assertEqual(Decimal(self.agent("analysis.undo")["data"]["rate"]), 60)
-        self.assertEqual(Decimal(self.agent("analysis.redo")["data"]["rate"]), 40)
-        self.agent("analysis.apply")
-        self.assertEqual(Decimal(self.agent("database.analysis", code="A")["data"]["rate"]), 40)
-        templates = self.agent("measurement.templates")["data"]
+        self.setup_estimate()
+        definition = self.agent("get_items", kind="schedule", codes=["A"], include=["analysis", "resources"])["data"]["items"][0]
+        self.assertEqual(Decimal(definition["rate"]), 40)
+        self.assertEqual(definition["analysis"][0]["resources"][0][1], "4")
+        templates = self.agent("get_measurements", section="templates")["data"]["templates"]
         self.assertEqual({value["group"] for value in templates}, {"General", "Civil", "E&M"})
-        identity = self.agent("measurement.add", template="_1_NLBH", description="Dimensions")["data"]["selected"][0]
-        self.agent("measurement.record_add", id=identity, count=2)
-        detail = self.agent("measurement.detail", id=identity)["data"]["detail"]
-        records = detail["rows"]
-        self.agent("measurement.record_edit_many", id=identity, edits=[
-            dict(id=records[0]["id"], field="c2", value="2*3"), dict(id=records[0]["id"], field="c3", value="2+2"),
-            dict(id=records[1]["id"], field="c3", value="2")])
-        self.agent("measurement.link", id=identity, slot=0, code="A", remark="Measured")
-        self.agent("measurement.update_quantities", rounding="No rounding")
-        rows = self.agent("schedule.editor.state")["data"]["rows"][0]["_children"]
-        self.assertEqual(Decimal(rows[0]["qty"]), 26)
-        self.assertEqual(Decimal(rows[0]["amount"]), 1040)
-        metadata = self.agent("database.inspect")["data"]
-        self.assertEqual(metadata["metadata"]["project_name"], "Agent estimate")
-        self.assertEqual((metadata["schedule_items"], metadata["resources"]), (1, 1))
+        nlb = next(t for t in templates if t["code"] == "_1_NLBH")
+        self.assertEqual(nlb["columns"][1]["field"], "c1")
+        self.assertFalse(nlb["columns"][1]["editable"])
+        identity = self.agent("edit_measurements", ops=[dict(action="create", template="_1_NLBH", description="Dimensions", links=[dict(code="A", remark="Measured")], records=[{"No":"2*3", "L":"2+2"}, {"L":"2"}])])["data"]["results"][0]["id"]
+        self.agent("recalculate", what="quantities", rounding="No rounding")
+        self.assertEqual(Decimal(self.agent("get_summary")["data"]["grand_total"]), 1040)
+        self.assertEqual(Decimal(self.agent("get_items", kind="schedule", codes=["A"])["data"]["items"][0]["qty"]), 26)
         with tempfile.TemporaryDirectory() as directory:
             path, book = Path(directory) / "estimate.eproj", Path(directory) / "estimate.xlsx"
-            self.agent("project.export_xlsx", path=str(book))
+            self.agent("project", action="export_xlsx", path=str(book))
             self.assertGreater(book.stat().st_size, 0)
-            self.agent("project.save_copy", path=str(path))
+            self.agent("project", action="save_copy", path=str(path))
             original = path.read_bytes()
-            self.agent("schedule.editor.edit", id=schedule, field="qty", value="27")
+            self.agent("upsert_items", kind="schedule", items=[dict(code="A", qty="27")])
             self.assertEqual(path.read_bytes(), original)
-            saved = self.agent("project.save")["data"]
+            saved = self.agent("project", action="save")["data"]
             self.assertEqual(Path(saved["backup"]).read_bytes(), original)
-            self.agent("project.open", path=str(path), discard=True)
-            measured = self.agent("measurement.state")["data"]["rows"][0]["id"]
-            row = self.agent("measurement.detail", id=measured)["data"]["detail"]["rows"][0]
+            self.agent("project", action="open", path=str(path), discard=True)
+            measured = self.agent("get_measurements")["data"]["items"][0]["id"]
+            row = self.agent("get_measurements", id=measured)["data"]["rows"][0]
             self.assertEqual((row["c2"], row["_display"]["c2"], row["_display"]["c1"]), ("2*3", "6", "[2*3,2+2,,]"))
 
-    def test_attached_database_metadata_read_import_and_source_preservation(self):
+    def test_source_parent_import_placement_conflicts_and_source_preservation(self):
         self.writable()
-        self.agent("project.new")
+        self.agent("project", action="new")
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "library.eproj"
             source = Service()
             try:
                 source.call("project.new", {})
+                for code, parent in (("1.2", ""), ("1.2.1", "1.2"), ("1.2.2", "1.2")):
+                    source.call("schedule.editor.add", dict(revision=source.revision, data=dict(code=code, parent=parent, rate="25", category="Work")))
                 source.call("resources.editor.add", dict(revision=source.revision, data=dict(code="R", rate="8", unit="kg", category="Materials")))
-                source.call("schedule.editor.add", dict(revision=source.revision, data=dict(code="DB", rate="25", category="Work")))
                 source.call("project.save_copy", dict(path=str(path)))
             finally:
                 source.close()
             original = hashlib.sha256(path.read_bytes()).digest()
-            library = self.agent("library.attach", path=str(path))["data"][0]["id"]
-            self.assertEqual(self.agent("database.inspect", source=library)["data"]["resources"], 1)
-            self.assertEqual(Decimal(self.agent("database.resource", source=library, code="R")["data"]["rate"]), 8)
-            self.assertEqual(Decimal(self.agent("database.analysis", source=library, code="DB")["data"]["rate"]), 25)
-            for kind in ("schedule", "resources"):
-                row = self.agent(kind + ".editor.state", source=library)["data"]["rows"][0]["_children"][0]
-                self.agent(kind + ".editor.add_from_library", source=library, ids=[row["id"]])
-            before = self.runtime.call("state")
-            self.agent("database.analysis", source=library, code="DB")
-            self.assertEqual(self.runtime.call("state"), before)
+            data = self.agent("describe_source", source=str(path))["data"]
+            self.assertIn("categories", data)
+            imported = self.agent("import_items", source=str(path), kind="schedule", codes=["1.2.1"], qty={"1.2.1":"3"})["data"]
+            self.assertEqual(imported["parents"], 1)
+            self.assertEqual(imported["code_map"], {"1.2":"1.2", "1.2.1":"1.2.1"})
+            self.agent("upsert_items", kind="schedule", items=[dict(code="1.10", category="Work"), dict(code="1.1", category="Work")])
+            self.assertEqual([r["code"] for r in self.agent("browse", kind="schedule", under="Work")["data"]["items"]], ["1.1", "1.2", "1.10"])
+            self.assertEqual(self.agent("get_items", kind="schedule", codes=["1.2.1"])["data"]["items"][0]["parent_code"], "1.2")
+            self.agent("import_items", source=str(path), kind="resource", codes=["R"])
+            self.assertEqual(Decimal(self.agent("get_items", source=str(path), kind="resource", codes=["R"])["data"]["items"][0]["rate"]), 8)
+            self.assertTrue(self.tool("import_items", dict(source=str(path), kind="resource", codes=["R"], on_conflict="error"))["isError"])
+            self.agent("import_items", source=str(path), kind="resource", codes=["R"], on_conflict="update")
             self.assertEqual(hashlib.sha256(path.read_bytes()).digest(), original)
 
-    def test_read_mode_revision_races_atomic_failure_and_access_boundaries(self):
+    def test_revision_races_atomic_failure_and_access_boundaries(self):
         self.start()
-        self.assertTrue(self.tool("project.new", dict(revision=0))["isError"])
-        self.assertNotIn("project.new", {item["name"] for item in self.status["tools"]})
+        self.assertEqual(self.tool("project", dict(action="new"))["structuredContent"]["error"]["code"], "read_only")
+        self.assertEqual(len(self.status["tools"]), 8)
         self.runtime.call("mcp.stop")
         self.writable()
-        self.agent("project.new")
-        identity = self.agent("schedule.editor.add", data=dict(code="A", description="Original", rate="3", category="Work"))["data"]["selected"][0]
-        before = self.agent("schedule.editor.state")
-        failure = self.tool("schedule.editor.edit_many", dict(revision=before["revision"], edits=[dict(id=identity, field="description", value="Changed"), dict(id=identity, field="rate", value="1/0")]))
+        self.agent("project", action="new")
+        self.agent("upsert_items", kind="schedule", items=[dict(code="A", description="Original", rate="3", category="Work")])
+        before = self.runtime.call("state")
+        failure = self.tool("batch", dict(ops=[dict(tool="upsert_items", args=dict(kind="schedule", items=[dict(code="A", description="Changed")])), dict(tool="upsert_items", args=dict(kind="schedule", items=[dict(code="A", rate="1/0")]))]))
         self.assertTrue(failure["isError"])
-        self.assertEqual(self.agent("schedule.editor.state"), before)
-        self.assertTrue(self.tool("schedule.editor.edit", dict(revision=True, id=identity, field="qty", value="2"))["isError"])
-        self.assertTrue(self.tool("schedule.editor.edit", dict(revision=before["revision"], id=identity, field="qty", value="2", source="external"))["isError"])
+        self.assertEqual(self.runtime.call("state"), before)
+        self.assertEqual(self.agent("get_items", kind="schedule", codes=["A"])["data"]["items"][0]["description"], "Original")
+        self.assertTrue(self.tool("upsert_items", dict(if_revision=True, kind="schedule", items=[]))["isError"])
+        self.assertTrue(self.tool("upsert_items", dict(kind="schedule", items=[], source="external"))["isError"])
         def edit(value):
-            return self.tool("schedule.editor.edit", dict(revision=before["revision"], id=identity, field="qty", value=value))
+            return self.tool("upsert_items", dict(if_revision=before["revision"], kind="schedule", items=[dict(code="A", qty=value)]))
         with ThreadPoolExecutor(max_workers=2) as workers:
             results = list(workers.map(edit, ["4", "5"]))
         self.assertEqual(sorted(result["isError"] for result in results), [False, True])
         self.assertEqual(self.runtime.call("state")["revision"], before["revision"] + 1)
+        self.assertEqual(self.tool("state")["structuredContent"]["error"]["code"], "unknown_tool")
         self.assertTrue(self.tool("mcp.stop")["isError"])
         self.assertTrue(self.runtime.call("mcp.status")["running"])
 
+    def test_batch_one_undo_and_failure_preserves_redo_measurement_ids(self):
+        self.writable()
+        self.setup_estimate()
+        self.agent("history", action="undo")
+        self.assertEqual(self.agent("get_state")["data"]["counts"]["schedule"], 0)
+        self.agent("history", action="redo")
+        before = self.runtime.call("state")
+        result = self.tool("batch", dict(ops=[dict(tool="edit_measurements", args=dict(ops=[dict(action="create", template="_1_NLBH", records=[{"L":"2"}])])), dict(tool="upsert_items", args=dict(kind="schedule", items=[dict(code="A", rate="1/0")]))]))
+        self.assertTrue(result["isError"])
+        self.assertEqual(self.runtime.call("state"), before)
+        self.assertEqual(self.agent("get_measurements")["data"]["total"], 0)
+        self.agent("history", action="undo")
+        self.assertEqual(self.agent("get_state")["data"]["counts"]["schedule"], 0)
+        self.agent("history", action="redo")
+        self.assertEqual(Decimal(self.agent("get_items", kind="schedule", codes=["A"])["data"]["items"][0]["rate"]), 40)
+
+    def test_draft_protection_preview_and_computed_column_errors(self):
+        self.writable()
+        self.setup_estimate()
+        self.runtime.call("analysis.load", dict(code="A"))
+        row = self.runtime.call("state")["rows"][0]["_children"][0]
+        self.runtime.call("edit", dict(revision=self.runtime.call("state")["revision"], id=row["id"], field="value", value="8"))
+        draft = self.runtime.call("state")
+        self.assertEqual(self.tool("edit_analysis", dict(code="A", ops=[]))["structuredContent"]["error"]["code"], "draft_conflict")
+        self.assertEqual(self.runtime.call("state"), draft)
+        preview = self.agent("edit_analysis", code="A", ops=[dict(action="edit", id="r0:0", field="value", value="7")], preview=True, discard_draft=True)
+        self.assertEqual(Decimal(preview["data"]["rate"]), 70)
+        self.assertEqual(preview["revision"], draft["revision"])
+        self.assertEqual(self.runtime.call("state"), draft)
+        self.agent("edit_analysis", code="A", ops=[], discard_draft=True)
+        before = self.runtime.call("state")
+        result = self.tool("edit_measurements", dict(ops=[dict(action="create", template="_1_NLBH", records=[{"Breakup":"2"}])]))
+        error = result["structuredContent"]["error"]
+        self.assertEqual(error["code"], "not_editable")
+        self.assertEqual(error["field"], "c1")
+        self.assertIn("c2", error["allowed"])
+        self.assertEqual(self.runtime.call("state"), before)
+        self.assertEqual(self.agent("get_measurements")["data"]["total"], 0)
+
     def test_failed_recovery_checkpoint_reports_committed_operation(self):
         self.writable()
-        self.agent("project.new")
+        self.agent("project", action="new")
         with patch.object(Service, "checkpoint_recovery", side_effect=OSError("Unavailable")):
-            result = self.agent("schedule.editor.add", data=dict(code="A", category="Work"))
-        self.assertIn("Operation applied", result["warning"])
-        self.assertEqual(self.agent("schedule.editor.state")["data"]["total"], 1)
+            result = self.agent("upsert_items", kind="schedule", items=[dict(code="A", category="Work")])
+        self.assertEqual(result["warnings"][0]["code"], "recovery_failed")
+        self.assertEqual(self.agent("get_state")["data"]["counts"]["schedule"], 1)
 
     def test_stopped_listener_rejects_an_already_accepted_incomplete_write(self):
         self.writable()
-        revision = self.agent("project.new")["revision"]
-        body = json.dumps(dict(jsonrpc="2.0", id=100, method="tools/call", params=dict(name="schedule.editor.add", arguments=dict(revision=revision, data=dict(code="LATE", category="Work"))))).encode()
+        revision = self.agent("project", action="new")["revision"]
+        body = json.dumps(dict(jsonrpc="2.0", id=100, method="tools/call", params=dict(name="upsert_items", arguments=dict(if_revision=revision, kind="schedule", items=[dict(code="LATE", category="Work")])))).encode()
         parsed = threading.Event()
         original = BaseHTTPRequestHandler.parse_request
         def parse(handler):
@@ -167,6 +184,68 @@ class MCPEditingTests(transport.MCPServerTests):
             client.sendall(body)
             response = http.client.HTTPResponse(client)
             response.begin()
-            result = json.loads(response.read())
-            self.assertTrue(result["result"]["isError"])
+            self.assertTrue(json.loads(response.read())["result"]["isError"])
         self.assertEqual(self.runtime.call("schedule.editor.state")["total"], 0)
+
+    def test_move_subtree_reparent_cycle_rollback_and_measurement_links(self):
+        self.writable()
+        self.agent("project", action="new")
+        self.agent("upsert_items", kind="schedule", items=[dict(code="P", category="Work"), dict(code="Q", category="Work"), dict(code="C", parent="P", unit="m", category="Work"), dict(code="G", parent="C", unit="m", category="Work")])
+        identity = self.agent("edit_measurements", ops=[dict(action="create", template="_1_NLBH", links=[dict(code="C")], records=[{"L":"7"}])])["data"]["results"][0]["id"]
+        self.agent("move_items", kind="schedule", codes=["P", "C"], position=dict(after="Q"))
+        rows = self.agent("get_items", kind="schedule", codes=["C", "G"])["data"]["items"]
+        self.assertEqual([r["parent_code"] for r in rows], ["P", "C"])
+        self.agent("move_items", kind="schedule", codes=["C"], position=dict(parent="Q", index=0))
+        self.assertEqual(self.agent("get_items", kind="schedule", codes=["C"])["data"]["items"][0]["parent_code"], "Q")
+        before = self.runtime.call("state")
+        self.assertTrue(self.tool("move_items", dict(kind="schedule", codes=["Q"], position=dict(parent="G", index=0)))["isError"])
+        self.assertEqual(self.runtime.call("state"), before)
+        detail = self.agent("get_measurements", id=identity)["data"]
+        self.assertEqual(detail["links"][0]["code"], "C")
+        self.assertEqual(Decimal(detail["totals"][0]), 7)
+        self.agent("history", action="undo")
+        self.assertEqual(self.agent("get_items", kind="schedule", codes=["C"])["data"]["items"][0]["parent_code"], "P")
+
+    def test_delete_usage_policy_preview_and_undo(self):
+        self.writable()
+        self.setup_estimate()
+        revision = self.runtime.call("state")["revision"]
+        preview = self.agent("delete_items", kind="resource", codes=["R"], preview=True)
+        self.assertEqual(preview["data"]["used_resources"], ["R"])
+        self.assertEqual(preview["revision"], revision)
+        self.assertTrue(self.tool("delete_items", dict(kind="resource", codes=["R"], policy="protect"))["isError"])
+        self.agent("delete_items", kind="resource", codes=["R"], policy="all")
+        self.assertEqual(self.agent("get_state")["data"]["counts"]["resource"], 0)
+        self.agent("history", action="undo")
+        self.assertEqual(Decimal(self.agent("get_items", kind="schedule", codes=["A"])["data"]["items"][0]["rate"]), 40)
+
+    def test_stored_import_rates_recalculate_preview_and_undo(self):
+        self.writable()
+        self.agent("project", action="new")
+        imported = self.agent("import_items", source="bundled:DSREM2022.eproj", kind="schedule", codes=["1.10.1"], rate_mode="stored")
+        self.assertIn("1.10.1", [w["code"] for w in imported["warnings"]])
+        def rate():
+            return Decimal(self.agent("get_items", kind="schedule", codes=["1.10.1"])["data"]["items"][0]["rate"])
+        self.assertEqual(rate(), 1015)
+        state = self.runtime.call("state")
+        self.agent("recalculate", what="rates", codes=["1.10.1"], preview=True)
+        self.assertEqual(self.runtime.call("state"), state)
+        self.assertEqual(rate(), 1015)
+        self.agent("recalculate", what="rates", codes=["1.10.1"])
+        self.assertEqual(rate(), 1061)
+        self.agent("history", action="undo")
+        self.assertEqual(rate(), 1015)
+
+    def test_analysis_duplicate_and_measurement_base_captions_after_link_remarks(self):
+        self.writable()
+        self.setup_estimate()
+        self.agent("edit_analysis", code="A", ops=[dict(action="duplicate", ids=["r0"], id="r0"), dict(action="add", kind="Subtotal")])
+        definition = self.agent("get_items", kind="schedule", codes=["A"], include=["analysis"])["data"]["items"][0]
+        self.assertEqual(Decimal(definition["rate"]), 80)
+        self.assertEqual(len(definition["analysis"]), 3)
+        self.assertTrue(all(len(row["resources"]) == 1 for row in definition["analysis"][:2]))
+        template = next(t for t in self.agent("get_measurements", section="templates")["data"]["templates"] if t["code"] == "_2_LLLLL")
+        column = next(c for c in template["columns"] if c["editable"] and c["numeric"])
+        identity = self.agent("edit_measurements", ops=[dict(action="create", template=template["code"], links=[dict(code="A", remark="First quantity")], records=[{column["title"]:"2"}])])["data"]["results"][0]["id"]
+        detail = self.agent("get_measurements", id=identity)["data"]
+        self.assertEqual(detail["rows"][0][column["field"]], "2")

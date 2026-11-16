@@ -32,6 +32,7 @@ class ProjectEditor:
         self.clipboard = None
         self.libraries = {}
         self.library_paths = {}
+        self._compound = False
         self.ensure_ids()
 
     @property
@@ -39,6 +40,8 @@ class ProjectEditor:
         return self.owner.db
 
     def ensure_ids(self, meas=None):
+        if self.db is None and meas is None:
+            return
         items = (meas if meas is not None else self.db.get_measurement()).items
         while len(self.ids) < len(items):
             self.ids.append(uuid4().hex)
@@ -87,6 +90,12 @@ class ProjectEditor:
         self.owner.revision += 1
 
     def mutate(self, action, reload=True):
+        if self._compound:
+            active_id = self.db.get_item_key(self.owner.model.code) if self.owner.loaded else None
+            result = action()
+            if reload:
+                self.reload_analysis(active_id)
+            return result
         before = self.snapshot()
         active_row = (
             self.db.ScheduleTable.get_or_none(
@@ -114,6 +123,64 @@ class ProjectEditor:
         if reload:
             self.reload_analysis(active_row.id if active_row else None)
         return result
+
+    def compound(self, action, preview=False):
+        """One SQL transaction and undo entry, including the service's draft state.
+
+        Nested application adapters still perform their normal validation and
+        reloads, but cannot create snapshots inside an open SQLite transaction.
+        Nothing is published to history until the outer operation commits.
+        """
+        if self._compound:
+            if preview:
+                raise ValueError("Nested previews are not supported")
+            return action()
+        owner = self.owner
+        before = self.snapshot()
+        state = {key: copy.deepcopy(getattr(owner, key)) for key in (
+            "model", "loaded", "history", "future", "saved_signature",
+            "revision", "workspace_dirty", "clipboard",
+        )}
+        clipboard = copy.deepcopy(self.clipboard)
+
+        class PreviewRollback(Exception):
+            pass
+
+        self._compound = True
+        try:
+            try:
+                with self.db.database.atomic():
+                    result = action()
+                    if preview:
+                        raise PreviewRollback()
+            except PreviewRollback:
+                pass
+            if preview:
+                for key, value in state.items():
+                    setattr(owner, key, value)
+                self.ids, self.record_ids = before[1:]
+                self.clipboard = clipboard
+                before[0].unlink()
+            else:
+                self.history.append(before)
+                for snapshot in self.future:
+                    snapshot[0].unlink(missing_ok=True)
+                self.future.clear()
+                if len(self.history) > 30:
+                    self.history.pop(0)[0].unlink(missing_ok=True)
+                owner.workspace_dirty = True
+                owner.revision = state["revision"] + 1
+            return result
+        except Exception:
+            for key, value in state.items():
+                setattr(owner, key, value)
+            self.ids, self.record_ids = before[1:]
+            self.clipboard = clipboard
+            before[0].unlink(missing_ok=True)
+            raise
+        finally:
+            self._compound = False
+            self.db.stack.clear()
 
     def insert_schedule_item(self, item):
         table = self.db.ScheduleTable
@@ -214,6 +281,7 @@ class ProjectEditor:
             table.update(code=code).where(table.id == identity).execute()
 
     def state(self, kind, p):
+        from .metadata import presentation
         if p.get("source") and p["source"] not in self.libraries:
             raise ValueError("Library is no longer attached")
         db = (
@@ -368,6 +436,7 @@ class ProjectEditor:
             undo=bool(self.history),
             redo=bool(self.future),
             revision=self.owner.revision,
+            enrichment=presentation(db),
             categories=[
                 r.description or "" for r in category.select().order_by(category.order)
             ],
@@ -658,6 +727,17 @@ class ProjectEditor:
             raise ValueError("Choose an attached library")
         source = self.libraries[identity][1]
         categories, records = self.selection(kind, params.get("ids"), source)
+        if kind == "schedule" and params.get("include_parents", False):
+            selected = {row.id: row for row in records}
+            for row in list(records):
+                current, seen = row.parent, {row.id}
+                while current:
+                    if current.id in seen:
+                        raise ValueError("Schedule hierarchy contains a cycle")
+                    seen.add(current.id)
+                    selected[current.id] = current
+                    current = current.parent
+            records = list(selected.values())
         destination_category = (
             self.db.ResourceCategoryTable
             if kind == "resources"
@@ -729,13 +809,31 @@ class ProjectEditor:
         from .insertion import prepare, place
         target = dict(ids=params.get("target_ids", []), destination=not categories)
         inserted_codes = []
+        conflict = params.get("on_conflict")
+        code_map = {}
         for index, row in enumerate(records):
             if index % 100 == 0:
                 progress("Importing library items: " + str(index + 1))
             if kind == "resources":
                 item = source.get_resource(row.code, modify_code=bool(prefix))
-                if self.db.get_resource(item.code):
-                    continue
+                existing = self.db.get_resource(item.code)
+                code_map[row.code] = item.code
+                if existing:
+                    if conflict == "error":
+                        raise ValueError("Resource code already exists: " + item.code)
+                    if conflict in (None, "skip"):
+                        continue
+                    if conflict == "update":
+                        if not self.db.update_resource(item.code, res_model=item):
+                            raise ValueError("Unable to update resource")
+                        inserted_codes.append(item.code)
+                        imported += 1
+                        continue
+                    base, counter = item.code, 1
+                    while self.db.get_resource(item.code):
+                        item.code = base + "-copy" + (str(counter) if counter > 1 else "")
+                        counter += 1
+                    code_map[row.code] = item.code
                 prepare(self, kind, item, target)
                 if not self.db.insert_resource(item):
                     raise ValueError("Unable to import resource")
@@ -751,8 +849,15 @@ class ProjectEditor:
                         item.ana_items = item.ana_items[:-count] + copy.deepcopy(replacement)
                     item.remarks = source.get_project_settings().get("project_item_code", "") + " " + item.code
                 code = item.code
+                existing = self.db.get_item(code, copy_ana=False)
+                if existing and conflict == "error":
+                    raise ValueError("Schedule code already exists: " + code)
+                if existing and conflict == "skip":
+                    renamed[row.code] = code
+                    code_map[row.code] = code
+                    continue
                 counter = 1
-                while (
+                while conflict != "update" and (
                     self.db.ScheduleTable.select()
                     .where(self.db.ScheduleTable.code == code)
                     .exists()
@@ -760,16 +865,23 @@ class ProjectEditor:
                     code = item.code + "-copy" + (str(counter) if counter > 1 else "")
                     counter += 1
                 renamed[item.code] = code
+                code_map[row.code] = code
                 item.code = code
                 item.parent = renamed.get(item.parent)
                 if modify:
                     modified_rates[item.code] = item.rate
                 prepare(self, kind, item, target)
-                if not self.insert_schedule_item(item):
+                if existing and conflict == "update":
+                    inserted = self.db.insert_item_atomic(item, update=True)
+                else:
+                    inserted = self.insert_schedule_item(item)
+                if not inserted:
                     raise ValueError("Unable to import schedule item")
             inserted_codes.append(item.code)
             imported += 1
         place(self, kind, inserted_codes, target)
+        if kind == "resources" and inserted_codes:
+            self.owner.update_dependent_rates(self.db, resources=inserted_codes)
         if renamed:
             self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
         # GTK Modify & Add retains the selected library item's multiplied stored rate,
@@ -778,7 +890,8 @@ class ProjectEditor:
             if not self.db.update_item_schedule(code, rate, 3):
                 raise ValueError("Unable to retain the modified library rate")
         table = self.db.ResourceTable if kind == "resources" else self.db.ScheduleTable
-        return dict(imported=imported, skipped=len(records) - imported, selected=[str(row.id) for row in table.select().where(table.code.in_(inserted_codes))])
+        return dict(imported=imported, skipped=len(records) - imported, code_map=code_map,
+                    selected=[str(row.id) for row in table.select().where(table.code.in_(inserted_codes))])
 
     def call(self, method, p, progress):
         if method == "library.attach":
@@ -807,6 +920,10 @@ class ProjectEditor:
         ):
             raise ValueError("Stale project edit; refresh the view")
         self.owner.guard_draft(p)
+        if method == "project.enrichment.clear":
+            from .metadata import clear
+            self.mutate(lambda: clear(self.db))
+            return dict(ok=True)
         if method in ("schedule.editor.analysis_rules.preview", "schedule.editor.analysis_rules.apply"):
             from .analysis_rules import run
             return run(self, p, apply=method.endswith(".apply"))

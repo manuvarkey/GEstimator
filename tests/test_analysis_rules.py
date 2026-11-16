@@ -124,9 +124,9 @@ class AnalysisRules(unittest.TestCase):
         rules = [rule(action="append", rows=[dict(kind="Weight", description="OH second", value="0.1")]), rule(value="0.3")]
         rules[1]["match"].update(occurrence="last", mode="any", conditions=[dict(field="description", operator="starts_with", value="OH"), dict(field="value", operator="lt", value="0")])
         self.s.mcp.access = "read-write"
-        preview = mcp(self.s, "schedule.editor.analysis_rules.preview", dict(revision=self.s.revision, ids=self.ids, rules=rules))
+        preview = mcp(self.s, "apply_analysis_rules", dict(if_revision=self.s.revision, scope=dict(codes=["A", "B"]), rules=rules))
         self.assertEqual(preview["data"]["rule_matches"], [2, 2])
-        mcp(self.s, "schedule.editor.analysis_rules.apply", dict(revision=self.s.revision, ids=self.ids, rules=rules))
+        mcp(self.s, "apply_analysis_rules", dict(if_revision=self.s.revision, scope=dict(codes=["A", "B"]), rules=rules, preview=False))
         item = self.s.db.get_item("A")
         weights = [row["value"] for row in item.ana_items if row["itemtype"] == 2]
         self.assertEqual(weights, [Decimal("0.1"), Decimal("0.3")])
@@ -138,7 +138,7 @@ class AnalysisRules(unittest.TestCase):
             dict(field="description", operator="not_contains", value="exclude"),
         ])
         self.s.mcp.access = "read-write"
-        preview = mcp(self.s, "schedule.editor.analysis_rules.preview", dict(revision=self.s.revision, ids=self.ids, rules=[nested]))
+        preview = mcp(self.s, "apply_analysis_rules", dict(if_revision=self.s.revision, scope=dict(codes=["A", "B"]), rules=[nested]))
         self.assertEqual(preview["data"]["rule_matches"], [2])
         self.call("apply", rules=[nested])
         self.assertEqual(self.rates(), dict(A=Decimal(25), B=Decimal("37.5"), D=Decimal(50)))
@@ -156,7 +156,7 @@ class AnalysisRules(unittest.TestCase):
         service = Service()
         try:
             nested = rule(conditions=[dict(mode="any", conditions=[dict(mode="all", conditions=[dict(field="description", operator="not_equals", value="Other")])])])
-            self.assertEqual(mcp(service, "analysis.rules.validate", dict(rules=[nested]))["data"], [nested])
+            self.assertEqual(service.call("analysis.rules.validate", dict(rules=[nested])), [nested])
             self.assertFalse(service.state()["project_open"])
             original = copy.deepcopy(service.state())
             too_deep = copy.deepcopy(nested)
