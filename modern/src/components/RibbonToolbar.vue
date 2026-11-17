@@ -46,6 +46,7 @@ function fit() {
     const buttons = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-action"));
     for (const button of buttons.reverse()) {
       if (width() <= available) break;
+      if (button.hasAttribute("data-ribbon-keep-label")) continue;
       if (button.getBoundingClientRect().width) button.dataset.ribbonMini = "true";
     }
   });
@@ -53,8 +54,12 @@ function fit() {
 onMounted(() => {
   resize = new ResizeObserver(fit);
   resize.observe(host.value!);
-  mutations = new MutationObserver(fit);
-  mutations.observe(host.value!, { childList: true, subtree: true, characterData: true });
+  mutations = new MutationObserver(records => {
+    // Cached views switch via v-show. Ignore the button sizing styles written
+    // by fit itself, but refit when a ribbon container becomes visible.
+    if (records.some(record => record.type !== "attributes" || !(record.target as Element).classList.contains("ribbon-action"))) fit();
+  });
+  mutations.observe(host.value!, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["style"] });
   fontChanges = new MutationObserver(fit);
   fontChanges.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
   document.fonts.addEventListener("loadingdone", fit);

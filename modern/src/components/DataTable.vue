@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, nextTick, ref, watch } from "vue";
-import { tableTextEditor } from "../tableTextEditor";
+import { tableTextEditor, tableInputEditor } from "../tableTextEditor";
 import { cellNavigation } from "../cellNavigation";
 import { rowDragSelection } from "../rowDragSelection";
 import {
@@ -85,7 +85,8 @@ defineExpose({
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
 });
 function editorColumns(columns: ColumnDefinition[]) {
-  return columns.map(column => column.editor === "textarea" ? { ...column, editor: tableTextEditor } : column);
+  return columns.map(column => column.editor === "textarea" ? { ...column, editor: tableTextEditor }
+    : column.editor === "input" ? { ...column, editor: tableInputEditor } : column);
 }
 function keyboard(event: KeyboardEvent) {
   if (!props.rowOnlySelection && navigation?.keyboard(event)) return;

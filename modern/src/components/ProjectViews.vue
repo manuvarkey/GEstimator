@@ -87,6 +87,7 @@ const recordPage = ref(0);
 const recordCount = ref(10);
 const recordsOpen = ref(false);
 const propertiesOpen = ref(false);
+const propertiesCategory = ref(false);
 const propertiesDetail = ref<any>();
 const properties = ref<{ description: string; links: { code: string; remark: string; label: string }[]; user_data: string[] }>({ description: "", links: [], user_data: [] });
 const propertiesRevision = ref(0);
@@ -101,6 +102,17 @@ const pickerError = ref("");
 let selectionRequest = 0;
 const mainTable = ref<InstanceType<typeof DataTable>>();
 const recordTable = ref<InstanceType<typeof DataTable>>();
+const measurementDescription = ref<HTMLTextAreaElement>();
+// TODO(user review): revise the 120-character heading/tooltip presentation.
+const measurementTitle = computed(() => {
+  const description = String(state.value?.detail?.description || "Measurement entry").replace(/\s+/g, " ").trim();
+  return description.length > 120 ? description.slice(0, 119).trimEnd() + "…" : description;
+});
+// TODO(user review): revise Edit description focusing a separate textarea.
+function focusMeasurementDescription() {
+  measurementDescription.value?.scrollIntoView({ block: "nearest" });
+  measurementDescription.value?.focus({ preventScroll: true });
+}
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
 const moveResourcesOpen = ref(false);
@@ -244,8 +256,6 @@ const columns = computed<ColumnDefinition[]>(() => {
       {
         title: "DESCRIPTION / REMARKS",
         field: "description",
-        editor: "textarea",
-        editable: cell => cell.getData().rowtype === "Category" && cell.getData().id !== "measurement:uncategorised",
         minWidth: 260,
       },
       { title: "TYPE", field: "type", width: 180 },
@@ -273,7 +283,7 @@ const columns = computed<ColumnDefinition[]>(() => {
           "remarks",
         ];
   return fields.map((field) => ({
-    title: field.toUpperCase(),
+    title: field === "vat" ? "TAX %" : field.toUpperCase(),
     field,
     minWidth: field === "description" ? 280 : 95,
     widthGrow: field === "description" ? 3 : 1,
@@ -587,7 +597,7 @@ async function showForm(mode = "add", child = false) {
     unit: "",
     rate: "0",
     qty: "0",
-    vat: "0",
+    vat: "0.0000",
     discount: "0",
     category: one.value?.category || (one.value?.rowtype === "Category" ? one.value.description : ""),
     parent: "",
@@ -638,6 +648,7 @@ async function showProperties() {
   if (one.value.type !== "Heading" && one.value.rowtype !== "Category" && state.value.detail?.id !== identity) await loadDetail();
   if (one.value?.id !== identity) return;
   const detail = one.value.rowtype === "Category" ? undefined : state.value.detail;
+  propertiesCategory.value = one.value.rowtype === "Category";
   propertiesDetail.value = detail;
   properties.value = { description: one.value.description, links: detail?.links.map((link: any) => ({ code: link.code, remark: link.remark, label: link.label })) || [], user_data: detail?.user_data.map((field: any) => field.value) || [] };
   propertiesRevision.value = state.value.revision;
@@ -667,7 +678,14 @@ async function chooseLink(code: string) {
   pickerOpen.value = false;
 }
 function activateRow(row: GridRow) {
-  if (source.value || row.rowtype === "Category") return;
+  if (source.value) return;
+  if (row.rowtype === "Category") {
+    if (isMeasurement.value && row.id !== "measurement:uncategorised") {
+      selected.value = [row]; selectionIds.value = [row.id];
+      void showProperties();
+    }
+    return;
+  }
   if (props.view === "schedule") emit("analysis", row.code);
   else if (props.view === "resources") void showForm("edit");
   else if (row.type !== "Heading") emit("entry", row.id);
@@ -1101,6 +1119,12 @@ watch(
             <small>RESOURCES</small>
           </div>
           <div v-if="isMeasurement" class="ribbon-group">
+            <div class="ribbon-actions">
+              <button class="ribbon-action" data-ribbon-keep-label aria-label="Edit records" :disabled="busy || !one || one.rowtype === 'Category'" @click="one && activateRow(one)"><AppIcon name="edit" /><span class="ribbon-label">Edit records</span></button>
+              <button class="ribbon-action" data-ribbon-keep-label aria-label="Properties…" :disabled="busy || !one || one.id === 'measurement:uncategorised'" @click="showProperties"><AppIcon name="settings" /><span class="ribbon-label">Properties</span></button>
+            </div><small>MEASUREMENT</small>
+          </div>
+          <div v-if="isMeasurement" class="ribbon-group">
             <div class="ribbon-actions ribbon-measure-actions">
             <select
               v-model="quantityRounding"
@@ -1217,11 +1241,12 @@ watch(
           Next
         </button>
       </div>
-      <div v-if="isMeasurement && entryId" class="measurement-entry-heading"><button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button><h2>{{ state?.detail?.description || 'Measurement entry' }}</h2></div>
+      <div v-if="isMeasurement && entryId" class="measurement-entry-heading"><button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button><h2 :title="state?.detail?.description" :aria-label="state?.detail?.description" @dblclick="focusMeasurementDescription">{{ measurementTitle }}</h2><button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy" @click="focusMeasurementDescription"><AppIcon name="edit" />Edit description</button></div>
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">
           <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
         </div>
+        <label class="field measurement-description">Description / remarks<textarea ref="measurementDescription" v-model="state.detail.description" aria-label="Measurement description / remarks" rows="2" :disabled="busy" @change="command('edit', { id: activeMeasurement, field: 'description', value: ($event.target as HTMLTextAreaElement).value })" /></label>
         <div class="measurement-links">
           <label
             v-for="(link, index) in state.detail.links"
@@ -1301,10 +1326,10 @@ watch(
         <div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="recordsOpen = false">Cancel</button><button class="button primary" :disabled="busy">Insert records</button></div>
       </form>
     </Dialog>
-    <Dialog v-model:visible="propertiesOpen" modal header="Measurement properties" class="workspace-dialog measurement-properties-dialog" :closable="!busy" :close-on-escape="!busy">
+    <Dialog v-model:visible="propertiesOpen" modal :header="propertiesCategory ? 'Edit measurement category' : 'Measurement properties'" class="workspace-dialog measurement-properties-dialog" :closable="!busy" :close-on-escape="!busy">
       <form @submit.prevent="saveProperties">
         <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>
-        <label class="field">Description / remarks<textarea v-model="properties.description" data-primary-input autofocus :disabled="busy" rows="3" /></label>
+        <label class="field">{{ propertiesCategory ? 'Category name' : 'Description / remarks' }}<textarea v-model="properties.description" data-primary-input autofocus :disabled="busy" :rows="propertiesCategory ? 1 : 3" /></label>
         <div class="measurement-properties-fields">
           <label v-for="(link, index) in properties.links" :key="index" class="field">{{ link.label }} · Schedule code {{ index + 1 }}
             <div class="file-input"><input v-model="link.code" :aria-label="'Property schedule code ' + (index + 1)" :disabled="busy" />
@@ -1354,7 +1379,7 @@ watch(
         ></template>
         <template v-else
           ><label class="field"
-            >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small v-if="formMode === 'add'">Suggested using the GTK numbering rules. Edit it, or leave blank to generate a code when inserting.</small></label
+            >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small v-if="formMode === 'add'">Suggested from the current numbering pattern. Edit it, or leave blank to generate a code when inserting.</small></label
           ><template v-if="formMode !== 'duplicate'"
             ><label class="field"
               >Description<textarea data-primary-input autofocus
@@ -1383,7 +1408,7 @@ watch(
                 >Parent code (optional)<input v-model="form.parent" /></label
             ></template>
             <div v-else class="field-pair">
-              <label class="field">VAT %<input v-model="form.vat" /></label
+              <label class="field">Tax %<input v-model="form.vat" /></label
               ><label class="field"
                 >Discount %<input v-model="form.discount"
               /></label></div></template
@@ -1536,7 +1561,7 @@ watch(
         </div>
         <div class="import-mapping">
           <label v-for="field in importFields" :key="field" class="field"
-            >{{ field
+            >{{ field === "vat" ? "Tax %" : field
             }}<select
               :value="importMapping[field] ?? ''"
               @change="

@@ -581,7 +581,7 @@ def get_orm_model(bind_database):
         description = peewee.CharField()
         unit = peewee.CharField()
         rate = peewee.DecimalField(decimal_places = 2, auto_round = True)
-        vat = peewee.DecimalField(decimal_places = 2, auto_round = True, null = True)
+        vat = peewee.DecimalField(decimal_places = 4, auto_round = True, null = True)
         discount = peewee.DecimalField(decimal_places = 2, auto_round = True, null = True)
         reference = peewee.CharField(null = True)
         category = peewee.ForeignKeyField(ResourceCategoryTable, null = True, on_delete = 'CASCADE', backref='resources')
@@ -3303,7 +3303,7 @@ class ScheduleDatabase:
                 unit = item[2]
                 qty = item[3]
                 basicrate = Currency(item[4])
-                vat = Currency(item[5]) if item[5] is not None else Decimal(0)
+                vat = Currency(item[5], 4) if item[5] is not None else Decimal(0)
                 discount = Currency(item[6]) if item[6] is not None else Decimal(0)
                 rate = Currency(basicrate*(1+vat/100)*(1-discount/100))
                 amount_formula = '=ROUND(D' + str(s_row) + '*E' + str(s_row) + ',2)'

@@ -1,5 +1,40 @@
 # Vue/Tauri migration handoff
 
+## Latest continuation checkpoint — 2026-11-17
+
+Current checkout: `/home/manu/Documents/Projects/GEstimator`, branch
+`migration/vue-tauri-desktop`. The user runs the modern app with
+`npm run tauri dev`.
+
+The user requested a checkpoint and a new thread. **Three current UI
+implementations require revision and are not accepted as complete:**
+
+- Hierarchy indentation/lines during table text editing: the captured-coordinate
+  tree-prefix overlay in `modern/src/tableTextEditor.ts` is provisional.
+- Record-page description/remarks editing: the Edit description action focusing
+  a separate textarea in `modern/src/components/ProjectViews.vue` is provisional.
+- Record-page heading display: the 120-character ellipsis/two-line clamp/full
+  tooltip in that component is provisional.
+
+Preserve the remaining changes while revisiting those items. The exact replacement
+interaction/layout is not yet specified. See the prominent review status and full
+implementation record in [workbench-feedback.md](workbench-feedback.md).
+
+This checkpoint also includes measurement category editing, main-page Properties
+and Edit Records, blank-row/editor sizing, inset focus outlines and field spacing,
+and four-place Tax precision. Existing `vat` storage/API keys remain compatible;
+legacy project round-trip, undo and spreadsheet import/export were checked.
+Prior checkpoints: `cca316f` (MCP), `2245ced` (workbench), `cc09d25` (controls/focus).
+
+Validation before this review: 46 browser tests passed in a full run; the Python
+suite passed 122 tests plus the subsequently added tax import/export check;
+production frontend, standalone backend and offline native development builds
+passed. Those tests verify the current implementation, **not user acceptance of
+the three outstanding UI behaviors**. Changes after that validation only mark
+this handoff and add provisional-code comments.
+
+## Earlier checkpoint history
+
 Resume on `migration/vue-tauri-desktop`. The ribbon/MCP checkpoint is `fe9cd45`, following `c28a449` (database selectors), `c813c2c` (editor efficiency), `c649ec6` (clipboard/insertion) and `8f6c35c` (Program Settings); the compact workbench/read-write agent continuation is described below. The current Linux checkout is `/home/manu/Documents/GitHub/GEstimator`; the earlier Windows checkout is `C:\Users\HP\Documents\GitHub\GEstimator`. Use the [parity ledger](parity.md) for feature status, the [architecture notes](architecture.md) for implementation context, and the [validation record](validation.md) for test evidence.
 
 ## Completed through the checkpoint

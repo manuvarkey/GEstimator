@@ -137,3 +137,74 @@ class DesktopRefreshTests(unittest.TestCase):
         page = self.call("resources.editor.state", query="polyvinyl chloride", offset=100, limit=20)
         self.assertEqual(page["total"], 105)
         self.assertEqual(len([row for row in self.flat(page["rows"]) if row["rowtype"] != "Category"]), 5)
+
+    def test_four_place_tax_survives_analysis_apply_save_and_reopen(self):
+        from decimal import Decimal
+        resource = self.s.db.ResourceTable.get(code="R")
+        self.call("resources.editor.edit_many", edits=[dict(id=str(resource.id), field="rate", value="10000"), dict(id=str(resource.id), field="vat", value="1.2345")])
+        self.call("analysis.load", code="A")
+        group = self.call("add", kind="Group")["rows"][0]["id"]
+        draft = self.call("resource.add", id=group, code="R", library=True, qty="1")
+        self.assertEqual(draft["rate"], "10123.45")
+        self.call("analysis.apply")
+        schema = self.s.db.database.execute_sql("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tax.eproj"
+            self.call("project.save_copy", path=str(path))
+            self.call("project.open", path=str(path))
+            self.assertEqual(self.s.db.ResourceTable.get(code="R").vat, Decimal("1.2345"))
+            self.assertEqual(self.s.db.ScheduleTable.get(code="A").rate, Decimal("10123.45"))
+            self.assertEqual(self.s.db.database.execute_sql("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall(), schema)
+            before = path.read_bytes()
+            self.call("analysis.load", code="A")
+            row = self.s.state()["rows"][0]["_children"][0]
+            changed = self.call("edit", id=row["id"], field="vat", value="2.34567")
+            self.assertEqual(changed["rows"][0]["_children"][0]["vat"], "2.3457")
+            self.call("undo")
+            self.assertEqual(self.s.state()["rows"][0]["_children"][0]["vat"], "1.2345")
+            self.assertEqual(path.read_bytes(), before)
+
+    def test_custom_resource_tax_uses_four_places(self):
+        self.call("analysis.load", code="A")
+        group = self.call("add", kind="Group")["rows"][0]["id"]
+        draft = self.call("resource.add", id=group, code="TAX", description="Taxed resource", unit="each", rate="10000", qty="1", vat="1.23456")
+        self.assertEqual(draft["rows"][0]["_children"][0]["vat"], "1.2346")
+        self.assertEqual(draft["rate"], "10123.46")
+
+    def test_four_place_tax_in_legacy_project_preserves_schema_and_source(self):
+        from decimal import Decimal
+        source = Path(__file__).resolve().parents[1] / "estimator/database/DSREM2022.eproj"
+        original = source.read_bytes()
+        self.call("project.open", path=str(source), discard=True)
+        schema = self.s.db.database.execute_sql("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+        self.call("resources.editor.add", data=dict(code="TAX.4.TEST", description="Four-place tax", unit="each", rate="10000", vat="0.1234", category="Tax verification"))
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "legacy-with-tax.eproj"
+            self.call("project.save_copy", path=str(path))
+            self.call("project.open", path=str(path))
+            self.assertEqual(self.s.db.ResourceTable.get(code="TAX.4.TEST").vat, Decimal("0.1234"))
+            self.assertEqual(self.s.db.database.execute_sql("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall(), schema)
+        self.assertEqual(source.read_bytes(), original)
+
+    def test_tax_percent_spreadsheet_header_imports_and_exports_four_places(self):
+        from decimal import Decimal
+        from openpyxl import Workbook, load_workbook
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tax-input.xlsx"
+            book = Workbook()
+            book.active.append(["Code", "Description", "Unit", "Rate", "Tax %", "Category"])
+            book.active.append(["TX", "Taxed resource", "each", "10000", "1.2345", "Tax verification"])
+            book.save(path)
+            book.close()
+            preview = self.call("project.import_preview", path=str(path))
+            self.assertEqual(preview["mapping"]["vat"], 4)
+            self.call("project.import_apply", path=str(path), kind="resources", mapping=preview["mapping"])
+            self.assertEqual(self.s.db.ResourceTable.get(code="TX").vat, Decimal("1.2345"))
+            exported = Path(folder) / "tax-output.xlsx"
+            self.call("project.export_xlsx", path=str(exported))
+            book = load_workbook(exported, data_only=True)
+            try:
+                rows = [row for sheet in book for row in sheet.values if row and row[0] == "TX"]
+                self.assertTrue(any(Decimal(str(row[4])) == Decimal("1.2345") for row in rows if len(row) > 4 and row[4] is not None))
+            finally:
+                book.close()

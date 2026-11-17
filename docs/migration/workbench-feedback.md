@@ -1,5 +1,25 @@
 # Workbench feedback implementation
 
+## Latest user review — revision required
+
+The user has **not accepted these three implementations as final**. They are
+retained in this checkpoint and must be revised in the next thread:
+
+1. Hierarchy indentation/lines while editing schedule and measurement text.
+   The current approach overlays cloned tree decorations at captured coordinates
+   in `modern/src/tableTextEditor.ts`; passing geometry tests does not settle the
+   requested interaction or appearance.
+2. Record-page description/remarks editing. The current Edit description action
+   focuses a separate textarea. Revisit this interaction in
+   `modern/src/components/ProjectViews.vue`.
+3. Record-page heading truncation. The current 120-character limit, two-line
+   clamp and full-description tooltip need revision; the final desired behavior
+   has not been specified.
+
+Do not mark these complete based on the validation results recorded below.
+The user explicitly requested marking and committing the current work, then
+continuing in a separate thread. No further redesign was attempted here.
+
 The MCP efficiency work is checkpointed separately in `cca316f`
 (`feat(mcp)!: streamline estimate workflows`). The changes described here follow
 that checkpoint. The first workbench feedback implementation is committed as
@@ -26,6 +46,34 @@ that checkpoint. The first workbench feedback implementation is committed as
 - Main dialog fields use autofocus, including reused dialogs. Editor focus is
   restored after modal close transitions and when entering or leaving Analysis
   and measurement records; the corresponding parent item remains selected.
+
+## Measurement editing and tax precision follow-up
+
+- Measurement template help describes calculations directly, without references
+  to GTK or another application version.
+- Double-clicking a saved measurement category, or pressing Enter with it
+  selected, opens its name editor. The list also provides full Edit Records and
+  Properties ribbon buttons. Properties supports both items and categories.
+- The records page exposes Description / remarks as an editable field. Its
+  heading is limited to two lines, with the full description available in the
+  tooltip and editable field. Changes update the list and remain undoable.
+- Schedule-link and remark fields in Properties have spacing for their focus
+  outlines, including at dialog edges.
+- Table text editors preserve the original font, padding and hierarchy prefix.
+  Entering edit mode and typing a character no longer changes the row height.
+  Blank measurement records use the normal single-line row height; additional
+  text lines can increase it. Home/End operate inside the editor.
+- Visible VAT labels are renamed **Tax**. Tax percentages are rounded and stored
+  to four decimal places; base rates and discount retain their existing precision.
+  The resource model, desktop edits, custom analysis resources, spreadsheet import
+  and resource-usage export use the four-place tax value.
+
+The existing `vat` column, MCP keys and SQL-view field remain for compatibility.
+No destructive schema operation or project-version change is needed: existing
+SQLite resource columns accept the higher precision. Tests cover a legacy project
+round-trip without schema changes or modification of its source file. Older app
+versions that write tax with two-place rounding can reduce precision if the value
+is edited there; reverting this implementation does not rewrite stored values.
 
 ## Navigation and refresh
 
@@ -151,3 +199,26 @@ the focused alignment/focus/drag rerun; the production build passed. Screenshots
 were reviewed for the measurement hierarchy, contextual record ribbon and shared
 resource/search alignment. No backend or project-file format changes are part of
 this follow-up.
+
+Measurement/tax verification: the full Python run passed 122 tests, and the
+additional tax-header spreadsheet import/export test passed in the focused
+backend run. All 45 browser workflows were verified across the full run and the
+focused rerun, including category rename, record remarks, focus-outline spacing,
+blank-row height, editor geometry and tax precision. Production and standalone
+backend builds passed; the frozen backend passed tax-storage and template-copy
+smoke checks. The cached measurement ribbon now refits when it becomes visible,
+including at narrow viewport widths.
+
+Recheck after the pending-items report: tree decorations retain their exact cell
+coordinates during editing and multiline growth, rather than participating in
+the editor's flex layout. Edit description beside the record heading focuses the
+live Description / remarks field. The heading uses an explicit 120-character
+ellipsis and retains the full description in its tooltip. Main-page Properties
+and Edit Records keep their text labels at narrow widths. Editable controls use
+inset focus outlines, with additional field and paired-field spacing.
+
+All 46 browser tests passed in one full run. The added audit checks every editable
+schedule/resource column, tree-marker coordinates and focus-ring clipping in the
+main forms, inspector, custom-resource dialog, measurement properties and record
+page. The production frontend and offline native development build passed. The
+native executable is `modern/src-tauri/target/debug/gestimator-modern`.

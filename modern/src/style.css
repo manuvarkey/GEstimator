@@ -83,6 +83,9 @@ textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--accent);
 }
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible { outline-offset: -2px; }
 button {
   transition:
     background 0.12s,
@@ -1243,7 +1246,10 @@ textarea::placeholder {
   font-weight: 600;
 }
 .analysis-table .tabulator-row .tabulator-cell.tabulator-editing {
-  border-color: var(--accent);
+  border-width: 0 1px 0 0;
+  border-color: var(--line-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  outline: none;
   background: var(--well);
   padding: 0;
 }
@@ -2022,8 +2028,8 @@ textarea {
 .button.small { padding: 4px 6px; }
 input, select { height: 30px; padding: 4px 7px; }
 textarea { padding: 5px 7px; line-height: 1.35; }
-.field { gap: 3px; margin-bottom: 8px; }
-.field-pair { gap: 8px; }
+.field { gap: 6px; margin-bottom: 8px; }
+.field-pair { gap: 12px; }
 .ribbon { height: calc(56px + 2.1rem); min-height: calc(56px + 2.1rem); padding: 4px 6px; }
 .ribbon-group { padding: 0 5px; gap: 2px; }
 .ribbon-actions { grid-template-rows: repeat(3, calc((32px + 2.1rem) / 3)); align-content: start; gap: 1px 3px; }
@@ -2082,7 +2088,9 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 .enrichment-badge { border: 1px solid currentColor; border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
 
 /* Editing keeps the displayed row height unless measurement text adds a line. */
-.analysis-table .tabulator-cell .table-text-editor { display: block; width: 100%; box-sizing: border-box; min-height: 0; resize: none; padding: 3px 7px; line-height: 1.35; overflow-y: auto; }
+.table-text-editor-shell { display: flex; align-items: stretch; width: 100%; box-sizing: border-box; }
+.table-text-editor-shell > .tabulator-data-tree-branch, .table-text-editor-shell > .tabulator-data-tree-branch-empty, .table-text-editor-shell > .tree-spacer { flex: 0 0 auto; align-self: center; }
+.analysis-table .tabulator-cell .table-text-editor { display: block; flex: 1; width: 100%; box-sizing: border-box; min-width: 0; min-height: 0; resize: none; overflow-y: auto; outline: none; }
 .analysis-table .tabulator-cell:not(.tabulator-editing) { user-select: none; }
 .analysis-table .tabulator-cell input, .analysis-table .tabulator-cell textarea { user-select: text; }
 .colour-palette { display: grid; grid-template-columns: repeat(8, 30px); gap: 8px; padding: 10px 0; }
@@ -2104,6 +2112,8 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 
 .project-filter-bar > .search-field { margin: 0; height: 32px; }
 .project-filter-bar > button { height: 32px; }
+.search-field:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.search-field input:focus-visible { outline: none; }
 .ribbon:not([data-compact]) .ribbon-action:not(.ribbon-icon):not([data-ribbon-mini]) { justify-content: flex-start; padding-top: 5px; }
 .ribbon-action:not(.ribbon-icon):not([data-ribbon-mini]) .ribbon-label { height: 2.1em; flex: 0 0 auto; }
 button.danger, .ribbon-action.danger, button.danger svg { color: var(--danger); }
@@ -2111,3 +2121,14 @@ button.danger:hover:not(:disabled) { color: var(--danger); background: color-mix
 .ribbon-tabs button.record-context { color: var(--green); box-shadow: inset 0 2px var(--green); }
 .ribbon-tabs button.record-context.active { border-bottom-color: var(--green); }
 .measurement-record-summary { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.measurement-entry-heading { min-width: 0; }
+.measurement-entry-heading > button { flex-shrink: 0; }
+.measurement-entry-heading h2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; max-width: 72ch; line-height: 1.35; }
+.measurement-description { margin: 0; }
+.measurement-description textarea { width: 100%; min-height: 3.4em; max-height: 8em; }
+.measurement-properties-fields { gap: 14px; padding: 6px; }
+.measurement-properties-fields .field { padding: 6px; gap: 10px; margin: 0; }
+.measurement-properties-fields .file-input { padding-block: 2px; }
+.measurement-record-grid .tabulator-cell { min-height: calc(1.35em + 12px); }
+.measurement-record-grid .tabulator-row { min-height: calc(1.35em + 13px); }
+.measurement-cell-value:empty::before { content: '\00a0'; }

@@ -102,7 +102,7 @@ async function apply(modify = false, ids = selected.value.map(row => row.id)) {
       <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="page--; load()">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="page++; load()">Next</button></div>
     </template>
     <template v-if="mode === 'rates'">
-      <p class="field-hint">{{ kind === 'schedule' ? 'Loads the stored schedule rate; descriptions and analysis rows stay intact.' : 'Loads base rates, VAT, discount and reference, then recalculates affected analyses.' }} The database file remains unchanged; Undo restores the update.</p>
+      <p class="field-hint">{{ kind === 'schedule' ? 'Loads the stored schedule rate; descriptions and analysis rows stay intact.' : 'Loads base rates, tax, discount and reference, then recalculates affected analyses.' }} The database file remains unchanged; Undo restores the update.</p>
       <button class="button secondary" :disabled="busy || !source || !targetIds.length" @click="review">Preview rate changes</button>
       <p v-if="preview" role="status">{{ preview.changed }} changed · {{ preview.unchanged }} unchanged · {{ preview.unmatched }} unmatched</p>
     </template>

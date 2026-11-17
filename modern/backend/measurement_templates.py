@@ -5,14 +5,14 @@ from estimator import misc
 from estimator.data.measurement import MeasurementItemCustom
 
 DESCRIPTIONS = {
-    "_1_NLBH": ("NLBH (numbers, length, area, volume)", "Evaluate expressions, multiply the nonzero factors in each record and sum the totals.", "Blank dimensions are optional: No for numbers, L for length, L/B for area, L/B/H for volume. Add No when needed. As in GTK, zero factors are ignored; an empty record totals zero."),
+    "_1_NLBH": ("NLBH (numbers, length, area, volume)", "Evaluate expressions, multiply the nonzero factors in each record and sum the totals.", "Blank dimensions are optional: No for numbers, L for length, L/B for area, L/B/H for volume. Add No when needed. Zero factors are ignored; an empty record totals zero."),
     "_2_LLLLL": ("Five linked quantities", "Five independent quantity columns, each linked to its own schedule item.", "Each quantity is rounded to three places per record before summing."),
     "_3_NNNNNNNN": ("Eight linked quantities", "Eight independent quantity columns, each linked to its own schedule item.", "Each quantity is rounded to three places per record before summing."),
     "_4_nnnnnT": ("Sum of five quantities", "Add N1 to N5 in each record and sum the record totals.", "Negative quantities are included; record totals are rounded to three places."),
     "civil_steel_table": ("Steel reinforcement", "Multiply two counts by six bar lengths; apply the six configured mass-per-length constants.", "Set bar labels and constants in Properties. Fractional counts remain in calculations; constants must be valid numbers."),
-    "elec_tableofpoints": ("Electrical points", "Sum Lights, Fans, Exhaust Fans, Call Bells and Other as whole counts.", "Each count is truncated towards zero before summing, matching the original template."),
-    "elec_ac_round_duct": ("Round ducting", "Calculate π × (D1 + D2) × (L1 + L2) / 4,000,000 using millimetres.", "The original template retains fractional dimensions in calculations; record areas are rounded to three places."),
-    "elec_ac_rect_duct": ("Rectangular ducting", "Calculate (H1 + W1 + H2 + W2) × (L1 + L2) / 2,000,000 using millimetres.", "The original template retains fractional dimensions in calculations; record areas are rounded to three places."),
+    "elec_tableofpoints": ("Electrical points", "Sum Lights, Fans, Exhaust Fans, Call Bells and Other as whole counts.", "Each count is truncated towards zero before summing."),
+    "elec_ac_round_duct": ("Round ducting", "Calculate π × (D1 + D2) × (L1 + L2) / 4,000,000 using millimetres.", "Fractional dimensions are retained in calculations; record areas are rounded to three places."),
+    "elec_ac_rect_duct": ("Rectangular ducting", "Calculate (H1 + W1 + H2 + W2) × (L1 + L2) / 2,000,000 using millimetres.", "Fractional dimensions are retained in calculations; record areas are rounded to three places."),
 }
 
 

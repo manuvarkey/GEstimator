@@ -112,6 +112,7 @@ def preview(params):
         "quantity": "qty",
         "basic rate": "rate",
         "tax": "vat",
+        "tax %": "vat",
         "vat %": "vat",
         "discount %": "discount",
     }
@@ -185,7 +186,7 @@ def apply(editor, params, progress):
             )
             for field, value in values.items():
                 if field in ("rate", "vat", "discount"):
-                    value = Currency(decimal(value.lstrip("=") or "0"))
+                    value = Currency(decimal(value.lstrip("=") or "0"), 4 if field == "vat" else 2)
                 elif field == "qty":
                     value = round(decimal(value.lstrip("=") or "0"), 4)
                 elif field == "parent":

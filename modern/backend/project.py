@@ -298,7 +298,7 @@ class ProjectEditor:
         )
         if resource:
             data.update(
-                vat=str(row.vat or 0),
+                vat=str(Currency(row.vat or 0, 4)),
                 discount=str(row.discount or 0),
                 reference=row.reference or "",
             )
@@ -1333,7 +1333,7 @@ class ProjectEditor:
         ):
             raise ValueError("Choose an unused code")
         if field in ("rate", "vat", "discount"):
-            value = Currency(decimal(value))
+            value = Currency(decimal(value), 4 if field == "vat" else 2)
         elif field == "qty":
             value = round(decimal(value), 4)
         else:

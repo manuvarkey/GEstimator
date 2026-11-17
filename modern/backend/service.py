@@ -120,7 +120,7 @@ class Service:
                             unit=res.unit,
                             value=str(entry[1]),
                             rate=str(res.rate),
-                            vat=str(res.vat or 0),
+                            vat=str(Currency(res.vat or 0, 4)),
                             discount=str(res.discount or 0),
                             effective_rate=str(res_result[0]),
                             amount=str(res_result[1]),
@@ -613,7 +613,7 @@ class Service:
                     text(p["description"]),
                     text(p["unit"]),
                     Currency(decimal(p["rate"])),
-                    Currency(decimal(p.get("vat", "0"))),
+                    Currency(decimal(p.get("vat", "0")), 4),
                     Currency(decimal(p.get("discount", "0"))),
                     text(p.get("reference", "")),
                     text(p.get("category", "")),
@@ -711,7 +711,7 @@ class Service:
             elif field in ("description", "unit", "reference", "category"):
                 setattr(resource, field, text(value))
             elif field in ("rate", "vat", "discount"):
-                setattr(resource, field, Currency(decimal(value)))
+                setattr(resource, field, Currency(decimal(value), 4 if field == "vat" else 2))
             else:
                 raise ValueError("Field is not editable")
         elif field == "description" or (field == "code" and row["itemtype"] == 0):

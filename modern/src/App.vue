@@ -253,7 +253,7 @@ const form = ref({
   unit: "",
   rate: "0",
   qty: "0",
-  vat: "0",
+  vat: "0.0000",
   discount: "0",
   reference: "",
   category: "",
@@ -446,7 +446,7 @@ async function insertResource(libraryCode?: string) {
       unit: "",
       rate: "0",
       qty: "0",
-      vat: "0",
+      vat: "0.0000",
       discount: "0",
       reference: "",
       category: "",
@@ -1408,7 +1408,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="field-pair">
               <label class="field"
-                >VAT %<input
+                >Tax %<input
                   :value="selection.vat"
                   :disabled="uiBusy"
                   inputmode="decimal"
@@ -1620,7 +1620,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="field-pair">
         <label class="field"
-          >VAT %<input v-model="form.vat" inputmode="decimal" /></label
+          >Tax %<input v-model="form.vat" inputmode="decimal" /></label
         ><label class="field"
           >Discount %<input v-model="form.discount" inputmode="decimal"
         /></label>

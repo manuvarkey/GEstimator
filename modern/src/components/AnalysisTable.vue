@@ -7,7 +7,7 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import type { AnalysisRow } from "../backend";
-import { tableTextEditor } from "../tableTextEditor";
+import { tableTextEditor, tableInputEditor } from "../tableTextEditor";
 import { rowDragSelection } from "../rowDragSelection";
 import { tableSelection, resetTablePosition } from "../tableSelection";
 import { cellNavigation } from "../cellNavigation";
@@ -128,7 +128,7 @@ onMounted(() => {
       {
         title: "QTY / FACTOR",
         field: "value",
-        editor: "input",
+        editor: tableInputEditor,
         hozAlign: "right",
         width: 102,
         editable: (cell) =>

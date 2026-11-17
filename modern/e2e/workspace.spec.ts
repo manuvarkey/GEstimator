@@ -311,8 +311,8 @@ test("cell navigation commits and continues editing across schedule resources me
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.locator(".inspector").getByLabel("Base rate", { exact: true }).fill("5");
   await page.locator(".inspector").getByLabel("Base rate", { exact: true }).press("Tab");
-  await page.locator(".inspector").getByLabel("VAT %", { exact: true }).fill("10");
-  await page.locator(".inspector").getByLabel("VAT %", { exact: true }).press("Tab");
+  await page.locator(".inspector").getByLabel("Tax %", { exact: true }).fill("10");
+  await page.locator(".inspector").getByLabel("Tax %", { exact: true }).press("Tab");
   await expect(page.locator(".summary-value")).toContainText("33.00");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.keyboard.press("Enter");
@@ -1491,7 +1491,7 @@ test("resource editing, authoritative calculations, undo and workspace presentat
     .fill("Concrete constituent\nLong multiline resource description");
   await dialog.getByLabel("Base rate").fill("10.05");
   await dialog.getByLabel("Quantity").fill("2.5");
-  await dialog.getByLabel("VAT %").fill("18");
+  await dialog.getByLabel("Tax %").fill("18");
   await dialog.getByLabel("Discount %").fill("5");
   await dialog
     .getByRole("button", { name: "Add resource", exact: true })
@@ -2086,6 +2086,7 @@ test("category lifecycle, library category import and used-resource deletion", a
   await add.getByLabel("Category").fill("Materials");
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
+  await expect(grid).toContainText('UNUSED');
   const materials = grid
     .locator(
       '.tabulator-row[data-kind="Group"] [tabulator-field="description"]',
@@ -2616,4 +2617,248 @@ test("feedback 2: drag selection scrolls past both edges in editors and database
     await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
   }
   expect(errors).toEqual([]);
+});
+
+
+test('feedback 3: measurement category editing, record caption and list actions', async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator('#view-measurement').click();
+  const ribbon = page.locator('.ribbon');
+  await ribbon.getByRole('button', { name: 'Add category', exact: true }).click();
+  const addCategory = page.getByRole('dialog', { name: 'Add category', exact: true });
+  await addCategory.getByLabel('Category name').fill('Initial floor');
+  await addCategory.getByRole('button', { name: 'Add category', exact: true }).click();
+  await expect(addCategory).not.toBeVisible();
+  const grid = page.getByRole('grid', { name: 'Measurements', exact: true });
+  const categoryCell = grid.locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first();
+  await categoryCell.dblclick();
+  const category = page.getByRole('dialog', { name: 'Edit measurement category', exact: true });
+  await expect(category.getByLabel('Category name')).toBeFocused();
+  await category.getByLabel('Category name').fill('Ground floor');
+  await category.getByRole('button', { name: 'Save properties', exact: true }).click();
+  await expect(category).not.toBeVisible();
+  await expect(categoryCell).toContainText('Ground floor');
+  await categoryCell.click();
+  await grid.focus();
+  await page.keyboard.press('Enter');
+  await expect(category.getByLabel('Category name')).toBeFocused();
+  await category.getByLabel('Category name').fill('First floor');
+  await category.getByRole('button', { name: 'Save properties', exact: true }).click();
+  await expect(category).not.toBeVisible();
+  await expect(categoryCell).toContainText('First floor');
+  await ribbon.getByRole('button', { name: 'Add measurement', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add item', exact: true });
+  await expect(add).not.toContainText('GTK');
+  await add.getByLabel('Description / remarks').fill('Room dimensions');
+  await add.getByRole('button', { name: 'Add item', exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await expect(ribbon.getByRole('button', { name: 'Edit records', exact: true })).toBeEnabled();
+  await ribbon.getByRole('button', { name: 'Properties…', exact: true }).click();
+  const properties = page.getByRole('dialog', { name: 'Measurement properties', exact: true });
+  await expect(properties.getByLabel('Description / remarks')).toHaveValue('Room dimensions');
+  await properties.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await ribbon.getByRole('button', { name: 'Edit records', exact: true }).click();
+  const caption = page.getByLabel('Measurement description / remarks', { exact: true });
+  const description = 'Dimensions of the first floor room including all recesses and openings. '.repeat(15);
+  await caption.fill(description);
+  await caption.press('Tab');
+  const heading = page.locator('.measurement-entry-heading h2');
+  await expect(heading).toHaveAttribute('title', description);
+  await expect(heading).toHaveText(description.slice(0, 119).trimEnd() + '…');
+  expect((await heading.textContent())!.length).toBeLessThanOrEqual(120);
+  expect(await heading.evaluate(el => el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).lineHeight) * 2 + 1)).toBe(true);
+  await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
+  await expect(grid).toContainText(description.trim());
+  await ribbon.getByRole('button', { name: 'Properties…', exact: true }).click();
+  await expect(properties.getByLabel('Description / remarks')).toHaveValue(description);
+  const code = properties.getByLabel('Property schedule code 1', { exact: true });
+  const remark = properties.getByLabel('Property item remark 1', { exact: true });
+  const codeBox = (await code.boundingBox())!, remarkBox = (await remark.boundingBox())!;
+  expect(remarkBox.y - codeBox.y - codeBox.height).toBeGreaterThanOrEqual(10);
+  await code.focus();
+  await page.screenshot({ path: 'test-results/measurement-properties-spacing.png', animations: 'disabled' });
+});
+
+test('feedback 3: text editor preserves indentation typography and row geometry', async ({ page }) => {
+  await refinementFixture(page);
+  const checkEditor = async (cell: ReturnType<Page['locator']>, tree: boolean) => {
+    const before = await cell.evaluate(el => {
+      const row = el.closest('.tabulator-row')!, style = getComputedStyle(el), r = el.getBoundingClientRect();
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let text: Node | null = null;
+      while (walker.nextNode()) if (walker.currentNode.textContent?.trim()) { text = walker.currentNode; break; }
+      const range = document.createRange();
+      if (text) range.selectNodeContents(text);
+      const box = text ? range.getBoundingClientRect() : undefined;
+      return { height: row.getBoundingClientRect().height, font: style.fontFamily, weight: style.fontWeight, x: box?.x ?? r.x + parseFloat(style.paddingLeft), y: box?.y ?? r.y + parseFloat(style.paddingTop), weights: Array.from(row.querySelectorAll('.tabulator-cell')).map(e => getComputedStyle(e).fontWeight) };
+    });
+    await cell.dblclick();
+    const input = cell.locator('textarea,input');
+    await expect(input).toBeFocused();
+    await expect(input).toHaveCSS('font-weight', before.weight);
+    if (tree) await expect(cell.locator('.table-text-editor-shell .tabulator-data-tree-branch')).toBeVisible();
+    const bounds = (await input.boundingBox())!;
+    expect(Math.abs(bounds.x - before.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(bounds.y - before.y)).toBeLessThanOrEqual(2);
+    expect(await cell.evaluate(el => Array.from(el.closest('.tabulator-row')!.querySelectorAll('.tabulator-cell')).map(e => getComputedStyle(e).fontWeight))).toEqual(before.weights);
+    await input.press('End');
+    await page.keyboard.insertText('x');
+    expect(Math.abs((await cell.locator('..').boundingBox())!.height - before.height)).toBeLessThanOrEqual(1);
+    await input.press('Escape');
+    if (tree) await expect(cell.locator('.tabulator-data-tree-branch')).toBeVisible();
+  };
+  for (const view of ['schedule', 'resources']) {
+    await page.locator('#view-' + view).click();
+    const code = view === 'schedule' ? 'A' : 'R';
+    const cell = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: code === 'A' ? /^A$/ : /^R$/ }) }).locator('[tabulator-field="description"]');
+    await checkEditor(cell, true);
+  }
+  await page.locator('#view-measurement').click();
+  await page.getByRole('button', { name: 'Add measurement', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add item', exact: true });
+  await add.getByLabel('Measurement template').selectOption('_2_LLLLL');
+  await add.getByLabel('Description / remarks').fill('Quantities');
+  await add.getByRole('button', { name: 'Add item', exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await page.getByRole('button', { name: 'Edit records', exact: true }).click();
+  await page.getByRole('button', { name: 'Add record', exact: true }).click();
+  const row = page.locator('.measurement-record-grid .tabulator-row').first();
+  await expect(row).toBeVisible();
+  const blankHeight = (await row.boundingBox())!.height;
+  expect(blankHeight).toBeGreaterThanOrEqual(32);
+  const cell = row.locator('[tabulator-field="c0"]');
+  await checkEditor(cell, false);
+  await cell.dblclick();
+  await cell.locator('textarea').fill('Measured room');
+  await page.locator('.measurement-entry-heading').click();
+  await expect(cell).toHaveText('Measured room');
+  expect(Math.abs((await row.boundingBox())!.height - blankHeight)).toBeLessThanOrEqual(1);
+  await cell.dblclick();
+  await cell.locator('textarea').press('End');
+  await cell.locator('textarea').press('Shift+Enter');
+  await page.keyboard.insertText('Additional line');
+  expect((await row.boundingBox())!.height).toBeGreaterThan(blankHeight + 10);
+  await page.screenshot({ path: 'test-results/stable-measurement-editor.png', animations: 'disabled' });
+  await cell.locator('textarea').press('Escape');
+});
+
+test('feedback 3: tax labels and four-place precision', async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator('#view-resources').click();
+  const row = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^R$/ }) });
+  await expect(page.locator('.project-view:visible .tabulator-col[tabulator-field="vat"]')).toHaveText('TAX %');
+  const tax = row.locator('[tabulator-field="vat"]');
+  await expect(tax).toHaveText('0.0000');
+  await tax.dblclick();
+  await tax.locator('input').fill('1.2345');
+  await tax.locator('input').press('Tab');
+  await expect(tax).toHaveText('1.2345');
+  await page.locator('#view-schedule').click();
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  await page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="Resource"] [tabulator-field="kind"]').click();
+  await expect(page.locator('.inspector').getByLabel('Tax %', { exact: true })).toHaveValue('1.2345');
+  await page.getByRole('button', { name: 'Add custom resource', exact: true }).click();
+  const custom = page.getByRole('dialog', { name: 'Add custom resource', exact: true });
+  await expect(custom.getByLabel('Tax %', { exact: true })).toHaveValue('0.0000');
+  await expect(custom).not.toContainText('VAT');
+});
+
+test('feedback 4: persistent tree geometry and focus rings in editable fields', async ({ page }) => {
+  await refinementFixture(page);
+  const grid = page.locator('.project-view:visible .project-main-grid');
+  const cell = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) }).locator('[tabulator-field="description"]');
+  const branches = () => grid.locator('.tabulator-data-tree-branch');
+  const positions = await branches().evaluateAll(nodes => nodes.map(node => { const b=node.getBoundingClientRect(); return {x:b.x,y:b.y,width:b.width,height:b.height}; }));
+  await cell.dblclick();
+  const editor = cell.locator('textarea');
+  const cloned = cell.locator('.table-text-editor-shell .tabulator-data-tree-branch');
+  const first = await cloned.boundingBox();
+  expect(Math.abs(first!.x-positions[0].x)).toBeLessThan(1);
+  expect(Math.abs(first!.y-positions[0].y)).toBeLessThan(1);
+  await editor.press('End');
+  await editor.press('Shift+Enter');
+  await page.keyboard.insertText('Additional description line');
+  const multiline = (await cloned.boundingBox())!;
+  expect(Math.abs(multiline.x-first!.x)).toBeLessThan(1);
+  expect(Math.abs(multiline.y-first!.y)).toBeLessThan(1);
+  await expect(branches()).toHaveCount(positions.length);
+  await editor.press('Escape');
+  const audit = async (scope: ReturnType<Page['locator']>) => {
+    await expect(scope).toBeVisible();
+    const fields = scope.locator('input:visible:not([type="checkbox"]):not([type="radio"]):not(:disabled):not([readonly]),textarea:visible:not(:disabled):not([readonly]),select:visible:not(:disabled)');
+    expect(await fields.count()).toBeGreaterThan(0);
+    await page.keyboard.press('Tab');
+    for (const field of await fields.all()) {
+      await field.scrollIntoViewIfNeeded();
+      await field.focus();
+      const result = await field.evaluate(el => {
+        const target=getComputedStyle(el).outlineStyle==='none' ? el.closest('.search-field') || el : el;
+        const style=getComputedStyle(target), box=target.getBoundingClientRect();
+        const ringWidth=parseFloat(style.outlineWidth)||0, offset=parseFloat(style.outlineOffset)||0;
+        const outset=style.outlineStyle==='none'?0:Math.max(0,ringWidth+offset);
+        const clipped: string[]=[];
+        for(let parent=el.parentElement;parent;parent=parent.parentElement){
+          const s=getComputedStyle(parent), r=parent.getBoundingClientRect();
+          if (['auto','scroll','hidden','clip'].includes(s.overflowX) && (box.left-outset<r.left-1 || box.right+outset>r.right+1)) clipped.push(parent.className+':x');
+          if (['auto','scroll','hidden','clip'].includes(s.overflowY) && (box.top-outset<r.top-1 || box.bottom+outset>r.bottom+1)) clipped.push(parent.className+':y');
+        }
+        return {name:el.getAttribute('aria-label')||el.closest('label')?.textContent,clipped,style:style.outlineStyle,width:ringWidth,offset};
+      });
+      expect(result.clipped,result.name || 'field').toEqual([]);
+      expect(result.width,result.name || 'field').toBe(2);
+      expect(result.offset,result.name || 'field').toBeLessThanOrEqual(-2);
+    }
+  };
+  for(const view of ['schedule','resources']){
+    await page.locator('#view-'+view).click();
+    const firstRow=page.locator('.project-view:visible .tabulator-row[data-kind="Resource"]').first();
+    const tree=firstRow.locator('[tabulator-field="description"] .tabulator-data-tree-branch');
+    const original=(await tree.boundingBox())!;
+    for(const field of view==='schedule'?['code','description','unit','rate','qty','remarks']:['code','description','unit','rate','vat','discount','reference']){
+      await firstRow.locator(`[tabulator-field="${field}"]`).dblclick();
+      const input=firstRow.locator('input,textarea');
+      await expect(input).toBeFocused();
+      await page.keyboard.insertText('x');
+      const during=(await tree.boundingBox())!;
+      expect(Math.abs(during.x-original.x),view+':'+field).toBeLessThan(1);
+      expect(Math.abs(during.y-original.y),view+':'+field).toBeLessThan(1);
+      await input.press('Escape');
+    }
+    await audit(page.locator('.project-view:visible'));
+    await page.getByRole('button',{name:'Add item',exact:true}).click();
+    const dialog=page.getByRole('dialog',{name:'Add item',exact:true});
+    await audit(dialog);
+    await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+  }
+  await page.locator('#view-schedule').click();
+  await page.locator('.project-view:visible').getByText('Foundation',{exact:true}).click();
+  await page.getByRole('button',{name:'Edit analysis',exact:true}).click();
+  await page.getByRole('grid',{name:'Rate analysis table'}).locator('.tabulator-row[data-kind="Resource"] [tabulator-field="kind"]').click();
+  await audit(page.locator('.inspector'));
+  await page.getByRole('button',{name:'Add custom resource',exact:true}).click();
+  const custom=page.getByRole('dialog',{name:'Add custom resource',exact:true});
+  await audit(custom);
+  await custom.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.locator('#view-measurement').click();
+  await page.getByRole('button',{name:'Add measurement',exact:true}).click();
+  const add=page.getByRole('dialog',{name:'Add item',exact:true});
+  await audit(add);
+  await add.getByLabel('Measurement template').selectOption('civil_steel_table');
+  await add.getByLabel('Description / remarks').fill('Steel work');
+  await add.getByRole('button',{name:'Add item',exact:true}).click();
+  await expect(add).not.toBeVisible();
+  await page.setViewportSize({width:700,height:900});
+  const properties=page.locator('.ribbon').getByRole('button',{name:'Properties…',exact:true});
+  await expect(properties.locator('.ribbon-label')).toBeVisible();
+  await expect(properties).not.toHaveAttribute('data-ribbon-mini','true');
+  await properties.click();
+  const dialog=page.getByRole('dialog',{name:'Measurement properties',exact:true});
+  await audit(dialog);
+  await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+  await page.getByRole('button',{name:'Edit records',exact:true}).click();
+  await page.getByRole('button',{name:'Edit measurement description / remarks',exact:true}).click();
+  await expect(page.getByLabel('Measurement description / remarks',{exact:true})).toBeFocused();
+  await audit(page.locator('.project-view:visible'));
+  await page.screenshot({path:'test-results/measurement-editable-caption.png',animations:'disabled'});
 });

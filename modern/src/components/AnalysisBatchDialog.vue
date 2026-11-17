@@ -26,7 +26,7 @@ const fields = computed(() => {
   if (props.selected.every(row => row.kind === "Resource")) common.push("rate", "vat", "discount", "unit", "reference", "category", "remarks");
   return common;
 });
-const labels: Record<string, string> = { description: "Description", value: "Quantity / factor", rate: "Base rate", vat: "VAT %", discount: "Discount %", unit: "Unit", reference: "Reference", category: "Category", remarks: "Entry remarks" };
+const labels: Record<string, string> = { description: "Description", value: "Quantity / factor", rate: "Base rate", vat: "Tax %", discount: "Discount %", unit: "Unit", reference: "Reference", category: "Category", remarks: "Entry remarks" };
 function invalidate() { preview.value = undefined; prepared.value = undefined; error.value = ""; }
 watch([field, value, rows], invalidate, { deep: true });
 watch(() => props.state.revision, invalidate);
