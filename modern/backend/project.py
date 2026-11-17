@@ -341,6 +341,12 @@ class ProjectEditor:
             or not 1 <= limit <= 200
         ):
             raise ValueError("Invalid page")
+        summary = {} if resource else dict(grand_total=str(Currency(sum(
+            (Currency((row.rate or 0) * (row.qty or 0))
+             for row in table.select(table, category).join(category)
+             if row.unit and row.category.description != misc.SUB_ANA_TITLE),
+            Decimal(0),
+        ))))
         if not p.get("source") and "since" in p and not p.get("reveal_id"):
             changed = self.changes.changed_ids(kind, p["since"], query)
             visible = p.get("visible_ids", [])
@@ -354,7 +360,7 @@ class ProjectEditor:
                     data.pop("_children", None)
                     updates.append(data)
                 return dict(delta=True, updates=updates, view_seq=self.changes.sequence,
-                    revision=self.owner.revision, undo=bool(self.history), redo=bool(self.future), enrichment=presentation(db))
+                    revision=self.owner.revision, undo=bool(self.history), redo=bool(self.future), enrichment=presentation(db), **summary)
         records = (
             table.select()
             .join(category)
@@ -478,6 +484,7 @@ class ProjectEditor:
                 return ranked_nodes[0][0] if ranked_nodes else total
             rank_tree(rows)
         return dict(
+            **summary,
             rows=rows,
             total=total,
             offset=offset,

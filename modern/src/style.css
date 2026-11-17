@@ -2136,3 +2136,9 @@ textarea.measurement-entry-title {
 .themed-font-menu .p-autocomplete-option:not(.p-disabled):hover,
 .themed-font-menu .p-autocomplete-option.p-focus,
 .themed-font-menu .p-autocomplete-option-selected { background: var(--accent-soft); color: var(--accent); }
+
+.schedule-estimate-total { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 16px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--control-radius); background: var(--accent-soft); color: var(--text); font-weight: 700; }
+.schedule-estimate-total strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+.shortcut-group + .shortcut-group { margin-top: 20px; }
+.shortcut-group h3 { margin: 0; padding-bottom: 6px; color: var(--accent); font-size: var(--text-size-ui); border-bottom: 1px solid var(--line); }
+.shortcut-list > div { flex-wrap: wrap; gap: 6px 15px; }

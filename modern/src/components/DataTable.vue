@@ -43,6 +43,8 @@ let navigation: ReturnType<typeof cellNavigation>;
 let replacement: Promise<unknown> = Promise.resolve();
 let savedPosition = { top: 0, left: 0 };
 let suspended = false;
+let restoreAfterReveal = false;
+let revealObserver: IntersectionObserver | undefined;
 function rememberPosition(event: Event) {
   const viewport = event.target as HTMLElement;
   if (!suspended && props.active !== false && viewport.classList.contains("tabulator-tableholder") && viewport.getClientRects().length)
@@ -64,6 +66,7 @@ async function redraw() {
 }
 watch(() => props.active, async active => {
   if (active === false) {
+    restoreAfterReveal = true;
     const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
     if (viewport?.getClientRects().length) savedPosition = { top: viewport.scrollTop, left: viewport.scrollLeft };
     suspended = true; return;
@@ -297,6 +300,15 @@ onMounted(() => {
       resolve();
     }),
   );
+  void ready.then(() => {
+    if (!alive) return;
+    // Tabulator's visibility observer rerenders virtual rows after our reveal
+    // redraw. Restore after that observer, before its scroll is recorded.
+    revealObserver = new IntersectionObserver(entries => {
+      if (restoreAfterReveal && props.active !== false && entries.some(entry => entry.isIntersecting)) { restorePosition(); restoreAfterReveal = false; }
+    });
+    revealObserver.observe(element.value!);
+  });
   if (props.dragSelectRows) stopDragSelection = rowDragSelection(table, element.value!, {
     tree: !!props.tree, busy: () => props.busy, anchor: () => anchor?.id,
     cells: !props.rowOnlySelection, position: cell => {
@@ -321,6 +333,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   alive = false;
+  revealObserver?.disconnect();
   navigation?.destroy();
   stopDragSelection?.();
   element.value?.removeEventListener("paste", paste);

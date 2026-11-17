@@ -26,6 +26,7 @@ interface GridState {
   updates?: GridRow[];
   rows: GridRow[];
   total?: number;
+  grand_total?: string;
   offset?: number;
   undo: boolean;
   redo: boolean;
@@ -534,7 +535,7 @@ async function refreshChanges() {
     });
     if (next.delta) {
       for (const update of next.updates || []) Object.assign(current.find(row => row.id === update.id) || {}, update);
-      Object.assign(state.value!, { revision: next.revision, view_seq: next.view_seq, undo: next.undo, redo: next.redo, enrichment: next.enrichment });
+      Object.assign(state.value!, { revision: next.revision, view_seq: next.view_seq, undo: next.undo, redo: next.redo, enrichment: next.enrichment, grand_total: next.grand_total });
       await mainTable.value?.patchRows(next.updates || []);
     } else state.value = next;
     await nextTick();
@@ -1240,6 +1241,9 @@ watch(
           @paste-rows="data => command('paste', { clipboardData: data })"
           @activate="activateRow"
         />
+      </div>
+      <div v-if="view === 'schedule' && state" class="schedule-estimate-total" role="status" aria-label="Overall estimate total">
+        <span>Overall estimate total</span><strong>{{ state.grand_total ?? '0.00' }}</strong>
       </div>
       <div v-if="!isMeasurement" class="pagination">
         <button

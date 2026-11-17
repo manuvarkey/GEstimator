@@ -3112,3 +3112,41 @@ test('opening an analysis populates newly added schedule items in explorer', asy
   await expect(page.locator('.explorer')).toContainText('New schedule item');
   await expect(page.getByLabel('Find schedule items', { exact: true })).toHaveValue('');
 });
+
+
+test('schedule overall estimate total stays visible across search edits and undo', async ({ page }) => {
+  await refinementFixture(page);
+  const total = page.getByRole('status', { name: 'Overall estimate total', exact: true });
+  await expect(total).toContainText('25.00');
+  const search = page.locator('.project-view:visible').getByLabel('Search project table');
+  await search.fill('Foundation');
+  await search.press('Enter');
+  await expect(total).toContainText('25.00');
+  const quantity = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) }).locator('[tabulator-field="qty"]');
+  await quantity.dblclick();
+  await quantity.locator('input').fill('2');
+  await quantity.locator('input').press('Enter');
+  await expect(total).toContainText('45.00');
+  await page.locator('.titlebar').getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(total).toContainText('25.00');
+  await page.screenshot({ path: 'test-results/schedule-estimate-total.png', animations: 'disabled' });
+  await page.locator('#view-resources').click();
+  await expect(total).not.toBeVisible();
+});
+
+test('keyboard shortcut help groups commands into accessible categories', async ({ page }) => {
+  await page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }).click();
+  const help = page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true });
+  for (const [category, command] of [
+    ['Project and search', 'Focus search in current view or selection dialog'],
+    ['Rows and clipboard', 'Copy / Paste rows'],
+    ['Cell editing and selection', 'Cancel cell edit and retain focus'],
+    ['Editor actions', 'Open selected schedule analysis'],
+    ['Ribbon navigation', 'Activate focused ribbon tab'],
+  ]) {
+    const group = help.getByRole('region', { name: category, exact: true });
+    await expect(group.getByRole('heading', { name: category, exact: true })).toBeVisible();
+    await expect(group).toContainText(command);
+  }
+  await page.screenshot({ path: 'test-results/grouped-shortcuts.png', animations: 'disabled' });
+});

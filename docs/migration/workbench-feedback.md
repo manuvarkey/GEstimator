@@ -17,6 +17,22 @@ Four focused browser workflows and the production frontend build passed.
 Popup and Analysis edit/accept screenshots were reviewed; see the
 [validation record](validation.md#pending-workbench-review-fixes--2026-11-17).
 
+## Schedule total and shortcut categories — 2026-11-17
+
+- Schedule has a highlighted, read-only **Overall estimate total** row below
+  its grid. The backend sums individually currency-rounded rate × quantity
+  values for every item with a unit, excluding the sub-analysis category.
+  Search, category filters and pages do not restrict this overall amount.
+  Both full and incremental state responses carry the total, including when
+  the changed item is off the visible page. Edit, undo and returning to Schedule
+  refresh the displayed value.
+- Shortcut help groups commands under Project and search, Rows and clipboard,
+  Cell editing and selection, Editor actions and Ribbon navigation. Each group
+  has a semantic heading. Escape's retained-cell-focus behavior is listed.
+- The summary row exposed a delayed Tabulator visibility redraw that shifted a
+  restored virtual table by 7 px. A follow-up visibility observer restores the
+  saved scroll position after Tabulator's own redraw, preserving navigation.
+
 ## Keyboard and record navigation follow-up — 2026-11-17
 
 - Escape cancels a table cell edit and focuses that cell, preserving its keyboard

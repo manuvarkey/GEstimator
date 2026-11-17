@@ -215,6 +215,45 @@ const explorer = ref("schedule");
 const sidebar = ref(true);
 const inspector = ref(true);
 const helpOpen = ref(false);
+const shortcutGroups = [
+  { title: "Project and search", items: [
+    ["Open project", "Ctrl / ⌘ + O"],
+    ["Save project", "Ctrl / ⌘ + S"],
+    ["Save project copy", "Ctrl / ⌘ + Shift + S"],
+    ["Focus search in current view or selection dialog", "Ctrl / ⌘ + F"],
+  ] },
+  { title: "Rows and clipboard", items: [
+    ["Undo / Redo", "Ctrl / ⌘ + Z / Y"],
+    ["Copy / Paste rows", "Ctrl / ⌘ + C / V"],
+    ["Add item / measurement record / analysis resource", "Ctrl / ⌘ + I"],
+    ["Add schedule subitem / custom analysis resource", "Ctrl / ⌘ + Shift + I"],
+    ["Duplicate selected rows", "Ctrl / ⌘ + D"],
+    ["Delete selected rows", "Delete"],
+    ["Move project item or measurement record", "Alt + Up / Down"],
+  ] },
+  { title: "Cell editing and selection", items: [
+    ["Edit focused cell", "Enter / F2"],
+    ["Cancel cell edit and retain focus", "Escape"],
+    ["Accept and edit next / previous cell", "Tab / Shift + Tab"],
+    ["Accept and edit adjacent cell", "Arrow keys"],
+    ["New line while editing text", "Shift / Ctrl + Enter"],
+    ["Navigate editable cells", "Tab / Shift + Tab"],
+    ["Select table rows", "Up / Down / Home / End"],
+    ["Extend table selection", "Shift + Up / Down / Home / End"],
+    ["Select current table page / Clear selection", "Ctrl / ⌘ + A / Escape"],
+  ] },
+  { title: "Editor actions", items: [
+    ["Open selected schedule analysis", "Ctrl / ⌘ + E"],
+    ["Colour selected schedule items", "Ctrl / ⌘ + M"],
+    ["Edit resource / Measurement properties", "Ctrl / ⌘ + E"],
+    ["Browse attached schedule / resource library", "Ctrl / ⌘ + L"],
+    ["Apply analysis / Confirm draft discard", "Ctrl / ⌘ + Enter / Escape"],
+  ] },
+  { title: "Ribbon navigation", items: [
+    ["Focus ribbon tabs", "Left / Right / Home / End"],
+    ["Activate focused ribbon tab", "Enter / Space"],
+  ] },
+];
 const fileMode = ref<"open" | "save" | null>(null);
 const recoveryProjects = ref<{ id: string; updated: number }[]>([]);
 const recentProjects = ref<string[]>([]);
@@ -1675,42 +1714,13 @@ onBeforeUnmount(() => {
     modal
     header="Keyboard shortcuts"
     class="workspace-dialog file-dialog"
-    ><div class="shortcut-list">
-      <div
-        v-for="[label, key] in [
-          ['Open project', 'Ctrl / ⌘ + O'],
-          ['Save project', 'Ctrl / ⌘ + S'],
-          ['Save project copy', 'Ctrl / ⌘ + Shift + S'],
-          ['Focus search in current view or selection dialog', 'Ctrl / ⌘ + F'],
-          ['Undo / Redo', 'Ctrl / ⌘ + Z / Y'],
-          ['Copy / Paste rows', 'Ctrl / ⌘ + C / V'],
-          ['Add item / measurement record / analysis resource', 'Ctrl / ⌘ + I'],
-          ['Add schedule subitem / custom analysis resource', 'Ctrl / ⌘ + Shift + I'],
-          ['Open selected schedule analysis', 'Ctrl / ⌘ + E'],
-          ['Colour selected schedule items', 'Ctrl / ⌘ + M'],
-          ['Edit resource / Measurement properties', 'Ctrl / ⌘ + E'],
-          ['Browse attached schedule / resource library', 'Ctrl / ⌘ + L'],
-          ['Edit selected cell', 'F2'],
-          ['Edit focused cell', 'Enter / F2'],
-          ['Accept and edit next / previous cell', 'Tab / Shift + Tab'],
-          ['Accept and edit adjacent cell', 'Arrow keys'],
-          ['New line while editing text', 'Shift / Ctrl + Enter'],
-          ['Apply analysis / Confirm draft discard', 'Ctrl / ⌘ + Enter / Escape'],
-          ['Duplicate selected rows', 'Ctrl / ⌘ + D'],
-          ['Delete selected rows', 'Delete'],
-          ['Navigate editable cells', 'Tab / Shift + Tab'],
-          ['Select table rows', 'Up / Down / Home / End'],
-          ['Extend table selection', 'Shift + Up / Down / Home / End'],
-          ['Select current table page / Clear selection', 'Ctrl / ⌘ + A / Escape'],
-          ['Focus ribbon tabs', 'Left / Right / Home / End'],
-          ['Activate focused ribbon tab', 'Enter / Space'],
-          ['Move project item or measurement record', 'Alt + Up / Down'],
-        ]"
-        :key="label"
-      >
-        <span>{{ label }}</span
-        ><kbd>{{ key }}</kbd>
-      </div>
+    ><div class="shortcut-groups">
+      <section v-for="group in shortcutGroups" :key="group.title" class="shortcut-group" :aria-label="group.title">
+        <h3>{{ group.title }}</h3>
+        <div class="shortcut-list">
+          <div v-for="[label, key] in group.items" :key="label"><span>{{ label }}</span><kbd>{{ key }}</kbd></div>
+        </div>
+      </section>
     </div>
     <p class="field-hint">
       Text fields keep their normal editing shortcuts. Copied rows can be pasted in

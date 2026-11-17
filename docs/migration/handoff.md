@@ -1,5 +1,18 @@
 # Vue/Tauri migration handoff
 
+## Schedule total and shortcut groups — 2026-11-17
+
+The preceding keyboard/record work is committed as `218aa52`, including the
+current default typography settings. The next increment adds a highlighted
+**Overall estimate total** summary row below Schedule and groups shortcut help
+into Project and search, Rows and clipboard, Cell editing and selection, Editor
+actions and Ribbon navigation. The total uses every billable schedule item,
+independent of search, category filters and pagination, and refreshes on edit,
+undo and incremental updates. Sub-analyses are excluded as in the agent summary.
+A delayed table visibility redraw also preserves its saved scroll position.
+Validation: 124 Python tests, eight focused browser workflows and the production
+frontend build passed. See the [validation record](validation.md#overall-schedule-total-and-categorized-shortcuts--2026-11-17).
+
 ## Keyboard and record follow-up — 2026-11-17
 
 The previous review fixes are committed as `20a2b3a`. The next increment retains

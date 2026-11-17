@@ -285,3 +285,33 @@ locator passed the focused rerun, including help/status-bar assertions.
 The **Vue/TypeScript production build** and whitespace check passed. The existing
 bundle-size warning remains. No backend or project-file changes were made;
 Python, frozen-backend and native-platform validation were not rerun.
+
+
+## Overall Schedule total and categorized shortcuts — 2026-11-17
+
+The prior interaction increment and default typography are committed as
+`218aa52`. Schedule now displays a highlighted overall estimate total beneath
+the grid. Its exact decimal calculation rounds each billable rate × quantity
+with the existing Currency helper, excludes unitless headings and the
+sub-analysis category, and includes all pages regardless of search/category
+filters. Full and incremental state responses carry the total. Backend checks
+cover rounding, child items, excluded sub-analyses, filtering/paging, an off-page
+quantity edit with no visible-row updates, and undo.
+
+Shortcut help uses five named sections with headings and includes Escape's cell
+focus behavior. Browser checks verify group membership, the 25.00 → 45.00 → 25.00
+schedule edit/undo sequence while filtered, hiding the summary in Resources,
+and the existing search shortcut help. Screenshots of the total and grouped
+help were reviewed.
+
+The summary row exposed a virtual-table scroll regression: switching views
+restored 700 px before Tabulator's delayed visibility redraw shifted it to
+707 px. An IntersectionObserver registered after table initialization restores
+the saved position following Tabulator's visibility callback. Existing picker
+retention, insertion/reveal, cached navigation, scroll/save/export and focus-ring
+checks pass with this change.
+
+**124 Python tests, eight focused browser workflows and the Vue/TypeScript
+production build passed.** The existing bundle-size warning remains. Project
+schema, GTK computations and workbook exporters are unchanged; native-platform
+and standalone-backend builds were not rerun for this increment.

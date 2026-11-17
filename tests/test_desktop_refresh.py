@@ -19,6 +19,27 @@ class DesktopRefreshTests(unittest.TestCase):
     def flat(self, rows):
         return [row for parent in rows for row in [parent, *self.flat(parent.get("_children", []))]]
 
+    def test_schedule_grand_total_uses_all_billable_rows_and_refreshes_off_page(self):
+        from estimator import misc
+        a, b = [str(self.s.db.get_item_key(code)) for code in ("A", "B")]
+        self.call("schedule.editor.edit_many", edits=[
+            dict(id=identity, field=field, value=value)
+            for identity in (a, b) for field, value in (("rate", "1"), ("qty", "0.005"))
+        ])
+        self.call("schedule.editor.add", data=dict(code="HEAD", description="Heading", unit="", category="Work"))
+        self.call("schedule.editor.add", data=dict(code="HEAD.1", description="Child", unit="m", rate="2", qty="3", parent="HEAD", category="Work"))
+        self.call("schedule.editor.add", data=dict(code="SUB", unit="m", rate="100", qty="1", category=misc.SUB_ANA_TITLE))
+        self.assertEqual(self.call("schedule.editor.state")["grand_total"], "6.02")
+        self.assertEqual(self.call("schedule.editor.state", query="A", categories=["Work"], limit=1, offset=1)["grand_total"], "6.02")
+        baseline = self.call("schedule.editor.state")
+        self.call("schedule.editor.edit", id=b, field="qty", value="1")
+        delta = self.call("schedule.editor.state", since=baseline["view_seq"], visible_ids=[a])
+        self.assertTrue(delta["delta"])
+        self.assertEqual(delta["updates"], [])
+        self.assertEqual(delta["grand_total"], "7.01")
+        self.call("project.undo")
+        self.assertEqual(self.call("schedule.editor.state")["grand_total"], "6.02")
+
     def test_draft_navigation_is_empty_delta_and_apply_only_updates_affected_item(self):
         baseline = self.call("schedule.editor.state")
         ids = [r["id"] for r in self.flat(baseline["rows"])]
