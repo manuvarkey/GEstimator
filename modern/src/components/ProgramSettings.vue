@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import Dialog from "primevue/dialog";
+import AutoComplete from "primevue/autocomplete";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
 import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
 import { appearance, defaultAppearance } from "../appearance";
@@ -13,6 +14,16 @@ const busy = ref(false);
 const error = ref("");
 const fontFamilies = ref<string[]>();
 const fontsLoading = ref(false);
+const fontSuggestions = ref<string[]>([]);
+let fontQuery = "";
+function suggestFonts(event: { query: string }) {
+  fontQuery = event.query;
+  const query = fontQuery.trim().toLocaleLowerCase();
+  fontSuggestions.value = (fontFamilies.value || []).filter(face => face.toLocaleLowerCase().includes(query));
+}
+function fontKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape" && (event.target as HTMLInputElement).getAttribute("aria-expanded") === "true") event.stopPropagation();
+}
 const sections = [{ key: "general", label: "General" }, { key: "appearance", label: "Appearance" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
 const fontGroups = [
   { label: "Interface", family: "uiFamily", size: "uiSize", placeholder: "Desktop default" },
@@ -32,7 +43,7 @@ onMounted(async () => {
 watch(tab, async section => {
   if (section !== "appearance" || fontFamilies.value || fontsLoading.value) return;
   fontsLoading.value = true;
-  try { fontFamilies.value = await request<string[]>("program.fonts"); }
+  try { fontFamilies.value = await request<string[]>("program.fonts"); suggestFonts({ query: fontQuery }); }
   catch { fontFamilies.value = []; }
   finally { fontsLoading.value = false; }
 });
@@ -64,9 +75,8 @@ async function reset() {
       </template>
       <template v-else-if="tab === 'appearance'">
         <label class="field">Theme<select v-model="appearanceDraft.theme" :disabled="busy"><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-        <datalist id="settings-font-faces"><option v-for="face in fontFamilies" :key="face" :value="face" /></datalist>
         <div v-for="group in fontGroups" :key="group.family" class="field-pair">
-          <label class="field">{{ group.label }} font face<input v-model.trim="appearanceDraft[group.family]" list="settings-font-faces" :placeholder="group.placeholder" maxlength="120" :disabled="busy" /></label>
+          <label class="field">{{ group.label }} font face<AutoComplete v-model="appearanceDraft[group.family]" :input-id="'settings-font-' + group.family" :suggestions="fontSuggestions" :placeholder="group.placeholder" :disabled="busy" :min-length="0" :delay="0" complete-on-focus class="font-family-input" overlay-class="application-menu themed-font-menu" :pt="{ pcInputText: { root: { maxlength: 120 } } }" @complete="suggestFonts" @keydown="fontKeydown" /></label>
           <label class="field">{{ group.label }} font size (px)<input type="number" min="10" max="30" step="any" :value="appearanceDraft[group.size] ?? ''" :placeholder="group.placeholder" :disabled="busy" @input="appearanceDraft[group.size] = ($event.target as HTMLInputElement).value === '' ? null : ($event.target as HTMLInputElement).valueAsNumber" /></label>
         </div>
         <p v-if="fontsLoading" role="status" class="field-hint">Loading installed fonts…</p>

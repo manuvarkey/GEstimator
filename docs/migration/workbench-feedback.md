@@ -1,14 +1,21 @@
 # Workbench feedback implementation
 
-## Pending review
+## Review fixes — 2026-11-17
 
-- After Enter accepts a multiline table cell edit, the cell loses padding.
-  Review the editor and the committed cell layout in `modern/src/tableTextEditor.ts`
-  and `modern/src/style.css`.
-- In Program Settings → Appearance, the font family suggestion list should match
-  the themed dropdown controls. The installed font list and font selection work.
-  See `modern/src/components/ProgramSettings.vue` and
-  `modern/src/components/SelectMenus.vue`.
+- Compact Analysis cells no longer apply padding twice while editing. A later
+  compact-table rule had overridden the editing cell's zero padding, adding
+  7 px horizontally and 3 px vertically around an already padded editor shell.
+  The final editing override keeps the shell responsible for padding. Browser
+  checks compare text coordinates and row height before editing and after Enter,
+  including multiline schedule/resource tree cells and measurement records.
+- Appearance font suggestions use PrimeVue AutoComplete with the application's
+  dropdown palette, border, shadow and focus colors. The installed list is
+  filtered without restricting typed font names. Popup Enter and Escape retain
+  selection/dismissal behavior without saving or closing the settings dialog.
+
+Four focused browser workflows and the production frontend build passed.
+Popup and Analysis edit/accept screenshots were reviewed; see the
+[validation record](validation.md#pending-workbench-review-fixes--2026-11-17).
 
 ## Measurement editing review follow-up
 

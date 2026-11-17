@@ -1858,7 +1858,8 @@ textarea {
   background: var(--line);
   margin: 0 5px;
 }
-.application-menu.p-menu {
+.application-menu.p-menu,
+.application-menu.themed-font-menu {
   min-width: 255px;
   background: var(--panel);
   color: var(--text);
@@ -2044,6 +2045,9 @@ textarea { padding: 5px 7px; line-height: 1.35; }
 
 .enrichment-badge { border: 1px solid currentColor; border-radius: var(--control-radius); padding: 2px 6px; white-space: nowrap; }
 
+/* The editor shell owns padding, including in compact tables. */
+.analysis-table .tabulator-row .tabulator-cell.tabulator-editing { padding: 0; }
+
 /* Editing keeps the displayed row height unless measurement text adds a line. */
 .table-text-editor-shell { display: flex; align-items: stretch; width: 100%; box-sizing: border-box; }
 .table-text-editor-prefix { flex: none; align-self: flex-start; white-space: nowrap; }
@@ -2124,3 +2128,11 @@ textarea.measurement-entry-title {
 }
 
 .database-picker-dialog .dialog-footer { flex-wrap: wrap; }
+
+.font-family-input, .font-family-input input { width: 100%; min-width: 0; }
+.themed-font-menu { max-width: 94vw; }
+.themed-font-menu .p-autocomplete-list { padding: 4px; }
+.themed-font-menu .p-autocomplete-option { padding: 8px 12px; color: var(--text); white-space: normal; overflow-wrap: anywhere; }
+.themed-font-menu .p-autocomplete-option:not(.p-disabled):hover,
+.themed-font-menu .p-autocomplete-option.p-focus,
+.themed-font-menu .p-autocomplete-option-selected { background: var(--accent-soft); color: var(--accent); }

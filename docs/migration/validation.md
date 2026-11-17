@@ -226,3 +226,29 @@ Validation on Linux:
 * `git diff --check`: passes.
 
 Third-party MCP client interoperability and other native platforms remain separate release checks.
+
+
+## Pending workbench review fixes — 2026-11-17
+
+The compact Analysis editor padding regression was reproduced by comparing
+committed multiline text coordinates against its textarea: the editor moved text
+7 px horizontally because the compact cell's CSS padding overrode the editing
+rule and duplicated the shell padding. The final editing override passes the
+same coordinate assertions, retains row height after Enter, and preserves
+existing schedule/resource tree decorations and measurement multiline geometry.
+
+Appearance now uses a themed installed-font autocomplete. Browser coverage
+checks the full installed list, filtering, popup colors and stacking above the
+settings dialog, pointer and keyboard selection, typed names, Escape dismissal,
+and persisted independent interface/table settings. Open-combobox Enter is
+excluded from the shared dialog-submit handler.
+
+All **four focused Chromium/Playwright workflows passed** in one run: appearance
+settings/library rules, text editor geometry, tree geometry/focus rings and the
+new multiline Analysis regression. The **Vue/TypeScript production build passed**
+with the existing bundle-size warning. Screenshots of the font suggestion popup,
+editing Analysis text and accepted Analysis text were visually reviewed. The
+installed Chromium headless shell was selected through
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE`; the current Playwright default browser download
+was unavailable. Python, frozen-backend and native-platform checks were not rerun
+for these frontend-only fixes. Broader release gates remain open.

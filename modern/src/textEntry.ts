@@ -2,6 +2,8 @@
 export function installTextEntry() {
   document.addEventListener("keydown", event => {
     const input = event.target;
+    // An open combobox owns Enter for choosing its highlighted suggestion.
+    if (input instanceof HTMLInputElement && input.getAttribute("role") === "combobox" && input.getAttribute("aria-expanded") === "true") return;
     if (event.key === "Enter" && !event.isComposing && !event.shiftKey && !event.ctrlKey && !event.metaKey && input instanceof HTMLInputElement && ["text", "number", "search", "url"].includes(input.type) && !input.disabled && !input.list && !input.closest("form,.tabulator")) {
       const dialog = input.closest('[role="dialog"]');
       const primary = dialog && Array.from(dialog.querySelectorAll<HTMLButtonElement>("button.button.primary")).filter(button => !button.disabled).at(-1);

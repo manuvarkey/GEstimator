@@ -1,14 +1,22 @@
 # Vue/Tauri migration handoff
 
-## Pending review for the next session
+## Review fixes — 2026-11-17
 
-1. **Multiline table text padding.** Indentation and connector lines are fixed.
-   The multiline text cell loses padding after pressing Enter to accept the edit.
-   Compare the cell padding and row height before editing and after Enter.
-2. **Font family dropdown theme.** Installed font selection works. Make the
-   font suggestion list match the application's themed dropdown controls.
+Both immediate pending review items are implemented:
 
-See the [workbench review notes](workbench-feedback.md#pending-review).
+1. **Multiline table text padding.** Compact Analysis rows applied padding to
+   both the editing cell and its editor shell. The final editing CSS rule now
+   leaves padding to the shell, keeping text coordinates and row height stable
+   when Enter accepts the edit. Schedule/resource tree and measurement multiline
+   acceptance/reopening are covered by browser checks.
+2. **Font family dropdown theme.** Appearance uses a themed, searchable font
+   autocomplete instead of a native datalist. Installed fonts, typed names and
+   independent interface/table preferences remain supported. Enter chooses a
+   suggestion and Escape dismisses its popup while keeping settings open.
+
+See the [workbench review notes](workbench-feedback.md#review-fixes--2026-11-17).
+The broader native-platform, save/recovery and release gates under
+**Next milestones** remain open.
 
 ## Workbench review follow-up — 2026-11-17
 

@@ -1479,9 +1479,34 @@ test("appearance settings persist and library rules preview and import at compac
   await settings.getByRole("tab", { name: "Appearance", exact: true }).click();
   const fonts = (await call("program.fonts")).result;
   expect(fonts.length).toBeGreaterThan(0);
-  await expect(settings.locator("#settings-font-faces option")).toHaveCount(fonts.length);
-  expect(await settings.locator("#settings-font-faces option").evaluateAll(options =>
-    options.map(option => (option as HTMLOptionElement).value))).toEqual(fonts);
+  const fontInput = settings.getByLabel("Interface font face");
+  await expect(settings.getByText("Choose or type an installed font. Leave a field blank to use its default.")).toBeVisible();
+  await fontInput.focus();
+  const fontList = page.getByRole("listbox", { name: "Option List" });
+  await expect(fontList.getByRole("option")).toHaveCount(fonts.length);
+  expect(await fontList.getByRole("option").allTextContents()).toEqual(fonts);
+  const popup = page.locator(".themed-font-menu");
+  const actual = await popup.evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, above: Number(getComputedStyle(el).zIndex) > Number(getComputedStyle(document.querySelector('.p-dialog-mask')!).zIndex) }));
+  // Resolve the same CSS variables through the browser before comparing colors.
+  const expected = await settings.evaluate(el => { const probe = document.createElement('span'); probe.style.background = 'var(--panel)'; probe.style.color = 'var(--text)'; el.append(probe); const result = { background: getComputedStyle(probe).backgroundColor, color: getComputedStyle(probe).color }; probe.remove(); return result; });
+  expect(actual).toEqual({ ...expected, above: true });
+  await page.screenshot({ path: "test-results/themed-font-suggestions.png", animations: "disabled" });
+  await fontInput.fill(fonts[0]);
+  await expect(fontList.getByRole("option", { name: fonts[0], exact: true })).toBeVisible();
+  await fontList.getByRole("option", { name: fonts[0], exact: true }).click();
+  await expect(fontInput).toHaveValue(fonts[0]);
+  await fontInput.fill(fonts[0]);
+  await fontInput.press('ArrowDown');
+  await expect(popup).toBeVisible();
+  await fontInput.press('Enter');
+  await expect(fontInput).toHaveValue(fonts[0]);
+  await expect(popup).not.toBeVisible();
+  await fontInput.fill('Font family unavailable in this list');
+  await expect(fontInput).toHaveValue('Font family unavailable in this list');
+  await expect(popup).toBeVisible();
+  await fontInput.press('Escape');
+  await expect(popup).not.toBeVisible();
+  await expect(settings).toBeVisible();
   await settings.getByLabel("Theme").selectOption("light");
   await settings.getByLabel("Interface font face").fill("Arial");
   await settings.getByLabel("Interface font size").fill("15");
@@ -2809,9 +2834,13 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
       await input.press('Enter');
       await expect(branch).toBeVisible();
       await cell.dblclick();
-      await input.fill('Revised description');
+      await input.fill('Revised description\nSecond description line');
       await input.press('Enter');
-      await expect(cell).toHaveText('Revised description');
+      await expect(cell).toHaveText('Revised description\nSecond description line');
+      const committedHeight = (await cell.boundingBox())!.height;
+      await cell.dblclick();
+      expect(Math.abs((await cell.boundingBox())!.height - committedHeight)).toBeLessThanOrEqual(1);
+      await input.press('Escape');
       await expect(branch).toBeVisible();
     }
   };
@@ -2847,6 +2876,13 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
   await page.keyboard.insertText('Additional line');
   expect((await row.boundingBox())!.height).toBeGreaterThan(blankHeight + 10);
   await page.screenshot({ path: 'test-results/stable-measurement-editor.png', animations: 'disabled' });
+  const editingHeight = (await row.boundingBox())!.height;
+  await cell.locator('textarea').press('Enter');
+  await expect(cell).toHaveText('Measured room\nAdditional line');
+  await expect.poll(async () => (await row.boundingBox())!.height).toBe(editingHeight);
+  await page.screenshot({ path: 'test-results/committed-measurement-text.png', animations: 'disabled' });
+  await cell.dblclick();
+  expect(Math.abs((await row.boundingBox())!.height - editingHeight)).toBeLessThanOrEqual(1);
   await cell.locator('textarea').press('Escape');
 });
 
@@ -2969,4 +3005,29 @@ test('feedback 4: persistent tree geometry and focus rings in editable fields', 
   await expect(page.getByLabel('Measurement description / remarks',{exact:true})).toBeFocused();
   await audit(page.locator('.project-view:visible'));
   await page.screenshot({path:'test-results/measurement-editable-caption.png',animations:'disabled'});
+});
+
+test('multiline analysis cells retain padding when editing and accepting', async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  const cell = page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first();
+  await cell.dblclick();
+  await cell.locator('textarea').fill('Materials\nAdditional line');
+  await cell.locator('textarea').press('Enter');
+  await expect(cell).toHaveText('Materials\nAdditional line');
+  const before = await cell.evaluate(el => { const style = getComputedStyle(el); const range = document.createRange(); range.selectNodeContents(el); const b = range.getBoundingClientRect(); return { y: b.y, x: b.x, height: el.getBoundingClientRect().height, padding: style.padding }; });
+  await cell.dblclick();
+  const editor = cell.locator('textarea');
+  const bounds = (await editor.boundingBox())!;
+  await page.screenshot({ path: 'test-results/analysis-text-editing.png', animations: 'disabled' });
+  expect(Math.abs(bounds.x - before.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(bounds.y - before.y)).toBeLessThanOrEqual(2);
+  await editor.press('End');
+  await page.keyboard.insertText(' edited');
+  await editor.press('Enter');
+  await expect(cell).toHaveText('Materials\nAdditional line edited');
+  await expect(cell).toHaveCSS('padding', before.padding);
+  await page.screenshot({ path: 'test-results/analysis-text-accepted.png', animations: 'disabled' });
+  expect(Math.abs((await cell.boundingBox())!.height - before.height)).toBeLessThanOrEqual(1);
 });
