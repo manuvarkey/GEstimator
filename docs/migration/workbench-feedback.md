@@ -17,6 +17,56 @@ Four focused browser workflows and the production frontend build passed.
 Popup and Analysis edit/accept screenshots were reviewed; see the
 [validation record](validation.md#pending-workbench-review-fixes--2026-11-17).
 
+## Database dialog scrolling rasterization — 2026-11-18
+
+The screenshot sequence revealed a native rendering change when the dialog
+starts scrolling: content text becomes heavier although its computed weight
+remains 400. Earlier WebKit page snapshots painted regular text and missed the
+actual window/compositor output. Native display captures reproduced the issue.
+
+The dialog's `.p-dialog-content` now uses
+`-webkit-font-smoothing: antialiased`. Nested saved-library text inherits it.
+Toggling smoothing to `auto` restores the heavy rendering; antialiasing restores
+regular body text while keeping headings bold. This is the confirmed rendering
+fix; merely pinning `font-weight: 400` did not address it.
+
+## Repeated database attachment and square toolbar feedback — 2026-11-18
+
+- Database manager body typography has an explicit weight of 400. It no longer
+  depends on the weight of the native/system font context; heading and saved-name
+  emphasis remains. Four repeated bundled attachments through the themed menu
+  retain regular text even with a bold parent font, and do not duplicate sources.
+- Native WebKit was exercised with four distinct catalog databases (the checkout
+  ships two bundled databases, plus two available custom sources), followed by
+  the two bundled databases again. Six attempts retained weight 400 in all
+  sampled body fields. The original transition itself remains unconfirmed.
+- Copy/Paste use filled rectangular outlines and crisp-edge rendering at small
+  icon sizes. Toolbar hover/pressed highlights have square corners and thin inset
+  borders; they preserve the existing caption and hit-area dimensions.
+- The hover reference was OpenCADStudio's
+  [flat toolbar button styling](https://github.com/HakanSeven12/OpenCADStudio/blob/main/src/ui/kit/toolbar.rs).
+  Four focused browser workflows and the production build passed; light/dark
+  screenshots and the native attachment snapshots were reviewed.
+
+## Long first-level descriptions and caret behavior — 2026-11-18
+
+- Long schedule descriptions squeezed the 7 px tree connector to about 3 px in
+  display mode, while the editor kept its full width. Connector/spacer flex items
+  now retain their width, so displayed and edited text share the same left edge.
+- Accepting unchanged text follows Tabulator's cancel path. It normalizes height
+  before restoring the tree marker, which can lose a wrapped line. The shared
+  cell controller now normalizes height after the marker is restored.
+- Arrow keys move the caret inside an editor; Shift+arrows select text. Outside
+  editing, arrows still move between cells. Tab/Shift+Tab and Enter accept edits.
+- Toolbar icons use the existing custom SVG paths with 2 px strokes, square caps
+  and miter joins. Ordinary icons are black in light mode and white in dark mode;
+  destructive actions retain red.
+- Initial bold editor/dialog reports could not be reproduced: the supplied 1.1/1.2 items and
+  native WebKit attachment probes kept normal text at weight 400. Tests now
+  verify font weights before/during/after edits and library attachment. The user cannot retest. An additional literal-markup test rules out tag
+  interpretation in descriptions, categories and attached-library names; no
+  speculative font-weight override was added.
+
 ## Initial window reveal — 2026-11-17
 
 The native main window starts hidden, preventing a visible transition through
@@ -39,8 +89,9 @@ Normal resize and typography updates retain their scheduled layout behavior.
   Cell editing and selection, Editor actions and Ribbon navigation. Each group
   has a semantic heading. Escape's retained-cell-focus behavior is listed.
 - The summary row exposed a delayed Tabulator visibility redraw that shifted a
-  restored virtual table by 7 px. A follow-up visibility observer restores the
-  saved scroll position after Tabulator's own redraw, preserving navigation.
+  restored virtual table by 7 px. Public table render events now restore the
+  saved pixel position after virtual redraws, preserving navigation independently
+  of visibility/resize observer ordering.
 
 ## Keyboard and record navigation follow-up — 2026-11-17
 

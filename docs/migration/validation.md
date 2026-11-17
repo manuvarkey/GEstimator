@@ -341,3 +341,154 @@ local development server and reported connection refusals; rerunning with the
 available server completed all five checks. The existing bundle-size warning
 remains. Native visual startup across supported operating systems remains a
 manual validation gate; Python/backend logic is unchanged.
+
+
+## Long first-level text, caret arrows and monochrome SVGs — 2026-11-18
+
+The preceding startup work is committed as `ac14230`. Inspected the supplied
+`/home/manu/Desktop/Rates/test.eproj` through read-only SQLite access and isolated
+backend working copies. Item 1.1 is a unitless first-level parent with children;
+1.2 is a billable first-level item. Both contain long wrapping descriptions.
+The source file retains its original size and modification timestamp.
+
+Two padding/geometry mechanisms were reproduced. A flex tree connector shrank
+from its configured 7 px to approximately 3 px next to long display text, while
+the editor retained 7 px. Connectors and spacers now have zero flex shrink.
+Accepting unchanged text also follows Tabulator's cancel path, where height is
+measured before the tree marker is restored. The shared controller now measures
+again after restoration. A generated fixture with both parent and leaf shapes
+checks identical text left edges and padding, full connector width, stable
+height on unchanged Enter, and font-weight preservation through changed edits.
+
+Arrow keys retain native caret movement while a cell editor is open; Shift+arrows
+select text. Outside editing they still navigate cells. Tab/Shift+Tab and Enter
+retain commit/navigation behavior. Checks exercise caret movement and selection
+in Schedule, Resources, Analysis and measurement records. The existing editor
+navigation workflow was updated to use the new semantics.
+
+Toolbars use custom inline SVG paths, not an icon library/font. Per user approval,
+the existing shapes use 2 px strokes, square caps, miter joins and black/white
+colors in light/dark themes. Destructive controls retain red. Browser checks
+verify both palettes and stroke geometry; native WebKit light/dark screenshots
+were also inspected during the investigation.
+
+**Bold reports remain unconfirmed.** Chromium checks against the supplied project
+and native GTK/WebKit probes with Iosevka 11 retained normal text at computed
+weight 400 during editing and after library attachment. Dialog headings and
+saved-library names intentionally use 700; buttons retain their existing 550.
+The tests preserve these distinctions. The user's current saved appearance was
+light with no custom font overrides. A restart confirmation was requested; these
+two reports have not been marked fixed or given a speculative CSS override.
+
+The full browser run passed **55 of 56 workflows**; the scroll-retention workflow
+again exposed an observer-order-dependent 700 → 707 px shift. DataTable now
+preserves pixel position around public renderStarted/renderComplete events,
+replacing the extra visibility observer. Picker retention, insertion/reveal,
+cached navigation and scroll/save/export each passed **two consecutive runs**
+(eight repeated workflows). The five focused editor/typography/icon workflows
+passed, and the final **Vue/TypeScript production build** and whitespace check
+passed. The existing bundle-size warning remains. Backend/Python and native
+builds were not rerun for these frontend changes.
+
+
+### Escaping investigation requested by the user
+
+The user cannot currently retest the bold reports and asked whether unescaped
+characters cause them. Both supplied descriptions and all schedule descriptions
+in the provided file contain no `<`/`&` characters. The only matches in inspected
+resource categories are ordinary ampersands, such as `STEEL & PVC`.
+
+Source inspection confirms that Tabulator's textarea/plaintext formatters escape
+HTML before content insertion. Table editors assign `input.value`; library
+names, attachment messages and categories use Vue text interpolation. No `v-html`
+or direct raw-HTML insertion exists in the frontend source.
+
+An additional browser fixture uses literal `<b>`, `<strong>`, `<style>`, ampersands
+and quotes in descriptions, a category and the library's project name. It verifies
+literal text before/during/after cell editing and attachment, no injected tag
+nodes, unchanged normal cell/body/dialog-intro weights, and unchanged source
+bytes. The **three-workflow rerun passed** (markup, long first-level geometry,
+and caret/monochrome SVGs). No escaping failure was found, and the two reported
+bold effects remain unresolved rather than being labeled fixed.
+
+
+## Repeated database attachments and sharp toolbar states — 2026-11-18
+
+User confirmed that Schedule's bold issue is resolved; Attach Database remained
+reported after repeated built-in database attachments. A native GTK/WebKit probe
+now follows the themed Available databases menu, attaches four distinct catalog
+entries, then repeats the two bundled entries. This checkout ships DSR2021 and
+DSREM2022; the other two entries were custom databases already in the catalog.
+All six attempts retained 400 for the dialog root, intro, labels and input. The
+attached count increased to four and remained four for duplicate attempts.
+Snapshots were inspected. The original all-bold native transition did not occur.
+
+The manager previously inherited its base font weight. A scoped regular-weight
+rule now isolates its body typography from a bold native/application font context.
+Browser coverage deliberately sets the parent body to 700 during four bundled
+attachment attempts and verifies manager/field weights remain 400, with h3 and
+saved-name emphasis still 700. It uses the themed menu, checks duplicate
+prevention and verifies both bundled source files remain byte-identical. This is
+an explicit inheritance guard; the original renderer transition is unconfirmed.
+
+Clipboard icons are now angular, filled SVG outlines with even-odd holes and
+crispEdges rendering. Toolbar hover/pressed states have zero-radius inset outlines,
+including full ribbon actions, minor actions and title-bar controls. The styling
+was informed by OpenCADStudio's flat toolbar hover/outline implementation:
+[OpenCADStudio toolbar source](https://github.com/HakanSeven12/OpenCADStudio/blob/main/src/ui/kit/toolbar.rs).
+No external implementation code or icon dependency was added.
+
+**Four focused browser workflows passed:** repeated bundled attachment, clipboard
+icon/hover geometry, existing multi-source attachment/import/rate refresh and the
+caret/monochrome icon workflow. Assertions verify both icon palettes, fill/stroke
+mode and unchanged button position/size on hover. Screenshots in light and dark
+were visually reviewed. The **Vue/TypeScript production build** and whitespace
+check passed. A first test run used a nonexistent Save project toolbar label; its
+locator was corrected to the existing Save copy label before the clean rerun.
+No backend/schema changes; Python and native builds were not rerun.
+
+
+## Native scroll-layer font smoothing — 2026-11-18
+
+The user's three screenshots showed regular text after the first attachment,
+then heavy ordinary text as the dialog began scrolling after the second. The
+title, input values and button labels stayed regular. This narrowed the issue
+to the scrollable content's rasterization, not HTML escaping or a CSS font-weight
+transition.
+
+Reproduced in GTK/WebKit 2.52.6 at 1280×900 using Iosevka 11 and the light theme.
+The decisive difference was capture method: WebKit.get_snapshot rendered the
+page with regular text, while Gdk.pixbuf_get_from_window captured the visible
+window with the heavy text seen by the user. Computed body/dialog/field weights
+remained 400 in both cases. This explains the earlier false-negative native
+checks. Native screenshots must capture display output for this regression.
+
+Compared opaque scroll-area backgrounds, transforms, opacity, filters, text
+shadow, geometric text rendering, removed overflow and explicit font smoothing.
+The confirmed narrow fix is `-webkit-font-smoothing: antialiased` on the database
+dialog's `.p-dialog-content`; the saved-library scroll area inherits it. It
+preserves actual font weights, geometry, scrolling and heading emphasis.
+
+After attaching four distinct catalog databases, an A/B/A-style native check
+verified normal text with the fix, reproduced heavy text by overriding smoothing
+to `auto`, then restored normal text by removing the override. Both captures used
+the same window and content. Display artifacts are
+`/tmp/font-regression-auto-display.png` and
+`/tmp/font-regression-fixed-display.png`. A stable intro-text crop had red-channel
+ink mass 786387 with auto smoothing and 530350 with antialiasing, consistent with
+the visible weight difference despite unchanged CSS weight.
+
+**Four focused browser workflows and the production frontend build passed.**
+The repeated-attachment regression now uses 1280×900, asserts that overflow is
+actually active after the second database, and checks inherited antialiasing in
+both the intro and nested saved-library text, alongside stable weights and
+source preservation. Chromium tests verify the CSS/overflow contract; the native
+display captures verify the visual fix. No backend or native-source changes.
+
+
+The same native display-capture toggle was repeated in dark mode after four
+attachments. Auto smoothing showed the heavier, color-fringed text; antialiasing
+restored consistent neutral regular text and retained bold headings. Artifacts:
+`/tmp/dark-font-regression-auto-display.png` and
+`/tmp/dark-font-regression-fixed-display.png`. Light and dark captures were
+visually reviewed, with the scope limited to the database dialog's content.

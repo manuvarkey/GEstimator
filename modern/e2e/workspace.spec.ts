@@ -225,7 +225,7 @@ test("compact contrast, category filters, expanded trees and client window contr
   await page.screenshot({ path: "test-results/compact-light-categories.png", animations: "disabled" });
 });
 
-test("cell navigation commits and continues editing across schedule resources measurements and analysis", async ({ page }) => {
+test("cell navigation commits with Tab and Enter across schedule resources measurements and analysis", async ({ page }) => {
   await refinementFixture(page);
   const main = page.locator(".project-view:visible .project-main-grid");
   const row = (code: string) => main.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: new RegExp(`^${code}$`) }) });
@@ -238,18 +238,21 @@ test("cell navigation commits and continues editing across schedule resources me
   await field("qty");
   await expect(row("A").locator('[tabulator-field="rate"]')).toHaveText("6");
   await active().fill("2");
-  await active().press("ArrowRight");
+  await active().press("Tab");
   await field("remarks");
   await expect(row("A").locator('[tabulator-field="amount"]')).toHaveText("12.00");
   await active().fill("Accepted remark");
   await active().press("Shift+Tab");
   await field("qty");
-  await active().press("ArrowDown");
+  await active().press("Enter");
   await expect(row("B").locator('[tabulator-field="qty"] input')).toBeFocused();
   await active().fill("4");
-  await active().press("ArrowUp");
+  await active().press("Tab");
+  await active().press("Escape");
+  await row("A").locator('[tabulator-field="qty"]').click();
+  await page.keyboard.press("Enter");
   await expect(row("A").locator('[tabulator-field="qty"] input')).toBeFocused();
-  await active().press("ArrowLeft");
+  await active().press("Shift+Tab");
   await field("rate");
   await active().fill("1/0");
   await active().press("Tab");
@@ -263,12 +266,12 @@ test("cell navigation commits and continues editing across schedule resources me
   await row("R").locator('[tabulator-field="rate"]').click();
   await page.keyboard.press("Enter");
   await active().fill("2*3");
-  await active().press("ArrowRight");
+  await active().press("Tab");
   await field("vat");
   await active().fill("5");
   await active().press("Shift+Tab");
   await field("rate");
-  await active().press("ArrowDown");
+  await active().press("Enter");
   await expect(row("L").locator('[tabulator-field="rate"] input')).toBeFocused();
   await active().press("Escape");
   await page.locator("#view-measurement").click();
@@ -290,19 +293,21 @@ test("cell navigation commits and continues editing across schedule resources me
   await active(records).press("Tab");
   await field("c3", records);
   await active(records).fill("2+2");
-  await active(records).press("ArrowDown");
+  await active(records).press("Enter");
   await field("c3", records);
   await active(records).fill("2");
-  await active(records).press("ArrowLeft");
+  await active(records).press("Shift+Tab");
   await field("c2", records);
-  await active(records).press("ArrowUp");
+  await active(records).press("Escape");
+  await records.locator('.tabulator-row [tabulator-field="c2"]').first().click();
+  await page.keyboard.press("Enter");
   await expect(active(records)).toHaveValue("2*3");
   await active(records).press("Shift+Tab");
   await field("c0", records);
   await active(records).fill("Record");
   await active(records).press("Shift+Enter");
   await active(records).pressSequentially("Second line");
-  await active(records).press("ArrowDown");
+  await active(records).press("Enter");
   await field("c0", records);
   await expect(records.locator('.tabulator-row [tabulator-field="c0"]').first()).toHaveText("Record\nSecond line");
   await active(records).press("Escape");
@@ -327,7 +332,9 @@ test("cell navigation commits and continues editing across schedule resources me
   await page.keyboard.press("Enter");
   await active(analysis).press("Enter");
   await expect(analysis.locator('.tabulator-row[data-kind="Round"] [tabulator-field="value"] input')).toBeFocused();
-  await active(analysis).press("ArrowUp");
+  await active(analysis).press("Escape");
+  await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
+  await page.keyboard.press("Enter");
   await expect(analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"] input')).toBeFocused();
   await active(analysis).press("Escape");
   await expect(analysis.locator(".tabulator-data-tree-control")).toHaveCount(0);
@@ -3197,4 +3204,207 @@ test('native startup errors reveal the initialized window with an error message'
   await page.reload();
   await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain('plugin:window|show');
   await expect(page.getByRole('alert')).toContainText('Startup backend unavailable');
+});
+
+
+test('long first-level items retain typography and indentation through Enter and library attachment', async ({ page }) => {
+  const { execFileSync } = await import('node:child_process');
+  const path = resolve(directory, 'long-first-level.eproj');
+  execFileSync(python, ['-m', 'modern.e2e.create_fixture', path], { cwd: resolve('..') });
+  execFileSync(python, ['-c', "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);desc='Long wiring description with conductors, switches, conduits and accessories. '*5;d.insert_item_atomic(ScheduleItemModel('1.1',desc,'',category='Work'));d.insert_item_atomic(ScheduleItemModel('1.1.1','Group A','Point',rate=2,qty=1,parent='1.1',category='Work'));d.insert_item_atomic(ScheduleItemModel('1.2',desc,'Point',rate=3,qty=1,category='Work'));d.close_database()", path], { cwd: resolve('..') });
+  const original = await readFile(path);
+  await openFixture(page, path);
+  await page.locator('#view-schedule').click();
+  const grid = page.locator('.project-view:visible .project-main-grid');
+  const metrics = async (cell: ReturnType<Page['locator']>) => cell.evaluate(el => {
+    const style = getComputedStyle(el), walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let textX = 0;
+    while (walker.nextNode()) if (walker.currentNode.textContent?.trim()) { const range = document.createRange(); range.selectNodeContents(walker.currentNode); textX = range.getBoundingClientRect().x; break; }
+    return { padding: style.padding, weight: style.fontWeight, height: el.getBoundingClientRect().height, textX };
+  });
+  for (const code of ['1.1', '1.2']) {
+    const cell = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: code === '1.1' ? /^1\.1$/ : /^1\.2$/ }) }).locator('[tabulator-field="description"]');
+    const before = await metrics(cell);
+    expect(before.weight).toBe('400');
+    for (const changed of [false, true]) {
+      await cell.dblclick();
+      const input = cell.locator('textarea');
+      await expect(input).toHaveCSS('font-weight', before.weight);
+      expect(Math.abs((await input.boundingBox())!.x - before.textX)).toBeLessThanOrEqual(1);
+      expect((await cell.locator('.tabulator-data-tree-branch').boundingBox())!.width).toBe(7);
+      if (changed) { await input.press('End'); await page.keyboard.insertText(' revised'); }
+      await input.press('Enter');
+      await expect(input).toHaveCount(0);
+      await expect(cell).toHaveCSS('padding', before.padding);
+      await expect(cell).toHaveCSS('font-weight', before.weight);
+      const after = await metrics(cell);
+      expect(Math.abs(after.textX - before.textX)).toBeLessThanOrEqual(1);
+      if (!changed) expect(after.height).toBe(before.height);
+    }
+  }
+  await page.screenshot({ path: 'test-results/long-first-level-items.png', animations: 'disabled' });
+  const manager = await openDatabaseManager(page);
+  const labels = [manager.locator('.dialog-intro'), manager.getByLabel('Library project', { exact: true }), manager.locator('.library-remember')];
+  const weights = await Promise.all(labels.map(label => label.evaluate(el => getComputedStyle(el).fontWeight)));
+  await manager.getByLabel('Library project', { exact: true }).fill(path);
+  await manager.getByRole('button', { name: 'Attach library', exact: true }).click();
+  await expect(manager.locator('.attached-database')).toHaveCount(1);
+  for (const [index, label] of labels.entries()) await expect(label).toHaveCSS('font-weight', weights[index]!);
+  await page.screenshot({ path: 'test-results/attached-library-typography.png', animations: 'disabled' });
+  expect(await readFile(path)).toEqual(original);
+});
+
+test('arrows edit text within a cell and toolbar SVGs use sharp monochrome strokes', async ({ page }) => {
+  await refinementFixture(page);
+  const checkCaret = async (cell: ReturnType<Page['locator']>) => {
+    const original = await cell.textContent();
+    await cell.dblclick();
+    const input = cell.locator('textarea');
+    await input.fill('Alpha beta\nGamma delta');
+    await input.evaluate(el => (el as HTMLTextAreaElement).setSelectionRange(5, 5));
+    await input.press('ArrowLeft');
+    await expect(input).toBeFocused();
+    expect(await input.evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBe(4);
+    await input.press('ArrowRight');
+    await input.press('Shift+ArrowRight');
+    expect(await input.evaluate(el => [(el as HTMLTextAreaElement).selectionStart, (el as HTMLTextAreaElement).selectionEnd])).toEqual([5, 6]);
+    await input.press('ArrowDown');
+    await expect(input).toBeFocused();
+    expect(await input.evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBeGreaterThan(10);
+    await input.press('ArrowUp');
+    expect(await input.evaluate(el => (el as HTMLTextAreaElement).selectionStart)).toBeLessThan(11);
+    await input.press('Escape');
+    await expect(cell).toBeFocused();
+    await expect(cell).toHaveText(original || '');
+  };
+  for (const view of ['schedule', 'resources']) {
+    await page.locator('#view-' + view).click();
+    await checkCaret(page.locator('.project-view:visible .tabulator-row[data-kind="Resource"] [tabulator-field="description"]').first());
+  }
+  await page.locator('#view-schedule').click();
+  const icon = page.getByRole('button', { name: 'Add item', exact: true }).locator('svg');
+  for (const [theme, color] of [['dark', 'rgb(255, 255, 255)'], ['light', 'rgb(0, 0, 0)']]) {
+    if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click();
+    await expect(icon).toHaveCSS('color', color!);
+    await expect(icon).toHaveCSS('stroke-linecap', 'square');
+    await expect(icon).toHaveCSS('stroke-linejoin', 'miter');
+    await expect(icon).toHaveCSS('stroke-width', '2px');
+    await page.screenshot({ path: `test-results/monochrome-toolbar-${theme}.png`, animations: 'disabled' });
+  }
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  await checkCaret(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first());
+  await page.locator('#view-measurement').click();
+  await page.getByRole('button', { name: 'Add measurement', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add item', exact: true });
+  await add.getByRole('button', { name: 'Add item', exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await openMeasurementEntry(page);
+  await page.getByRole('button', { name: 'Add record', exact: true }).click();
+  await checkCaret(page.locator('.measurement-record-grid .tabulator-row [tabulator-field="c0"]').first());
+});
+
+
+test('markup characters in descriptions categories and attached library names stay literal', async ({ page }) => {
+  const { execFileSync } = await import('node:child_process');
+  const path = resolve(directory, 'literal-markup.eproj');
+  const literal = '<b>Wiring & "quoted"</b><style>body{font-weight:900}</style>';
+  const category = '<strong>Category & accessories</strong>';
+  execFileSync(python, ['-m', 'modern.e2e.create_fixture', path], { cwd: resolve('..') });
+  execFileSync(python, ['-c', "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);settings=d.get_project_settings();settings['project_name']=sys.argv[2];d.set_project_settings(settings);d.insert_item_atomic(ScheduleItemModel('1.1',sys.argv[2],'Point',rate=1,qty=1,category=sys.argv[3]));d.close_database()", path, literal, category], { cwd: resolve('..') });
+  const original = await readFile(path);
+  const bodyWeight = await page.locator('body').evaluate(el => getComputedStyle(el).fontWeight);
+  await openFixture(page, path);
+  await page.locator('#view-schedule').click();
+  const grid = page.locator('.project-view:visible .project-main-grid');
+  const cell = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^1\.1$/ }) }).locator('[tabulator-field="description"]');
+  await expect(cell).toHaveText(literal);
+  await expect(grid.getByText(category, { exact: true })).toBeVisible();
+  await expect(cell.locator('b,strong,style')).toHaveCount(0);
+  await cell.dblclick();
+  await expect(cell.locator('textarea')).toHaveValue(literal);
+  await expect(cell.locator('textarea')).toHaveCSS('font-weight', '400');
+  await cell.locator('textarea').press('Enter');
+  await expect(cell).toHaveText(literal);
+  await expect(cell).toHaveCSS('font-weight', '400');
+  const manager = await openDatabaseManager(page);
+  const introWeight = await manager.locator('.dialog-intro').evaluate(el => getComputedStyle(el).fontWeight);
+  await manager.getByLabel('Library project', { exact: true }).fill(path);
+  await manager.getByRole('button', { name: 'Attach library', exact: true }).click();
+  await expect(manager.locator('.attached-database span')).toHaveText(literal);
+  await expect(manager.locator('.saved-library strong')).toHaveText(literal);
+  await expect(manager.locator('.attached-database b,.attached-database style,.saved-library strong b,.saved-library strong style')).toHaveCount(0);
+  await expect(manager.locator('.dialog-intro')).toHaveCSS('font-weight', introWeight);
+  await expect(page.locator('body')).toHaveCSS('font-weight', bodyWeight);
+  expect(await readFile(path)).toEqual(original);
+});
+
+
+test('repeated bundled database attachment keeps regular weight and stable smoothing when content overflows', async ({ page }) => {
+  await refinementFixture(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const catalog = (await call('program.libraries')).result.rows.filter((entry: any) => entry.bundled);
+  expect(catalog.length).toBeGreaterThanOrEqual(2);
+  const sourceBytes = await Promise.all(['DSR2021.eproj', 'DSREM2022.eproj'].map(name => readFile(resolve('../estimator/database', name))));
+  const manager = await openDatabaseManager(page);
+  const fields = [manager.locator('.dialog-intro'), manager.getByLabel('Library project', { exact: true }), manager.locator('.library-remember')];
+  const selected = manager.getByLabel('Available databases');
+  const seen = new Set<string>();
+  for (const [index, entry] of [catalog[0], catalog[1], catalog[0], catalog[1]].entries()) {
+    if (index === 2) await page.locator('body').evaluate(el => { el.style.fontWeight = '700'; });
+    await selected.locator(`option[value="${entry.path}"]`).waitFor({ state: 'attached' });
+    const label = await selected.locator(`option[value="${entry.path}"]`).textContent();
+    await selected.click();
+    await page.locator('#themed-select-options').getByRole('menuitem', { name: label!, exact: true }).click();
+    await expect(manager.getByLabel('Library project', { exact: true })).toHaveValue(entry.path);
+    await manager.getByRole('button', { name: 'Attach library', exact: true }).click();
+    seen.add(entry.path);
+    await expect(manager.locator('.attached-database')).toHaveCount(seen.size);
+    await expect(manager.getByRole('button', { name: 'Attach library', exact: true })).toBeEnabled();
+    for (const field of fields) await expect(field).toHaveCSS('font-weight', '400');
+    await expect(manager).toHaveCSS('font-weight', '400');
+    await expect(manager.locator('.p-dialog-content')).toHaveCSS('-webkit-font-smoothing', 'antialiased');
+    await expect(manager.locator('.dialog-intro')).toHaveCSS('-webkit-font-smoothing', 'antialiased');
+    if (index >= 1) {
+      expect(await manager.locator('.p-dialog-content').evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+      await expect(manager.locator('.saved-libraries p')).toHaveCSS('-webkit-font-smoothing', 'antialiased');
+    }
+  }
+  await expect(manager.locator('h3').first()).toHaveCSS('font-weight', '700');
+  await expect(manager.locator('.saved-library strong').first()).toHaveCSS('font-weight', '700');
+  await page.screenshot({ path: 'test-results/repeated-bundled-attachment.png', animations: 'disabled' });
+  await page.locator('body').evaluate(el => { el.style.removeProperty('font-weight'); });
+  expect(await readFile(resolve('../estimator/database/DSR2021.eproj'))).toEqual(sourceBytes[0]);
+  expect(await readFile(resolve('../estimator/database/DSREM2022.eproj'))).toEqual(sourceBytes[1]);
+});
+
+test('clipboard icons and toolbar hover outlines remain sharp without changing button size', async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  const ribbon = page.locator('.ribbon');
+  for (const [theme, color] of [['dark', 'rgb(255, 255, 255)'], ['light', 'rgb(0, 0, 0)']]) {
+    if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click();
+    await page.mouse.move(1590, 990);
+    const copy = ribbon.getByRole('button', { name: 'Copy', exact: true });
+    for (const name of ['Copy', 'Paste']) {
+      const icon = ribbon.getByRole('button', { name, exact: true }).locator('svg');
+      await expect(icon).toHaveAttribute('fill', 'currentColor');
+      await expect(icon).toHaveAttribute('stroke', 'none');
+      await expect(icon).toHaveAttribute('shape-rendering', 'crispEdges');
+      await expect(icon).toHaveCSS('color', color!);
+    }
+    for (const button of [copy, ribbon.getByRole('button', { name: 'Add item', exact: true }), page.locator('.titlebar').getByRole('button', { name: 'Save copy', exact: true })]) {
+      const before = (await button.boundingBox())!;
+      await button.hover();
+      await expect(button).toHaveCSS('border-radius', '0px');
+      expect(await button.evaluate(el => getComputedStyle(el).boxShadow)).toContain('inset');
+      const after = (await button.boundingBox())!;
+      expect(after.width).toBe(before.width);
+      expect(after.height).toBe(before.height);
+      expect(after.x).toBe(before.x);
+      expect(after.y).toBe(before.y);
+    }
+    await copy.hover();
+    await page.screenshot({ path: `test-results/sharp-clipboard-hover-${theme}.png`, animations: 'disabled' });
+  }
 });

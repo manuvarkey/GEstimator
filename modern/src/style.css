@@ -348,7 +348,7 @@ textarea::placeholder {
   flex: 0 0 auto;
   width: 24px;
   height: 24px;
-  color: var(--accent);
+  color: var(--toolbar-icon);
 }
 .ribbon-action:hover:not(:disabled),
 .ribbon-action.pressed {
@@ -2142,3 +2142,26 @@ textarea.measurement-entry-title {
 .shortcut-group + .shortcut-group { margin-top: 20px; }
 .shortcut-group h3 { margin: 0; padding-bottom: 6px; color: var(--accent); font-size: var(--text-size-ui); border-bottom: 1px solid var(--line); }
 .shortcut-list > div { flex-wrap: wrap; gap: 6px 15px; }
+
+.ribbon svg, .titlebar svg { stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.titlebar .icon-button svg { color: var(--toolbar-icon); }
+
+/* Long descriptions must not squeeze tree markers before/after editing. */
+.analysis-table .tabulator-data-tree-branch, .analysis-table .tabulator-data-tree-branch-empty, .analysis-table .tree-spacer { flex-shrink: 0; }
+
+/* Square, inset hover outlines keep toolbar hit areas and caption layout stable. */
+.ribbon-action, .titlebar .icon-button, .titlebar .application-menu-button { border-radius: 0; }
+.ribbon-action:hover:not(:disabled), .ribbon-action.pressed,
+.titlebar .icon-button:hover:not(:disabled), .titlebar .icon-button.pressed,
+.titlebar .application-menu-button:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--toolbar-hover-border, var(--accent));
+}
+.ribbon-action.danger { --toolbar-hover-border: var(--danger); }
+.window-close { --toolbar-hover-border: var(--window-close); }
+
+/* Dialog body text must not inherit a bold native menu/application font. */
+.library-manager-dialog { font-weight: 400; }
+
+/* WebKitGTK can embolden composited scroll content despite an unchanged weight.
+   Keep its text rasterization consistent before and after overflow appears. */
+.library-manager-dialog .p-dialog-content { -webkit-font-smoothing: antialiased; }

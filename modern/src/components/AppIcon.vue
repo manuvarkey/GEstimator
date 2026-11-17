@@ -1,5 +1,7 @@
 <script setup lang="ts">
 defineProps<{ name: string; size?: number }>();
+// Filled angular outlines keep clipboard glyphs crisp at 18–24 px.
+const clipboardIcons = ["copy", "paste"];
 const paths: Record<string, string> = {
   blank: "",
   forward: "M4 12h16 M14 6l6 6-6 6",
@@ -15,7 +17,7 @@ const paths: Record<string, string> = {
   search: "M21 21l-5-5 M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z",
   undo: "M9 4 3 10l6 6 M3 10h10a7 7 0 0 1 7 9",
   redo: "m15 4 6 6-6 6 M21 10H11a7 7 0 0 0-7 9",
-  copy: "M9 9h12v12H9Z M5 15H3V3h12v2",
+  copy: "M8 8H22V22H8ZM10 10V20H20V10ZM2 2H16V6H14V4H4V14H6V16H2Z",
   trash: "M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7",
   up: "m6 14 6-6 6 6",
   down: "m6 10 6 6 6-6",
@@ -34,7 +36,7 @@ const paths: Record<string, string> = {
   multiply: "m6 6 12 12 M6 18 18 6",
   round: "M6 5H3v14h3 M18 5h3v14h-3 M8 12h8",
   resource: "m12 3 9 5v9l-9 5-9-5V8Z M3 8l9 5 9-5 M12 13v9",
-  paste: "M8 5H4v17h16V5h-4 M8 2h8v6H8Z",
+  paste: "M7 2H17V5H21V22H3V5H7ZM9 4V6H15V4ZM5 7V20H19V7H17V8H7V7Z",
   dots: "M5 12h.01 M12 12h.01 M19 12h.01",
   collapse: "m8 9 4-4 4 4 M8 15l4 4 4-4",
   expand: "m8 5 4 4 4-4 M8 19l4-4 4 4",
@@ -65,8 +67,10 @@ const paths: Record<string, string> = {
     :width="size || 18"
     :height="size || 18"
     viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
+    :fill="clipboardIcons.includes(name) ? 'currentColor' : 'none'"
+    :stroke="clipboardIcons.includes(name) ? 'none' : 'currentColor'"
+    fill-rule="evenodd"
+    :shape-rendering="clipboardIcons.includes(name) ? 'crispEdges' : undefined"
     stroke-width="1.6"
     stroke-linecap="round"
     stroke-linejoin="round"

@@ -9,6 +9,7 @@
   font-size: var(--ui-font-size);
   --text-size-ui: 1rem;
   --text-size-small: .9rem;
+  --toolbar-icon: #fff;
   --text-size-toolbar: 0.95rem;
   --text-size-heading: 1.1rem;
   --text-size-table: var(--table-font-size);
@@ -41,6 +42,7 @@
   background: var(--bg);
 }
 :root[data-theme="light"] {
+  --toolbar-icon: #000;
   --danger: #b42332;
   --error-text: #a73636;
   --bg: #edf1f6;

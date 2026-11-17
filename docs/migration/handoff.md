@@ -1,5 +1,57 @@
 # Vue/Tauri migration handoff
 
+## Database dialog bold rendering resolved — 2026-11-18
+
+User screenshots exposed the missing condition: ordinary dialog text became
+visually bold when scrolling activated, while title/input/button text stayed
+regular. Native WebKit page snapshots and computed weight (400) had masked the
+problem. Capturing the displayed X11 GTK window reproduced it after attaching
+the second database at 1280×900.
+
+The database dialog's scroll content now sets
+`-webkit-font-smoothing: antialiased`, inherited by its nested Saved libraries
+scroll area. Native display captures confirm that toggling it to `auto`
+reproduces the bold effect and restoring antialiasing removes it, without
+changing CSS font weights or heading emphasis. Both light and dark native
+display captures were verified. The earlier regular-weight guard
+alone was insufficient. Four focused browser workflows and the production build
+pass; see the [native rendering validation](validation.md#native-scroll-layer-font-smoothing--2026-11-18).
+
+## Repeated attachments and toolbar hover — 2026-11-18
+
+The user confirmed the Schedule bold issue is resolved. Attach Database's body
+now explicitly uses regular weight (400), preventing inheritance from a bold
+system/application font. Headings and saved-library names remain emphasized.
+The original native all-bold transition has not been reproduced; six native
+WebKit attempts (four distinct catalog databases, then repeats of the two bundled
+databases) kept all sampled body fields at 400. Browser coverage also verifies
+regular dialog text under a deliberately bold parent font and repeated bundled
+attachment through the themed dropdown, with deduplication/source preservation.
+
+Copy/Paste now use filled rectangular SVG outlines with crisp edge rendering.
+Toolbar hover/pressed states use square inset borders without size changes,
+inspired by OpenCADStudio's outlined hover treatment. Four focused browser
+workflows and the production frontend build pass; screenshots were reviewed.
+See the latest [validation entry](validation.md#repeated-database-attachments-and-sharp-toolbar-states--2026-11-18).
+
+## Long-description and caret review — 2026-11-18
+
+The startup reveal increment is committed as `ac14230`. The next continuation
+keeps 7 px tree connectors from shrinking beside long descriptions and measures
+canceled/unchanged edits after their tree prefix is restored. Arrows now move
+the caret while editing; Tab/Shift+Tab and Enter retain cell acceptance, while
+arrows outside editing retain grid navigation. Shortcut help reflects this.
+Toolbar icons remain custom inline SVG, now sharper and black/white by theme
+as requested (destructive actions retain their red semantic color). The production
+build, five focused editor checks and eight repeated navigation checks passed;
+see the [validation record](validation.md#long-first-level-text-caret-arrows-and-monochrome-svgs--2026-11-18).
+
+**Font review status:** the user subsequently confirmed Schedule's bold effect
+is resolved. The database dialog has a regular-weight scope and repeated
+attachment coverage as described above. Escaping checks found no tag leakage.
+The supplied project was inspected through disposable working copies and
+read-only access; its source was preserved.
+
 ## Hidden-window startup — 2026-11-17
 
 The Schedule total/shortcut increment is committed as `2caa018`. The next change

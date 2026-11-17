@@ -12,7 +12,7 @@ Schedule omits category/parent columns; Resources omits category. Definitions, p
 |---|---|
 | Enter/F2 while focused | Start editing the focused editable cell. Enter leaves calculated cells read-only. |
 | Tab / Shift+Tab while editing | Accept, wait for backend validation/refresh, then edit the next/previous editable cell. Skip calculated fields and wrap rows. At a table boundary, Tab leaves the table. |
-| Plain arrows while editing | Accept and continue in the adjacent editable cell. Up/down retain the column and skip rows where it is not editable. |
+| Plain arrows while editing | Move the caret inside the editor; Shift+arrows select text. No cell commit or grid navigation. |
 | Enter while editing | Accept and continue down the same editable column; at its end, accept and retain focus. |
 | Modified Enter in multiline text | Shift/Ctrl/Meta+Enter inserts a newline. Composition input is preserved. |
 | Escape while editing | Cancel through the installed table editor. Outside editing, clear row selection. |

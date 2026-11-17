@@ -108,6 +108,9 @@ export function cellNavigation(table: Tabulator, host: HTMLElement, options: {
     const cell = destination ? locate(destination.id, destination.field) : locate(original.id, original.field);
     if (cell) await focus(cell, editing && !!destination);
   }
+  // Tabulator measures a canceled cell before restoring its tree prefix.
+  // Measure again after restoration so wrapped parent/leaf text keeps its height.
+  table.on("cellEditCancelled", cell => cell.getRow().normalizeHeight());
   table.on("cellEditing", cell => mark(cell));
   table.on("cellEdited", cell => {
     committed = options.save(cell).catch(() => false);
@@ -127,6 +130,12 @@ export function cellNavigation(table: Tabulator, host: HTMLElement, options: {
       if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return false;
       const input = (event.target as HTMLElement).closest<HTMLInputElement | HTMLTextAreaElement>("input,textarea");
       if (input && !input.closest(".tabulator-cell")) return false;
+      if (input && event.key.startsWith("Arrow")) {
+        // Editing owns caret movement and text selection; the grid owns arrows
+        // only after the editor closes. Keep native input behavior intact.
+        event.stopPropagation();
+        return true;
+      }
       if (input && event.key === "Escape") {
         const current = position && locate(position.id, position.field);
         if (!current) return false;

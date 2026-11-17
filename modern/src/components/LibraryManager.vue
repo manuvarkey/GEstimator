@@ -56,7 +56,7 @@ async function browse() {
 </script>
 
 <template>
-  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
+  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog library-manager-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
     <p class="dialog-intro">Browse an external project as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
     <label class="field">Available databases<select v-model="availablePath" :disabled="busy" @change="path = availablePath"><option value="">Choose a bundled or custom database…</option><option v-for="database in available" :key="database.path" :value="database.path">{{ database.name }} ({{ database.bundled ? 'bundled' : 'custom' }})</option></select></label>
     <button class="text-button" :disabled="busy" @click="discover">Refresh available databases</button>
