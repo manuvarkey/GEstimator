@@ -190,6 +190,12 @@ onMounted(() => {
   void fitVisibleTable();
 });
 defineExpose({
+  prepare: async () => {
+    await built;
+    await replacement;
+    cancelAnimationFrame(fitFrame);
+    table.redraw(true);
+  },
   focus: async () => { await built; await replacement; element.value?.focus({ preventScroll: true }); },
   clearSelection: () => table?.deselectRow(),
 });

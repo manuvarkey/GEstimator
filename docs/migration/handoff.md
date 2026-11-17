@@ -1,5 +1,17 @@
 # Vue/Tauri migration handoff
 
+## Hidden-window startup — 2026-11-17
+
+The Schedule total/shortcut increment is committed as `2caa018`. The next change
+starts the native main window hidden. Startup finishes desktop typography,
+settings/backend/MCP/recovery initialization, font loading and explicit table
+and ribbon layout before showing it. Explicit preparation avoids waiting on
+animation frames that a hidden WebView can throttle. Startup failures still
+show the window with the error visible. Restart the native app to exercise the
+new window configuration. Five focused browser workflows, the production
+frontend build and locked offline native check passed. See the
+[validation record](validation.md#hidden-main-window-until-startup-is-ready--2026-11-17).
+
 ## Schedule total and shortcut groups — 2026-11-17
 
 The preceding keyboard/record work is committed as `218aa52`, including the

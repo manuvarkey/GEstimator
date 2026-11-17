@@ -30,27 +30,29 @@ function sizeCaptions(element: HTMLElement) {
     button.style.setProperty("--ribbon-button-width", `${Math.max(52, Math.ceil(total))}px`);
   }
 }
+function fitNow() {
+  const element = host.value;
+  if (!element) return;
+  element.removeAttribute("data-compact");
+  element.querySelectorAll("[data-ribbon-mini]").forEach(button => button.removeAttribute("data-ribbon-mini"));
+  sizeCaptions(element);
+  const groups = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-group"));
+  const width = () => groups.reduce((total, group) => total + group.getBoundingClientRect().width, 0);
+  const style = getComputedStyle(element);
+  const available = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  // Degrade only as many actions as needed, keeping a constant ribbon depth.
+  const buttons = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-action"));
+  for (const button of buttons.reverse()) {
+    if (width() <= available) break;
+    if (button.hasAttribute("data-ribbon-keep-label")) continue;
+    if (button.getBoundingClientRect().width) button.dataset.ribbonMini = "true";
+  }
+}
 function fit() {
   cancelAnimationFrame(frame);
-  frame = requestAnimationFrame(() => {
-    const element = host.value;
-    if (!element) return;
-    element.removeAttribute("data-compact");
-    element.querySelectorAll("[data-ribbon-mini]").forEach(button => button.removeAttribute("data-ribbon-mini"));
-    sizeCaptions(element);
-    const groups = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-group"));
-    const width = () => groups.reduce((total, group) => total + group.getBoundingClientRect().width, 0);
-    const style = getComputedStyle(element);
-    const available = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    // Degrade only as many actions as needed, keeping a constant ribbon depth.
-    const buttons = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-action"));
-    for (const button of buttons.reverse()) {
-      if (width() <= available) break;
-      if (button.hasAttribute("data-ribbon-keep-label")) continue;
-      if (button.getBoundingClientRect().width) button.dataset.ribbonMini = "true";
-    }
-  });
+  frame = requestAnimationFrame(fitNow);
 }
+defineExpose({ prepare: () => { cancelAnimationFrame(frame); fitNow(); } });
 onMounted(() => {
   resize = new ResizeObserver(fit);
   resize.observe(host.value!);

@@ -35,6 +35,7 @@ import { useWorkspace } from "./useWorkspace";
 import { request, type AnalysisRow, type RowKind } from "./backend";
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
+const ribbonToolbar = ref<InstanceType<typeof RibbonToolbar>>();
 const emptyAnalysisRows: AnalysisRow[] = [];
 const {
   state,
@@ -720,41 +721,58 @@ async function applicationAction(action: string) {
 onMounted(async () => {
   window.addEventListener("keydown", keyboard);
   window.addEventListener("beforeunload", beforeUnload);
-  if (isTauri()) {
-    setPlatformFont(await invoke("desktop_font"));
-    unsubscribers.push(
-      await listen<{ family?: string; size?: string }>(
-        "desktop-font",
-        (event) => setPlatformFont(event.payload),
-      ),
-    );
-    unsubscribers.push(
-      await listen<{ message: string }>(
-        "backend-progress",
-        (e) => (status.value = e.payload.message),
-      ),
-    );
-    unsubscribers.push(
-      await getCurrentWindow().onCloseRequested(async (event) => {
-        if (busy.value || projectBusy.value) {
-          event.preventDefault();
-          return;
-        }
-        if (state.value?.dirty || state.value?.workspace_dirty) {
-          event.preventDefault();
-          await navigate(async (discard) => {
-            if (discard) await request("recovery.discard");
-            await getCurrentWindow().destroy();
-          }, true);
-        }
-      }),
-    );
+  try {
+    if (isTauri()) {
+      setPlatformFont(await invoke("desktop_font"));
+      unsubscribers.push(
+        await listen<{ family?: string; size?: string }>(
+          "desktop-font",
+          (event) => setPlatformFont(event.payload),
+        ),
+      );
+      unsubscribers.push(
+        await listen<{ message: string }>(
+          "backend-progress",
+          (e) => (status.value = e.payload.message),
+        ),
+      );
+      unsubscribers.push(
+        await getCurrentWindow().onCloseRequested(async (event) => {
+          if (busy.value || projectBusy.value) {
+            event.preventDefault();
+            return;
+          }
+          if (state.value?.dirty || state.value?.workspace_dirty) {
+            event.preventDefault();
+            await navigate(async (discard) => {
+              if (discard) await request("recovery.discard");
+              await getCurrentWindow().destroy();
+            }, true);
+          }
+        }),
+      );
+    }
+    await w.reconnect();
+    await initializeMCP();
+    mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
+    await refreshRecovery();
+    if (recoveryProjects.value.length && !state.value?.project_open) await showFile("open");
+  } catch (reason) {
+    error.value = String(reason);
   }
-  await w.reconnect();
-  await initializeMCP();
-  mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
-  await refreshRecovery();
-  if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
+  await nextTick();
+  try {
+    // Hidden native windows may throttle animation frames. Finish initial
+    // layout explicitly instead of waiting for a frame before showing them.
+    document.documentElement.getBoundingClientRect();
+    await document.fonts.ready;
+    await analysisTable.value?.prepare();
+    ribbonToolbar.value?.prepare();
+  } catch (reason) {
+    error.value = String(reason);
+    await nextTick();
+  }
+  if (isTauri()) await getCurrentWindow().show();
 });
 onBeforeUnmount(() => {
   if (mcpPoll) clearInterval(mcpPoll);
@@ -898,6 +916,7 @@ onBeforeUnmount(() => {
       >
     </div>
     <RibbonToolbar
+      ref="ribbonToolbar"
       class="ribbon"
       :id="'tools-' + activeTab"
       role="tabpanel"

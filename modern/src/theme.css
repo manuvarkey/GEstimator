@@ -9,7 +9,7 @@
   font-size: var(--ui-font-size);
   --text-size-ui: 1rem;
   --text-size-small: .9rem;
-  --text-size-toolbar: 1rem;
+  --text-size-toolbar: 0.95rem;
   --text-size-heading: 1.1rem;
   --text-size-table: var(--table-font-size);
   --table-line-height: 1.35;

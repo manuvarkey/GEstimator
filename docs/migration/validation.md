@@ -315,3 +315,29 @@ checks pass with this change.
 production build passed.** The existing bundle-size warning remains. Project
 schema, GTK computations and workbook exporters are unchanged; native-platform
 and standalone-backend builds were not rerun for this increment.
+
+
+## Hidden main window until startup is ready — 2026-11-17
+
+The preceding Schedule total/shortcut work is committed as `2caa018`. Tauri's
+main window now starts with `visible: false`, and its capability allows the
+frontend's explicit show command. App initialization waits for platform fonts,
+settings/backend state, MCP and recovery handling, Vue updates, font readiness,
+table construction/data replacement and synchronous initial table/ribbon layout
+before showing the window. Explicit preparation avoids a dependency on animation
+frames in a hidden WebView. Startup errors still reveal a window with the error
+message instead of leaving it hidden.
+
+A mocked native startup holds font retrieval and backend state independently,
+asserting that neither permits an early show command. At reveal, it verifies
+the saved light theme, custom typography, loaded fonts, rendered analysis rows,
+fitted ribbon and exactly one show call. Another workflow injects backend startup
+failure and verifies the revealed error. Existing appearance persistence, compact
+layout and application/ribbon interactions are included in the focused gate.
+
+**Five focused browser workflows, the Vue/TypeScript production build and
+`cargo check --locked --offline` passed.** A preceding rerun lost its reused
+local development server and reported connection refusals; rerunning with the
+available server completed all five checks. The existing bundle-size warning
+remains. Native visual startup across supported operating systems remains a
+manual validation gate; Python/backend logic is unchanged.

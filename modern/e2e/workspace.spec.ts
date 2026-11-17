@@ -81,7 +81,7 @@ async function connectDesktop(page: Page, transport = call) {
       transformCallback: () => ++callbackId,
       invoke: (method: string, args: any) => {
         if (method === "desktop_font")
-          return Promise.resolve({ family: "Iosevka", size: "11pt" });
+          return (window as any).startupFontGate || Promise.resolve({ family: "Iosevka", size: "11pt" });
         if (method.startsWith("plugin:event|")) return Promise.resolve(1);
         if (method === "backend_request")
           return (window as any).backendTransport(args.request).then((response: any) => {
@@ -93,6 +93,14 @@ async function connectDesktop(page: Page, transport = call) {
         if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
         if (method.startsWith("plugin:window|")) {
           ((window as any).windowCommands ||= []).push(method);
+          if (method === "plugin:window|show") (window as any).startupAtShow = {
+            theme: document.documentElement.dataset.theme,
+            family: getComputedStyle(document.documentElement).fontFamily,
+            size: getComputedStyle(document.documentElement).fontSize,
+            fonts: document.fonts.status,
+            rows: document.querySelectorAll('.analysis-table .tabulator-row').length,
+            ribbonSized: !!document.querySelector('.ribbon-action[style*="--ribbon-button-width"]'),
+          };
           return Promise.resolve();
         }
         throw new Error("Unexpected desktop command: " + method);
@@ -101,6 +109,7 @@ async function connectDesktop(page: Page, transport = call) {
   });
   await page.goto("/");
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain("plugin:window|show");
 }
 test.beforeEach(async ({ page }) => {
   directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
@@ -3149,4 +3158,43 @@ test('keyboard shortcut help groups commands into accessible categories', async 
     await expect(group).toContainText(command);
   }
   await page.screenshot({ path: 'test-results/grouped-shortcuts.png', animations: 'disabled' });
+});
+
+
+test('native window is revealed after startup theme typography and UI are ready', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('gestimator.program-settings.v1', JSON.stringify({ version: 1, appearance: { theme: 'light', uiFamily: 'Arial', uiSize: 16, tableFamily: 'Arial', tableSize: 17 } }));
+    (window as any).startupFontGate = new Promise(resolve => {
+      (window as any).releaseStartupFont = () => resolve({ family: 'Iosevka', size: '11pt' });
+    });
+  });
+  let releaseState!: () => void;
+  const stateGate = new Promise<void>(resolve => { releaseState = resolve; });
+  let requestedState = false;
+  await page.exposeBinding('delayedStartupTransport', async (_source, request) => {
+    if (request.method === 'state') { requestedState = true; await stateGate; }
+    return call(request.method, request.params);
+  });
+  await page.addInitScript(() => { (window as any).backendTransport = (window as any).delayedStartupTransport; });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => typeof (window as any).releaseStartupFont)).toBe('function');
+  expect(await page.evaluate(() => (window as any).windowCommands || [])).not.toContain('plugin:window|show');
+  await page.evaluate(() => (window as any).releaseStartupFont());
+  await expect.poll(() => requestedState).toBe(true);
+  expect(await page.evaluate(() => (window as any).windowCommands || [])).not.toContain('plugin:window|show');
+  releaseState();
+  await expect.poll(() => page.evaluate(() => (window as any).startupAtShow)).toEqual({
+    theme: 'light', family: 'Arial, system-ui', size: '16px', fonts: 'loaded', rows: 3, ribbonSized: true,
+  });
+  expect((await page.evaluate(() => (window as any).windowCommands)).filter((command: string) => command === 'plugin:window|show')).toHaveLength(1);
+});
+
+test('native startup errors reveal the initialized window with an error message', async ({ page }) => {
+  await page.exposeBinding('failedStartupTransport', async (_source, request) => request.method === 'program.settings'
+    ? { error: { code: 'backend_error', message: 'Startup backend unavailable' } }
+    : call(request.method, request.params));
+  await page.addInitScript(() => { (window as any).backendTransport = (window as any).failedStartupTransport; });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain('plugin:window|show');
+  await expect(page.getByRole('alert')).toContainText('Startup backend unavailable');
 });

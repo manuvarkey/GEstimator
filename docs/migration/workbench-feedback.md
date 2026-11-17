@@ -17,6 +17,15 @@ Four focused browser workflows and the production frontend build passed.
 Popup and Analysis edit/accept screenshots were reviewed; see the
 [validation record](validation.md#pending-workbench-review-fixes--2026-11-17).
 
+## Initial window reveal — 2026-11-17
+
+The native main window starts hidden, preventing a visible transition through
+unstyled/default typography and partially initialized controls. The frontend
+shows it after startup preferences, desktop font, backend state, MCP/recovery,
+font loading, table construction/data replacement and explicit ribbon/table
+layout. Initialization errors are displayed when the window is revealed.
+Normal resize and typography updates retain their scheduled layout behavior.
+
 ## Schedule total and shortcut categories — 2026-11-17
 
 - Schedule has a highlighted, read-only **Overall estimate total** row below
