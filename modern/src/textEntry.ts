@@ -2,7 +2,7 @@
 export function installTextEntry() {
   document.addEventListener("keydown", event => {
     const input = event.target;
-    if (event.key === "Enter" && !event.isComposing && !event.shiftKey && !event.ctrlKey && !event.metaKey && input instanceof HTMLInputElement && ["text", "number", "search", "url"].includes(input.type) && !input.disabled && !input.closest("form,.tabulator")) {
+    if (event.key === "Enter" && !event.isComposing && !event.shiftKey && !event.ctrlKey && !event.metaKey && input instanceof HTMLInputElement && ["text", "number", "search", "url"].includes(input.type) && !input.disabled && !input.list && !input.closest("form,.tabulator")) {
       const dialog = input.closest('[role="dialog"]');
       const primary = dialog && Array.from(dialog.querySelectorAll<HTMLButtonElement>("button.button.primary")).filter(button => !button.disabled).at(-1);
       if (primary) { event.preventDefault(); event.stopPropagation(); input.blur(); primary.click(); }

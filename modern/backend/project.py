@@ -764,10 +764,24 @@ class ProjectEditor:
             self.owner.update_dependent_rates(self.db, schedules=affected)
         return dict(deleted=len(records))
 
-    def from_library(self, kind, params, progress):
+    def from_library(self, kind, params, progress, *, review=False):
         modify = params.get("modify", False)
         if type(modify) is not bool or (modify and kind != "schedule"):
             raise ValueError("Modify & Add applies only to schedule items")
+        rules = None
+        rate_policy = None
+        if "analysis_rules" in params:
+            from .analysis_rules import transform, validate as validate_rules
+            if kind != "schedule" or modify:
+                raise ValueError("Library analysis rules require a schedule import")
+            rules = [] if params["analysis_rules"] == [] else validate_rules(params["analysis_rules"])
+            rate_policy = params.get("rate_policy")
+            if rate_policy not in ("stored", "calculated"):
+                raise ValueError("Choose how to set the imported schedule rate")
+            if rate_policy == "stored":
+                rate_factor = Currency(decimal(params.get("rate_factor", "1")), 5)
+        if review and rules is None:
+            raise ValueError("Choose analysis rules or a rate policy to preview")
         if modify:
             from .program_settings import validate, legacy_rows
             settings = validate(params.get("settings", {}))
@@ -856,6 +870,10 @@ class ProjectEditor:
                 renamed[code] = item.code
         imported = 0
         modified_rates = {}
+        rule_matches = [0] * len(rules or [])
+        rule_changes = []
+        reviewed = []
+        changed_count = unmatched = reviewed_count = 0
         from .insertion import prepare, place
         target = dict(ids=params.get("target_ids", []), destination=not categories)
         inserted_codes = []
@@ -906,6 +924,16 @@ class ProjectEditor:
                     renamed[row.code] = code
                     code_map[row.code] = code
                     continue
+                if rules is not None:
+                    analysis_changed, matches, changes = transform(self.owner, item, rules) if rules else (False, [], [])
+                    if rate_policy == "stored":
+                        item.rate *= rate_factor
+                    if review:
+                        reviewed_count += 1
+                        changed_count += int(analysis_changed)
+                        unmatched += int(bool(rules) and not any(matches))
+                        rule_matches = [total + count for total, count in zip(rule_matches, matches)]
+                        rule_changes.extend(dict(code=code, **change) for change in changes[:max(0, 500 - len(rule_changes))])
                 counter = 1
                 while conflict != "update" and (
                     self.db.ScheduleTable.select()
@@ -918,8 +946,10 @@ class ProjectEditor:
                 code_map[row.code] = code
                 item.code = code
                 item.parent = renamed.get(item.parent)
-                if modify:
+                if modify or rate_policy == "stored":
                     modified_rates[item.code] = item.rate
+                if review and len(reviewed) < 200:
+                    reviewed.append((row.code, item.code, str(row.rate or 0)))
                 prepare(self, kind, item, target)
                 if existing and conflict == "update":
                     inserted = self.db.insert_item_atomic(item, update=True)
@@ -939,6 +969,17 @@ class ProjectEditor:
         for code, rate in modified_rates.items():
             if not self.db.update_item_schedule(code, rate, 3):
                 raise ValueError("Unable to retain the modified library rate")
+        if review:
+            items = []
+            for source_code, code, before in reviewed:
+                item = self.db.get_item(code, modify_res_code=False)
+                analysis_rate = item.get_ana_rate()
+                items.append(dict(code=code, source_code=source_code, description=item.description,
+                                  before=before, after=str(item.rate or 0),
+                                  calculated=None if analysis_rate is None else str(analysis_rate)))
+            return dict(selected=reviewed_count, imported=imported, changed=changed_count,
+                        unmatched=unmatched, rule_matches=rule_matches, changes=rule_changes,
+                        items=items, truncated=reviewed_count > len(items) or len(rule_changes) >= 500)
         table = self.db.ResourceTable if kind == "resources" else self.db.ScheduleTable
         return dict(imported=imported, skipped=len(records) - imported, code_map=code_map,
                     selected=[str(row.id) for row in table.select().where(table.code.in_(inserted_codes))])
@@ -986,6 +1027,9 @@ class ProjectEditor:
         if method in ("schedule.editor.analysis_rules.preview", "schedule.editor.analysis_rules.apply"):
             from .analysis_rules import run
             return run(self, p, apply=method.endswith(".apply"))
+        if method == "schedule.editor.library_rules_preview":
+            from .analysis_rules import preview_in_copy
+            return preview_in_copy(self, lambda scratch: scratch.from_library("schedule", p, progress, review=True))
         if method == "project.import_apply":
             from .importing import apply
 

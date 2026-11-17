@@ -1,22 +1,23 @@
 # Workbench feedback implementation
 
-## Latest user review — revision required
+## Pending review
 
-The user has **not accepted these three implementations as final**. They are
-retained in this checkpoint and must be revised in the next thread:
+- After Enter accepts a multiline table cell edit, the cell loses padding.
+  Review the editor and the committed cell layout in `modern/src/tableTextEditor.ts`
+  and `modern/src/style.css`.
+- In Program Settings → Appearance, the font family suggestion list should match
+  the themed dropdown controls. The installed font list and font selection work.
+  See `modern/src/components/ProgramSettings.vue` and
+  `modern/src/components/SelectMenus.vue`.
 
-1. Hierarchy indentation/lines while editing schedule and measurement text.
-   The current approach overlays cloned tree decorations at captured coordinates
-   in `modern/src/tableTextEditor.ts`; passing geometry tests does not settle the
-   requested interaction or appearance.
-2. Record-page description/remarks editing. The current Edit description action
-   focuses a separate textarea. Revisit this interaction in
-   `modern/src/components/ProjectViews.vue`.
-3. Record-page heading truncation. The current 120-character limit, two-line
-   clamp and full-description tooltip need revision; the final desired behavior
-   has not been specified.
+## Measurement editing review follow-up
 
-Do not mark these complete based on the validation results recorded below.
+1. Schedule and measurement text editors keep the table's tree decorations in
+   the first line of the editor, retaining the indentation and connector lines.
+2. Edit description turns the measurement record heading into a multiline editor.
+   Enter or focus loss saves the change. Escape discards it.
+3. The heading fits up to five lines and uses a middle ellipsis when needed.
+   The full text is available in the heading tooltip and when editing.
 The user explicitly requested marking and committing the current work, then
 continuing in a separate thread. No further redesign was attempted here.
 
@@ -54,9 +55,7 @@ that checkpoint. The first workbench feedback implementation is committed as
 - Double-clicking a saved measurement category, or pressing Enter with it
   selected, opens its name editor. The list also provides full Edit Records and
   Properties ribbon buttons. Properties supports both items and categories.
-- The records page exposes Description / remarks as an editable field. Its
-  heading is limited to two lines, with the full description available in the
-  tooltip and editable field. Changes update the list and remain undoable.
+- Description edits on the records page update the list and remain undoable.
 - Schedule-link and remark fields in Properties have spacing for their focus
   outlines, including at dialog edges.
 - Table text editors preserve the original font, padding and hierarchy prefix.
@@ -209,13 +208,9 @@ backend builds passed; the frozen backend passed tax-storage and template-copy
 smoke checks. The cached measurement ribbon now refits when it becomes visible,
 including at narrow viewport widths.
 
-Recheck after the pending-items report: tree decorations retain their exact cell
-coordinates during editing and multiline growth, rather than participating in
-the editor's flex layout. Edit description beside the record heading focuses the
-live Description / remarks field. The heading uses an explicit 120-character
-ellipsis and retains the full description in its tooltip. Main-page Properties
-and Edit Records keep their text labels at narrow widths. Editable controls use
-inset focus outlines, with additional field and paired-field spacing.
+Main-page Properties and Edit Records keep their text labels at narrow widths.
+Editable controls use inset focus outlines, with additional field and
+paired-field spacing.
 
 All 46 browser tests passed in one full run. The added audit checks every editable
 schedule/resource column, tree-marker coordinates and focus-ring clipping in the

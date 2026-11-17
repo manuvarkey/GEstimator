@@ -1,12 +1,9 @@
 import type { Editor } from "tabulator-tables";
 
 /** Retain the displayed cell's typography, padding and tree prefix while editing. */
-// TODO(user review): revise this tree-prefix treatment; it is provisional.
-// See docs/migration/workbench-feedback.md: Latest user review.
 function textEditor(multiline: boolean): Editor {
   return (cell, onRendered, success, cancel, params) => {
     const element = cell.getElement();
-    const cellBox = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const height = element.getBoundingClientRect().height;
     const verticalPadding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
@@ -16,33 +13,37 @@ function textEditor(multiline: boolean): Editor {
     shell.className = "table-text-editor-shell";
     shell.style.padding = style.padding;
     shell.style.height = height + "px";
-    shell.style.position = "relative";
-    let textInset = parseFloat(style.paddingLeft);
-    for (const prefix of Array.from(element.children)) {
-      if (prefix.matches('.tabulator-data-tree-branch,.tabulator-data-tree-branch-empty,.tabulator-data-tree-control,.tree-spacer') && prefix.getClientRects().length) {
-        const box = prefix.getBoundingClientRect();
-        const clone = prefix.cloneNode(true) as HTMLElement;
-        Object.assign(clone.style, { position: "absolute", left: box.left - cellBox.left + "px", top: box.top - cellBox.top + "px",
-          width: box.width + "px", height: box.height + "px", margin: "0", pointerEvents: "none" });
-        clone.setAttribute("aria-hidden", "true");
-        shell.appendChild(clone);
-        textInset = Math.max(textInset, box.right - cellBox.left + (parseFloat(getComputedStyle(prefix).marginRight) || 0));
-      }
+    // Tabulator replaces the cell contents when editing starts. Keep its own
+    // branch nodes in the first line of the editor so their indent stays in flow.
+    const decorations = Array.from(element.children).filter(child =>
+      child.matches(".tabulator-data-tree-branch,.tabulator-data-tree-branch-empty,.tabulator-data-tree-control,.tree-spacer"));
+    if (decorations.length) {
+      const prefix = document.createElement("span");
+      prefix.className = "table-text-editor-prefix";
+      prefix.append(...decorations);
+      shell.appendChild(prefix);
     }
     const input = multiline ? document.createElement("textarea") : document.createElement("input");
-    input.value = String(cell.getValue() ?? "");
+    const originalValue = cell.getValue();
+    const originalText = String(originalValue ?? "");
+    input.value = originalText;
     input.className = "table-text-editor";
     if (input instanceof HTMLTextAreaElement) input.rows = 1;
     Object.assign(input.style, {
       height: contentHeight + "px", padding: "0", fontFamily: style.fontFamily,
       fontSize: style.fontSize, fontWeight: style.fontWeight, fontStyle: style.fontStyle,
       lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, textAlign: style.textAlign,
-      marginLeft: Math.max(0, textInset - parseFloat(style.paddingLeft)) + "px",
     });
     shell.appendChild(input);
     let done = false;
     let currentHeight = height;
-    const commit = () => { if (!done) { done = true; success(input.value); } };
+    const commit = () => {
+      if (done) return;
+      done = true;
+      // Tabulator rebuilds the cell on success but skips tree layout for an unchanged value.
+      if (input.value === originalText) cancel(originalValue);
+      else success(input.value);
+    };
     const resize = () => {
       if (!multiline || params.grow === false) return;
       input.style.height = "0px";
@@ -60,6 +61,7 @@ function textEditor(multiline: boolean): Editor {
     input.addEventListener("input", resize);
     input.addEventListener("keydown", raw => {
       const event = raw as KeyboardEvent;
+      if (event.isComposing) return;
       if (event.key === "Home" || event.key === "End") event.stopPropagation();
       if (event.key === "Escape") { done = true; cancel(cell.getValue()); }
       else if (multiline && event.key === "Enter" && (event.shiftKey || event.ctrlKey || event.metaKey)) {

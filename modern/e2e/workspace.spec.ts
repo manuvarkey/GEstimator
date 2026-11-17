@@ -1471,6 +1471,73 @@ test("invalid or unwritable program preferences stay visible and preserve active
   await expect(settings.getByLabel("Schedule rate multiplier", { exact: true })).toHaveValue("1.00000");
 });
 
+test("appearance settings persist and library rules preview and import at compact widths", async ({ page }) => {
+  const library = await refinementFixture(page);
+  const settings = page.getByRole("dialog", { name: "Program settings", exact: true });
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Program settings…", exact: true }).click();
+  await settings.getByRole("tab", { name: "Appearance", exact: true }).click();
+  const fonts = (await call("program.fonts")).result;
+  expect(fonts.length).toBeGreaterThan(0);
+  await expect(settings.locator("#settings-font-faces option")).toHaveCount(fonts.length);
+  expect(await settings.locator("#settings-font-faces option").evaluateAll(options =>
+    options.map(option => (option as HTMLOptionElement).value))).toEqual(fonts);
+  await settings.getByLabel("Theme").selectOption("light");
+  await settings.getByLabel("Interface font face").fill("Arial");
+  await settings.getByLabel("Interface font size").fill("15");
+  await settings.getByLabel("Tables font face").fill("Consolas");
+  await settings.getByLabel("Tables font size").fill("17");
+  await settings.getByRole("button", { name: "Save program settings" }).click();
+  await expect(settings).not.toBeVisible();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveCSS("font-family", "Arial, system-ui");
+  await expect(page.locator("html")).toHaveCSS("font-size", "15px");
+  await page.locator("#view-schedule").click();
+  await attachDatabase(page, library);
+  await page.setViewportSize({ width: 820, height: 950 });
+  await page.getByRole("button", { name: "Add item from database", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Add item from database", exact: true });
+  const table = picker.getByRole("grid");
+  await expect(table).toHaveCSS("font-size", "17px");
+  await expect(table).toHaveCSS("font-family", "Consolas, Arial, system-ui");
+  await expect(table.locator('.tabulator-col[tabulator-field="description"]')).toHaveCSS("font-size", "17px");
+  const fits = (scope: ReturnType<Page["locator"]>) =>
+    expect.poll(() => scope.locator(".tabulator-tableholder").evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+  await fits(table);
+  await picker.getByText("Foundation", { exact: true }).click();
+  await picker.getByRole("button", { name: "Modify & Add with rules…", exact: true }).click();
+  const rules = page.getByRole("dialog", { name: "Modify & Add with analysis rules", exact: true });
+  await expect(rules.getByLabel("Preset name")).not.toBeVisible();
+  await rules.getByRole("button", { name: "Add rule", exact: true }).click();
+  await rules.getByLabel("Rule 1 row type").selectOption("Resource");
+  await rules.getByLabel("Rule 1 action").selectOption("multiply");
+  await rules.getByLabel("Rule 1 new value").fill("3");
+  await rules.getByRole("button", { name: "Preview changes" }).click();
+  await expect(rules.getByRole("row").filter({ hasText: "A → A-copy" })).toContainText("60");
+  await expect(rules.getByText("Matched row", { exact: true })).not.toBeVisible();
+  await rules.getByText("View matched row changes", { exact: true }).click();
+  await expect(rules.getByText("Matched row", { exact: true })).toBeVisible();
+  await rules.getByRole("button", { name: "Add previewed items" }).click();
+  await expect(rules).not.toBeVisible();
+  const grid = page.getByRole("grid", { name: "Schedule of quantities", exact: true });
+  await expect(grid.getByText("A-copy", { exact: true })).toBeVisible();
+  await page.locator("#view-resources").click();
+  await page.getByRole("button", { name: "Add resources from database", exact: true }).click();
+  const resources = page.getByRole("dialog", { name: "Add resources from database", exact: true });
+  await fits(resources.getByRole("grid"));
+  await resources.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.setViewportSize({ width: 1080, height: 950 });
+  await page.locator("#view-schedule").click();
+  await grid.getByText("A-copy", { exact: true }).click();
+  await grid.press("Control+e");
+  await expect(page.locator(".analysis-table.fit-table:visible")).toBeVisible();
+  await fits(page.locator(".analysis-table.fit-table:visible"));
+  await page.locator("#view-schedule").click();
+  await page.locator("#view-analysis").click();
+  await fits(page.locator(".analysis-table.fit-table:visible"));
+});
+
 test("resource editing, authoritative calculations, undo and workspace presentation", async ({
   page,
 }) => {
@@ -2520,11 +2587,13 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
   const add = page.getByRole('dialog', { name: 'Add item', exact: true });
   await expect(add.getByLabel('Description', { exact: true })).toBeFocused();
   await add.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(add).not.toBeVisible();
   for (let attempt = 0; attempt < 2; attempt++) {
     await ribbon.getByRole('button', { name: 'Add category', exact: true }).click();
     const category = page.getByRole('dialog', { name: 'Add category', exact: true });
     await expect(category.getByLabel('Category name')).toBeFocused();
     await category.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(category).not.toBeVisible();
   }
   await page.locator('#view-analysis').click();
   await expect(ribbon.getByRole('button', { name: 'Hide explorer', exact: true }).locator('path')).toHaveAttribute('d', /M9 4v16/);
@@ -2589,6 +2658,8 @@ test("feedback 2: drag selection scrolls past both edges in editors and database
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   const dragEdges = async (holder: ReturnType<Page['locator']>) => {
+    await expect(holder.locator('..')).toHaveAttribute('aria-busy', 'false');
+    await expect(holder.locator('.tabulator-row').first()).toBeVisible();
     await holder.evaluate(el => el.scrollTop = 0);
     await expect.poll(() => holder.evaluate(el => el.scrollTop)).toBe(0);
     const bounds = (await holder.boundingBox())!;
@@ -2622,6 +2693,13 @@ test("feedback 2: drag selection scrolls past both edges in editors and database
 
 test('feedback 3: measurement category editing, record caption and list actions', async ({ page }) => {
   await refinementFixture(page);
+  const scheduleDescription = 'Scope starts. ' + 'Allow for all associated building and civil works. '.repeat(24) + 'Scope ends.';
+  const scheduleCell = page.locator('.project-main-grid:visible [tabulator-field="description"]').getByText('Foundation', { exact: true });
+  await scheduleCell.dblclick();
+  const scheduleEditor = page.locator('.project-main-grid:visible [tabulator-field="description"] textarea');
+  await scheduleEditor.fill(scheduleDescription);
+  await scheduleEditor.press('Enter');
+  await expect(page.locator('.project-main-grid:visible')).toContainText('Scope ends.');
   await page.locator('#view-measurement').click();
   const ribbon = page.locator('.ribbon');
   await ribbon.getByRole('button', { name: 'Add category', exact: true }).click();
@@ -2659,14 +2737,33 @@ test('feedback 3: measurement category editing, record caption and list actions'
   await properties.getByRole('button', { name: 'Cancel', exact: true }).click();
   await ribbon.getByRole('button', { name: 'Edit records', exact: true }).click();
   const caption = page.getByLabel('Measurement description / remarks', { exact: true });
-  const description = 'Dimensions of the first floor room including all recesses and openings. '.repeat(15);
-  await caption.fill(description);
-  await caption.press('Tab');
+  const editDescription = page.getByRole('button', { name: 'Edit measurement description / remarks', exact: true });
   const heading = page.locator('.measurement-entry-heading h2');
+  await expect(heading).toHaveText('Room dimensions');
+  await expect(caption).toHaveCount(0);
+  await editDescription.click();
+  await expect(caption).toBeFocused();
+  await caption.fill('Discarded inline edit');
+  await caption.press('Escape');
+  await expect(heading).toHaveText('Room dimensions');
+  await editDescription.click();
+  const description = 'First floor dimensions. ' + 'Include all recesses and openings. '.repeat(22) + 'End of remarks.';
+  await caption.fill(description);
+  expect(await caption.evaluate(el => el.clientHeight <= parseFloat(getComputedStyle(el).lineHeight) * 5 + 1)).toBe(true);
+  await caption.press('Enter');
   await expect(heading).toHaveAttribute('title', description);
-  await expect(heading).toHaveText(description.slice(0, 119).trimEnd() + '…');
-  expect((await heading.textContent())!.length).toBeLessThanOrEqual(120);
-  expect(await heading.evaluate(el => el.getBoundingClientRect().height <= parseFloat(getComputedStyle(el).lineHeight) * 2 + 1)).toBe(true);
+  await expect(heading).toHaveText(/^First floor dimensions\..+….+End of remarks\.$/);
+  const wideTitle = await heading.textContent();
+  await page.setViewportSize({ width: 820, height: 1000 });
+  await expect.poll(async () => (await heading.textContent())!.length).toBeLessThan(wideTitle!.length);
+  expect(await heading.evaluate(el => el.scrollHeight <= el.clientHeight && el.clientHeight <= parseFloat(getComputedStyle(el).lineHeight) * 5 + 1)).toBe(true);
+  const link = page.getByLabel('Schedule code 1', { exact: true });
+  await link.fill('A');
+  await link.press('Tab');
+  const linkedDescription = page.locator('.measurement-links .five-line-description').first();
+  await expect(linkedDescription).toHaveText(/^Scope starts\..+….+Scope ends\. \(m3\)$/);
+  await expect(linkedDescription).toHaveAttribute('title', scheduleDescription);
+  expect(await linkedDescription.evaluate(el => el.scrollHeight <= el.clientHeight && el.clientHeight <= parseFloat(getComputedStyle(el).lineHeight) * 5 + 1)).toBe(true);
   await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
   await expect(grid).toContainText(description.trim());
   await ribbon.getByRole('button', { name: 'Properties…', exact: true }).click();
@@ -2705,7 +2802,18 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
     await page.keyboard.insertText('x');
     expect(Math.abs((await cell.locator('..').boundingBox())!.height - before.height)).toBeLessThanOrEqual(1);
     await input.press('Escape');
-    if (tree) await expect(cell.locator('.tabulator-data-tree-branch')).toBeVisible();
+    if (tree) {
+      const branch = cell.locator(':scope > .tabulator-data-tree-branch');
+      await expect(branch).toBeVisible();
+      await cell.dblclick();
+      await input.press('Enter');
+      await expect(branch).toBeVisible();
+      await cell.dblclick();
+      await input.fill('Revised description');
+      await input.press('Enter');
+      await expect(cell).toHaveText('Revised description');
+      await expect(branch).toBeVisible();
+    }
   };
   for (const view of ['schedule', 'resources']) {
     await page.locator('#view-' + view).click();
@@ -2772,14 +2880,14 @@ test('feedback 4: persistent tree geometry and focus rings in editable fields', 
   const positions = await branches().evaluateAll(nodes => nodes.map(node => { const b=node.getBoundingClientRect(); return {x:b.x,y:b.y,width:b.width,height:b.height}; }));
   await cell.dblclick();
   const editor = cell.locator('textarea');
-  const cloned = cell.locator('.table-text-editor-shell .tabulator-data-tree-branch');
-  const first = await cloned.boundingBox();
+  const editingBranch = cell.locator('.table-text-editor-shell .tabulator-data-tree-branch');
+  const first = await editingBranch.boundingBox();
   expect(Math.abs(first!.x-positions[0].x)).toBeLessThan(1);
   expect(Math.abs(first!.y-positions[0].y)).toBeLessThan(1);
   await editor.press('End');
   await editor.press('Shift+Enter');
   await page.keyboard.insertText('Additional description line');
-  const multiline = (await cloned.boundingBox())!;
+  const multiline = (await editingBranch.boundingBox())!;
   expect(Math.abs(multiline.x-first!.x)).toBeLessThan(1);
   expect(Math.abs(multiline.y-first!.y)).toBeLessThan(1);
   await expect(branches()).toHaveCount(positions.length);

@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from "vue";
 import PersistentDialog from "./PersistentDialog.vue";
 import DataTable from "./DataTable.vue";
+import AnalysisRulesDialog from "./AnalysisRulesDialog.vue";
 import AppIcon from "./AppIcon.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import type { ColumnDefinition } from "tabulator-tables";
@@ -32,13 +33,19 @@ const enrichment = ref<{ summary: string } | null>(null);
 const selected = ref<{ id: string; [key: string]: any }[]>([]);
 const busy = ref(false);
 const error = ref("");
+const rulesOpen = ref(false);
+const pickerVisible = computed({
+  get: () => visible.value && !rulesOpen.value,
+  set: value => { visible.value = value; },
+});
+const selectedIds = computed(() => selected.value.map(row => row.id));
 const preview = ref<{ changed: number; unchanged: number; unmatched: number }>();
 const title = computed(() => props.analysis ? "Add analysis resources from database" : props.mode === "rates" ? "Refresh selected rates from database" : props.kind === "schedule" ? "Add item from database" : "Add resources from database");
 const columns: ColumnDefinition[] = [
-  { title: "CODE", field: "code", width: 150 },
-  { title: "DESCRIPTION", field: "description", minWidth: 300, widthGrow: 3, formatter: "textarea" },
-  { title: "UNIT", field: "unit", width: 90 },
-  { title: "RATE", field: "rate", width: 120, hozAlign: "right" as const },
+  { title: "CODE", field: "code", width: 126, minWidth: 78, widthShrink: 1, tooltip: true },
+  { title: "DESCRIPTION", field: "description", minWidth: 116, formatter: "textarea", variableHeight: true },
+  { title: "UNIT", field: "unit", width: 64, minWidth: 45, widthShrink: 1, tooltip: true },
+  { title: "RATE", field: "rate", width: 104, minWidth: 72, widthShrink: 1, hozAlign: "right", tooltip: true },
 ];
 async function load() {
   const token = ++loadRequest;
@@ -89,16 +96,21 @@ async function apply(modify = false, ids = selected.value.map(row => row.id)) {
     if (await props.apply({ revision: props.revision, ...params })) visible.value = false;
   } finally { busy.value = false; }
 }
+async function applyRules(params: Record<string, unknown>) {
+  const applied = await props.apply({ ...params, operation: "add_from_library" });
+  if (applied) visible.value = false;
+  return applied;
+}
 </script>
 <template>
-  <PersistentDialog v-model:visible="visible" :header="title" class="database-picker-dialog" :busy="busy" @show="initialize">
+  <PersistentDialog v-model:visible="pickerVisible" :header="title" class="database-picker-dialog" :busy="busy" @show="initialize">
     <p class="dialog-intro">{{ mode === 'add' ? 'Select items from an attached database. Add inserts them at the selection in your working project.' : `Match ${targetIds.length} selected project rows by code and preview the database rates before applying.` }}</p>
     <label class="field">Database<select v-model="source" aria-label="Database" :disabled="busy" @change="changeSource"><option v-if="!libraries.length" value="">No attached databases</option><option v-for="library in libraries" :key="library.id" :value="library.id">{{ library.name }}</option></select></label>
     <p v-if="!libraries.length">Attach databases in the Databases tab, then return here.</p>
     <template v-if="mode === 'add' && libraries.length">
       <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>
       <div class="project-filter-bar"><form class="search-field" @submit.prevent="page = 0; load()"><AppIcon name="search" :size="16" /><input data-primary-input autofocus v-model="query" aria-label="Find database items" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
-      <div class="database-picker-grid"><DataTable :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="row => { if (row.rowtype !== 'Category') apply(false, [row.id]); }" /></div>
+      <div class="database-picker-grid"><DataTable class="fit-table" :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="row => { if (row.rowtype !== 'Category') apply(false, [row.id]); }" /></div>
       <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="page--; load()">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="page++; load()">Next</button></div>
     </template>
     <template v-if="mode === 'rates'">
@@ -107,6 +119,15 @@ async function apply(modify = false, ids = selected.value.map(row => row.id)) {
       <p v-if="preview" role="status">{{ preview.changed }} changed · {{ preview.unchanged }} unchanged · {{ preview.unmatched }} unmatched</p>
     </template>
     <p v-if="error || parentError" class="dialog-error" role="alert">{{ error || parentError }}</p>
-    <div class="dialog-footer"><button class="button secondary" :disabled="busy" @click="visible = false; emit('manage')">Manage databases…</button><span class="spacer" /><button class="button secondary" :disabled="busy" @click="visible = false">Cancel</button><button v-if="mode === 'add' && kind === 'schedule'" class="button secondary" :disabled="busy || !selected.length" title="Use the rate multiplier and analysis-row replacement configured together in Program Settings → Library Modify & Add." @click="apply(true)">Modify &amp; Add</button><button class="button primary" :disabled="busy || !source || (mode === 'rates' ? !preview?.changed : !selected.length)" @click="apply()">{{ mode === 'rates' ? 'Apply database rates' : 'Add selected items' }}</button></div>
+    <div class="dialog-footer">
+      <button class="button secondary" :disabled="busy" @click="visible = false; emit('manage')">Manage databases…</button><span class="spacer" />
+      <button class="button secondary" :disabled="busy" @click="visible = false">Cancel</button>
+      <template v-if="mode === 'add' && kind === 'schedule'">
+        <button class="button secondary" :disabled="busy || !selected.length" title="Use the rate multiplier and analysis-row replacement configured in Program Settings." @click="apply(true)">Modify &amp; Add</button>
+        <button class="button secondary" :disabled="busy || !selected.length" @click="rulesOpen = true">Modify &amp; Add with rules…</button>
+      </template>
+      <button class="button primary" :disabled="busy || !source || (mode === 'rates' ? !preview?.changed : !selected.length)" @click="apply()">{{ mode === 'rates' ? 'Apply database rates' : 'Add selected items' }}</button>
+    </div>
   </PersistentDialog>
+  <AnalysisRulesDialog v-if="rulesOpen" v-model="rulesOpen" :revision="revision" :ids="selectedIds" :library="{ source, targetIds }" :apply="applyRules" :apply-error="parentError" />
 </template>

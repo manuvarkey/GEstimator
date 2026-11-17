@@ -124,4 +124,25 @@ class ProgramSettingsTests(unittest.TestCase):
                 self.call("schedule.editor.add_from_library", source=source, ids=[identity], modify=True, settings=bad)
             self.assertEqual(self.call("state"), before)
             self.assertIsNone(self.service.db.get_item("A-copy2"))
+
+            rule = dict(action="multiply", field="value", value="3", match=dict(kind="Resource"))
+            params = dict(source=source, ids=[identity], analysis_rules=[rule])
+            preview_method = "schedule.editor.library_rules_preview"
+            for rate_policy, expected_rate in [("calculated", Decimal("60")), ("stored", Decimal("40"))]:
+                options = dict(params, rate_policy=rate_policy, rate_factor="2")
+                preview = self.call(preview_method, **options)
+                self.assertEqual(preview["rule_matches"], [1])
+                self.assertEqual(preview["items"][0]["code"], "A-copy2")
+                self.assertEqual(Decimal(preview["items"][0]["after"]), expected_rate)
+                self.assertEqual(Decimal(preview["items"][0]["calculated"]), Decimal("60"))
+                self.assertEqual(self.call("state"), before)
+                self.assertIsNone(self.service.db.get_item("A-copy2"))
+
+                self.call("schedule.editor.add_from_library", **options)
+                imported = self.service.db.get_item("A-copy2")
+                self.assertEqual(imported.rate, expected_rate)
+                self.assertEqual(imported.get_ana_rate(), Decimal("60"))
+                self.call("project.undo")
+                self.assertIsNone(self.service.db.get_item("A-copy2"))
+                before = self.call("state")
             self.assertEqual(library.read_bytes(), source_bytes)

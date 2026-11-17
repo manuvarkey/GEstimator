@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { request, type RowKind } from "./backend";
+import { appearance, programSettingsKey, validateAppearance, type Appearance } from "./appearance";
 
 export interface TemplateRow { kind: Exclude<RowKind, "Resource">; description: string; value: string; code?: string }
 export interface ProgramSettings {
@@ -9,7 +10,6 @@ export interface ProgramSettings {
   ana_default_rows: TemplateRow[];
   ana_copy_rows: TemplateRow[];
 }
-const key = "gestimator.program-settings.v1";
 export const programSettings = ref<ProgramSettings>();
 export const programSettingsWarning = ref("");
 export const customDatabaseDirectory = ref("");
@@ -22,13 +22,14 @@ export async function initializeProgramSettings() {
   if (programSettings.value) return;
   const defaults = await shippedProgramSettings();
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(programSettingsKey);
     let candidate = defaults;
     if (raw) {
       const stored = JSON.parse(raw);
       if (stored?.version !== 1) throw new Error("Unsupported saved settings version");
-      candidate = stored.settings;
-    } else {
+      if ("settings" in stored) candidate = stored.settings;
+    }
+    if (candidate === defaults) {
       const previous = JSON.parse(localStorage.getItem("gestimator.analysis-template.v1") || "null");
       if (previous?.version === 1) candidate = { ...defaults, ana_default_rows: previous.rows };
     }
@@ -38,9 +39,11 @@ export async function initializeProgramSettings() {
     programSettingsWarning.value = "Saved program settings could not be read or validated. Shipped defaults are active; save settings to replace the invalid preferences.";
   }
 }
-export async function saveProgramSettings(settings: ProgramSettings) {
+export async function saveProgramSettings(settings: ProgramSettings, appearanceDraft: Appearance = appearance.value) {
+  const nextAppearance = validateAppearance(appearanceDraft);
   const validated = await request<ProgramSettings>("program.settings.validate", { settings });
-  localStorage.setItem(key, JSON.stringify({ version: 1, settings: validated }));
+  localStorage.setItem(programSettingsKey, JSON.stringify({ version: 1, settings: validated, appearance: nextAppearance }));
   programSettings.value = validated;
+  appearance.value = nextAppearance;
   programSettingsWarning.value = "";
 }

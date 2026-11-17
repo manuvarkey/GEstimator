@@ -12,6 +12,7 @@ import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
+import { vMiddleEllipsis } from "../middleEllipsis";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 
 type View = "schedule" | "resources" | "measurement";
@@ -103,15 +104,31 @@ let selectionRequest = 0;
 const mainTable = ref<InstanceType<typeof DataTable>>();
 const recordTable = ref<InstanceType<typeof DataTable>>();
 const measurementDescription = ref<HTMLTextAreaElement>();
-// TODO(user review): revise the 120-character heading/tooltip presentation.
-const measurementTitle = computed(() => {
-  const description = String(state.value?.detail?.description || "Measurement entry").replace(/\s+/g, " ").trim();
-  return description.length > 120 ? description.slice(0, 119).trimEnd() + "…" : description;
-});
-// TODO(user review): revise Edit description focusing a separate textarea.
-function focusMeasurementDescription() {
-  measurementDescription.value?.scrollIntoView({ block: "nearest" });
+const descriptionDraft = ref<string>();
+const fullMeasurementTitle = computed(() =>
+  state.value?.detail?.id === props.entryId
+    ? state.value?.detail?.description || "Measurement entry"
+    : "Measurement entry",
+);
+
+async function editMeasurementDescription() {
+  const detail = state.value?.detail;
+  if (busy.value || !detail || detail.id !== props.entryId) return;
+  descriptionDraft.value = detail.description;
+  await nextTick();
   measurementDescription.value?.focus({ preventScroll: true });
+}
+
+async function finishMeasurementDescription() {
+  const value = descriptionDraft.value;
+  const detail = state.value?.detail;
+  descriptionDraft.value = undefined;
+  if (value === undefined || !detail || detail.id !== props.entryId || value === detail.description) return;
+  if (!await command("edit", { id: detail.id, field: "description", value }) && props.entryId === detail.id) {
+    descriptionDraft.value = value;
+    await nextTick();
+    measurementDescription.value?.focus({ preventScroll: true });
+  }
 }
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
@@ -224,6 +241,7 @@ const mainRows = computed(() => {
   return categories;
 });
 watch(() => props.entryId, async identity => {
+  descriptionDraft.value = undefined;
   if (!identity) {
     if (activeMeasurement.value) selectionIds.value = [activeMeasurement.value];
     await focusTable();
@@ -1241,12 +1259,25 @@ watch(
           Next
         </button>
       </div>
-      <div v-if="isMeasurement && entryId" class="measurement-entry-heading"><button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button><h2 :title="state?.detail?.description" :aria-label="state?.detail?.description" @dblclick="focusMeasurementDescription">{{ measurementTitle }}</h2><button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy" @click="focusMeasurementDescription"><AppIcon name="edit" />Edit description</button></div>
+      <div v-if="isMeasurement && entryId" class="measurement-entry-heading">
+        <button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button>
+        <textarea
+          v-if="descriptionDraft !== undefined"
+          ref="measurementDescription"
+          v-model="descriptionDraft"
+          class="measurement-entry-title"
+          aria-label="Measurement description / remarks"
+          rows="1"
+          @blur="finishMeasurementDescription"
+          @keydown.esc.stop.prevent="descriptionDraft = undefined"
+        />
+        <h2 v-else v-middle-ellipsis="fullMeasurementTitle || 'Measurement entry'" class="measurement-entry-title five-line-description" :title="fullMeasurementTitle" :aria-label="fullMeasurementTitle" @dblclick="editMeasurementDescription" />
+        <button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy || state?.detail?.id !== entryId" @mousedown.prevent @click="descriptionDraft === undefined ? editMeasurementDescription() : measurementDescription?.focus()"><AppIcon name="edit" />Edit description</button>
+      </div>
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">
           <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
         </div>
-        <label class="field measurement-description">Description / remarks<textarea ref="measurementDescription" v-model="state.detail.description" aria-label="Measurement description / remarks" rows="2" :disabled="busy" @change="command('edit', { id: activeMeasurement, field: 'description', value: ($event.target as HTMLTextAreaElement).value })" /></label>
         <div class="measurement-links">
           <label
             v-for="(link, index) in state.detail.links"
@@ -1267,7 +1298,7 @@ watch(
               "
             /><button class="icon-button" :aria-label="'Choose schedule item ' + (Number(index) + 1)" :disabled="busy" title="Search project schedule codes and descriptions for this measured quantity." @click="showLinkPicker(Number(index))"><AppIcon name="search" /></button>
             <button class="icon-button" :aria-label="'Clear schedule link ' + (Number(index) + 1)" :disabled="busy || (!link.code && !link.missing)" title="Remove this schedule association while retaining measurement records and remarks." @click="command('link', { id: activeMeasurement, slot: Number(index), code: '', remark: link.remark })"><AppIcon name="close" /></button></div>
-            <small v-if="link.description" :title="link.description">{{ link.description }} <span v-if="link.unit">({{ link.unit }})</span></small><input
+            <small v-if="link.description" v-middle-ellipsis="link.description + (link.unit ? ' (' + link.unit + ')' : '')" class="five-line-description" :title="link.description" /><input
               :value="link.remark"
               :aria-label="'Schedule item remark ' + (Number(index) + 1)"
               :disabled="busy"
@@ -1352,7 +1383,7 @@ watch(
       <form class="search-field" @submit.prevent="pickerPage = 0; searchLinks()"><input v-model="pickerQuery" data-primary-input autofocus aria-label="Find linked schedule item" placeholder="Code or description…" /><button class="button small secondary" :disabled="pickerBusy">Search</button></form>
       <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
       <div class="library-results">
-        <button v-for="item in pickerItems" :key="item.code" class="library-item" :disabled="pickerBusy" :title="item.description" @click="chooseLink(item.code)"><span><b>{{ item.code }}</b><small>{{ item.description }}</small></span><span>{{ item.unit }}</span></button>
+        <button v-for="item in pickerItems" :key="item.code" class="library-item" :disabled="pickerBusy" :title="item.description" @click="chooseLink(item.code)"><span><b>{{ item.code }}</b><small v-middle-ellipsis="item.description" class="five-line-description" /></span><span>{{ item.unit }}</span></button>
         <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
       </div>
       <div class="pagination"><button class="text-button" :disabled="pickerBusy || !pickerPage" @click="pickerPage--; searchLinks()">Previous</button><span>Page {{ pickerPage + 1 }}</span><button class="text-button" :disabled="pickerBusy || pickerItems.length < 100" @click="pickerPage++; searchLinks()">Next</button></div>

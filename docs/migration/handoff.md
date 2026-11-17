@@ -1,26 +1,36 @@
 # Vue/Tauri migration handoff
 
-## Latest continuation checkpoint — 2026-11-17
+## Pending review for the next session
+
+1. **Multiline table text padding.** Indentation and connector lines are fixed.
+   The multiline text cell loses padding after pressing Enter to accept the edit.
+   Compare the cell padding and row height before editing and after Enter.
+2. **Font family dropdown theme.** Installed font selection works. Make the
+   font suggestion list match the application's themed dropdown controls.
+
+See the [workbench review notes](workbench-feedback.md#pending-review).
+
+## Workbench review follow-up — 2026-11-17
+
+Schedule and measurement text editors retain hierarchy markers and indentation
+during, after accepting, and after canceling an edit. Edit description opens the
+measurement record heading for editing in place. The heading and linked schedule
+description show up to five lines, with a middle ellipsis when needed. The
+heading editor scrolls through longer text.
+
+Program Settings → Appearance lists installed font families and saves independent
+interface and table typography. The default palette and type sizes are in
+`modern/src/theme.css`. Common controls and table classes are in
+`modern/src/style.css`. The analysis grid fits its columns when shown, and the
+schedule library importer keeps preset management and match details expandable.
+
+## Measurement editing checkpoint — 2026-11-17
 
 Current checkout: `/home/manu/Documents/Projects/GEstimator`, branch
 `migration/vue-tauri-desktop`. The user runs the modern app with
 `npm run tauri dev`.
 
-The user requested a checkpoint and a new thread. **Three current UI
-implementations require revision and are not accepted as complete:**
-
-- Hierarchy indentation/lines during table text editing: the captured-coordinate
-  tree-prefix overlay in `modern/src/tableTextEditor.ts` is provisional.
-- Record-page description/remarks editing: the Edit description action focusing
-  a separate textarea in `modern/src/components/ProjectViews.vue` is provisional.
-- Record-page heading display: the 120-character ellipsis/two-line clamp/full
-  tooltip in that component is provisional.
-
-Preserve the remaining changes while revisiting those items. The exact replacement
-interaction/layout is not yet specified. See the prominent review status and full
-implementation record in [workbench-feedback.md](workbench-feedback.md).
-
-This checkpoint also includes measurement category editing, main-page Properties
+This checkpoint includes measurement category editing, main-page Properties
 and Edit Records, blank-row/editor sizing, inset focus outlines and field spacing,
 and four-place Tax precision. Existing `vat` storage/API keys remain compatible;
 legacy project round-trip, undo and spreadsheet import/export were checked.
@@ -29,9 +39,8 @@ Prior checkpoints: `cca316f` (MCP), `2245ced` (workbench), `cc09d25` (controls/f
 Validation before this review: 46 browser tests passed in a full run; the Python
 suite passed 122 tests plus the subsequently added tax import/export check;
 production frontend, standalone backend and offline native development builds
-passed. Those tests verify the current implementation, **not user acceptance of
-the three outstanding UI behaviors**. Changes after that validation only mark
-this handoff and add provisional-code comments.
+passed. The subsequent review changes are described in
+[workbench-feedback.md](workbench-feedback.md).
 
 ## Earlier checkpoint history
 

@@ -25,18 +25,16 @@ Measurement templates are grouped as **General**, **Civil** and **E&M**. The ori
 
 NLBH keeps the original optional-factor behavior. Filling only No measures numbers; only L measures length; L/B measures area; L/B/H measures volume. No can multiply any of those. Blank factors do not force the result to zero. Explicit zero-factor handling is also retained from GTK, and an entirely empty record totals zero. Regression cases produce 5, 6, 6, 120 and 0 for representative count/length/area/volume/empty records. Breakup preserves the expression and the blank positions, e.g. `[,2*3,,]`.
 
-## Suggested next step: named modification presets
+## Modify & Add with analysis rules
 
-The current count-based replacement remains compatible with existing settings. A more flexible successor would use **named presets containing ordered rules**, with a preview before import:
+Select schedule items in the database picker and choose **Modify & Add with
+rules…**. Create ordered rules or load a saved Bulk Edit Analysis preset. Rules
+can match calculation rows and resource entries by type and field values.
+Referenced sub-analyses retain their source calculation rows.
 
-| Preset part | Example |
-|---|---|
-| Scope | Apply to selected source schedule items, with an explicit choice about referenced sub-analyses. |
-| Match | Match calculation rows by kind, group code or description, rather than assuming that the last two rows always have the same meaning. |
-| Action | Keep, remove, replace, append, or insert before/after a matched row. Numeric values use the existing Python expression evaluator. |
-| Rate policy | Explicitly choose either “source stored rate × factor” or “recalculate the modified analysis”. Show both values in the preview. |
-| Review | Show row changes, unmatched rules and before/after rates; apply the complete import as one undo step. |
-
-For example, a preset could preserve all resource groups, remove only matching overhead/profit/rounding rows, append configured overhead/profit/rounding rows, and recalculate the result. A second preset could change only the stored schedule-rate multiplier and leave the analysis untouched. This avoids brittle trailing-row counts and makes the current distinction between stored rate and calculated analysis rate explicit.
-
-This is a proposal, not a hidden change to calculation or import semantics. It can reuse the existing Python batch-preview and import transaction seams without introducing a second calculation engine or modifying the project schema.
+Choose whether the imported rate comes from the imported analysis or the source
+rate times a multiplier. The preview shows row changes, rule matches, source
+rates, rates calculated in the destination project, and the rates that will be
+stored. **Add previewed items** applies the import in one undo step. The original
+**Modify & Add** button uses the rate multiplier and trailing-row replacement
+from Program Settings.

@@ -226,21 +226,25 @@ def execute(editor, params):
                 rule_matches=counts, changes=details, items=affected[:200], affected=len(affected), truncated=len(affected) > 200 or len(details) >= 500)
 
 
-def run(editor, params, apply=False):
-    # Preview runs the same writes and dependency calculation on an isolated copy.
+def preview_in_copy(editor, action):
     target = Path(editor.owner.temp.name) / (uuid4().hex + ".rule-preview")
-    with closing(sqlite3.connect(target)) as output:
-        editor.db.database.connection().backup(output)
     scratch = ScheduleDatabase(Stack())
     try:
+        with closing(sqlite3.connect(target)) as output:
+            editor.db.database.connection().backup(output)
         scratch.open_database(str(target))
         preview_editor = copy.copy(editor)
         preview_editor.owner = copy.copy(editor.owner)
         preview_editor.owner.db = scratch
-        result = execute(preview_editor, params)
+        return action(preview_editor)
     finally:
         scratch.close_database()
         target.unlink(missing_ok=True)
+
+
+def run(editor, params, apply=False):
+    # Preview runs the same writes and dependency calculation on an isolated copy.
+    result = preview_in_copy(editor, lambda scratch: execute(scratch, params))
     if apply and result["changed"]:
         result = editor.mutate(lambda: execute(editor, params))
     result["revision"] = editor.owner.revision

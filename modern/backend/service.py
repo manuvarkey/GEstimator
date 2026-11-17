@@ -180,6 +180,9 @@ class Service:
                 return dict(settings=program_settings.defaults(), library_directory=str(program_settings.library_directory()))
             if method == "program.libraries":
                 return program_settings.library_catalog()
+            if method == "program.fonts":
+                from .system_fonts import installed_families
+                return installed_families()
             if method == "program.settings.validate":
                 settings = program_settings.validate(p.get("settings"))
                 program_settings.legacy_rows(settings["ana_default_rows"])

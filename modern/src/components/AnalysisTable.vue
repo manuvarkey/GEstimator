@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, watch, ref } from "vue";
+import { onMounted, onBeforeUnmount, nextTick, watch, ref } from "vue";
 import {
   TabulatorFull as Tabulator,
   type CellComponent,
@@ -14,6 +14,7 @@ import { cellNavigation } from "../cellNavigation";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
+  active: boolean;
   saveCell: (row: AnalysisRow, field: string, value: string) => Promise<boolean>;
 }>();
 const emit = defineEmits<{
@@ -29,6 +30,17 @@ let navigation: ReturnType<typeof cellNavigation>;
 let replacement: Promise<unknown> = Promise.resolve();
 let stopDragSelection: (() => void) | undefined;
 let anchorId: string | undefined;
+let fitFrame = 0;
+async function fitVisibleTable() {
+  await built;
+  await nextTick();
+  if (!active || !props.active) return;
+  cancelAnimationFrame(fitFrame);
+  fitFrame = requestAnimationFrame(() => {
+    if (active && props.active && element.value?.clientWidth) table.redraw();
+  });
+}
+watch(() => props.active, fitVisibleTable, { flush: "post" });
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
 function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
@@ -65,12 +77,15 @@ watch(
       row.treeExpand();
     }
     navigation?.replaced();
+    void fitVisibleTable();
   },
 );
 onMounted(() => {
   table = new Tabulator(element.value!, {
     height: "100%",
     layout: "fitColumns",
+    layoutColumnsOnNewData: true,
+    data: props.rows,
     index: "id",
     editTriggerEvent: "dblclick",
     dataTree: true,
@@ -104,11 +119,11 @@ onMounted(() => {
         titleFormatter: "rowSelection",
         headerSort: false,
         hozAlign: "center",
-        width: 38,
+        width: 34,
         resizable: false,
         cellClick: (_e, cell) => cell.getRow().toggleSelect(),
       },
-      { title: "TYPE / CODE", field: "kind", formatter: kindBadge, width: 128 },
+      { title: "TYPE / CODE", field: "kind", formatter: kindBadge, width: 118, minWidth: 84, widthShrink: 1 },
       {
         title: "DESCRIPTION",
         field: "description",
@@ -117,29 +132,37 @@ onMounted(() => {
         editable: cell => !isResource(cell),
         formatter: "textarea",
         variableHeight: true,
-        minWidth: 235,
-        widthGrow: 3,
+        minWidth: 112,
       },
       {
         title: "UNIT",
         field: "unit",
-        width: 60,
+        width: 56,
+        minWidth: 42,
+        widthShrink: 1,
+        tooltip: true,
       },
       {
         title: "QTY / FACTOR",
         field: "value",
         editor: tableInputEditor,
         hozAlign: "right",
-        width: 102,
+        width: 87,
+        minWidth: 68,
+        widthShrink: 1,
+        tooltip: true,
         editable: (cell) =>
           !["Group", "Subtotal"].includes(cell.getData().kind),
       },
-      { title: "RATE", field: "effective_rate", hozAlign: "right", width: 110 },
+      { title: "RATE", field: "effective_rate", hozAlign: "right", width: 90, minWidth: 72, widthShrink: 1, tooltip: true },
       {
         title: "AMOUNT",
         field: "amount",
         hozAlign: "right",
-        width: 110,
+        width: 94,
+        minWidth: 76,
+        widthShrink: 1,
+        tooltip: true,
         frozen: true,
       },
     ],
@@ -164,9 +187,7 @@ onMounted(() => {
     emit("selection", data as AnalysisRow[]),
   );
   table.on("cellClick", (event, cell) => { navigation.clicked(cell); if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
-  table.on("tableBuilt", () => {
-    void table.replaceData(props.rows);
-  });
+  void fitVisibleTable();
 });
 defineExpose({
   focus: async () => { await built; await replacement; element.value?.focus({ preventScroll: true }); },
@@ -174,6 +195,7 @@ defineExpose({
 });
 onBeforeUnmount(() => {
   active = false;
+  cancelAnimationFrame(fitFrame);
   navigation?.destroy();
   stopDragSelection?.();
   table?.destroy();
@@ -182,7 +204,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="element"
-    class="analysis-table tabulator compact"
+    class="analysis-table tabulator compact fit-table"
     :class="{ blocked: busy }"
     :aria-busy="busy"
     aria-label="Rate analysis table"

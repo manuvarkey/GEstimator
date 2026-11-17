@@ -79,7 +79,15 @@ defineExpose({
     await ready;
     const collect = (rows: RowComponent[]): RowComponent[] => rows.flatMap(row => [row, ...collect(row.getTreeChildren() || [])]);
     const rows = collect(table.getRows());
-    for (const update of updates) await rows.find(row => row.getData().id === update.id)?.update(update);
+    for (const update of updates) {
+      const row = rows.find(row => row.getData().id === update.id);
+      if (!row) continue;
+      const treeLabelChanged = props.tree && "description" in update &&
+        row.getCell("description") && row.getCell("description").getValue() !== update.description;
+      await row.update(update);
+      // Row.update rewrites the tree cell without running the tree layout pass.
+      if (treeLabelChanged) row.reformat();
+    }
   },
   redraw,
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },

@@ -25,6 +25,7 @@ import MCPSettings from "./components/MCPSettings.vue";
 import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
 import { programSettingsWarning } from "./programSettings";
+import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectViews from "./components/ProjectViews.vue";
@@ -182,7 +183,7 @@ async function returnToSchedule() {
 let observedMCPChange = 0;
 let observedMCPProject = 0;
 async function syncMCPChanges() {
-  if (!mcpStatus.value || (!mcpStatus.value.running && mcpStatus.value.change_seq === observedMCPChange) || uiBusy.value || document.querySelector('.tabulator-editing,[role="dialog"]')) return;
+  if (!mcpStatus.value || (!mcpStatus.value.running && mcpStatus.value.change_seq === observedMCPChange) || uiBusy.value || document.querySelector('.tabulator-editing,textarea.measurement-entry-title,[role="dialog"]')) return;
   if (!await refreshMCP()) return;
   if (mcpStatus.value.change_seq === observedMCPChange) return;
   await w.run(async () => {
@@ -214,15 +215,6 @@ const explorer = ref("schedule");
 const sidebar = ref(true);
 const inspector = ref(true);
 const helpOpen = ref(false);
-const theme = ref(localStorage.getItem("gestimator-theme") || "dark");
-watch(
-  theme,
-  (value) => {
-    document.documentElement.dataset.theme = value;
-    localStorage.setItem("gestimator-theme", value);
-  },
-  { immediate: true },
-);
 const fileMode = ref<"open" | "save" | null>(null);
 const recoveryProjects = ref<{ id: string; updated: number }[]>([]);
 const recentProjects = ref<string[]>([]);
@@ -688,17 +680,11 @@ onMounted(async () => {
   window.addEventListener("keydown", keyboard);
   window.addEventListener("beforeunload", beforeUnload);
   if (isTauri()) {
-    const applyFont = (font: { family?: string; size?: string }) => {
-      if (font.family)
-        document.documentElement.style.fontFamily =
-          JSON.stringify(font.family) + ", system-ui";
-      if (font.size) document.documentElement.style.fontSize = font.size;
-    };
-    applyFont(await invoke("desktop_font"));
+    setPlatformFont(await invoke("desktop_font"));
     unsubscribers.push(
       await listen<{ family?: string; size?: string }>(
         "desktop-font",
-        (event) => applyFont(event.payload),
+        (event) => setPlatformFont(event.payload),
       ),
     );
     unsubscribers.push(
@@ -826,7 +812,7 @@ onBeforeUnmount(() => {
           :aria-label="
             theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
           "
-          @click="theme = theme === 'dark' ? 'light' : 'dark'"
+          @click="toggleTheme"
         >
           <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" /></button
         ><button
@@ -1311,6 +1297,7 @@ onBeforeUnmount(() => {
             </div>
             <AnalysisTable
               ref="analysisTable"
+              :active="activeView === 'analysis'"
               :rows="state?.rows || emptyAnalysisRows"
               :busy="busy || !connected"
               :save-cell="edit"

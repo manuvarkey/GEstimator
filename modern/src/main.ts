@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import PrimeVue from "primevue/config";
 import Aura from "@primeuix/themes/aura";
 import App from "./App.vue";
+import "./theme.css";
 import "./style.css";
 import { installUIActions } from "./uiActions";
 import { installTextEntry } from "./textEntry";

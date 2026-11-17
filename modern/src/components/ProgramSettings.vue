@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import Dialog from "primevue/dialog";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
 import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
+import { appearance, defaultAppearance } from "../appearance";
+import { request } from "../backend";
 const visible = defineModel<boolean>({ required: true });
 const draft = ref<ProgramSettings>();
+const appearanceDraft = ref({ ...appearance.value });
 const tab = ref("general");
 const busy = ref(false);
 const error = ref("");
-const sections = [{ key: "general", label: "General" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
+const fontFamilies = ref<string[]>();
+const fontsLoading = ref(false);
+const sections = [{ key: "general", label: "General" }, { key: "appearance", label: "Appearance" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
+const fontGroups = [
+  { label: "Interface", family: "uiFamily", size: "uiSize", placeholder: "Desktop default" },
+  { label: "Tables", family: "tableFamily", size: "tableSize", placeholder: "Match interface" },
+] as const;
 function navigate(event: KeyboardEvent, index: number) {
   const last = sections.length - 1;
   const next = event.key === "ArrowRight" ? (index + 1) % sections.length : event.key === "ArrowLeft" ? (index + last) % sections.length : event.key === "Home" ? 0 : event.key === "End" ? last : -1;
@@ -20,16 +29,23 @@ onMounted(async () => {
   try { await initializeProgramSettings(); draft.value = programSettings.value ? JSON.parse(JSON.stringify(programSettings.value)) : await shippedProgramSettings(); }
   catch (failure) { error.value = String(failure); }
 });
+watch(tab, async section => {
+  if (section !== "appearance" || fontFamilies.value || fontsLoading.value) return;
+  fontsLoading.value = true;
+  try { fontFamilies.value = await request<string[]>("program.fonts"); }
+  catch { fontFamilies.value = []; }
+  finally { fontsLoading.value = false; }
+});
 async function save() {
   if (!draft.value || busy.value) return;
   busy.value = true; error.value = "";
-  try { await saveProgramSettings(draft.value); visible.value = false; }
+  try { await saveProgramSettings(draft.value, appearanceDraft.value); visible.value = false; }
   catch (failure) { error.value = String(failure); }
   finally { busy.value = false; }
 }
 async function reset() {
   busy.value = true; error.value = "";
-  try { draft.value = await shippedProgramSettings(); }
+  try { draft.value = await shippedProgramSettings(); appearanceDraft.value = { ...defaultAppearance }; }
   catch (failure) { error.value = String(failure); }
   finally { busy.value = false; }
 }
@@ -46,17 +62,38 @@ async function reset() {
         <h3>Export options</h3>
         <label class="library-remember"><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across multiple rows in exported workbooks</label>
       </template>
+      <template v-else-if="tab === 'appearance'">
+        <label class="field">Theme<select v-model="appearanceDraft.theme" :disabled="busy"><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+        <datalist id="settings-font-faces"><option v-for="face in fontFamilies" :key="face" :value="face" /></datalist>
+        <div v-for="group in fontGroups" :key="group.family" class="field-pair">
+          <label class="field">{{ group.label }} font face<input v-model.trim="appearanceDraft[group.family]" list="settings-font-faces" :placeholder="group.placeholder" maxlength="120" :disabled="busy" /></label>
+          <label class="field">{{ group.label }} font size (px)<input type="number" min="10" max="30" step="any" :value="appearanceDraft[group.size] ?? ''" :placeholder="group.placeholder" :disabled="busy" @input="appearanceDraft[group.size] = ($event.target as HTMLInputElement).value === '' ? null : ($event.target as HTMLInputElement).valueAsNumber" /></label>
+        </div>
+        <p v-if="fontsLoading" role="status" class="field-hint">Loading installed fonts…</p>
+        <p v-else-if="!fontFamilies?.length" class="field-hint">The system font list is unavailable. Enter an installed font name.</p>
+        <p v-else class="field-hint">Choose or type an installed font. Leave a field blank to use its default.</p>
+      </template>
       <template v-else-if="tab === 'default'">
         <p class="field-hint">Used by Analysis → Default rows and when opening an analysis with no calculation rows. An empty template leaves blank analyses empty.</p>
         <AnalysisRowEditor v-model="draft.ana_default_rows" prefix="Default row" :disabled="busy" />
       </template>
       <template v-else>
-        <label class="field">Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy" /></label>
-        <p class="field-hint">Applied by Add item from database → Modify & Add. Arithmetic is accepted and rounded to five places using the existing currency rules. Plain addition retains the database rate.</p>
-        <label class="field">Trailing analysis rows to replace<input v-model.number="draft.ana_copy_delete_rows" type="number" min="0" max="5" step="1" :disabled="busy" /></label>
-        <p class="field-hint">Replacement applies when the count is non-zero, the replacement is not empty and the source analysis contains more rows than the count.</p>
-        <p class="field-hint">Rows substituted by the Modify & Add action after deleting the configured number of trailing analysis rows. Sub-analyses are imported with their original calculations.</p>
-        <AnalysisRowEditor v-model="draft.ana_copy_rows" prefix="Modify row" :disabled="busy" />
+        <div class="settings-import-options">
+          <section>
+            <h3>Stored schedule rate</h3>
+            <label class="field">Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy" /></label>
+            <p class="field-hint">Multiply the source rate. Use 1 to keep the source rate.</p>
+          </section>
+          <section>
+            <h3>Replace trailing analysis rows</h3>
+            <label class="field">Trailing analysis rows to replace<input v-model.number="draft.ana_copy_delete_rows" type="number" min="0" max="5" step="1" :disabled="busy" /></label>
+            <p v-if="!draft.ana_copy_delete_rows" class="field-hint">Use a count above 0 to configure replacement rows.</p>
+            <template v-else>
+              <p class="field-hint">Add replacement rows below. This applies to source analyses with more rows than the count.</p>
+              <AnalysisRowEditor v-model="draft.ana_copy_rows" prefix="Modify row" :disabled="busy" />
+            </template>
+          </section>
+        </div>
       </template>
     </section>
     <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
