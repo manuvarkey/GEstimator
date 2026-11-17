@@ -319,9 +319,13 @@ const columns = computed<ColumnDefinition[]>(() => {
       : "left",
   }));
 });
+const recordRows = computed(() => (state.value?.detail?.rows || []).map((row: GridRow, index: number) => ({
+  ...row, _serial: (state.value?.detail?.offset || 0) + index + 1,
+})));
 const recordColumns = computed<ColumnDefinition[]>(
   () =>
-    state.value?.detail?.columns.map((c: any) => ({
+    [{ title: "Sl. No.", field: "_serial", width: 72, minWidth: 60, hozAlign: "right", editor: false },
+    ...(state.value?.detail?.columns.map((c: any) => ({
       title: c.title,
       titleFormatter: () => { const label = document.createElement("span"); label.className = "measurement-column-title"; label.textContent = c.title; return label; },
       field: c.field,
@@ -340,7 +344,7 @@ const recordColumns = computed<ColumnDefinition[]>(
         return element;
       },
       variableHeight: true,
-    })) || [],
+    })) || [])],
 );
 async function run(work: () => Promise<void>) {
   if (busy.value) return false;
@@ -1322,7 +1326,7 @@ watch(
             ref="recordTable"
             drag-select-rows
             :active="active && !!entryId"
-            :rows="state.detail.rows"
+            :rows="recordRows"
             :columns="recordColumns"
             :busy="busy || detailBusy"
             :select-ids="recordSelectionIds"

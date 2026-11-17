@@ -252,3 +252,36 @@ installed Chromium headless shell was selected through
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE`; the current Playwright default browser download
 was unavailable. Python, frozen-backend and native-platform checks were not rerun
 for these frontend-only fixes. Broader release gates remain open.
+
+
+## Cell focus, explorer and measurement serials — 2026-11-17
+
+The earlier padding/font review fixes were committed as `20a2b3a` before this
+increment. Escape is handled by the shared cell-navigation controller: it cancels
+the editor, retains its coordinate and focuses the cell. Browser checks exercise
+cancel/reopen and adjacent-cell navigation in Schedule, Resources and Analysis,
+and cancellation/reopening in measurement records. Canceled text is not stored.
+
+Analysis loading refreshes the schedule explorer using its existing query/page.
+A browser fixture adds a schedule item after opening the project and verifies
+that it appears in the explorer on Edit analysis without submitting Find.
+
+Measurement records prepend display-only serial numbers across all templates.
+Checks cover two template layouts and values 1 and 101 on successive pages,
+alongside existing insertion, deletion, clipboard and atomic undo workflows.
+The generated field is read-only and is not added to backend template data.
+The record grid screenshot was reviewed for the new column and existing ranges.
+
+Ctrl/⌘+F targets existing search bars in Schedule, Resources, both explorer tabs,
+database selection and the frontmost linked-schedule picker above Properties.
+Analysis reveals a hidden explorer. Ctrl/⌘+K no longer changes views or focus.
+The help overlay and status bar show Ctrl/⌘+F. Measurements and records do not
+receive new search fields, as requested by the user.
+
+**All 50 browser workflows were verified across the full run and focused rerun.**
+The full run passed 49 workflows; the new shortcut workflow used a nonexistent
+Close button for a database picker whose footer says Cancel. Correcting that
+locator passed the focused rerun, including help/status-bar assertions.
+The **Vue/TypeScript production build** and whitespace check passed. The existing
+bundle-size warning remains. No backend or project-file changes were made;
+Python, frozen-backend and native-platform validation were not rerun.

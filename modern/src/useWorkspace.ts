@@ -171,6 +171,9 @@ export function useWorkspace() {
           rows: programSettings.value.ana_default_rows,
         }));
       }
+      schedule.value = await request("schedule.list", {
+        query: scheduleQuery.value, offset: schedulePage.value * 100,
+      });
       selected.value = [];
     }, "Loading rate analysis…");
   }

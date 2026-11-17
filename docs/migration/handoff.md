@@ -1,5 +1,16 @@
 # Vue/Tauri migration handoff
 
+## Keyboard and record follow-up — 2026-11-17
+
+The previous review fixes are committed as `20a2b3a`. The next increment retains
+cell focus after Escape, refreshes schedule explorer results when loading an
+analysis, adds generated serial numbers to all measurement record grids, and
+replaces Ctrl/⌘+K with Ctrl/⌘+F for existing search bars in views and selection
+dialogs. Measurements and records do not gain new search bars, per user direction.
+See [interaction notes](workbench-feedback.md#keyboard-and-record-navigation-follow-up--2026-11-17).
+All 50 browser workflows were verified across the full run and focused rerun;
+the production frontend build passed. See the [validation record](validation.md#cell-focus-explorer-and-measurement-serials--2026-11-17).
+
 ## Review fixes — 2026-11-17
 
 Both immediate pending review items are implemented:

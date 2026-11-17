@@ -63,3 +63,14 @@ export function installUIActions() {
     if (!scheduled) { scheduled = true; requestAnimationFrame(focus); }
   }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class", "role", "aria-hidden", "disabled"] });
 }
+
+/** Focus search in the frontmost dialog, otherwise in the visible editor. */
+export function focusSearch() {
+  const visible = (el: HTMLElement) => !!el.getClientRects().length && getComputedStyle(el).visibility !== "hidden" && !el.closest('[inert],[aria-hidden="true"]');
+  const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).filter(visible);
+  dialogs.sort((a, b) => Number(getComputedStyle(a.closest('.p-dialog-mask,.persistent-dialog-mask') || a).zIndex || 0) - Number(getComputedStyle(b.closest('.p-dialog-mask,.persistent-dialog-mask') || b).zIndex || 0));
+  const scope = dialogs.at(-1) || document;
+  const input = Array.from(scope.querySelectorAll<HTMLInputElement>('.search-field input,input[type="search"]')).find(el => visible(el) && !el.disabled);
+  input?.focus({ preventScroll: true });
+  input?.select();
+}

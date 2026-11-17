@@ -127,6 +127,15 @@ export function cellNavigation(table: Tabulator, host: HTMLElement, options: {
       if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return false;
       const input = (event.target as HTMLElement).closest<HTMLInputElement | HTMLTextAreaElement>("input,textarea");
       if (input && !input.closest(".tabulator-cell")) return false;
+      if (input && event.key === "Escape") {
+        const current = position && locate(position.id, position.field);
+        if (!current) return false;
+        event.preventDefault(); event.stopPropagation();
+        current.cancelEdit();
+        mark(current);
+        current.getElement().focus({ preventScroll: true });
+        return true;
+      }
       if (input && event.shiftKey && event.key !== "Tab") return false;
       if (!input && event.shiftKey && event.key !== "Tab") return false;
       if (!["Enter", "F2", "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return false;

@@ -9,7 +9,7 @@ import {
   watch,
 } from "vue";
 import Dialog from "primevue/dialog";
-import { afterDialogsClose } from "./uiActions";
+import { afterDialogsClose, focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -460,6 +460,12 @@ function beforeUnload(event: BeforeUnloadEvent) {
   }
 }
 function keyboard(event: KeyboardEvent) {
+  if (!event.defaultPrevented && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    if (!document.querySelector('[role="dialog"]') && activeView.value === "analysis") sidebar.value = true;
+    void nextTick(focusSearch);
+    return;
+  }
   if (event.defaultPrevented || document.querySelector('[role="dialog"]')) return;
   if (
     resourceOpen.value ||
@@ -475,17 +481,13 @@ function keyboard(event: KeyboardEvent) {
     void travelNavigation(event.key === "ArrowLeft" ? -1 : 1);
     return;
   }
-  if (mod && ["o", "s", "k"].includes(key)) {
+  if (mod && ["o", "s"].includes(key)) {
     event.preventDefault();
     if (busy.value || projectBusy.value) return;
     if (key === "o") showFile("open");
     if (key === "s" && state.value?.project_open) {
       if (event.shiftKey) showFile("save");
       else void saveProject();
-    }
-    if (key === "k") {
-      sidebar.value = true;
-      void (async () => { if (activeView.value !== "analysis") await switchView("analysis"); await nextTick(); document.getElementById("navigator-search")?.focus(); })();
     }
     return;
   }
@@ -1482,7 +1484,7 @@ onBeforeUnmount(() => {
         class="status-unsaved"
         >Unsaved draft</span
       ><span class="spacer" /><span>Tab to navigate</span
-      ><span class="status-divider" /><span>Ctrl + K to find</span
+      ><span class="status-divider" /><span>Ctrl / ⌘ + F to find</span
       ><span class="status-divider" /><span>{{
         state?.unit || "GEstimator"
       }}</span>
@@ -1679,7 +1681,7 @@ onBeforeUnmount(() => {
           ['Open project', 'Ctrl / ⌘ + O'],
           ['Save project', 'Ctrl / ⌘ + S'],
           ['Save project copy', 'Ctrl / ⌘ + Shift + S'],
-          ['Find schedule or resource', 'Ctrl / ⌘ + K'],
+          ['Focus search in current view or selection dialog', 'Ctrl / ⌘ + F'],
           ['Undo / Redo', 'Ctrl / ⌘ + Z / Y'],
           ['Copy / Paste rows', 'Ctrl / ⌘ + C / V'],
           ['Add item / measurement record / analysis resource', 'Ctrl / ⌘ + I'],

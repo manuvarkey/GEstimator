@@ -17,6 +17,21 @@ Four focused browser workflows and the production frontend build passed.
 Popup and Analysis edit/accept screenshots were reviewed; see the
 [validation record](validation.md#pending-workbench-review-fixes--2026-11-17).
 
+## Keyboard and record navigation follow-up — 2026-11-17
+
+- Escape cancels a table cell edit and focuses that cell, preserving its keyboard
+  navigation position. Enter/F2 can reopen it; arrows and Tab continue navigation
+  in Schedule, Resources, Analysis and measurement records.
+- Loading an analysis refreshes the explorer's schedule results using its current
+  search and page. Newly added schedule items appear without submitting a search.
+- Every measurement template's record grid prepends a generated, read-only
+  **Sl. No.** column. Numbers follow record order across pages and are recomputed
+  after insertion, deletion and undo; template data and project files are unchanged.
+- Ctrl/⌘+F focuses and selects the existing search input in the frontmost dialog,
+  otherwise in the active editor. Analysis reveals its explorer when needed.
+  Views without a search bar retain their existing layout. Ctrl/⌘+K is removed,
+  and the shortcuts overlay lists the replacement.
+
 ## Measurement editing review follow-up
 
 1. Schedule and measurement text editors keep the table's tree decorations in
@@ -99,7 +114,9 @@ is edited there; reverting this implementation does not rewrite stored values.
 ## General controls
 
 - The project explorer is displayed only in Analysis. Its toggle is in Analysis's
-  View ribbon group. **Ctrl+K** opens Analysis and focuses explorer search.
+  View ribbon group. **Ctrl/⌘+F** focuses the existing search bar in the active
+  view or frontmost selection dialog. In Analysis it reveals explorer search.
+  The earlier **Ctrl+K** shortcut is removed.
 - Refresh MCP status is a labeled ribbon button.
 - Save Copy and workbook/analysis export open the OS save dialog directly. Open
   uses the OS picker directly when there are no recent or recovery files. The

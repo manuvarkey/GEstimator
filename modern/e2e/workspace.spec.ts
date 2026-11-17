@@ -1082,6 +1082,9 @@ test("measurement properties, searchable links and paged batch records keep atom
   await properties.getByLabel("Item 1 Label", { exact: true }).fill("<img src=x onerror=alert(1)>");
   await properties.getByRole("button", { name: "Choose property schedule item 1", exact: true }).click();
   const picker = page.getByRole("dialog", { name: "Choose schedule item", exact: true });
+  await picker.getByRole("button", { name: "Search", exact: true }).focus();
+  await page.keyboard.press("ControlOrMeta+f");
+  await expect(picker.getByLabel("Find linked schedule item")).toBeFocused();
   await picker.getByLabel("Find linked schedule item").fill("Foundation");
   await picker.getByRole("button", { name: "Search", exact: true }).click();
   await picker.locator(".library-item").filter({ hasText: "Foundation" }).click();
@@ -1103,7 +1106,9 @@ test("measurement properties, searchable links and paged batch records keep atom
   await expect(insert).not.toBeVisible();
   const records = page.locator(".measurement-record-grid .project-grid");
   await expect(page.locator(".project-view:visible .pagination:visible")).toContainText("120 records · Page 1");
+  await expect(records.locator('.tabulator-row [tabulator-field="_serial"]').first()).toHaveText("1");
   await page.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(records.locator('.tabulator-row [tabulator-field="_serial"]').first()).toHaveText("101");
   await expect(records.locator(".tabulator-row")).toHaveCount(20);
   await expect(records).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".measurement-entry-heading")).toContainText("Steel quantities");
@@ -2827,6 +2832,11 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
     await page.keyboard.insertText('x');
     expect(Math.abs((await cell.locator('..').boundingBox())!.height - before.height)).toBeLessThanOrEqual(1);
     await input.press('Escape');
+    await expect(cell).toBeFocused();
+    await page.keyboard.press('F2');
+    await expect(input).toBeFocused();
+    await input.press('Escape');
+    await expect(cell).toBeFocused();
     if (tree) {
       const branch = cell.locator(':scope > .tabulator-data-tree-branch');
       await expect(branch).toBeVisible();
@@ -2861,6 +2871,7 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
   await page.getByRole('button', { name: 'Add record', exact: true }).click();
   const row = page.locator('.measurement-record-grid .tabulator-row').first();
   await expect(row).toBeVisible();
+  await expect(row.locator('[tabulator-field="_serial"]')).toHaveText('1');
   const blankHeight = (await row.boundingBox())!.height;
   expect(blankHeight).toBeGreaterThanOrEqual(32);
   const cell = row.locator('[tabulator-field="c0"]');
@@ -3030,4 +3041,74 @@ test('multiline analysis cells retain padding when editing and accepting', async
   await expect(cell).toHaveCSS('padding', before.padding);
   await page.screenshot({ path: 'test-results/analysis-text-accepted.png', animations: 'disabled' });
   expect(Math.abs((await cell.boundingBox())!.height - before.height)).toBeLessThanOrEqual(1);
+});
+
+
+test('Escape retains cell focus and search shortcuts follow active views and dialogs', async ({ page }) => {
+  await refinementFixture(page);
+  for (const view of ['schedule', 'resources']) {
+    await page.locator('#view-' + view).click();
+    const search = page.locator('.project-view:visible').getByLabel('Search project table');
+    const cell = page.locator('.project-view:visible .tabulator-row[data-kind="Resource"] [tabulator-field="description"]').first();
+    await cell.dblclick();
+    await cell.locator('textarea').fill('Discard this edit');
+    await cell.locator('textarea').press('Escape');
+    await expect(cell).toBeFocused();
+    await expect(cell).not.toContainText('Discard this edit');
+    await page.keyboard.press('F2');
+    await expect(cell.locator('textarea')).toBeFocused();
+    await cell.locator('textarea').press('Escape');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.project-view:visible .cell-focused')).toHaveAttribute('tabulator-field', 'unit');
+    await page.keyboard.press('ControlOrMeta+f');
+    await expect(search).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+k');
+    await expect(page.locator('#view-' + view)).toHaveAttribute('aria-selected', 'true');
+    await expect(search).toBeFocused();
+  }
+  await page.locator('#view-schedule').click();
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  const cell = page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first();
+  await cell.dblclick();
+  await cell.locator('textarea').fill('Discard analysis edit');
+  await cell.locator('textarea').press('Escape');
+  await expect(cell).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(cell.locator('textarea')).toBeFocused();
+  await cell.locator('textarea').press('Escape');
+  await page.getByRole('button', { name: 'Hide explorer', exact: true }).click();
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(page.getByLabel('Find schedule items', { exact: true })).toBeFocused();
+  await page.locator('.explorer').getByRole('tab', { name: 'Resources', exact: true }).click();
+  await cell.click();
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(page.getByLabel('Find resources', { exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Add resources from database', exact: true }).click();
+  const picker = page.getByRole('dialog', { name: 'Add analysis resources from database', exact: true });
+  const pickerSearch = picker.locator('.search-field input').first();
+  await picker.getByRole('grid').focus();
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(pickerSearch).toBeFocused();
+  await picker.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'Keyboard shortcuts', exact: true }).click();
+  const help = page.getByRole('dialog', { name: 'Keyboard shortcuts', exact: true });
+  await expect(help).toContainText('Focus search in current view or selection dialog');
+  await expect(help).toContainText('Ctrl / ⌘ + F');
+  await expect(help).not.toContainText('Ctrl / ⌘ + K');
+  await expect(page.locator('.statusbar')).toContainText('Ctrl / ⌘ + F to find');
+});
+
+test('opening an analysis populates newly added schedule items in explorer', async ({ page }) => {
+  await refinementFixture(page);
+  await page.getByRole('button', { name: 'Add item', exact: true }).click();
+  const add = page.getByRole('dialog', { name: 'Add item', exact: true });
+  await add.getByLabel('New code', { exact: true }).fill('NEW');
+  await add.getByLabel('Description', { exact: true }).fill('New schedule item');
+  await add.getByRole('button', { name: 'Add item', exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  await expect(page.locator('.explorer')).toContainText('New schedule item');
+  await expect(page.getByLabel('Find schedule items', { exact: true })).toHaveValue('');
 });
