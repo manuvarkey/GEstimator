@@ -538,3 +538,27 @@ The [UI guidelines](../ui-guidelines.md), modern workspace instructions, README 
 - `git diff --check` passed.
 
 The broader browser suite uses the real Python backend through the mocked desktop transport. Native WebView and installed-platform checks remain separate.
+
+
+## 2026-11-18 — selection-only preferences, measurement header and OpenAEC styling
+
+Checkpoint before this revision: `2c846ed` (`feat(workbench): close parity gaps and unify controls`).
+
+Fonts and regional formats use the shared non-editable themed dropdown. Installed font choices, Desktop default and labelled saved unavailable values are retained; categories still support new typed values. Measurement records show the template type and Discard/Apply actions on the first row, with the editable description/status below and no duplicate template row.
+
+The palette maps Open Planner Studio's OpenAEC 0.4 frame, panel, field, workspace and border colours to the shared theme tokens. Locally maintained SVG silhouettes gain restrained amber details; semantic/disabled/filled-button glyphs keep a single foreground colour. Source references and the upstream icon-generation pipeline are recorded in the UI guidelines. The Blueprint upstream returned 404; the pipeline was verified from Planner's public generation script, lock file, generated definitions and renderer.
+
+Validation: production build and `git diff --check` passed. **15 distinct affected browser scenarios passed across runs**, covering installed-font selection/persistence, regional formatting, category entry, caret and table navigation, clipboard glyphs, dropdown themes, checkbox alignment, measurement properties and totals, editor completion, ribbon/window controls, and the new first-row layout at 700/1280 px. Dark/light measurement-header screenshots were inspected. The remaining rechecks corrected old expected colour constants and aligned the ribbon panel surface with the reference. Native WebView/platform checks remain separate.
+
+## 2026-11-18 — save analysis without leaving
+
+The analysis header now includes a save icon that applies the current analysis through the existing `analysis.apply` command while retaining the editor. The existing Apply and Discard actions still return to Schedule. Its tooltip distinguishes applying to the working project from saving the project file to disk.
+
+Production build, `git diff --check` and **3 focused browser scenarios passed**. The new regression checks an injected failed apply retains the draft/view, retry clears draft dirty state without navigating, the source project file remains unchanged, and later Discard preserves the previously applied analysis rate. Existing headerbar and finish-and-return flows also pass.
+
+
+## 2026-11-18 — analysis action grouping and icon decision
+
+Analysis header actions are ordered **Discard analysis → Save analysis → Apply analysis**. Save uses the shared labelled green action styling and retains the editor; Apply returns to Schedule. Current locally maintained icons remain in production. The OpenAEC comparison is retained under `artifacts/icon-comparison` for separate review.
+
+Validation: production build, `git diff --check` and **3 focused browser scenarios passed**. Header action order, equal button heights, save-without-leaving, failed-save retention and finish-and-return behavior are covered.

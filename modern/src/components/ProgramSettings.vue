@@ -2,9 +2,7 @@
 import { computed, ref, onMounted, watch } from "vue";
 import { moneyFormatter } from "../numberFormatting";
 import Dialog from "primevue/dialog";
-import AutoComplete from "primevue/autocomplete";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
-import ThemedAutocomplete from "./ThemedAutocomplete.vue";
 import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
 import { appearance, defaultAppearance } from "../appearance";
 import { request } from "../backend";
@@ -20,15 +18,15 @@ const moneyPreview = computed(() => {
 });
 const fontFamilies = ref<string[]>();
 const fontsLoading = ref(false);
-const fontSuggestions = ref<string[]>([]);
-let fontQuery = "";
-function suggestFonts(event: { query: string }) {
-  fontQuery = event.query;
-  const query = fontQuery.trim().toLocaleLowerCase();
-  fontSuggestions.value = (fontFamilies.value || []).filter(face => face.toLocaleLowerCase().includes(query));
-}
-function fontKeydown(event: KeyboardEvent) {
-  if (event.key === "Escape" && (event.target as HTMLInputElement).getAttribute("aria-expanded") === "true") event.stopPropagation();
+const localeOptions = [
+  { value: 'en-IN', label: 'English (India)' }, { value: 'en-US', label: 'English (United States)' },
+  { value: 'en-GB', label: 'English (United Kingdom)' }, { value: 'de-DE', label: 'German (Germany)' },
+  { value: 'fr-FR', label: 'French (France)' }, { value: 'es-ES', label: 'Spanish (Spain)' },
+];
+const savedLocale = computed(() => draft.value?.number_locale && !localeOptions.some(option => option.value === draft.value!.number_locale) ? draft.value.number_locale : '');
+function fontOptions(selected: string) {
+  const available = fontFamilies.value || [];
+  return selected && !available.includes(selected) ? [selected, ...available] : available;
 }
 const sections = [{ key: "general", label: "General" }, { key: "appearance", label: "Appearance" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
 const fontGroups = [
@@ -49,7 +47,7 @@ onMounted(async () => {
 watch(tab, async section => {
   if (section !== "appearance" || fontFamilies.value || fontsLoading.value) return;
   fontsLoading.value = true;
-  try { fontFamilies.value = await request<string[]>("program.fonts"); suggestFonts({ query: fontQuery }); }
+  try { fontFamilies.value = await request<string[]>("program.fonts"); }
   catch { fontFamilies.value = []; }
   finally { fontsLoading.value = false; }
 });
@@ -77,7 +75,7 @@ async function reset() {
     <section v-if="draft" :id="'settings-panel-' + tab" role="tabpanel" :aria-labelledby="'settings-tab-' + tab">
       <template v-if="tab === 'general'">
         <h3>Rates and amounts</h3>
-        <label class="field">Regional format<ThemedAutocomplete v-model="draft.number_locale" label="Regional format" :suggestions="['en-IN', 'en-US', 'en-GB', 'de-DE', 'fr-FR']" placeholder="System default" :disabled="busy" /></label>
+        <label class="field">Regional format<select v-model="draft.number_locale" aria-label="Regional format" :disabled="busy"><option value="">System default</option><option v-if="savedLocale" :value="savedLocale">{{ savedLocale }} (saved format)</option><option v-for="option in localeOptions" :key="option.value" :value="option.value">{{ option.label }} · {{ option.value }}</option></select></label>
         <label class="field">Currency code<input v-model="draft.currency_code" maxlength="3" aria-describedby="currency-code-help" :disabled="busy" @input="draft.currency_code = draft.currency_code.toUpperCase()" /></label>
         <p id="currency-code-help" class="field-hint">Three-letter currency code (for example INR, USD or EUR). Selects the symbol for displayed rates, amounts and monetary totals when enabled below. It does not convert prices or change calculations or workbook numeric values.</p>
         <label class="library-remember"><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label>
@@ -88,12 +86,12 @@ async function reset() {
       <template v-else-if="tab === 'appearance'">
         <label class="field">Theme<select v-model="appearanceDraft.theme" :disabled="busy"><option value="system">Follow system</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
         <div v-for="group in fontGroups" :key="group.family" class="field-pair">
-          <label class="field">{{ group.label }} font face<AutoComplete v-model="appearanceDraft[group.family]" :input-id="'settings-font-' + group.family" :suggestions="fontSuggestions" :placeholder="group.placeholder" :disabled="busy" :min-length="0" :delay="0" complete-on-focus class="font-family-input" overlay-class="application-menu themed-font-menu" :pt="{ pcInputText: { root: { maxlength: 120 } } }" @complete="suggestFonts" @keydown="fontKeydown" /></label>
+          <label class="field">{{ group.label }} font face<select v-model="appearanceDraft[group.family]" :aria-label="group.label + ' font face'" :disabled="busy || fontsLoading"><option value="">Desktop default</option><option v-for="font in fontOptions(appearanceDraft[group.family])" :key="font" :value="font">{{ font }}{{ fontFamilies && !fontFamilies.includes(font) ? ' (saved font unavailable)' : '' }}</option></select></label>
           <label class="field">{{ group.label }} font size (px)<input type="number" min="10" max="30" step="any" :value="appearanceDraft[group.size] ?? ''" :placeholder="group.placeholder" :disabled="busy" @input="appearanceDraft[group.size] = ($event.target as HTMLInputElement).value === '' ? null : ($event.target as HTMLInputElement).valueAsNumber" /></label>
         </div>
         <p v-if="fontsLoading" role="status" class="field-hint">Loading installed fonts…</p>
-        <p v-else-if="!fontFamilies?.length" class="field-hint">The system font list is unavailable. Enter an installed font name.</p>
-        <p v-else class="field-hint">Choose or type an installed font. Leave a field blank to use its default.</p>
+        <p v-else-if="!fontFamilies?.length" class="field-hint">The system font list is unavailable. Desktop default and any saved font remain available.</p>
+        <p v-else class="field-hint">Choose an installed font, or Desktop default to follow the system.</p>
       </template>
       <template v-else-if="tab === 'default'">
         <p class="field-hint">Used by Analysis → Default rows and when opening an analysis with no calculation rows. An empty template leaves blank analyses empty.</p>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineProps<{ name: string; size?: number }>();
-// Filled angular outlines keep clipboard glyphs crisp at 18–24 px.
+// Semantic silhouettes with a neutral body and a restrained accent detail.
+// OpenAEC-style two-tone treatment; paths remain local to GEstimator.
 const clipboardIcons = ["copy", "paste"];
 const paths: Record<string, string> = {
   blank: "",
@@ -61,9 +62,24 @@ const paths: Record<string, string> = {
   minimize: "M5 17h14",
   maximize: "M5 5h14v14H5Z",
 };
+const accents: Record<string, string> = {
+  database: "M4 12a8 3 0 0 0 16 0", folder: "M3 9h18", save: "M7 3v6h10V3",
+  grid: "M3 9h18", library: "M16 5l4-1 3 16-4 1Z", plus: "M12 5v14",
+  child: "M15 8l4 4-4 4", search: "M21 21l-5-5", undo: "M9 4 3 10l6 6", redo: "m15 4 6 6-6 6",
+  copy: "M10 10H20", paste: "M9 4h6", trash: "M3 6h18", panel: "M15 4v16", "panel-left": "M9 4v16",
+  group: "M4 12h10", sum: "M6 4h12", percent: "M5 19 19 5", round: "M8 12h8",
+  resource: "M3 8l9 5 9-5", settings: "M8 4v6 M16 14v6", file: "M14 2v6h5", edit: "M13 7l4 4",
+  category: "M3 10h18", duplicate: "M8 8h13", colour: "M7 11h.01 M9 7h.01 M14 7h.01 M17 11h.01",
+  refresh: "M20 7v5h-5 M4 17v-5h5", chart: "M10 20V4", link: "M10 13a5 5 0 0 0 7 0l2-2",
+  import: "M12 3v12 M7 10l5 5 5-5", export: "M12 16V4 M7 9l5-5 5 5", calculate: "M8 7h8",
+  rows: "M4 9h16", ruler: "M13 7l4 4 M10 10l2 2 M7 13l2 2", attach: "M8 12l5-5a3 3 0 0 1 4 4",
+  filter: "M3 5h18", help: "M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5",
+};
 </script>
 <template>
   <svg
+    class="app-icon"
+    :data-icon="name"
     :width="size || 18"
     :height="size || 18"
     viewBox="0 0 24 24"
@@ -76,6 +92,7 @@ const paths: Record<string, string> = {
     stroke-linejoin="round"
     aria-hidden="true"
   >
-    <path :d="paths[name] ?? paths.grid" />
+    <path class="icon-body" :d="paths[name] ?? paths.grid" />
+    <path v-if="accents[name]" class="icon-accent" :d="accents[name]" fill="none" stroke="var(--icon-accent, currentColor)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
   </svg>
 </template>

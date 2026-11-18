@@ -1339,6 +1339,7 @@ onBeforeUnmount(() => {
             <strong>Rate analysis <span v-if="state?.code" class="code-tag">{{ state.code }}</span></strong>
             <span class="spacer" />
             <button class="button small danger" aria-label="Discard analysis" title="Discard this draft and return to Schedule." :disabled="uiBusy || !state?.project" @click="discardAnalysis"><AppIcon name="close" :size="16" />Discard analysis</button>
+            <button class="button small primary" aria-label="Save analysis without leaving" title="Save this analysis to the working project and update dependent rates without leaving the editor. Save the project to retain changes on disk." :disabled="uiBusy || !canEdit || !state?.project" @click="w.command('analysis.apply')"><AppIcon name="save" :size="16" />Save analysis</button>
             <button class="button small apply" aria-label="Apply analysis" title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Return to Schedule after applying. Save the project to retain changes on disk." :disabled="uiBusy || !canEdit || !state?.project" @click="applyAnalysis"><AppIcon name="check" :size="16" />Apply analysis</button>
           </div>
           <div class="analysis-intro">

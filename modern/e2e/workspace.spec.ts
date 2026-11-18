@@ -215,7 +215,7 @@ test("compact contrast, category filters, expanded trees and client window contr
   await expect(grid.locator(".tabulator-data-tree-control")).toHaveCount(0);
   await expect(grid.locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first()).toHaveCSS("font-weight", "700");
   await page.getByRole("button", { name: "Switch to light theme", exact: true }).click();
-  await expect(grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ })).toHaveCSS("color", "rgb(17, 24, 39)");
+  await expect(grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ })).toHaveCSS("color", "rgb(42, 42, 49)");
   expect(await grid.boundingBox()).not.toBeNull();
   expect((await grid.boundingBox())!.y).toBeLessThan(220);
   await page.getByRole("button", { name: "Filter categories", exact: true }).click();
@@ -373,7 +373,7 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await page.keyboard.press("Enter");
   const editorBounds = (await active(analysis).boundingBox())!;
   const fixedHeader = analysis.locator('.tabulator-col[tabulator-field="amount"]');
-  await expect(fixedHeader).toHaveCSS("background-color", "rgb(29, 34, 43)");
+  await expect(fixedHeader).toHaveCSS("background-color", "rgb(59, 59, 69)");
   expect(editorBounds.x + editorBounds.width).toBeLessThanOrEqual((await fixedHeader.boundingBox())!.x + 1);
 });
 
@@ -1564,43 +1564,34 @@ test("appearance settings persist and library rules preview and import at compac
   const fonts = (await call("program.fonts")).result;
   expect(fonts.length).toBeGreaterThan(0);
   const fontInput = settings.getByLabel("Interface font face");
-  await expect(settings.getByText("Choose or type an installed font. Leave a field blank to use its default.")).toBeVisible();
-  await fontInput.focus();
-  const fontList = page.getByRole("listbox", { name: "Option List" });
-  await expect(fontList.getByRole("option")).toHaveCount(fonts.length);
-  expect(await fontList.getByRole("option").allTextContents()).toEqual(fonts);
-  const popup = page.locator(".themed-font-menu");
-  const actual = await popup.evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, above: Number(getComputedStyle(el).zIndex) > Number(getComputedStyle(document.querySelector('.p-dialog-mask')!).zIndex) }));
-  // Resolve the same CSS variables through the browser before comparing colors.
-  const expected = await settings.evaluate(el => { const probe = document.createElement('span'); probe.style.background = 'var(--panel)'; probe.style.color = 'var(--text)'; el.append(probe); const result = { background: getComputedStyle(probe).backgroundColor, color: getComputedStyle(probe).color }; probe.remove(); return result; });
-  expect(actual).toEqual({ ...expected, above: true });
-  await page.screenshot({ path: "test-results/themed-font-suggestions.png", animations: "disabled" });
-  await fontInput.fill(fonts[0]);
-  await expect(fontList.getByRole("option", { name: fonts[0], exact: true })).toBeVisible();
-  await fontList.getByRole("option", { name: fonts[0], exact: true }).click();
+  await expect(settings.getByText("Choose an installed font, or Desktop default to follow the system.")).toBeVisible();
+  await expect(fontInput).toHaveJSProperty('tagName', 'SELECT');
+  await expect(fontInput).toBeEnabled();
+  await fontInput.click();
+  const fontList = page.getByRole('listbox', { name: 'Interface font face', exact: true });
+  await expect(fontList.getByRole('option')).toHaveCount(fonts.length + 1);
+  expect(await fontList.getByRole('option').allTextContents()).toEqual(['Desktop default', ...fonts]);
+  await page.screenshot({ path: 'test-results/themed-font-selection.png', animations: 'disabled' });
+  await fontList.getByRole('option', { name: fonts[0], exact: true }).click();
   await expect(fontInput).toHaveValue(fonts[0]);
-  await fontInput.fill(fonts[0]);
   await fontInput.press('ArrowDown');
-  await expect(popup).toBeVisible();
+  await expect(fontList).toBeVisible();
   await fontInput.press('Enter');
   await expect(fontInput).toHaveValue(fonts[0]);
-  await expect(popup).not.toBeVisible();
-  await fontInput.fill('Font family unavailable in this list');
-  await expect(fontInput).toHaveValue('Font family unavailable in this list');
-  await expect(popup).toBeVisible();
+  await expect(fontList).not.toBeVisible();
+  await fontInput.press('ArrowDown');
   await fontInput.press('Escape');
-  await expect(popup).not.toBeVisible();
   await expect(settings).toBeVisible();
-  await settings.getByLabel("Theme").selectOption("light");
-  await settings.getByLabel("Interface font face").fill("Arial");
+  await settings.getByLabel('Theme').selectOption('light');
+  await settings.getByLabel('Interface font face').selectOption(fonts[0]);
   await settings.getByLabel("Interface font size").fill("15");
-  await settings.getByLabel("Tables font face").fill("Consolas");
+  await settings.getByLabel("Tables font face").selectOption(fonts[Math.min(1, fonts.length - 1)]);
   await settings.getByLabel("Tables font size").fill("17");
   await settings.getByRole("button", { name: "Save program settings" }).click();
   await expect(settings).not.toBeVisible();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.locator("html")).toHaveCSS("font-family", "Arial, system-ui");
+  expect(await page.locator("html").evaluate(el => getComputedStyle(el).fontFamily)).toContain(fonts[0]);
   await expect(page.locator("html")).toHaveCSS("font-size", "15px");
   await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
@@ -1610,7 +1601,7 @@ test("appearance settings persist and library rules preview and import at compac
   const picker = page.getByRole("dialog", { name: "Add item from database", exact: true });
   const table = picker.getByRole("grid");
   await expect(table).toHaveCSS("font-size", "17px");
-  await expect(table).toHaveCSS("font-family", "Consolas, Arial, system-ui");
+  expect(await table.evaluate(el => getComputedStyle(el).fontFamily)).toContain(fonts[Math.min(1, fonts.length - 1)]);
   await expect(table.locator('.tabulator-col[tabulator-field="description"]')).toHaveCSS("font-size", "17px");
   // Frozen borders and fractional font metrics can round the extent by two pixels.
   const fits = (scope: ReturnType<Page["locator"]>) =>
@@ -2727,7 +2718,7 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
   await page.locator('#view-analysis').click();
   await expect(ribbon.getByRole('button', { name: 'Hide explorer', exact: true }).locator('path')).toHaveAttribute('d', /M9 4v16/);
   await expect(ribbon.getByRole('button', { name: 'Hide analysis inspector', exact: true })).not.toHaveClass(/ribbon-icon/);
-  await expect(ribbon.getByRole('button', { name: 'Delete', exact: true })).toHaveCSS('color', 'rgb(255, 138, 138)');
+  await expect(ribbon.getByRole('button', { name: 'Delete', exact: true })).toHaveCSS('color', 'rgb(252, 165, 165)');
 });
 
 test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return", async ({ page }) => {
@@ -2769,7 +2760,7 @@ test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return",
   await expect(ribbon.getByRole('button', { name: 'Add measurement', exact: true })).toHaveCount(0);
   await applyRecordsIfDirty(page);
   await expect(page.locator('#view-measurement')).toHaveClass(/record-context/);
-  await expect(ribbon.getByRole('button', { name: 'Delete record', exact: true })).toHaveCSS('color', 'rgb(255, 138, 138)');
+  await expect(ribbon.getByRole('button', { name: 'Delete record', exact: true })).toHaveCSS('color', 'rgb(252, 165, 165)');
   await page.keyboard.press('ControlOrMeta+i');
   await expect(records.locator('.tabulator-row')).toHaveCount(1);
   await page.screenshot({ path: 'test-results/contextual-measurement-ribbon.png', animations: 'disabled' });
@@ -3359,7 +3350,7 @@ test('long first-level items retain typography and indentation through Enter and
   expect(await readFile(path)).toEqual(original);
 });
 
-test('arrows edit text within a cell and toolbar SVGs use sharp monochrome strokes', async ({ page }) => {
+test('arrows edit text within a cell and toolbar SVGs use two-tone engineering icons', async ({ page }) => {
   await refinementFixture(page);
   const checkCaret = async (cell: ReturnType<Page['locator']>) => {
     const original = await cell.textContent();
@@ -3390,12 +3381,12 @@ test('arrows edit text within a cell and toolbar SVGs use sharp monochrome strok
   await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   const icon = page.getByRole('button', { name: 'Add item', exact: true }).locator('svg');
-  for (const [theme, color] of [['dark', 'rgb(255, 255, 255)'], ['light', 'rgb(0, 0, 0)']]) {
+  for (const [theme, color] of [['dark', 'rgb(190, 189, 189)'], ['light', 'rgb(95, 95, 101)']]) {
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click();
     await expect(icon).toHaveCSS('color', color!);
-    await expect(icon).toHaveCSS('stroke-linecap', 'square');
-    await expect(icon).toHaveCSS('stroke-linejoin', 'miter');
-    await expect(icon).toHaveCSS('stroke-width', '2px');
+    await expect(icon).toHaveCSS('stroke-linecap', 'round');
+    await expect(icon).toHaveCSS('stroke-linejoin', 'round');
+    await expect(icon).toHaveCSS('stroke-width', '1.6px');
     await page.screenshot({ path: `test-results/monochrome-toolbar-${theme}.png`, animations: 'disabled' });
   }
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
@@ -3489,7 +3480,7 @@ test('clipboard icons and toolbar hover outlines remain sharp without changing b
   await refinementFixture(page);
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
   const ribbon = page.locator('.ribbon');
-  for (const [theme, color] of [['dark', 'rgb(255, 255, 255)'], ['light', 'rgb(0, 0, 0)']]) {
+  for (const [theme, color] of [['dark', 'rgb(190, 189, 189)'], ['light', 'rgb(95, 95, 101)']]) {
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click();
     await page.mouse.move(1590, 990);
     const copy = ribbon.getByRole('button', { name: 'Copy', exact: true });
@@ -3591,7 +3582,7 @@ test('feedback 5: regional money formatting updates views and preserves raw nume
   await page.getByRole('button', { name: 'Application menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
   const settings = page.getByRole('dialog', { name: 'Program settings', exact: true });
-  await settings.getByLabel('Regional format').fill('en-IN');
+  await settings.getByLabel('Regional format').selectOption('en-IN');
   await settings.getByLabel('Show currency symbol').check();
   await expect(settings.getByLabel('Regional amount preview')).toHaveText('₹12,34,567.89');
   await settings.getByRole('button', { name: 'Save program settings', exact: true }).click();
@@ -3608,7 +3599,7 @@ test('feedback 5: regional money formatting updates views and preserves raw nume
   await expect(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row').first().locator('[tabulator-field="amount"]')).toContainText('₹');
   await page.getByRole('button', { name: 'Application menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
-  await settings.getByLabel('Regional format').fill('de-DE');
+  await settings.getByLabel('Regional format').selectOption('de-DE');
   await settings.getByLabel('Show currency symbol').uncheck();
   await settings.getByRole('button', { name: 'Save program settings', exact: true }).click();
   await page.getByRole('button', { name: 'Discard analysis', exact: true }).click();
@@ -3825,7 +3816,7 @@ test('measurement total footer includes off-page records', async ({ page }) => {
   await page.getByRole('button', { name: 'Next records', exact: true }).click();
   await expect(page.locator('.measurement-record-grid .tabulator-row')).toHaveCount(1);
   await expect(footer).toContainText(/5(?:\.0+)?/);
-  const header = page.locator('.measurement-entry-heading');
+  const header = page.getByRole('region', { name: 'Measurement records draft', exact: true });
   await expect(header.getByRole('button', { name: 'Apply records', exact: true })).toBeVisible();
   await expect(page.locator('.ribbon').getByRole('button', { name: 'Apply records', exact: true })).toHaveCount(0);
   await page.screenshot({ path: 'test-results/measurement-headerbar-total.png', animations: 'disabled' });
@@ -3842,7 +3833,7 @@ test('themed dropdowns use anchored listboxes with groups keyboard and theme col
   await expect(list).toBeVisible();
   for (const theme of ['light', 'dark']) {
     await page.evaluate(value => { document.documentElement.dataset.theme = value; }, theme);
-    await expect(list).toHaveCSS('background-color', theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(23, 27, 34)');
+    await expect(list).toHaveCSS('background-color', theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(51, 51, 60)');
     await page.screenshot({ path: `test-results/themed-dropdown-${theme}.png`, animations: 'disabled' });
   }
   for (const group of ['General', 'Civil', 'E&M']) await expect(list.getByText(group, { exact: true })).toBeVisible();
@@ -3926,22 +3917,20 @@ test('database enable switches have separate rows and checkbox labels align in s
   await page.screenshot({ path: 'test-results/shared-checkbox-alignment.png', animations: 'disabled' });
 });
 
-test('editable suggestions use themed lists and retain custom locales and categories', async ({ page }) => {
+test('locale choices are selection-only while category suggestions retain custom entry', async ({ page }) => {
   await refinementFixture(page);
   await page.getByRole('button', { name: 'Application menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
   const settings = page.getByRole('dialog', { name: 'Program settings', exact: true });
   const locale = settings.getByLabel('Regional format', { exact: true });
-  await locale.fill('de');
-  const suggestions = page.locator('.themed-autocomplete-options');
-  await expect(suggestions.getByRole('option', { name: 'de-DE', exact: true })).toBeVisible();
-  await expect(suggestions).toHaveCSS('background-color', 'rgb(23, 27, 34)');
-  await page.screenshot({ path: 'test-results/themed-editable-suggestions.png', animations: 'disabled' });
-  await suggestions.getByRole('option', { name: 'de-DE', exact: true }).click();
+  await expect(locale).toHaveJSProperty('tagName', 'SELECT');
+  await locale.click();
+  const formats = page.getByRole('listbox', { name: 'Regional format', exact: true });
+  await formats.getByRole('option', { name: 'German (Germany) · de-DE', exact: true }).click();
   await expect(locale).toHaveValue('de-DE');
-  await locale.fill('es-ES');
-  await settings.getByLabel('Currency code').click();
+  await locale.selectOption('es-ES');
   await expect(locale).toHaveValue('es-ES');
+  const suggestions = page.locator('.themed-autocomplete-options');
   await settings.getByRole('button', { name: 'Cancel', exact: true }).click();
   await page.getByRole('button', { name: 'Add item', exact: true }).click();
   const add = page.getByRole('dialog', { name: 'Add item', exact: true });
@@ -3958,4 +3947,83 @@ test('editable suggestions use themed lists and retain custom locales and catego
   await expect(add).toBeVisible();
   await expect(suggestions).not.toBeVisible();
   await expect(page.locator('input[list]')).toHaveCount(0);
+});
+
+test('measurement draft puts type and ordered actions on the first row in both themes', async ({ page }) => {
+  await refinementFixture(page);
+  const added = (await call('measurement.add', { revision: (await call('state')).result.revision, template: '_1_NLBH', description: 'Header layout room' })).result;
+  await page.locator('#view-measurement').click();
+  await page.getByRole('grid', { name: 'Measurements', exact: true }).getByText('Header layout room', { exact: true }).dblclick();
+  const header = page.getByRole('region', { name: 'Measurement records draft', exact: true });
+  await expect(header.locator('strong')).toHaveText('NLBH (numbers, length, area, volume)');
+  await expect(page.locator('.measurement-summary')).toHaveCount(0);
+  const discard = header.getByRole('button', { name: 'Discard records', exact: true });
+  const apply = header.getByRole('button', { name: 'Apply records', exact: true });
+  for (const width of [1280, 700]) {
+    await page.setViewportSize({ width, height: 900 });
+    const first = (await discard.boundingBox())!, second = (await apply.boundingBox())!;
+    expect(first.x + first.width).toBeLessThanOrEqual(second.x);
+    expect(Math.abs(first.y - second.y)).toBeLessThan(1);
+    expect((await page.locator('.measurement-entry-heading').boundingBox())!.y).toBeGreaterThanOrEqual((await header.boundingBox())!.y + (await header.boundingBox())!.height);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const theme of ['dark', 'light']) {
+    if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name: /Switch to .* theme/ }).click();
+    await expect(page.locator('.titlebar')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(42, 42, 50)' : 'rgb(244, 244, 245)');
+    await expect(page.locator('.ribbon')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(51, 51, 60)' : 'rgb(255, 255, 255)');
+    const icon = page.getByRole('button', { name: 'Import records…', exact: true }).locator('svg');
+    await expect(icon.locator('.icon-accent')).toHaveCSS('stroke', 'rgb(217, 119, 6)');
+    await expect(icon).toHaveCSS('color', theme === 'dark' ? 'rgb(190, 189, 189)' : 'rgb(95, 95, 101)');
+    await page.screenshot({ path: `test-results/measurement-type-header-${theme}.png`, animations: 'disabled' });
+  }
+  await apply.click();
+  await expect(page.getByRole('grid', { name: 'Measurements', exact: true })).toBeVisible();
+  expect((await call('measurement.detail', { id: added.selected[0] })).result.detail.total_records).toBe(0);
+});
+
+test('analysis header save applies without leaving and failed saves retain the draft', async ({ page }) => {
+  const path = await refinementFixture(page);
+  const original = await readFile(path);
+  await page.locator('.project-view:visible .project-main-grid').getByText('Foundation', { exact: true }).click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  const header = page.getByRole('region', { name: 'Analysis draft', exact: true });
+  const save = header.getByRole('button', { name: 'Save analysis without leaving', exact: true });
+  expect((await header.getByRole('button').allTextContents()).map(text => text.trim())).toEqual(['Discard analysis', 'Save analysis', 'Apply analysis']);
+  const actions = await header.getByRole('button').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect()));
+  expect(new Set(actions.map(rect => Math.round(rect.height))).size).toBe(1);
+  expect(actions[0]!.x + actions[0]!.width).toBeLessThanOrEqual(actions[1]!.x);
+  expect(actions[1]!.x + actions[1]!.width).toBeLessThanOrEqual(actions[2]!.x);
+  await expect(save.locator('svg')).toHaveAttribute('data-icon', 'save');
+  const quantity = page.locator('.analysis-table .tabulator-row[data-kind="Resource"] [tabulator-field="value"]');
+  await quantity.dblclick(); await quantity.locator('input').fill('3'); await quantity.locator('input').press('Enter');
+  await expect(page.locator('.summary-value')).toContainText('30.00');
+  await page.evaluate(() => {
+    const w = window as any;
+    const invoke = w.__TAURI_INTERNALS__.invoke;
+    let rejectOnce = true;
+    w.__TAURI_INTERNALS__.invoke = (method: string, args: any) => {
+      if (rejectOnce && method === 'backend_request' && args.request.method === 'analysis.apply') {
+        rejectOnce = false;
+        return Promise.resolve({ error: { code: 'test_failure', message: 'Injected analysis save failure' } });
+      }
+      return invoke(method, args);
+    };
+  });
+  await save.click();
+  await expect(page.getByRole('alert')).toContainText('Injected analysis save failure');
+  await expect(page.locator('#view-analysis')).toHaveAttribute('aria-selected', 'true');
+  expect((await call('state')).result.dirty).toBe(true);
+  await save.click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('#view-analysis')).toHaveAttribute('aria-selected', 'true');
+  const saved = (await call('state')).result;
+  expect(saved.dirty).toBe(false);
+  expect(saved.workspace_dirty).toBe(true);
+  expect(saved.rate).toBe('30.00');
+  expect(await readFile(path)).toEqual(original);
+  await quantity.dblclick(); await quantity.locator('input').fill('4'); await quantity.locator('input').press('Enter');
+  await header.getByRole('button', { name: 'Discard analysis', exact: true }).click();
+  await expect(page.locator('#view-schedule')).toHaveAttribute('aria-selected', 'true');
+  const row = page.locator('.project-view:visible .project-main-grid .tabulator-row').filter({ has: page.getByText('Foundation', { exact: true }) });
+  await expect(row.locator('[tabulator-field="rate"]')).toHaveText('30');
 });

@@ -1,0 +1,11 @@
+OpenAEC B2 comparison preview
+
+B2 icon artwork: OpenAEC Foundation, sourced from Open Planner Studio
+src/components/icons/b2/icons.generated.ts.
+Source: https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/icons/b2/icons.generated.ts
+Blueprint source commit: ca4e60ac187b3c6401ef557bb11000255c1f4d6a
+B2 revision 107. Original generated header declares LGPL-3.0-only.
+See LICENSE.LGPL-3.0.txt and LICENSE.GPL-3.0.txt.
+The comparison includes an unmodified subset of the generated icon geometry.
+The existing GEstimator icons retain the repository licence.
+GEstimator production components have not been switched to B2.

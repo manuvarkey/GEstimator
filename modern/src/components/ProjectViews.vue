@@ -1336,7 +1336,12 @@ watch(
           Next
         </button>
       </div>
-      <div v-if="isMeasurement && entryId" class="measurement-entry-heading draft-headerbar">
+      <div v-if="isMeasurement && entryId" class="measurement-draft-header draft-headerbar" role="region" aria-label="Measurement records draft">
+        <strong :title="state?.detail?.info.note">{{ state?.detail?.id === entryId ? state.detail.info.label : 'Measurement records' }}</strong>
+        <button class="button small danger" aria-label="Discard records" title="Discard this draft and return to Measurements." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('discardRecords')"><AppIcon name="close" /><span >Discard records</span></button>
+        <button class="button small primary" aria-label="Apply records" title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Return to Measurements after applying. Save the project to retain them on disk." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('applyRecords')"><AppIcon name="check" /><span >Apply records</span></button>
+      </div>
+      <div v-if="isMeasurement && entryId" class="measurement-entry-heading">
         <textarea
           v-if="descriptionDraft !== undefined"
           ref="measurementDescription"
@@ -1349,14 +1354,10 @@ watch(
         />
         <h2 v-else v-middle-ellipsis="fullMeasurementTitle || 'Measurement entry'" class="measurement-entry-title five-line-description" :title="fullMeasurementTitle" :aria-label="fullMeasurementTitle" @dblclick="editMeasurementDescription" />
         <button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy || state?.detail?.id !== entryId" @mousedown.prevent @click="descriptionDraft === undefined ? editMeasurementDescription() : measurementDescription?.focus()"><AppIcon name="edit" />Edit description</button>
-              <button class="button primary" aria-label="Apply records" title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Return to Measurements after applying. Save the project to retain them on disk." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('applyRecords')"><AppIcon name="check" /><span >Apply records</span></button>
-              <button class="button danger" aria-label="Discard records" title="Discard this draft and return to Measurements." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('discardRecords')"><AppIcon name="close" /><span >Discard records</span></button>
+
         <span class="draft-badge" :class="{ dirty: state?.measurement_draft?.dirty }">{{ state?.measurement_draft?.dirty ? 'Unsaved records' : 'Up to date' }}</span>
       </div>
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
-        <div class="measurement-summary">
-          <strong :title="state.detail.info.summary + ' ' + state.detail.info.note">{{ state.detail.info.label }}</strong>
-        </div>
         <div class="measurement-links">
           <label
             v-for="(link, index) in state.detail.links"

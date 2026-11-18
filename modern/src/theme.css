@@ -1,4 +1,6 @@
-/* GEstimator workspace tokens. Shared across chrome, editors and dialogs. */
+/* Shared workspace tokens. Open Planner Studio / OpenAEC 0.4 visual reference:
+ * https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/styles/openaec-tokens.css
+ * Keep platform typography and GEstimator semantic roles independent. */
 :root {
   font: menu;
   --ui-font-family: system-ui;
@@ -9,7 +11,7 @@
   font-size: var(--ui-font-size);
   --text-size-ui: 1rem;
   --text-size-small: .9rem;
-  --toolbar-icon: #fff;
+  --toolbar-icon: var(--muted);
   --text-size-toolbar: 0.95rem;
   --text-size-heading: 1.1rem;
   --text-size-table: var(--table-font-size);
@@ -19,46 +21,50 @@
   --error-text: #f0aaaa;
   --error-bg: color-mix(in srgb, var(--danger) 9%, transparent);
   --error-line: color-mix(in srgb, var(--danger) 22%, transparent);
-  --window-close: #b42332;
+  --window-close: #b91c1c;
   font-synthesis: none;
-  --bg: #101318;
-  --panel: #171b22;
-  --raised: #1d222b;
-  --well: #12161c;
-  --line: #303743;
-  --line-soft: #252c36;
-  --text: #f1f4fa;
-  --muted: #bdc8d8;
-  --hint: #a8b7cc;
-  --accent: #72adff;
-  --accent-fill: #326ed3;
-  --accent-soft: #213653;
-  --green: #70c5a2;
-  --amber: #e0b775;
-  --danger: #ff8a8a;
+  --icon-accent: #d97706;
+  --on-accent: #1c1917;
+  --workspace: #26262d;
+  --bg: #2a2a32;
+  --panel: #33333c;
+  --raised: #3b3b45;
+  --well: #2c2c34;
+  --line: #474750;
+  --line-soft: #3d3d46;
+  --text: #edebe8;
+  --muted: #bebdbd;
+  --hint: #a7a7a8;
+  --accent: #fbbf24;
+  --accent-fill: #d97706;
+  --accent-soft: #513f32;
+  --green: #4ade80;
+  --amber: #facc15;
+  --danger: #fca5a5;
   --shadow: 0 16px 70px #0008;
   color-scheme: dark;
   color: var(--text);
   background: var(--bg);
 }
 :root[data-theme="light"] {
-  --toolbar-icon: #000;
-  --danger: #b42332;
+  --toolbar-icon: var(--muted);
+  --danger: #b91c1c;
   --error-text: #a73636;
-  --bg: #edf1f6;
+  --workspace: #ffffff;
+  --bg: #f4f4f5;
   --panel: #fff;
-  --raised: #f7f9fc;
-  --well: #f0f3f8;
-  --line: #d6dce6;
-  --line-soft: #e7ebf1;
-  --text: #111827;
-  --muted: #344155;
-  --hint: #45566b;
-  --accent: #2669bd;
-  --accent-fill: #2869cb;
-  --accent-soft: #e8f0fd;
-  --green: #25765c;
-  --amber: #92621a;
+  --raised: #ffffff;
+  --well: #ffffff;
+  --line: #d4d4d8;
+  --line-soft: #eaeaea;
+  --text: #2a2a31;
+  --muted: #5f5f65;
+  --hint: #69696f;
+  --accent: #92400e;
+  --accent-fill: #d97706;
+  --accent-soft: #fbf1e6;
+  --green: #166534;
+  --amber: #854d0e;
   --shadow: 0 16px 70px #27364b26;
   color-scheme: light;
 }

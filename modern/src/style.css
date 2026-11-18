@@ -119,7 +119,7 @@ textarea::placeholder {
 }
 .button.primary {
   background: var(--accent-fill);
-  color: #fff;
+  color: var(--on-accent);
 }
 .button.primary:hover:not(:disabled) {
   filter: brightness(1.12);
@@ -295,7 +295,7 @@ textarea::placeholder {
   min-height: 96px;
   flex-shrink: 0;
   padding: 6px 12px 4px;
-  background: var(--raised);
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
   gap: 0;
   overflow: hidden;
@@ -2119,13 +2119,6 @@ textarea.measurement-entry-title {
 
 .database-picker-dialog .dialog-footer { flex-wrap: wrap; }
 
-.font-family-input, .font-family-input input { width: 100%; min-width: 0; }
-.themed-font-menu { max-width: 94vw; }
-.themed-font-menu .p-autocomplete-list { padding: 4px; }
-.themed-font-menu .p-autocomplete-option { padding: 8px 12px; color: var(--text); white-space: normal; overflow-wrap: anywhere; }
-.themed-font-menu .p-autocomplete-option:not(.p-disabled):hover,
-.themed-font-menu .p-autocomplete-option.p-focus,
-.themed-font-menu .p-autocomplete-option-selected { background: var(--accent-soft); color: var(--accent); }
 
 .schedule-estimate-total { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 16px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: var(--control-radius); background: var(--accent-soft); color: var(--text); font-weight: 700; }
 .schedule-estimate-total strong { color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -2133,7 +2126,7 @@ textarea.measurement-entry-title {
 .shortcut-group h3 { margin: 0; padding-bottom: 6px; color: var(--accent); font-size: var(--text-size-ui); border-bottom: 1px solid var(--line); }
 .shortcut-list > div { flex-wrap: wrap; gap: 6px 15px; }
 
-.ribbon svg, .titlebar svg { stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }
+.ribbon svg, .titlebar svg { stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .titlebar .icon-button svg { color: var(--toolbar-icon); }
 
 /* Long descriptions must not squeeze tree markers before/after editing. */
@@ -2197,3 +2190,14 @@ label > input[type="checkbox"], label > input[type="radio"] { margin-top: max(0p
 .themed-autocomplete-options.p-autocomplete-overlay { color: var(--text); background: var(--panel); border-color: var(--line); box-shadow: var(--shadow); }
 .themed-autocomplete-options .p-autocomplete-option:not(.p-disabled).p-focus,
 .themed-autocomplete-options .p-autocomplete-option.p-autocomplete-option-selected { color: var(--accent); background: var(--accent-soft); }
+
+/* OpenAEC-inspired shell surfaces and two-tone action icons. */
+.titlebar, .statusbar { background: var(--bg); }
+.analysis-table.tabulator, .analysis-table .tabulator-row, .analysis-table .tabulator-row.tabulator-row-even { background: var(--workspace); }
+.app-icon { flex-shrink: 0; }
+button:disabled .app-icon, [aria-disabled="true"] .app-icon,
+.button.primary .app-icon, .button.apply .app-icon, button.danger .app-icon,
+.window-close:hover .app-icon { --icon-accent: currentColor; }
+.measurement-draft-header { flex-wrap: nowrap; }
+.measurement-draft-header > strong { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.measurement-draft-header > .button { flex-shrink: 0; }
