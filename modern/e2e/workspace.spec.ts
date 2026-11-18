@@ -106,7 +106,7 @@ async function connectDesktop(page: Page, transport = call) {
             family: getComputedStyle(document.documentElement).fontFamily,
             size: getComputedStyle(document.documentElement).fontSize,
             fonts: document.fonts.status,
-            rows: document.querySelectorAll('.analysis-table .tabulator-row').length,
+            landing: !!document.querySelector('.project-landing .landing-action'),
             ribbonSized: !!document.querySelector('.ribbon-action[style*="--ribbon-button-width"]'),
           };
           return Promise.resolve();
@@ -118,6 +118,8 @@ async function connectDesktop(page: Page, transport = call) {
   await page.goto("/");
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain("plugin:window|show");
+  // The app starts on the landing page (Schedule); most scenarios begin in the scratch analysis.
+  await page.locator("#view-analysis").click();
 }
 test.beforeEach(async ({ page }) => {
   directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
@@ -250,6 +252,47 @@ test("compact contrast, category filters, expanded trees and client window contr
   for (const name of ["Minimize window", "Maximize or restore window", "Close window"]) await page.locator(".window-controls").getByRole("button", { name, exact: true }).click();
   expect(await page.evaluate(() => (window as any).windowCommands)).toEqual(expect.arrayContaining(["plugin:window|minimize", "plugin:window|toggle_maximize", "plugin:window|close"]));
   await page.screenshot({ path: "test-results/compact-light-categories.png", animations: "disabled" });
+});
+
+test("landing page starts, opens and reopens recent projects when none is open", async ({ page }) => {
+  const landing = page.getByRole("region", { name: "Start an estimate" });
+  // Analysis keeps its scratch workspace; project views show the landing page.
+  await expect(landing).not.toBeVisible();
+  await page.locator("#view-schedule").click();
+  await expect(landing).toBeVisible();
+  await expect(landing).toContainText("Projects you open or save appear here.");
+  await expect(page.getByText("Open a project to use this editor.")).not.toBeVisible();
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "landing.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  // Open… goes straight to the system picker.
+  nativeDialogResults.push(project);
+  await landing.getByRole("button", { name: /Open project/ }).click();
+  await expect(landing).not.toBeVisible();
+  await expect(page.locator(".project-view:visible .project-main-grid")).toContainText("Foundation");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]"))).toContain(project);
+  // A fresh session without an open project lists the recent project.
+  child.stdin.end();
+  await new Promise<void>((resolve) => child.once("close", () => resolve()));
+  startBackend();
+  await page.reload();
+  await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  // Startup shows the landing page directly.
+  const recent = landing.getByRole("list", { name: "Recent projects" });
+  await expect(recent.getByRole("button", { name: /landing/ })).toBeVisible();
+  await recent.getByRole("button", { name: /landing/ }).click();
+  await expect(landing).not.toBeVisible();
+  await expect(page.locator(".project-view:visible .project-main-grid .tabulator-row").first()).toBeVisible();
+});
+
+test("landing page creates a new project", async ({ page }) => {
+  const landing = page.getByRole("region", { name: "Start an estimate" });
+  await page.locator("#view-measurement").click();
+  await expect(landing).toBeVisible();
+  await page.screenshot({ path: "test-results/project-landing.png", animations: "disabled" });
+  await landing.getByRole("button", { name: /New project/ }).click();
+  await expect(landing).not.toBeVisible();
+  await expect(page.locator(".project-view:visible .project-main-grid")).toBeVisible();
 });
 
 test("numeric edits select the value, tax shows only entered decimals and clipboard feedback is transient", async ({ page }) => {
@@ -910,7 +953,7 @@ test("MCP startup conflicts and invalid saved preferences remain visible and rec
     await page.reload();
     await expect(page.locator(".mcp-error")).toBeVisible();
     await applyRecordsIfDirty(page);
-    await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator("#view-schedule")).toHaveAttribute("aria-selected", "true");
     expect((await call("mcp.status")).result.running).toBe(false);
     await page.getByRole("button", { name: "Review MCP settings", exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Configure MCP server", exact: true });
@@ -1384,6 +1427,7 @@ test("inspector edits are atomic and custom templates persist without changing s
   await expect(page.locator(".analysis-content")).not.toContainText("CUSTOM MATERIALS");
   await page.reload();
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await page.locator("#view-analysis").click();
   await page.locator(".ribbon").getByRole("button", { name: "Custom analysis template…" }).click();
   await expect(template.getByLabel("Row 1 description", { exact: true })).toHaveValue("CUSTOM MATERIALS");
   await expect(template).toHaveCSS("opacity", "1");
@@ -3322,7 +3366,7 @@ test('native window is revealed after startup theme typography and UI are ready'
   expect(await page.evaluate(() => (window as any).windowCommands || [])).not.toContain('plugin:window|show');
   releaseState();
   await expect.poll(() => page.evaluate(() => (window as any).startupAtShow)).toEqual({
-    theme: 'light', family: 'Arial, system-ui', size: '16px', fonts: 'loaded', rows: 3, ribbonSized: true,
+    theme: 'light', family: 'Arial, system-ui', size: '16px', fonts: 'loaded', landing: true, ribbonSized: false,
   });
   expect((await page.evaluate(() => (window as any).windowCommands)).filter((command: string) => command === 'plugin:window|show')).toHaveLength(1);
 });
@@ -3667,6 +3711,7 @@ test('feedback 5: interface and table fonts independently default to the OS', as
   await expect(table).toHaveCSS('font-size', '14.6667px');
   await page.reload();
   await expect(page.getByText('Calculation engine connected')).toBeVisible();
+  await page.locator('#view-analysis').click();
   await expect(page.locator('html')).toHaveCSS('font-size', '19px');
   await expect(table).toHaveCSS('font-size', '14.6667px');
 });

@@ -2203,3 +2203,20 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .measurement-draft-header > strong { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .measurement-draft-header > .button { flex-shrink: 0; }
 .statusbar > .status-notice { color: var(--text); }
+
+/* Landing page shown in the editor pane while no project is open. */
+.project-landing { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; padding: 48px 16px; background: var(--workspace); }
+.project-landing-body { width: min(640px, 100%); display: flex; flex-direction: column; gap: 14px; }
+.project-landing h1 { margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text); }
+.project-landing h2 { margin: 0; font-size: var(--text-size-ui); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.project-landing-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 6px; }
+.landing-action, .landing-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; color: var(--text); background: var(--raised); border: 1px solid var(--line); border-radius: var(--control-radius); cursor: pointer; font: inherit; }
+.landing-action { padding: 14px 16px; }
+.landing-item { padding: 8px 12px; border-color: transparent; background: transparent; }
+.landing-action span, .landing-item span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.landing-action small, .landing-item small { color: var(--hint); font-size: var(--text-size-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing-action:hover:not(:disabled), .landing-item:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.landing-action:disabled, .landing-item:disabled { opacity: 0.6; cursor: default; }
+.project-landing-section { display: flex; flex-direction: column; gap: 6px; margin-top: 18px; }
+.project-landing-heading { display: flex; align-items: center; justify-content: space-between; }
+.landing-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }

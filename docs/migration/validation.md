@@ -577,3 +577,9 @@ Validation: production build passed; full browser suite 73/75 on the first run. 
 - Linux: the main window keeps GTK client-side decorations with an empty, zero-height titlebar widget (widget CSS removes the theme headerbar height that otherwise left a transparent strip), so GTK draws the compositor shadow and resize border while the web titlebar remains the only title bar. Applied before first show.
 
 Validation: production build, `cargo build`, Python unit tests (151 OK) and the full browser suite passed except `schedule row colour is visible and undoable`, which also fails on the earlier checkpoint. A new browser regression covers select-all, tax display and the transient status notice. The Linux shadow still needs a visual check on an installed or `tauri dev` build (an XWayland capture confirmed no strip above the web titlebar and symmetric 24–29 px shadow margins).
+
+## 2026-11-19 — project landing page
+
+Schedule, Resources and Measurements show a landing page while no project is open: New project, Open project… (straight to the system picker), recent projects (file name and folder, with Clear list) and recovery checkpoints when present. It replaces the "Open a project to use this editor." message. Analysis keeps its scratch workspace without a project. The app now starts on Schedule, so startup without a project shows the landing page; the empty ribbon is hidden while it is shown. Browser scenarios that exercise the scratch analysis select the Analysis tab after startup.
+
+Validation: production build and full browser suite: 77 passed; `schedule row colour is visible and undoable` still fails as on earlier checkpoints. New regressions cover the landing page visibility, Open…, reopening a recent project in a fresh session and New project. A dark-theme screenshot was inspected.

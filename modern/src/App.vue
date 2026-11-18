@@ -29,6 +29,7 @@ import { programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
+import ProjectLanding from "./components/ProjectLanding.vue";
 import { statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
@@ -125,11 +126,14 @@ const views = [
 ] as const;
 const settingsOpen = ref(false);
 const settings = ref<Record<string, string>>({});
+// Start on Schedule: with no project open it shows the landing page.
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
-  "analysis",
+  "schedule",
 );
-const activeTab = ref<(typeof views)[number]["key"]>("analysis");
+const activeTab = ref<(typeof views)[number]["key"]>("schedule");
 const measurementEntry = ref<string>();
+// Project views show the landing page (and no ribbon tools) until a project is open.
+const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
 const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
 let cancelAnalysisFocus: (() => void) | undefined;
 watch(activeView, async view => {
@@ -425,10 +429,20 @@ async function showFile(mode: "open" | "save") {
     const filters = [{ name: "GEstimator project", extensions: ["eproj"] }];
     const path = mode === "open" ? await open({ multiple: false, filters }) : await save({ filters, defaultPath: filePath.value });
     if (typeof path !== "string") return;
-    if (mode === "open") await navigate(async discard => {
-      if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
-    }, true);
+    if (mode === "open") await openProjectPath(path);
     else if (await w.saveCopy(path)) { rememberProject(path); await continueAfterSave(); }
+  } catch (reason) { error.value = String(reason); }
+}
+async function openProjectPath(path: string) {
+  await navigate(async discard => {
+    if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
+  }, true);
+}
+/** Landing page: go straight to the system picker; recent projects are already listed there. */
+async function browseProject() {
+  try {
+    const path = await open({ multiple: false, filters: [{ name: "GEstimator project", extensions: ["eproj"] }] });
+    if (typeof path === "string") await openProjectPath(path);
   } catch (reason) { error.value = String(reason); }
 }
 async function refreshRecovery() {
@@ -982,6 +996,7 @@ onBeforeUnmount(() => {
       >
     </div>
     <RibbonToolbar
+      v-show="!(landingVisible && ['schedule', 'resources', 'measurement'].includes(activeTab))"
       ref="ribbonToolbar"
       class="ribbon"
       :id="'tools-' + activeTab"
@@ -1315,11 +1330,22 @@ onBeforeUnmount(() => {
         </div>
       </aside>
       <main class="editor-pane">
+        <ProjectLanding
+          v-if="landingVisible"
+          :busy="uiBusy"
+          :recent="recentProjects"
+          :recovery="recoveryProjects"
+          @new="newProject"
+          @open="browseProject"
+          @open-recent="openProjectPath"
+          @recover="recoverProject"
+          @clear-recent="setRecentProjects([])"
+        />
         <ProjectViews
           v-for="view in visitedViews"
           :key="projectSession + ':' + view"
           :ref="instance => bindProjectView(view, instance)"
-          v-show="activeView === view"
+          v-show="activeView === view && !!state?.project_open"
           :active="activeView === view"
           :entry-id="view === 'measurement' ? measurementEntry : undefined"
           :view="view"
