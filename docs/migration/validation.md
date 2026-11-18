@@ -583,3 +583,7 @@ Validation: production build, `cargo build`, Python unit tests (151 OK) and the 
 Schedule, Resources and Measurements show a landing page while no project is open: New project, Open project… (straight to the system picker), recent projects (file name and folder, with Clear list) and recovery checkpoints when present. It replaces the "Open a project to use this editor." message. Analysis keeps its scratch workspace without a project. The app now starts on Schedule, so startup without a project shows the landing page; the empty ribbon is hidden while it is shown. Browser scenarios that exercise the scratch analysis select the Analysis tab after startup.
 
 Validation: production build and full browser suite: 77 passed; `schedule row colour is visible and undoable` still fails as on earlier checkpoints. New regressions cover the landing page visibility, Open…, reopening a recent project in a fresh session and New project. A dark-theme screenshot was inspected.
+
+## 2026-11-19 — schedule row colour visible without hover
+
+The project grid also carries `.analysis-table`, so the shell rule `.analysis-table .tabulator-row.tabulator-row-even` (same specificity as the colour rule, declared later) painted even coloured rows with the workspace surface; only `:hover` showed the colour. The shell rule now skips rows with `data-schedule-colour`. The row-colour scenario moves the pointer away before checking the background; it fails without the fix and passes with it. Full browser suite: 78 passed.

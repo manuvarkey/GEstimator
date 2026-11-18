@@ -2461,6 +2461,8 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   await dialog.getByRole("button", { name: "Colour #455a64", exact: true }).click();
   await dialog.getByRole("button", { name: "Apply colour" }).click();
   await expect(dialog).not.toBeVisible();
+  // The colour must show without hover (even rows previously lost it to the shell surface).
+  await page.mouse.move(1590, 990);
   await expect(row).toHaveCSS("background-color", "rgb(69, 90, 100)");
   await expect(row).toHaveCSS("color", "rgb(255, 255, 255)");
   await header.getByRole("button", { name: "Undo", exact: true }).click();

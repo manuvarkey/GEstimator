@@ -2194,7 +2194,8 @@ label > input[type="checkbox"], label > input[type="radio"] { margin-top: max(0p
 
 /* OpenAEC-inspired shell surfaces and two-tone action icons. */
 .titlebar, .statusbar { background: var(--bg); }
-.analysis-table.tabulator, .analysis-table .tabulator-row, .analysis-table .tabulator-row.tabulator-row-even { background: var(--workspace); }
+/* Schedule row colours (data-schedule-colour) must win over the shell row surface. */
+.analysis-table.tabulator, .analysis-table .tabulator-row:not([data-schedule-colour]), .analysis-table .tabulator-row.tabulator-row-even:not([data-schedule-colour]) { background: var(--workspace); }
 .app-icon { flex-shrink: 0; }
 button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .button.primary .app-icon, .button.apply .app-icon, button.danger .app-icon,
