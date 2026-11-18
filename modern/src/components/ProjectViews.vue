@@ -12,6 +12,7 @@ import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
+import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 
@@ -21,6 +22,7 @@ interface GridRow {
   [key: string]: any;
 }
 interface GridState {
+  measurement_draft?: { id: string; dirty: boolean; undo: boolean; redo: boolean } | null;
   view_seq?: number;
   delta?: boolean;
   updates?: GridRow[];
@@ -46,13 +48,15 @@ const emit = defineEmits<{
   libraries: [];
   database: [options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }];
   analysisRules: [ids: string[]];
+  applyRecords: [];
+  discardRecords: [];
 }>();
 const state = ref<GridState>();
 const emptyRows: GridRow[] = [];
 watch(
-  () => [state.value?.undo, state.value?.redo],
+  () => [state.value?.undo, state.value?.redo, state.value?.measurement_draft, props.entryId, props.active],
   () =>
-    emit("history", { undo: !!state.value?.undo, redo: !!state.value?.redo }),
+    emit("history", { undo: !!(props.entryId ? state.value?.measurement_draft?.undo : state.value?.undo), redo: !!(props.entryId ? state.value?.measurement_draft?.redo : state.value?.redo) }),
 );
 onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
@@ -60,7 +64,8 @@ defineExpose({
   focus: focusTable,
   revealCode,
   handleKeyboard: keyboard,
-  historyAction: (method: "undo" | "redo") => command("project." + method),
+  historyAction: (method: "undo" | "redo") => command(props.entryId && state.value?.measurement_draft ? "draft." + method : "project." + method),
+  applyRecords: () => command("draft.apply"),
   applyDatabase,
   lastError: () => error.value,
   exportWorkbook,
@@ -244,6 +249,7 @@ const mainRows = computed(() => {
 watch(() => props.entryId, async identity => {
   descriptionDraft.value = undefined;
   if (!identity) {
+    if (state.value?.measurement_draft) await command("draft.close");
     if (activeMeasurement.value) selectionIds.value = [activeMeasurement.value];
     await focusTable();
     return;
@@ -399,6 +405,11 @@ async function refresh(revealId?: string) {
     },
   );
   state.value = detailOnly ? { ...state.value!, ...next } : next;
+  if (props.entryId && state.value.detail && state.value.measurement_draft?.id !== props.entryId) {
+    await request("measurement.draft.open", { id: props.entryId, revision: state.value.revision });
+    Object.assign(state.value, await request("measurement.detail", { id: props.entryId, record_offset: recordPage.value * 100 }));
+    emit("changed");
+  }
   syncMeasurementSummary();
   if (!isMeasurement.value) {
     const retained = categoryFilters.value.filter(name => state.value?.categories?.includes(name));
@@ -599,7 +610,12 @@ async function loadDetail() {
   const identity = activeMeasurement.value;
   detailBusy.value = true;
   try {
-    const detail = await request<Partial<GridState>>("measurement.detail", { id: identity, record_offset: recordPage.value * 100 });
+    let detail = await request<Partial<GridState>>("measurement.detail", { id: identity, record_offset: recordPage.value * 100 });
+    if (props.entryId && detail.detail && detail.measurement_draft?.id !== identity) {
+      await request("measurement.draft.open", { id: identity, revision: detail.revision });
+      detail = await request<Partial<GridState>>("measurement.detail", { id: identity, record_offset: recordPage.value * 100 });
+      emit("changed");
+    }
     if (token === selectionRequest && identity === activeMeasurement.value && state.value && (detail.revision ?? 0) >= state.value.revision)
       { state.value = { ...state.value, ...detail }; syncMeasurementSummary(); if (detail.detail) recordPage.value = detail.detail.offset / 100; }
   } catch (reason) { if (token === selectionRequest) error.value = String(reason); }
@@ -739,11 +755,16 @@ function keyboard(event: KeyboardEvent) {
     return;
   if (event.ctrlKey || event.metaKey) {
     const key = event.key.toLowerCase();
+    if (props.entryId && (event.key === "Enter" || event.key === "Escape")) {
+      event.preventDefault(); event.stopPropagation();
+      if (event.key === "Enter") emit("applyRecords"); else emit("discardRecords");
+      return;
+    }
     if (key === "z" || key === "y") {
       event.preventDefault();
       event.stopPropagation();
       void command(
-        key === "y" || event.shiftKey ? "project.redo" : "project.undo",
+        (props.entryId && state.value?.measurement_draft ? "draft." : "project.") + (key === "y" || event.shiftKey ? "redo" : "undo"),
       );
       return;
     }
@@ -952,6 +973,10 @@ watch(
               <button class="ribbon-action" aria-label="Import records…" :disabled="busy || detailBusy" @click="error = ''; recordImportOpen = true"><AppIcon name="import" /><span class="ribbon-label">Import records</span></button>
               <button class="ribbon-action" aria-label="Properties…" :disabled="busy || detailBusy" @click="showProperties"><AppIcon name="settings" /><span class="ribbon-label">Properties</span></button>
             </div><small>MEASUREMENT</small></div>
+            <div class="ribbon-group"><div class="ribbon-actions">
+              <button class="ribbon-action" aria-label="Apply records" title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Save the project to retain them on disk." :disabled="busy || detailBusy || !state?.measurement_draft?.dirty" @click="emit('applyRecords')"><AppIcon name="check" /><span class="ribbon-label">Apply records</span></button>
+              <button class="ribbon-action ribbon-icon danger" aria-label="Discard records" :disabled="busy || detailBusy || !state?.measurement_draft?.dirty" @click="emit('discardRecords')"><AppIcon name="close" /><span class="ribbon-label">Discard records</span></button>
+            </div><small>DRAFT</small></div>
           </template>
           <template v-else>
           <div v-if="!isMeasurement" class="ribbon-group">
@@ -1243,7 +1268,7 @@ watch(
         />
       </div>
       <div v-if="view === 'schedule' && state" class="schedule-estimate-total" role="status" aria-label="Overall estimate total">
-        <span>Overall estimate total</span><strong>{{ state.grand_total ?? '0.00' }}</strong>
+        <span>Overall estimate total</span><strong>{{ formatMoney(state.grand_total ?? '0.00') }}</strong>
       </div>
       <div v-if="!isMeasurement" class="pagination">
         <button
@@ -1281,6 +1306,7 @@ watch(
         />
         <h2 v-else v-middle-ellipsis="fullMeasurementTitle || 'Measurement entry'" class="measurement-entry-title five-line-description" :title="fullMeasurementTitle" :aria-label="fullMeasurementTitle" @dblclick="editMeasurementDescription" />
         <button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy || state?.detail?.id !== entryId" @mousedown.prevent @click="descriptionDraft === undefined ? editMeasurementDescription() : measurementDescription?.focus()"><AppIcon name="edit" />Edit description</button>
+        <span class="draft-badge" :class="{ dirty: state?.measurement_draft?.dirty }">{{ state?.measurement_draft?.dirty ? 'Unsaved records' : 'Up to date' }}</span>
       </div>
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
         <div class="measurement-summary">

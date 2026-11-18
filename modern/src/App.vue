@@ -33,6 +33,7 @@ import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
 import { request, type AnalysisRow, type RowKind } from "./backend";
+import { formatMoney } from "./numberFormatting";
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
 const ribbonToolbar = ref<InstanceType<typeof RibbonToolbar>>();
@@ -126,6 +127,7 @@ const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
 );
 const activeTab = ref<(typeof views)[number]["key"]>("analysis");
 const measurementEntry = ref<string>();
+const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
 let cancelAnalysisFocus: (() => void) | undefined;
 watch(activeView, async view => {
   cancelAnalysisFocus?.();
@@ -249,7 +251,7 @@ const shortcutGroups = [
     ["Colour selected schedule items", "Ctrl / ⌘ + M"],
     ["Edit resource / Measurement properties", "Ctrl / ⌘ + E"],
     ["Browse attached schedule / resource library", "Ctrl / ⌘ + L"],
-    ["Apply analysis / Confirm draft discard", "Ctrl / ⌘ + Enter / Escape"],
+    ["Apply analysis or records / Confirm draft discard", "Ctrl / ⌘ + Enter / Escape"],
   ] },
   { title: "Ribbon navigation", items: [
     ["Focus ribbon tabs", "Left / Right / Home / End"],
@@ -370,12 +372,19 @@ async function navigate(
 ) {
   if (projectBusy.value) return;
   pendingProject = project;
-  if (state.value?.dirty || (project && state.value?.workspace_dirty)) {
+  if (state.value?.dirty || recordsDirty.value || (project && state.value?.workspace_dirty)) {
     pending = action;
     discardOpen.value = true;
   } else await action(false);
 }
 async function discard() {
+  if (recordsDirty.value) {
+    if (!await w.run(async () => {
+      await request("measurement.draft.discard", { revision: state.value?.revision });
+      await w.refresh();
+      await projectViews.measurement?.reload();
+    }, "Discarding records…")) return;
+  }
   const action = pending;
   pending = undefined;
   discardOpen.value = false;
@@ -436,6 +445,7 @@ async function submitFile() {
   }
 }
 async function continueAfterSave() {
+  if (measurementEntry.value) await projectViews.measurement?.reload();
   if (pending) {
     const action = pending;
     pending = undefined;
@@ -495,7 +505,7 @@ function editField(event: Event, field: string) {
     void edit(selection.value, field, (event.target as HTMLInputElement).value);
 }
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (state.value?.dirty || state.value?.workspace_dirty || projectBusy.value) {
+  if (state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty || projectBusy.value) {
     event.preventDefault();
     event.returnValue = "";
   }
@@ -655,12 +665,23 @@ async function loadAnalysis(code: string) {
   });
 }
 async function applyAndContinue() {
-  if (await w.command("analysis.apply")) {
+  if (await (recordsDirty.value ? applyRecords() : w.command("analysis.apply"))) {
     const action = pending;
     pending = undefined;
     discardOpen.value = false;
     await action?.(false);
   }
+}
+async function applyRecords() {
+  const result = await projectViews.measurement?.applyRecords() ?? false;
+  await w.refresh();
+  return result;
+}
+async function changeMeasurementEntry(id: string | undefined) {
+  await navigate(async () => { measurementEntry.value = id; });
+}
+async function discardRecords() {
+  await navigate(async () => {}, false);
 }
 async function chooseAnalysisExport() {
   try {
@@ -724,7 +745,12 @@ onMounted(async () => {
   window.addEventListener("beforeunload", beforeUnload);
   try {
     if (isTauri()) {
-      setPlatformFont(await invoke("desktop_font"));
+      let font = await invoke<{ family?: string; size?: string }>("desktop_font");
+      if (!font.family || !font.size) {
+        const native = await request<{ family?: string; size?: string }>("program.desktop_font").catch(() => ({}));
+        font = { ...font, ...native };
+      }
+      setPlatformFont(font);
       unsubscribers.push(
         await listen<{ family?: string; size?: string }>(
           "desktop-font",
@@ -743,7 +769,7 @@ onMounted(async () => {
             event.preventDefault();
             return;
           }
-          if (state.value?.dirty || state.value?.workspace_dirty) {
+          if (state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty) {
             event.preventDefault();
             await navigate(async (discard) => {
               if (discard) await request("recovery.discard");
@@ -830,7 +856,7 @@ onBeforeUnmount(() => {
         <button
           class="icon-button"
           aria-label="Undo"
-          title="Undo the last analysis draft edit, or the last project operation in other tabs (Ctrl+Z)."
+          title="Undo the last analysis or records draft edit, or the last project operation in other views (Ctrl+Z)."
           :disabled="
             uiBusy ||
             !(activeView === 'analysis' ? state?.undo : projectHistory.undo)
@@ -857,7 +883,7 @@ onBeforeUnmount(() => {
       <div class="titlebar-project" data-tauri-drag-region>
         <AppIcon name="folder" :size="15" /><span>{{ projectName }}</span
         ><span
-          v-if="state?.dirty || state?.workspace_dirty"
+          v-if="state?.dirty || recordsDirty || state?.workspace_dirty"
           class="unsaved-dot"
           title="Unsaved changes"
         />
@@ -1185,7 +1211,7 @@ onBeforeUnmount(() => {
               <span class="item-code"
                 ><AppIcon name="resource" :size="14" />{{ item.code }}</span
               ><span class="item-description">{{ item.description }}</span
-              ><span class="item-unit">{{ item.rate }} / {{ item.unit }}</span>
+              ><span class="item-unit">{{ formatMoney(item.rate) }} / {{ item.unit }}</span>
             </button></template
           >
           <div
@@ -1270,10 +1296,12 @@ onBeforeUnmount(() => {
           :view="view"
           :project-open="!!state?.project_open"
           @changed="w.refresh()"
-          @history="projectHistory = $event"
+          @history="activeView === view && (projectHistory = $event)"
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
-          @entry="measurementEntry = $event"
+          @entry="changeMeasurementEntry"
+          @apply-records="applyRecords"
+          @discard-records="discardRecords"
           @libraries="libraryManagerOpen = true"
           @database="showDatabase"
           @analysis-rules="showAnalysisRules"
@@ -1382,7 +1410,7 @@ onBeforeUnmount(() => {
             </div>
             <span class="spacer" />
             <div class="summary-value">
-              <strong>{{ state?.rate || "0.00" }}</strong
+              <strong>{{ formatMoney(state?.rate || "0.00") }}</strong
               ><span v-if="state?.unit">/ {{ state.unit }}</span>
             </div>
           </div>
@@ -1471,12 +1499,12 @@ onBeforeUnmount(() => {
             </div>
             <div class="inspector-result">
               <span>Effective rate</span
-              ><strong>{{ selection.effective_rate }}</strong>
+              ><strong>{{ formatMoney(selection.effective_rate) }}</strong>
             </div></template
           >
           <div class="inspector-result">
             <span>Calculated amount</span
-            ><strong>{{ selection.amount }}</strong>
+            ><strong>{{ formatMoney(selection.amount) }}</strong>
           </div>
           <div class="inspector-actions">
             <button
@@ -1539,7 +1567,7 @@ onBeforeUnmount(() => {
         :class="{ working: busy, offline: !connected }"
       /><span>{{ status }}</span
       ><span
-        v-if="state?.dirty || state?.workspace_dirty"
+        v-if="state?.dirty || recordsDirty || state?.workspace_dirty"
         class="status-unsaved"
         >Unsaved draft</span
       ><span class="spacer" /><span>Tab to navigate</span
@@ -1690,7 +1718,7 @@ onBeforeUnmount(() => {
   <Dialog
     :visible="discardOpen"
     modal
-    header="Keep your analysis changes?"
+    :header="recordsDirty ? 'Keep your measurement records?' : 'Keep your analysis changes?'"
     class="workspace-dialog file-dialog"
     @update:visible="cancelDiscard"
     ><p class="dialog-intro">
@@ -1707,7 +1735,7 @@ onBeforeUnmount(() => {
       ><button class="button danger" :disabled="uiBusy" @click="discard">
         Discard changes</button
       ><button
-        v-if="!pendingProject && state?.project"
+        v-if="!pendingProject && (state?.project || recordsDirty)"
         class="button secondary"
         :disabled="uiBusy"
         @click="applyAndContinue"

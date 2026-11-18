@@ -178,7 +178,7 @@ def export(service, params):
     else:
         if not service.db:
             raise ValueError("Open a project first")
-        service.guard_draft(params)
+        service.guard_draft(params, records=not service.project_editor.records_operation("clipboard.export", params))
         editor = service.project_editor
         if kind in ("schedule", "resources"):
             cats, records = editor.selection(kind, params.get("ids"))
@@ -202,7 +202,7 @@ def export(service, params):
                         raise ValueError("Copied sub-analysis graph is too large")
         else:
             editor.ensure_ids()
-            measurement_items = service.db.get_measurement().items
+            measurement_items = editor.get_measurement().items
             if kind == "measurement":
                 ids = array(params.get("ids"))
                 if any(identity not in editor.ids for identity in ids):
@@ -312,7 +312,7 @@ def paste(service, params):
         except Exception:
             service.clipboard = previous
             raise
-    service.guard_draft(params)
+    service.guard_draft(params, records=not service.project_editor.records_operation("clipboard.paste", params))
     editor = service.project_editor
     previous = editor.clipboard
     def apply():
@@ -340,7 +340,7 @@ def paste(service, params):
             editor.clipboard = ("records", *items, "batch")
             return editor.measurement_edit("record_paste", params)
     try:
-        result = editor.mutate(apply)
+        result = (editor.records_mutate if editor.records_operation("clipboard.paste", params) else editor.mutate)(apply)
     except Exception:
         editor.clipboard = previous
         raise

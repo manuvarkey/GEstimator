@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
+import { moneyFormatter } from "../numberFormatting";
 import Dialog from "primevue/dialog";
 import AutoComplete from "primevue/autocomplete";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
@@ -12,6 +13,10 @@ const appearanceDraft = ref({ ...appearance.value });
 const tab = ref("general");
 const busy = ref(false);
 const error = ref("");
+const moneyPreview = computed(() => {
+  try { return draft.value ? moneyFormatter(draft.value).format(1234567.89) : ""; }
+  catch { return "Choose a valid locale and currency."; }
+});
 const fontFamilies = ref<string[]>();
 const fontsLoading = ref(false);
 const fontSuggestions = ref<string[]>([]);
@@ -27,7 +32,7 @@ function fontKeydown(event: KeyboardEvent) {
 const sections = [{ key: "general", label: "General" }, { key: "appearance", label: "Appearance" }, { key: "default", label: "Default analysis template" }, { key: "modify", label: "Library Modify & Add" }];
 const fontGroups = [
   { label: "Interface", family: "uiFamily", size: "uiSize", placeholder: "Desktop default" },
-  { label: "Tables", family: "tableFamily", size: "tableSize", placeholder: "Match interface" },
+  { label: "Tables", family: "tableFamily", size: "tableSize", placeholder: "Desktop default" },
 ] as const;
 function navigate(event: KeyboardEvent, index: number) {
   const last = sections.length - 1;
@@ -50,7 +55,7 @@ watch(tab, async section => {
 async function save() {
   if (!draft.value || busy.value) return;
   busy.value = true; error.value = "";
-  try { await saveProgramSettings(draft.value, appearanceDraft.value); visible.value = false; }
+  try { moneyFormatter(draft.value); await saveProgramSettings(draft.value, appearanceDraft.value); visible.value = false; }
   catch (failure) { error.value = String(failure); }
   finally { busy.value = false; }
 }
@@ -70,6 +75,12 @@ async function reset() {
     </div>
     <section v-if="draft" :id="'settings-panel-' + tab" role="tabpanel" :aria-labelledby="'settings-tab-' + tab">
       <template v-if="tab === 'general'">
+        <h3>Rates and amounts</h3>
+        <label class="field">Regional format<input v-model="draft.number_locale" list="money-locales" placeholder="System default" :disabled="busy" /></label>
+        <datalist id="money-locales"><option value="en-IN">India · 12,34,567.89</option><option value="en-US">United States · 1,234,567.89</option><option value="en-GB">United Kingdom</option><option value="de-DE">Germany · 1.234.567,89</option><option value="fr-FR">France</option></datalist>
+        <label class="field">Currency code<input v-model="draft.currency_code" maxlength="3" :disabled="busy" @input="draft.currency_code = draft.currency_code.toUpperCase()" /></label>
+        <label class="library-remember"><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label>
+        <p class="field-hint">Preview: <output aria-label="Regional amount preview">{{ moneyPreview }}</output>. Leave the region blank to follow your system. Numeric editing uses the original values and arithmetic expressions.</p>
         <h3>Export options</h3>
         <label class="library-remember"><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across multiple rows in exported workbooks</label>
       </template>

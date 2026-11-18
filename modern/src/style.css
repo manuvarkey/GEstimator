@@ -2127,6 +2127,9 @@ textarea.measurement-entry-title {
   line-height: 1.15;
 }
 
+/* Allow horizontal scrolling only below the analysis columns' usable minimum. */
+.analysis-table.fit-table:not(.project-grid):not(.analysis-scrollable) .tabulator-tableholder { overflow-x: hidden; }
+
 .database-picker-dialog .dialog-footer { flex-wrap: wrap; }
 
 .font-family-input, .font-family-input input { width: 100%; min-width: 0; }

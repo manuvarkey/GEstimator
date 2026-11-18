@@ -25,6 +25,7 @@ export interface AnalysisRow {
   _children?: AnalysisRow[];
 }
 export interface AnalysisState {
+  measurement_draft?: { id: string; dirty: boolean; undo: boolean; redo: boolean } | null;
   code: string;
   description: string;
   unit: string;

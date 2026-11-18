@@ -492,3 +492,18 @@ restored consistent neutral regular text and retained bold headings. Artifacts:
 `/tmp/dark-font-regression-auto-display.png` and
 `/tmp/dark-font-regression-fixed-display.png`. Light and dark captures were
 visually reviewed, with the scope limited to the database dialog's content.
+
+
+## 2026-11-18 — editor corrections and GTK parity review
+
+- `.venv/Scripts/python.exe -m unittest discover -s tests -v`: **138 passed** (47.174 seconds in the final run).
+- `npm.cmd run --prefix modern build`: **passed**, including TypeScript checking. Vite reports the existing large-chunk size advisory.
+- Full Playwright run against installed Chrome and real Python transport: **63 passed** (6.1 minutes).
+- After the final clean-records-draft lifecycle correction, the affected measurement, records, clipboard, cell navigation, regional-formatting and font-default browser scenarios were rechecked: **16 existing scenarios passed**, plus **one new lifecycle scenario passed**. All **64 distinct browser scenarios** passed across these runs.
+- Browser regressions check repeated Analysis → Schedule activation without scrolling at 1280/1366/1600/1920 px, retained scroll position, large custom fonts at 1080 px, and accessible horizontal scrolling in a narrow 820 px workspace. Frozen borders allow up to two pixels of extent rounding in the compact-layout assertion; desktop checks also inspect the last amount cell's bounds.
+- Regional formatting checks Indian grouping with the symbol enabled, German grouping/decimals with the symbol disabled, exact large decimal-string display and raw numeric cell editing. Program-settings validation covers old preferences and invalid format fields.
+- Records tests cover all eight shipped templates, separate draft/project undo, apply/discard, navigation, main-list Properties after closing records, switching measurement items, save/recovery and failed/stale operations. MCP reads remain committed; agent edits cannot replace a dirty human draft.
+- Batch tests count use of original schedule/resource batch helpers, prohibit individual add wrappers for library selection, verify ordering/parentage/source preservation, and inject a mid-batch failure to check complete rollback.
+- Native Windows font detection returned **Segoe UI / 13 px**. Browser tests verify independent OS defaults for interface and tables, saved overrides and restart persistence.
+
+The [source/workflow parity review](parity-review-2026-11-18.md) records six remaining GTK command gaps and corrects the previous PDF claim. No native installer was rebuilt or installed. Native OS dialogs/clipboard, installed packaging, other platforms and larger real/custom-template corpora remain validation limits.

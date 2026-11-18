@@ -33,6 +33,7 @@ class ProjectEditor:
         self.libraries = {}
         self.library_paths = {}
         self._compound = False
+        self.measurement_draft = None
         self.ensure_ids()
         if self.db is not None:
             from .editor_changes import EditorChanges
@@ -45,7 +46,7 @@ class ProjectEditor:
     def ensure_ids(self, meas=None):
         if self.db is None and meas is None:
             return
-        items = (meas if meas is not None else self.db.get_measurement()).items
+        items = (meas if meas is not None else self.get_measurement()).items
         while len(self.ids) < len(items):
             self.ids.append(uuid4().hex)
         self.ids = self.ids[: len(items)]
@@ -60,6 +61,58 @@ class ProjectEditor:
         with closing(sqlite3.connect(target)) as dst:
             self.db.database.connection().backup(dst)
         return (target, copy.deepcopy(self.ids), copy.deepcopy(self.record_ids))
+
+    def get_measurement(self):
+        meas = self.db.get_measurement()
+        draft = self.measurement_draft
+        if draft and draft.identity in self.ids:
+            meas.items[self.ids.index(draft.identity)] = copy.deepcopy(draft.item)
+        return meas
+
+    def set_measurement(self, meas):
+        if self.measurement_draft:
+            self.measurement_draft.item = copy.deepcopy(meas.items[self.ids.index(self.measurement_draft.identity)])
+        else:
+            self.db.set_measurement(meas)
+
+    def records_operation(self, method, p):
+        draft = self.measurement_draft
+        return bool(draft and p.get("id") == draft.identity and (
+            method.startswith("measurement.record_") or method in (
+                "measurement.edit", "measurement.properties", "measurement.link", "measurement.userdata",
+            ) or (method.startswith("clipboard.") and p.get("kind") == "records")
+        ))
+
+    def records_mutate(self, action):
+        return self.measurement_draft.mutate(self, action)
+
+    def draft_command(self, method, p):
+        from .measurement_draft import MeasurementDraft
+        draft = self.measurement_draft
+        if method == "open":
+            if not draft or draft.identity != p.get("id"):
+                self.owner.guard_draft(p)
+                if draft:
+                    self.record_ids[draft.identity] = draft.saved_ids[:]
+                self.measurement_draft = MeasurementDraft(self, p.get("id"))
+                self.owner.revision += 1
+        elif not draft:
+            if method == "close":
+                return dict(ok=True)
+            raise ValueError("Open measurement records first")
+        elif method == "apply":
+            draft.accept(self)
+        elif method in ("discard", "close"):
+            if method == "close" and draft.dirty:
+                raise ValueError("Apply or discard unsaved measurement records first")
+            self.record_ids[draft.identity] = draft.saved_ids[:]
+            self.measurement_draft = None
+            self.owner.revision += 1
+        elif method in ("undo", "redo"):
+            draft.travel(self, redo=method == "redo")
+        else:
+            raise ValueError("Unknown measurement draft operation")
+        return dict(ok=True)
 
     def restore(self, snapshot):
         active_id = (
@@ -93,7 +146,12 @@ class ProjectEditor:
             self.owner.saved_signature = copy.deepcopy(self.owner.signature())
         self.owner.revision += 1
 
-    def mutate(self, action, reload=True):
+    def mutate(self, action, reload=True, preserve_records=False):
+        if self.measurement_draft and not preserve_records:
+            if self.measurement_draft.dirty:
+                raise ValueError("Apply or discard unsaved measurement records first")
+            self.record_ids[self.measurement_draft.identity] = self.measurement_draft.saved_ids[:]
+            self.measurement_draft = None
         if self._compound:
             active_id = self.db.get_item_key(self.owner.model.code) if self.owner.loaded else None
             result = action()
@@ -146,6 +204,7 @@ class ProjectEditor:
             "revision", "workspace_dirty", "clipboard",
         )}
         clipboard = copy.deepcopy(self.clipboard)
+        measurement_draft = copy.deepcopy(self.measurement_draft)
 
         class PreviewRollback(Exception):
             pass
@@ -164,6 +223,7 @@ class ProjectEditor:
                     setattr(owner, key, value)
                 self.ids, self.record_ids = before[1:]
                 self.clipboard = clipboard
+                self.measurement_draft = measurement_draft
                 before[0].unlink()
             else:
                 self.history.append(before)
@@ -180,6 +240,7 @@ class ProjectEditor:
                 setattr(owner, key, value)
             self.ids, self.record_ids = before[1:]
             self.clipboard = clipboard
+            self.measurement_draft = measurement_draft
             before[0].unlink(missing_ok=True)
             raise
         finally:
@@ -197,6 +258,20 @@ class ProjectEditor:
             inserted = table.get(table.code == item.code)
             self.relocate_schedule(inserted, parent, parent.category_id)
         return True
+
+    def insert_schedule_items(self, items):
+        if not items:
+            return
+        # Use GTK's batch insertion, retaining each model's category/parent.
+        inserted, _ = self.db.insert_item_multiple_atomic(items, preserve_structure=True)
+        if not {item.code for item in items}.issubset(set(inserted.values())):
+            raise ValueError("Unable to import schedule items")
+        table = self.db.ScheduleTable
+        for item in items:
+            if item.parent:
+                row = table.get(table.code == item.code)
+                parent = table.get(table.code == item.parent)
+                self.relocate_schedule(row, parent, parent.category_id)
 
     def relocate_schedule(self, row, parent, category_id):
         table = self.db.ScheduleTable
@@ -850,6 +925,7 @@ class ProjectEditor:
             )
         )
         dependency_codes = set()
+        dependencies = []
         if kind == "schedule":
             pending = [row.code for row in records]
             visited = set()
@@ -872,9 +948,10 @@ class ProjectEditor:
                 if existing:
                     if existing.category != misc.SUB_ANA_TITLE:
                         raise ValueError(f"Sub-analysis code conflicts with schedule item {item.code}")
-                elif not self.db.insert_item(item):
-                    raise ValueError(f"Unable to import sub-analysis {item.code}")
+                else:
+                    dependencies.append(item)
                 renamed[code] = item.code
+            self.insert_schedule_items(dependencies)
         imported = 0
         modified_rates = {}
         rule_matches = [0] * len(rules or [])
@@ -886,12 +963,15 @@ class ProjectEditor:
         inserted_codes = []
         conflict = params.get("on_conflict")
         code_map = {}
+        additions = []
+        reserved = set()
         for index, row in enumerate(records):
             if index % 100 == 0:
                 progress("Importing library items: " + str(index + 1))
             if kind == "resources":
                 item = source.get_resource(row.code, modify_code=bool(prefix))
-                existing = self.db.get_resource(item.code)
+                staged = next((value for value in additions if value.code == item.code), None)
+                existing = self.db.get_resource(item.code) or staged
                 code_map[row.code] = item.code
                 if existing:
                     if conflict == "error":
@@ -899,19 +979,21 @@ class ProjectEditor:
                     if conflict in (None, "skip"):
                         continue
                     if conflict == "update":
-                        if not self.db.update_resource(item.code, res_model=item):
+                        if staged:
+                            additions[additions.index(staged)] = item
+                        elif not self.db.update_resource(item.code, res_model=item):
                             raise ValueError("Unable to update resource")
                         inserted_codes.append(item.code)
                         imported += 1
                         continue
                     base, counter = item.code, 1
-                    while self.db.get_resource(item.code):
+                    while self.db.get_resource(item.code) or item.code in reserved:
                         item.code = base + "-copy" + (str(counter) if counter > 1 else "")
                         counter += 1
                     code_map[row.code] = item.code
                 prepare(self, kind, item, target)
-                if not self.db.insert_resource(item):
-                    raise ValueError("Unable to import resource")
+                additions.append(item)
+                reserved.add(item.code)
             else:
                 if row.code in dependency_codes:
                     imported += 1
@@ -943,6 +1025,7 @@ class ProjectEditor:
                         rule_changes.extend(dict(code=code, **change) for change in changes[:max(0, 500 - len(rule_changes))])
                 counter = 1
                 while conflict != "update" and (
+                    code in reserved or
                     self.db.ScheduleTable.select()
                     .where(self.db.ScheduleTable.code == code)
                     .exists()
@@ -960,12 +1043,22 @@ class ProjectEditor:
                 prepare(self, kind, item, target)
                 if existing and conflict == "update":
                     inserted = self.db.insert_item_atomic(item, update=True)
+                    if not inserted:
+                        raise ValueError("Unable to import schedule item")
                 else:
-                    inserted = self.insert_schedule_item(item)
-                if not inserted:
-                    raise ValueError("Unable to import schedule item")
+                    parent = next((value for value in additions if value.code == item.parent), None)
+                    if parent:
+                        item.category = parent.category
+                    additions.append(item)
+                    reserved.add(item.code)
             inserted_codes.append(item.code)
             imported += 1
+        if kind == "resources" and additions:
+            inserted = self.db.insert_resource_multiple_atomic(additions, preserve_structure=True)
+            if not {item.code for item in additions}.issubset(set(inserted.values())):
+                raise ValueError("Unable to import resources")
+        elif kind == "schedule":
+            self.insert_schedule_items(additions)
         place(self, kind, inserted_codes, target)
         if kind == "resources" and inserted_codes:
             self.owner.update_dependent_rates(self.db, resources=inserted_codes)
@@ -1023,7 +1116,15 @@ class ProjectEditor:
             "project.export"
         ):
             raise ValueError("Stale project edit; refresh the view")
-        self.owner.guard_draft(p)
+        if method.startswith("measurement.draft."):
+            return self.draft_command(method.rsplit(".", 1)[1], p)
+        records = self.records_operation(method, p)
+        self.owner.guard_draft(p, records=not records)
+        mutate = self.records_mutate if records else self.mutate
+        if self.measurement_draft and not records:
+            # Other project mutations invalidate even a clean records snapshot.
+            self.record_ids[self.measurement_draft.identity] = self.measurement_draft.saved_ids[:]
+            self.measurement_draft = None
         if method == "project.enrichment.clear":
             from .metadata import clear
             def clear_enrichment():
@@ -1050,7 +1151,7 @@ class ProjectEditor:
             if not isinstance(edits, list) or not 1 <= len(edits) <= 1000:
                 raise ValueError("Paste between 1 and 1000 editable cells")
             if method == "measurement.record_edit_many":
-                self.mutate(lambda: self.measurement_record_batch(p, edits))
+                mutate(lambda: self.measurement_record_batch(p, edits))
                 return dict(ok=True)
 
             def apply_cells():
@@ -1110,7 +1211,7 @@ class ProjectEditor:
             self.measurement_edit(method.split(".")[1], p)
             return dict(ok=True)
         if method.startswith("measurement."):
-            return self.mutate(
+            return mutate(
                 lambda: self.measurement_edit(method.split(".")[1], p)
             ) or dict(ok=True)
         kind, _, operation = method.split(".")
@@ -1435,7 +1536,7 @@ class ProjectEditor:
 
     def measurement_state(self, p, detail_only=False):
         from .measurement_templates import metadata, column_title, link_label, property_groups
-        meas = self.db.get_measurement()
+        meas = self.get_measurement()
         self.ensure_ids(meas)
         rows = []
         totals = {}
@@ -1525,13 +1626,14 @@ class ProjectEditor:
             revision=self.owner.revision,
             undo=bool(self.history),
             redo=bool(self.future),
+            measurement_draft=self.measurement_draft.state() if self.measurement_draft else None,
         )
         if detail_only:
             result.pop("rows")
         return result
 
     def measurement_record_batch(self, p, edits):
-        meas = self.db.get_measurement()
+        meas = self.get_measurement()
         self.ensure_ids(meas)
         if p.get("id") not in self.ids:
             raise ValueError("Select a measurement item")
@@ -1555,10 +1657,10 @@ class ProjectEditor:
             values[index][column] = value
         for index, raw in values.items():
             item.records[index] = measurement.RecordCustom(raw, item.cust_funcs, item.total_func_item, item.columntypes)
-        self.db.set_measurement(meas)
+        self.set_measurement(meas)
 
     def measurement_edit(self, op, p):
-        meas = self.db.get_measurement()
+        meas = self.get_measurement()
         self.ensure_ids(meas)
         index = self.ids.index(p["id"]) if p.get("id") in self.ids else None
         item = meas.items[index] if index is not None else None
@@ -1605,7 +1707,7 @@ class ProjectEditor:
                         if 0 <= other < len(self.ids) and self.ids[other] not in selection:
                             meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
                             self.ids[position], self.ids[other] = self.ids[other], self.ids[position]
-            self.db.set_measurement(meas)
+            self.set_measurement(meas)
             self.ensure_ids(meas)
             return
         if op == "paste":
@@ -1714,7 +1816,7 @@ class ProjectEditor:
                             if 0 <= other < len(ids) and ids[other] not in selection:
                                 item.records[index], item.records[other] = item.records[other], item.records[index]
                                 ids[index], ids[other] = ids[other], ids[index]
-                    self.db.set_measurement(meas)
+                    self.set_measurement(meas)
                     return
             if op == "record_copy":
                 if record_index is None:
@@ -1749,7 +1851,7 @@ class ProjectEditor:
                     imported += 1
                 if not imported:
                     raise ValueError("No measurement records found in the selected range")
-                self.db.set_measurement(meas)
+                self.set_measurement(meas)
                 return dict(imported=imported)
             if op == "record_paste":
                 if not self.clipboard or self.clipboard[:2] != (
@@ -1828,7 +1930,7 @@ class ProjectEditor:
                 raise ValueError("Unknown record operation")
         else:
             raise ValueError("Unknown measurement operation")
-        self.db.set_measurement(meas)
+        self.set_measurement(meas)
         self.ensure_ids(meas)
         return result
 

@@ -35,7 +35,20 @@ function storedAppearance() {
 
 export const appearance = ref(storedAppearance());
 const platformFont = ref<{ family?: string; size?: string }>({});
-export function setPlatformFont(font: typeof platformFont.value) { platformFont.value = font; }
+export function setPlatformFont(font: typeof platformFont.value) {
+  // Native GTK/Windows metrics take precedence. CSS menu exposes the platform
+  // control font on other WebViews; 13px remains the final size fallback.
+  let menuFont: { family?: string; size?: string } = {};
+  const probe = document.createElement("span");
+  probe.style.cssText = "position:absolute;visibility:hidden;font:menu";
+  if (probe.style.font && document.body) {
+    document.body.append(probe);
+    const style = getComputedStyle(probe);
+    if (style.fontFamily && parseFloat(style.fontSize) > 0) menuFont = { family: style.fontFamily.split(",")[0]!.trim().replace(/^["']|["']$/g, ""), size: style.fontSize };
+    probe.remove();
+  }
+  platformFont.value = { family: font.family || menuFont.family, size: font.size || menuFont.size || "13px" };
+}
 const systemDark = matchMedia("(prefers-color-scheme: dark)");
 export const activeTheme = ref<"dark" | "light">("dark");
 function applyTheme() {
@@ -51,9 +64,10 @@ watch([appearance, platformFont], ([prefs, native]) => {
   const uiFamily = prefs.uiFamily || native.family;
   // Empty custom properties expose the shared defaults from theme.css.
   root.setProperty("--ui-font-family", uiFamily ? JSON.stringify(uiFamily) + ", system-ui" : "");
-  root.setProperty("--ui-font-size", prefs.uiSize ? `${prefs.uiSize}px` : native.size || "");
-  root.setProperty("--table-font-family", prefs.tableFamily ? JSON.stringify(prefs.tableFamily) + ", var(--ui-font-family)" : "");
-  root.setProperty("--table-font-size", prefs.tableSize ? `${prefs.tableSize}px` : "");
+  root.setProperty("--ui-font-size", prefs.uiSize ? `${prefs.uiSize}px` : native.size || "13px");
+  const tableFamily = prefs.tableFamily || native.family;
+  root.setProperty("--table-font-family", prefs.tableFamily ? JSON.stringify(prefs.tableFamily) + ", var(--ui-font-family)" : tableFamily ? JSON.stringify(tableFamily) + ", system-ui" : "system-ui");
+  root.setProperty("--table-font-size", prefs.tableSize ? `${prefs.tableSize}px` : native.size || "13px");
 }, { immediate: true });
 
 export function toggleTheme() {

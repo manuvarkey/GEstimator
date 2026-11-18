@@ -66,7 +66,14 @@ class Service:
     def dirty(self):
         return self.signature() != self.saved_signature
 
-    def guard_draft(self, params, project=False):
+    @property
+    def records_dirty(self):
+        draft = getattr(getattr(self, "project_editor", None), "measurement_draft", None)
+        return bool(draft and draft.dirty)
+
+    def guard_draft(self, params, project=False, records=True):
+        if records and self.records_dirty and params.get("discard") is not True:
+            raise ValueError("Unsaved measurement records: apply or discard the draft first")
         if (self.dirty or (project and self.workspace_dirty)) and params.get(
             "discard"
         ) is not True:
@@ -143,6 +150,7 @@ class Service:
             source_path=self.source_path,
             unit=self.model.unit or "",
             dirty=self.dirty,
+            measurement_draft=(self.project_editor.measurement_draft.state() if self.db and self.project_editor.measurement_draft else None),
             libraries=(
                 self.project_editor.sources() if hasattr(self, "project_editor") else []
             ),
@@ -176,6 +184,9 @@ class Service:
             raise ValueError("Unknown MCP operation")
         if method.startswith("program."):
             from . import program_settings
+            if method == "program.desktop_font":
+                from .system_fonts import desktop_font
+                return desktop_font()
             if method == "program.settings":
                 return dict(settings=program_settings.defaults(), library_directory=str(program_settings.library_directory()))
             if method == "program.libraries":
@@ -384,6 +395,8 @@ class Service:
             model = self.db.get_item(text(p["code"]), modify_res_code=False)
             if model is None:
                 raise ValueError("Unknown schedule code")
+            if self.records_dirty and p.get("discard") is True:
+                self.project_editor.draft_command("discard", p)
             self.model = model
             self.loaded = True
             self.identify()
@@ -396,7 +409,7 @@ class Service:
             if not self.source_path or not self.source_fingerprint:
                 raise ValueError("Choose a location with Save project copy first")
             destination = Path(self.source_path)
-            if not (self.workspace_dirty or (self.loaded and self.dirty)):
+            if not (self.workspace_dirty or (self.loaded and self.dirty) or self.records_dirty):
                 return dict(saved=str(destination))
             progress("Saving project and preserving a backup")
             backup = save_existing(
@@ -428,6 +441,8 @@ class Service:
         if method in ("clipboard.export", "clipboard.paste"):
             from . import clipboard
             return clipboard.export(self, p) if method == "clipboard.export" else clipboard.paste(self, p)
+        if self.records_dirty:
+            raise ValueError("Apply or discard unsaved measurement records first")
         if method == "analysis.batch.preview":
             original = self.model
             self.model = copy.deepcopy(original)
@@ -477,16 +492,31 @@ class Service:
 
     def edit(self, method, p):
         if method == "analysis.resources_add":
+            if not self.db:
+                raise ValueError("Open a project first")
             source_id = p.get("source")
             if source_id and source_id not in self.project_editor.libraries:
                 raise ValueError("Resource database is no longer attached")
             source = self.project_editor.libraries[source_id][1] if source_id else self.db
             _, rows = self.project_editor.selection("resources", p.get("ids"), source, include_descendants=False)
-            cursor = p.get("id")
+            index, child = self.locate(p.get("id"))
+            group = self.model.ana_items[index]
+            if group["itemtype"] != 0:
+                raise ValueError("Select a resource group")
+            prefix = source.get_project_settings().get("project_resource_code", "") if source is not self.db else ""
+            quantity = decimal(p.get("qty", "0"))
+            entries, identities = [], []
             for row in sorted(rows, key=lambda row: (row.category.order, row.order, row.id)):
-                self.edit("resource.add", dict(id=cursor, code=row.code, source=source_id, library=True, qty=p.get("qty", "0")))
-                index, _ = self.locate(cursor)
-                cursor = self.model.ana_items[index]["_resource_ids"][0] if cursor == self.model.ana_items[index]["_id"] else self.model.ana_items[index]["_resource_ids"][self.locate(cursor)[1] + 1]
+                resource = source.get_resource(row.code, modify_code=bool(prefix))
+                if resource is None:
+                    raise ValueError("Unknown resource")
+                resource = self.model.resources.get(resource.code) or self.db.get_resource(resource.code) or resource
+                self.model.resources[resource.code] = resource
+                entries.append([resource.code, quantity, ""])
+                identities.append(uuid4().hex)
+            position = child + 1 if child is not None else 0
+            group["resource_list"][position:position] = entries
+            group["_resource_ids"][position:position] = identities
             return
         if method == "analysis.batch":
             operations = p.get("operations")
@@ -789,15 +819,20 @@ class Service:
     def write_project_snapshot(self, destination):
         with closing(sqlite3.connect(destination)) as output:
             self.db.database.connection().backup(output)
-        if self.loaded and self.dirty:
+        if (self.loaded and self.dirty) or self.records_dirty:
             snapshot = ScheduleDatabase(Stack())
             snapshot.open_database(str(destination))
             try:
-                self.write_analysis(snapshot)
+                if self.loaded and self.dirty:
+                    self.write_analysis(snapshot)
+                if self.records_dirty:
+                    self.project_editor.measurement_draft.write(self.project_editor, snapshot)
             finally:
                 snapshot.close_database()
 
     def finish_project_save(self):
+        if self.records_dirty:
+            self.project_editor.measurement_draft.accept(self.project_editor)
         if self.loaded and self.dirty:
             self.project_editor.mutate(
                 lambda: self.write_analysis(self.db), reload=False
@@ -833,7 +868,7 @@ class Service:
     def checkpoint_recovery(self):
         if not self.recovery_dir:
             return
-        dirty = self.db is not None and (self.workspace_dirty or (self.loaded and self.dirty))
+        dirty = self.db is not None and (self.workspace_dirty or (self.loaded and self.dirty) or self.records_dirty)
         state = (self.revision, dirty)
         if state == self.recovery_state:
             return

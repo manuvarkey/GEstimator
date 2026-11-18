@@ -140,6 +140,13 @@ async function openFixture(page: Page, path: string) {
   }
   await expect.poll(() => page.evaluate(() => (window as any).openedProjectPath)).toBe(path);
 }
+async function applyRecordsIfDirty(page: Page) {
+  const apply = page.locator(".ribbon").getByRole("button", { name: "Apply records", exact: true });
+  if (await apply.isVisible()) {
+    await expect(page.locator(".measurement-record-grid .project-grid")).toHaveAttribute("aria-busy", "false");
+    if (await apply.isEnabled()) await apply.click();
+  }
+}
 async function openMeasurementEntry(page: Page) {
   if (await page.getByRole("button", { name: "Back to measurements", exact: true }).isVisible()) return;
   if (await page.locator("#view-measurement").getAttribute("aria-selected") !== "true") return;
@@ -157,6 +164,7 @@ async function pasteDocument(page: Page, selector: string, data: string) {
   }, data);
 }
 async function openDatabaseManager(page: Page) {
+  await applyRecordsIfDirty(page);
   await page.locator("#view-databases").click();
   await page.locator(".ribbon").getByRole("button", { name: "Attach database…", exact: true }).click();
   return page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
@@ -169,6 +177,7 @@ async function attachDatabase(page: Page, path: string, returnView = "schedule")
   await expect(manager).toBeVisible();
   await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await expect(manager).not.toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-" + returnView).click();
 }
 
@@ -178,6 +187,7 @@ async function refinementFixture(page: Page) {
   execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
   execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel,ResourceItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);d.insert_item_atomic(ScheduleItemModel('B','Masonry','m2',rate=5,qty=1,category='Other'));d.insert_schedule_category_atomic('Empty');d.insert_resource(ResourceItemModel('L','Worker','day',5,category='Labour'));d.close_database()", path], { cwd: resolve("..") });
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   return path;
 }
@@ -201,6 +211,7 @@ test("compact contrast, category filters, expanded trees and client window contr
   await expect(grid.getByText("Foundation", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Show all categories", exact: true }).click();
   await page.getByRole("button", { name: "Filter categories", exact: true }).click();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   await expect(grid.locator('.tabulator-col[tabulator-field="category"]')).toHaveCount(0);
   await page.getByRole("button", { name: "Filter categories", exact: true }).click();
@@ -262,6 +273,7 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await active().press("Tab");
   await field("qty");
   await active().press("Escape");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   await row("R").locator('[tabulator-field="rate"]').click();
   await page.keyboard.press("Enter");
@@ -274,6 +286,7 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await active().press("Enter");
   await expect(row("L").locator('[tabulator-field="rate"] input')).toBeFocused();
   await active().press("Escape");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   await page.getByRole("button", { name: "Add measurement", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -311,6 +324,7 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await field("c0", records);
   await expect(records.locator('.tabulator-row [tabulator-field="c0"]').first()).toHaveText("Record\nSecond line");
   await active(records).press("Escape");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await row("A").locator('[tabulator-field="description"]').click();
   await page.getByRole("button", { name: "Edit analysis", exact: true }).click();
@@ -357,6 +371,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
     const server = createServer(); server.once("error", reject);
     server.listen(0, "127.0.0.1", () => { const port = (server.address() as { port: number }).port; server.close(error => error ? reject(error) : resolve(port)); });
   });
+  await applyRecordsIfDirty(page);
   await page.locator("#view-mcp").click();
   await page.getByRole("button", { name: "Configure MCP server", exact: true }).click();
   const config = page.getByRole("dialog", { name: "Configure MCP server", exact: true });
@@ -377,6 +392,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
     return value.structuredContent;
   }
   const item = (await agent("get_items", { kind: "schedule", codes: ["A"] })).data.items[0];
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await agent("upsert_items", { kind: "schedule", items: [{ code: item.code, description: "Edited by agent" }] }, true);
   await page.clock.runFor(1600);
@@ -405,6 +421,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   await page.clock.runFor(1700);
   await expect(page.locator('.analysis-heading h1')).toHaveText("Select a schedule item");
   await expect(page.getByRole("grid", { name: "Rate analysis table" }).locator(".tabulator-row")).toHaveCount(0);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-mcp").click();
   await page.getByRole("button", { name: "Stop MCP server", exact: true }).click();
   expect(await readFile(path)).toEqual(original);
@@ -418,6 +435,7 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   execFileSync(python, ["-c", "import sys;from decimal import Decimal;from estimator.data.schedule import ScheduleDatabase,ResourceItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);d.insert_resource(ResourceItemModel('NEW-R','New database resource','kg',Decimal('7'),category='Other'));d.close_database()", second], { cwd: resolve("..") });
   const originals = [await readFile(first), await readFile(second)];
   await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-databases").click();
   await page.locator(".ribbon").getByRole("button", { name: "Attach database…", exact: true }).click();
   const manager = page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
@@ -431,6 +449,7 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   await expect(manager).not.toBeVisible();
   await expect(page.locator(".database-view")).toHaveCount(0);
   await expect(page.locator(".project-view:visible h1")).toHaveText("Schedule of quantities");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const ribbon = page.locator(".ribbon");
   await expect(ribbon.getByLabel("Data source")).toHaveCount(0);
@@ -445,6 +464,7 @@ test("database tab attaches multiple sources and editor dialogs add items and re
   await expect(grid.locator('.tabulator-selected [tabulator-field="code"]')).toHaveText("A");
   await expect(grid.locator('.tabulator-row [tabulator-field="rate"]').last()).toHaveText("50");
   await expect(ribbon.getByRole("button", { name: "Refresh selected rates from database", exact: true })).toHaveCount(0);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   await grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^R$/ }).click();
   await ribbon.getByRole("button", { name: "Refresh selected rates from database", exact: true }).click();
@@ -552,6 +572,7 @@ test("database pickers retain their table, source, filters, selection, page and 
   await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
   await attachDatabase(page, source);
   for (const kind of ["schedule", "resources"] as const) {
+    await applyRecordsIfDirty(page);
     await page.locator("#view-" + kind).click();
     const title = kind === "schedule" ? "Add item from database" : "Add resources from database";
     const open = () => page.locator(".ribbon").getByRole("button", { name: title, exact: true }).click();
@@ -575,7 +596,9 @@ test("database pickers retain their table, source, filters, selection, page and 
     await picker.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(picker).not.toBeVisible();
     await expect(page.getByRole("button", { name: "New project", exact: true })).toBeEnabled();
+    await applyRecordsIfDirty(page);
     await page.locator("#view-analysis").click();
+    await applyRecordsIfDirty(page);
     await page.locator("#view-" + kind).click();
     await open();
     await expect(picker.getByLabel("Find database items")).toHaveValue("Extra");
@@ -606,6 +629,7 @@ test("project analysis rules preview multiple items, apply once, undo and return
   execFileSync(python, ["-c", "import sys,copy;from decimal import Decimal;from estimator.data.schedule import ScheduleDatabase;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);a=d.get_item('A',modify_res_code=False);a.add_ana_weight('OH',Decimal('0.1'));a.add_ana_sum('TOTAL WITH OH');a.evaluate_results();a.update_rate();d.insert_item_atomic(a,update=True);b=copy.deepcopy(a);b.code='B';b.description='Second work';d.insert_item_atomic(b);d.close_database()", path], { cwd: resolve("..") });
   const original = await readFile(path);
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const ribbon = page.locator(".ribbon"), grid = page.locator(".project-view:visible .project-main-grid");
   for (const name of ["Duplicate", "Add subitem"]) await expect(ribbon.getByRole("button", { name, exact: true })).not.toHaveClass(/ribbon-icon/);
@@ -654,6 +678,7 @@ test("project analysis rules preview multiple items, apply once, undo and return
   await page.locator('.analysis-table [tabulator-field="value"] input').fill("0.3");
   await page.locator('.analysis-table [tabulator-field="value"] input').press("Enter");
   await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
+  await applyRecordsIfDirty(page);
   await page.keyboard.press("Alt+ArrowLeft");
   const discard = page.getByRole("dialog", { name: "Keep your analysis changes?", exact: true });
   await expect(discard).toBeVisible();
@@ -671,6 +696,7 @@ test("bulk-edit condition groups use typed operators and reusable presets withou
   execFileSync(python, ["-c", "import sys;from decimal import Decimal;from estimator.data.schedule import ScheduleDatabase;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);a=d.get_item('A',modify_res_code=False);a.add_ana_weight('OH',Decimal('0.1'));a.add_ana_weight('Profit',Decimal('0.15'));a.add_ana_round('Say',Decimal(2));a.evaluate_results();a.update_rate();d.insert_item_atomic(a,update=True);d.close_database()", path], { cwd: resolve("..") });
   const source = await readFile(path);
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await page.locator('.project-main-grid .tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ }).click();
   const open = () => page.locator(".ribbon").getByRole("button", { name: "Bulk edit analysis…", exact: true }).click();
@@ -705,6 +731,7 @@ test("bulk-edit condition groups use typed operators and reusable presets withou
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.reload();
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await open();
   expect(uiErrors).toEqual([]);
@@ -745,11 +772,13 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const original = await readFile(project);
   await openFixture(page, project);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const selected = page.locator('.project-main-grid .tabulator-selected [tabulator-field="code"]');
   await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await expect(selected).toHaveText("A");
   for (const tab of ["databases", "mcp"]) {
+    await applyRecordsIfDirty(page);
     await page.locator("#view-" + tab).click();
     await expect(page.locator(".project-view:visible h1")).toHaveText("Schedule of quantities");
     await expect(selected).toHaveText("A");
@@ -780,6 +809,7 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   expect(result.result.isError).toBe(false);
   expect(result.result.structuredContent.data.items[0].short).toContain("Foundation");
   await expect(selected).toHaveText("A");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await ribbon.getByRole("button", { name: "Edit analysis", exact: true }).click();
   await page.locator('.analysis-table .tabulator-row[data-kind="Resource"] [tabulator-field="value"]').dblclick();
@@ -789,11 +819,13 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   await expect(page.locator(".summary-value")).toContainText("30.00");
   const before = (await call("state")).result;
   for (const tab of ["databases", "mcp", "analysis"]) {
+    await applyRecordsIfDirty(page);
     await page.locator("#view-" + tab).click();
     await expect(page.getByRole("dialog", { name: /Unsaved/ })).toHaveCount(0);
     await expect(page.locator(".analysis-table:visible")).toBeVisible();
   }
   expect((await call("state")).result).toEqual(before);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-mcp").click();
   await ribbon.getByRole("button", { name: "Stop MCP server", exact: true }).click();
   await expect(ribbon.getByRole("button", { name: "Start MCP server", exact: true })).toBeEnabled();
@@ -802,6 +834,7 @@ test("MCP controls configure a live authenticated server while ribbon tabs prese
   await new Promise<void>(resolve => child.once("close", () => resolve()));
   startBackend();
   await page.reload();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-mcp").click();
   await expect(ribbon.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
   expect((await rpc("tools/call", { name: "get_state", arguments: {} })).result.isError).toBe(false);
@@ -829,6 +862,7 @@ test("MCP startup conflicts and invalid saved preferences remain visible and rec
     await page.evaluate(port => localStorage.setItem("gestimator.mcp.v1", JSON.stringify({ version: 1, port, token: "x".repeat(43), autostart: true })), port);
     await page.reload();
     await expect(page.locator(".mcp-error")).toBeVisible();
+    await applyRecordsIfDirty(page);
     await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
     expect((await call("mcp.status")).result.running).toBe(false);
     await page.getByRole("button", { name: "Review MCP settings", exact: true }).click();
@@ -855,6 +889,7 @@ test("MCP startup conflicts and invalid saved preferences remain visible and rec
 
 test("themed template groups and Enter editing retain measurement eval and original Breakup", async ({ page }) => {
   await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   await page.locator(".ribbon").getByRole("button", { name: "Add measurement", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -902,6 +937,7 @@ test("system row clipboard transfers schedule, resources and analysis between in
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const original = await readFile(project);
   await openFixture(page, project);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.keyboard.press("ControlOrMeta+c");
@@ -924,6 +960,7 @@ test("system row clipboard transfers schedule, resources and analysis between in
     await pasteDocument(destination, ".project-main-grid .project-grid", systemClipboard);
     await expect(pasted).toHaveCount(1);
 
+    await applyRecordsIfDirty(page);
     await page.locator("#view-resources").click();
     await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: /^Material$/ }).click();
     await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
@@ -975,6 +1012,7 @@ test("measurement clipboard transfers whole items and template records with expl
     await edit(call, "measurement.record_edit_many", { id, edits: [{ id: record, field: "c2", value: "2*3" }, { id: record, field: "c3", value: "4" }] });
     await page.reload();
     await expect(page.getByText("Calculation engine connected")).toBeVisible();
+    await applyRecordsIfDirty(page);
     await page.locator("#view-measurement").click();
     await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Copied dimensions" }).click();
     await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
@@ -1013,6 +1051,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   const project = resolve(directory, "insertion.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   await openFixture(page, project);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const main = page.locator(".project-view:visible .project-main-grid");
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
@@ -1033,6 +1072,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(colour).not.toBeVisible();
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.keyboard.press("ControlOrMeta+e");
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
   await page.getByRole("grid", { name: "Rate analysis table" }).focus();
   await page.keyboard.press("ControlOrMeta+i");
@@ -1046,6 +1086,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(custom).toBeVisible();
   await custom.getByRole("button", { name: "Close", exact: true }).click();
   await expect(custom).not.toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   await main.locator('[tabulator-field="description"]').filter({ hasText: /^Materials$/ }).click();
   // GTK accelerators also work while focus is in the active ribbon.
@@ -1054,6 +1095,7 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(add.getByRole("combobox", { name: "Category", exact: true })).toHaveValue("Materials");
   await add.getByRole("button", { name: "Close", exact: true }).click();
   await expect(add).not.toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   await main.locator(".project-grid").focus();
   await page.keyboard.press("ControlOrMeta+i");
@@ -1075,6 +1117,7 @@ test("measurement properties, searchable links and paged batch records keep atom
   await openFixture(page, project);
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   await page.locator(".ribbon").getByRole("button", { name: "Add measurement", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -1164,6 +1207,7 @@ test("insertion reveals new rows, F2 edits the selection and resource moves pres
   execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
   const original = await readFile(project);
   await openFixture(page, project);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const table = page.locator(".project-main-grid .project-grid");
   await table.locator('[tabulator-field="description"]').filter({ hasText: /^Work$/ }).click();
@@ -1182,7 +1226,9 @@ test("insertion reveals new rows, F2 edits the selection and resource moves pres
   await expect(table.locator('.tabulator-selected [tabulator-field="description"]')).toContainText("Revised work");
   await table.getByRole("gridcell", { name: "Foundation", exact: true }).click({ button: "right" });
   await page.getByText("Open analysis", { exact: true }).click();
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   const ribbon = page.locator(".ribbon");
   await ribbon.getByRole("button", { name: "Add category", exact: true }).click();
@@ -1264,6 +1310,7 @@ test("inspector edits are atomic and custom templates persist without changing s
   await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project", exact: true });
   await expect(open).not.toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
@@ -1308,6 +1355,7 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   await openFixture(page, project);
   const open = page.getByRole("dialog", { name: "Open project", exact: true });
   await expect(open).not.toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const table = page.locator(".project-main-grid .project-grid");
   await table.focus();
@@ -1319,6 +1367,7 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   await expect(table.locator(".tabulator-row.tabulator-selected")).toHaveCount(0);
   await page.keyboard.press("End");
   await page.keyboard.press("ControlOrMeta+e");
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
   const analysis = page.getByRole("grid", { name: "Rate analysis table" });
   await analysis.focus();
@@ -1326,7 +1375,9 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   await expect(page.locator(".table-toolbar")).toContainText("3 selected");
   await page.keyboard.press("Escape");
   await expect(analysis.locator(".tabulator-row.tabulator-selected")).toHaveCount(0);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-measurement")).toHaveAttribute("aria-selected", "true");
   expect(errors).toEqual([]);
   await expect(page.locator(".project-view:visible h1")).toHaveText("Measurements");
@@ -1441,6 +1492,7 @@ test("program settings persist, control Modify & Add, default rows and workbook 
   await expect(page.locator(".analysis-content")).toContainText("PROGRAM MATERIALS");
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   expect(await readFile(library)).toEqual(original);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await ribbon.getByRole("button", { name: "Add item", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -1539,6 +1591,7 @@ test("appearance settings persist and library rules preview and import at compac
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator("html")).toHaveCSS("font-family", "Arial, system-ui");
   await expect(page.locator("html")).toHaveCSS("font-size", "15px");
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await attachDatabase(page, library);
   await page.setViewportSize({ width: 820, height: 950 });
@@ -1548,8 +1601,9 @@ test("appearance settings persist and library rules preview and import at compac
   await expect(table).toHaveCSS("font-size", "17px");
   await expect(table).toHaveCSS("font-family", "Consolas, Arial, system-ui");
   await expect(table.locator('.tabulator-col[tabulator-field="description"]')).toHaveCSS("font-size", "17px");
+  // Frozen borders and fractional font metrics can round the extent by two pixels.
   const fits = (scope: ReturnType<Page["locator"]>) =>
-    expect.poll(() => scope.locator(".tabulator-tableholder").evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    expect.poll(() => scope.locator(".tabulator-tableholder").evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(2);
   await fits(table);
   await picker.getByText("Foundation", { exact: true }).click();
   await picker.getByRole("button", { name: "Modify & Add with rules…", exact: true }).click();
@@ -1568,18 +1622,22 @@ test("appearance settings persist and library rules preview and import at compac
   await expect(rules).not.toBeVisible();
   const grid = page.getByRole("grid", { name: "Schedule of quantities", exact: true });
   await expect(grid.getByText("A-copy", { exact: true })).toBeVisible();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
   await page.getByRole("button", { name: "Add resources from database", exact: true }).click();
   const resources = page.getByRole("dialog", { name: "Add resources from database", exact: true });
   await fits(resources.getByRole("grid"));
   await resources.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.setViewportSize({ width: 1080, height: 950 });
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await grid.getByText("A-copy", { exact: true }).click();
   await grid.press("Control+e");
   await expect(page.locator(".analysis-table.fit-table:visible")).toBeVisible();
   await fits(page.locator(".analysis-table.fit-table:visible"));
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-analysis").click();
   await fits(page.locator(".analysis-table.fit-table:visible"));
 });
@@ -1870,6 +1928,7 @@ test("native typography and schedule, resource and measurement editing", async (
     .getByRole("button", { name: "Delete record", exact: true })
     .click();
   await expect(recordDescriptions).toHaveCount(1);
+  await applyRecordsIfDirty(page);
   await page.getByRole("button", { name: "Back to measurements", exact: true }).click();
   await page
     .locator(".ribbon")
@@ -2083,6 +2142,7 @@ test("application menu and ribbon views share context-aware header actions", asy
   const analysisTab = page.locator("#view-analysis");
   await expect(analysisTab).toBeFocused();
   // Focusing a tab alone must not switch the editor or discard a draft.
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-mcp")).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Enter");
   await expect(analysisTab).toHaveAttribute("aria-selected", "true");
@@ -2403,6 +2463,7 @@ test("optional enrichment is labelled and clearing it is undoable", async ({ pag
   execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase;from estimator.undo import Stack;from modern.backend.metadata import write;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);write(d,dict(schema=1,provenance=dict(generator='ai',reviewed=False),database=dict(summary='Sample database overview')));d.close_database()", project], { cwd: resolve("..") });
   const original = await readFile(project);
   await openFixture(page, project);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await expect(page.getByText("AI-generated", { exact: true })).toBeVisible();
   await expect(page.getByText("Sample database overview", { exact: true })).toBeVisible();
@@ -2442,9 +2503,12 @@ test("feedback: native open, cached navigation, incremental refresh and analysis
   await expect(grid).toHaveJSProperty("retained", true);
   await expect(item.locator("..")).toHaveClass(/tabulator-selected/);
   expect(frontendCalls.some(c => c.method === "schedule.editor.state" && typeof c.params.since === "number")).toBe(true);
+  await applyRecordsIfDirty(page);
   await page.getByRole("button", { name: "Go back", exact: true }).click();
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("Alt+ArrowRight");
+  await applyRecordsIfDirty(page);
   await expect(page.locator("#view-schedule")).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".explorer")).not.toBeVisible();
 });
@@ -2482,6 +2546,7 @@ test("feedback: custom resources generate codes and database picker adds multipl
 
 test("feedback: measurements use categories and a separate reusable entry view", async ({ page }) => {
   await refinementFixture(page);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   const ribbon = page.locator(".ribbon");
   await ribbon.getByRole("button", { name: "Add category", exact: true }).click();
@@ -2517,10 +2582,12 @@ test("feedback: measurements use categories and a separate reusable entry view",
   await expect(picker.getByLabel("Find linked schedule item")).toHaveJSProperty("retained", true);
   expect(await picker.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await picker.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await applyRecordsIfDirty(page);
   await page.getByRole("button", { name: "Back to measurements", exact: true }).click();
   await expect(list).toBeVisible();
   const summaryRow = list.locator('.tabulator-row').filter({ has: page.getByText("Room dimensions", { exact: true }) });
   await expect(summaryRow.locator('[tabulator-field="count"]')).toHaveText("1");
+  await applyRecordsIfDirty(page);
   await page.getByRole("button", { name: "Go back", exact: true }).click();
   await expect(page.locator(".measurement-record-grid")).toBeVisible();
   await page.screenshot({ path: "test-results/feedback-measurement-entry.png", animations: "disabled" });
@@ -2532,6 +2599,7 @@ test("feedback: scroll position, zero formatting, palette and native save/export
   execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
   execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);[d.insert_item_atomic(ScheduleItemModel(str(i),'Item '+str(i),'m',rate=0,qty=0,category='Work')) for i in range(80)];d.close_database()", path], { cwd: resolve("..") });
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const grid = page.locator(".project-view:visible .project-main-grid");
   const zero = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="description"]').filter({ hasText: /^Item 0$/ }) });
@@ -2556,7 +2624,9 @@ test("feedback: scroll position, zero formatting, palette and native save/export
   const holder = grid.locator(".tabulator-tableholder");
   await holder.evaluate(element => element.scrollTop = 700);
   await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(700);
+  await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
+  await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(700);
   const copy = resolve(directory, "copied.eproj");
@@ -2593,6 +2663,7 @@ test("feedback: analysis and measurement records share cell-range dragging", asy
   await analysis.focus();
   await page.keyboard.press("Escape");
   await expect(analysis.locator('.cell-range-selected')).toHaveCount(0);
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   await page.getByRole("button", { name: "Add measurement", exact: true }).click();
   const add = page.getByRole("dialog", { name: "Add item", exact: true });
@@ -2616,6 +2687,7 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
   await refinementFixture(page);
   const ribbon = page.locator('.ribbon');
   for (const view of ['schedule', 'resources']) {
+    await applyRecordsIfDirty(page);
     await page.locator('#view-' + view).click();
     const bar = page.locator('.project-view:visible .project-filter-bar').filter({ has: page.getByLabel('Search project table') });
     const search = (await bar.locator('form').boundingBox())!, category = (await bar.getByRole('button', { name: 'Filter categories' }).boundingBox())!;
@@ -2641,6 +2713,7 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
     await category.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(category).not.toBeVisible();
   }
+  await applyRecordsIfDirty(page);
   await page.locator('#view-analysis').click();
   await expect(ribbon.getByRole('button', { name: 'Hide explorer', exact: true }).locator('path')).toHaveAttribute('d', /M9 4v16/);
   await expect(ribbon.getByRole('button', { name: 'Hide analysis inspector', exact: true })).not.toHaveClass(/ribbon-icon/);
@@ -2653,12 +2726,14 @@ test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return",
   await grid.getByText('Foundation', { exact: true }).click();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(page.getByRole('grid', { name: 'Rate analysis table' })).toBeFocused();
+  await applyRecordsIfDirty(page);
   await page.keyboard.press('Alt+ArrowLeft');
   await expect(grid).toBeFocused();
   await page.keyboard.press('ControlOrMeta+e');
   await expect(page.getByRole('grid', { name: 'Rate analysis table' })).toBeFocused();
   await page.getByRole('button', { name: 'Back to schedule', exact: true }).click();
   await expect(grid).toBeFocused();
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   await page.getByRole('button', { name: 'Add category', exact: true }).click();
   const category = page.getByRole('dialog', { name: 'Add category', exact: true });
@@ -2669,6 +2744,8 @@ test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return",
   await expect(add.getByLabel('Description / remarks')).toBeFocused();
   await add.getByLabel('Description / remarks').fill('Room dimensions');
   await add.getByRole('button', { name: 'Add item', exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await expect(page.locator('.p-dialog-mask')).toHaveCount(0);
   await expect(grid.locator('.tabulator-row[data-kind="Group"] [tabulator-field="type"]')).toBeEmpty();
   await expect(grid.locator('.tabulator-col').first()).toHaveAttribute('tabulator-field', 'description');
   await grid.focus();
@@ -2680,15 +2757,18 @@ test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return",
   await expect(ribbon.getByRole('button', { name: 'Add record', exact: true })).toBeVisible();
   await expect(ribbon.getByRole('button', { name: 'Add category', exact: true })).toHaveCount(0);
   await expect(ribbon.getByRole('button', { name: 'Add measurement', exact: true })).toHaveCount(0);
+  await applyRecordsIfDirty(page);
   await expect(page.locator('#view-measurement')).toHaveClass(/record-context/);
   await expect(ribbon.getByRole('button', { name: 'Delete record', exact: true })).toHaveCSS('color', 'rgb(255, 138, 138)');
   await page.keyboard.press('ControlOrMeta+i');
   await expect(records.locator('.tabulator-row')).toHaveCount(1);
   await page.screenshot({ path: 'test-results/contextual-measurement-ribbon.png', animations: 'disabled' });
+  await applyRecordsIfDirty(page);
   await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
   await expect(grid).toBeFocused();
   await expect(grid.locator('.tabulator-selected')).toContainText('Room dimensions');
   await page.screenshot({ path: 'test-results/measurement-category-hierarchy.png', animations: 'disabled' });
+  await applyRecordsIfDirty(page);
   await expect(page.locator('#view-measurement')).not.toHaveClass(/record-context/);
   await page.keyboard.press('Enter');
   await expect(records).toBeFocused();
@@ -2723,6 +2803,7 @@ test("feedback 2: drag selection scrolls past both edges in editors and database
     await page.mouse.up();
   };
   for (const kind of ['schedule', 'resources']) {
+    await applyRecordsIfDirty(page);
     await page.locator('#view-' + kind).click();
     await dragEdges(page.locator('.project-view:visible .tabulator-tableholder').first());
     const title = kind === 'schedule' ? 'Add item from database' : 'Add resources from database';
@@ -2746,6 +2827,7 @@ test('feedback 3: measurement category editing, record caption and list actions'
   await scheduleEditor.fill(scheduleDescription);
   await scheduleEditor.press('Enter');
   await expect(page.locator('.project-main-grid:visible')).toContainText('Scope ends.');
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   const ribbon = page.locator('.ribbon');
   await ribbon.getByRole('button', { name: 'Add category', exact: true }).click();
@@ -2810,6 +2892,7 @@ test('feedback 3: measurement category editing, record caption and list actions'
   await expect(linkedDescription).toHaveText(/^Scope starts\..+….+Scope ends\. \(m3\)$/);
   await expect(linkedDescription).toHaveAttribute('title', scheduleDescription);
   expect(await linkedDescription.evaluate(el => el.scrollHeight <= el.clientHeight && el.clientHeight <= parseFloat(getComputedStyle(el).lineHeight) * 5 + 1)).toBe(true);
+  await applyRecordsIfDirty(page);
   await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
   await expect(grid).toContainText(description.trim());
   await ribbon.getByRole('button', { name: 'Properties…', exact: true }).click();
@@ -2871,11 +2954,13 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
     }
   };
   for (const view of ['schedule', 'resources']) {
+    await applyRecordsIfDirty(page);
     await page.locator('#view-' + view).click();
     const code = view === 'schedule' ? 'A' : 'R';
     const cell = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: code === 'A' ? /^A$/ : /^R$/ }) }).locator('[tabulator-field="description"]');
     await checkEditor(cell, true);
   }
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   await page.getByRole('button', { name: 'Add measurement', exact: true }).click();
   const add = page.getByRole('dialog', { name: 'Add item', exact: true });
@@ -2915,6 +3000,7 @@ test('feedback 3: text editor preserves indentation typography and row geometry'
 
 test('feedback 3: tax labels and four-place precision', async ({ page }) => {
   await refinementFixture(page);
+  await applyRecordsIfDirty(page);
   await page.locator('#view-resources').click();
   const row = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^R$/ }) });
   await expect(page.locator('.project-view:visible .tabulator-col[tabulator-field="vat"]')).toHaveText('TAX %');
@@ -2924,6 +3010,7 @@ test('feedback 3: tax labels and four-place precision', async ({ page }) => {
   await tax.locator('input').fill('1.2345');
   await tax.locator('input').press('Tab');
   await expect(tax).toHaveText('1.2345');
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
   await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
@@ -2982,6 +3069,7 @@ test('feedback 4: persistent tree geometry and focus rings in editable fields', 
     }
   };
   for(const view of ['schedule','resources']){
+    await applyRecordsIfDirty(page);
     await page.locator('#view-'+view).click();
     const firstRow=page.locator('.project-view:visible .tabulator-row[data-kind="Resource"]').first();
     const tree=firstRow.locator('[tabulator-field="description"] .tabulator-data-tree-branch');
@@ -3002,6 +3090,7 @@ test('feedback 4: persistent tree geometry and focus rings in editable fields', 
     await audit(dialog);
     await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
   }
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   await page.locator('.project-view:visible').getByText('Foundation',{exact:true}).click();
   await page.getByRole('button',{name:'Edit analysis',exact:true}).click();
@@ -3011,6 +3100,7 @@ test('feedback 4: persistent tree geometry and focus rings in editable fields', 
   const custom=page.getByRole('dialog',{name:'Add custom resource',exact:true});
   await audit(custom);
   await custom.getByRole('button',{name:'Cancel',exact:true}).click();
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   await page.getByRole('button',{name:'Add measurement',exact:true}).click();
   const add=page.getByRole('dialog',{name:'Add item',exact:true});
@@ -3063,6 +3153,7 @@ test('multiline analysis cells retain padding when editing and accepting', async
 test('Escape retains cell focus and search shortcuts follow active views and dialogs', async ({ page }) => {
   await refinementFixture(page);
   for (const view of ['schedule', 'resources']) {
+    await applyRecordsIfDirty(page);
     await page.locator('#view-' + view).click();
     const search = page.locator('.project-view:visible').getByLabel('Search project table');
     const cell = page.locator('.project-view:visible .tabulator-row[data-kind="Resource"] [tabulator-field="description"]').first();
@@ -3079,9 +3170,11 @@ test('Escape retains cell focus and search shortcuts follow active views and dia
     await page.keyboard.press('ControlOrMeta+f');
     await expect(search).toBeFocused();
     await page.keyboard.press('ControlOrMeta+k');
+    await applyRecordsIfDirty(page);
     await expect(page.locator('#view-' + view)).toHaveAttribute('aria-selected', 'true');
     await expect(search).toBeFocused();
   }
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
   await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
@@ -3146,6 +3239,7 @@ test('schedule overall estimate total stays visible across search edits and undo
   await page.locator('.titlebar').getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(total).toContainText('25.00');
   await page.screenshot({ path: 'test-results/schedule-estimate-total.png', animations: 'disabled' });
+  await applyRecordsIfDirty(page);
   await page.locator('#view-resources').click();
   await expect(total).not.toBeVisible();
 });
@@ -3214,6 +3308,7 @@ test('long first-level items retain typography and indentation through Enter and
   execFileSync(python, ['-c', "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);desc='Long wiring description with conductors, switches, conduits and accessories. '*5;d.insert_item_atomic(ScheduleItemModel('1.1',desc,'',category='Work'));d.insert_item_atomic(ScheduleItemModel('1.1.1','Group A','Point',rate=2,qty=1,parent='1.1',category='Work'));d.insert_item_atomic(ScheduleItemModel('1.2',desc,'Point',rate=3,qty=1,category='Work'));d.close_database()", path], { cwd: resolve('..') });
   const original = await readFile(path);
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   const grid = page.locator('.project-view:visible .project-main-grid');
   const metrics = async (cell: ReturnType<Page['locator']>) => cell.evaluate(el => {
@@ -3278,9 +3373,11 @@ test('arrows edit text within a cell and toolbar SVGs use sharp monochrome strok
     await expect(cell).toHaveText(original || '');
   };
   for (const view of ['schedule', 'resources']) {
+    await applyRecordsIfDirty(page);
     await page.locator('#view-' + view).click();
     await checkCaret(page.locator('.project-view:visible .tabulator-row[data-kind="Resource"] [tabulator-field="description"]').first());
   }
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   const icon = page.getByRole('button', { name: 'Add item', exact: true }).locator('svg');
   for (const [theme, color] of [['dark', 'rgb(255, 255, 255)'], ['light', 'rgb(0, 0, 0)']]) {
@@ -3294,6 +3391,7 @@ test('arrows edit text within a cell and toolbar SVGs use sharp monochrome strok
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
   await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
   await checkCaret(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]').first());
+  await applyRecordsIfDirty(page);
   await page.locator('#view-measurement').click();
   await page.getByRole('button', { name: 'Add measurement', exact: true }).click();
   const add = page.getByRole('dialog', { name: 'Add item', exact: true });
@@ -3315,6 +3413,7 @@ test('markup characters in descriptions categories and attached library names st
   const original = await readFile(path);
   const bodyWeight = await page.locator('body').evaluate(el => getComputedStyle(el).fontWeight);
   await openFixture(page, path);
+  await applyRecordsIfDirty(page);
   await page.locator('#view-schedule').click();
   const grid = page.locator('.project-view:visible .project-main-grid');
   const cell = grid.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^1\.1$/ }) }).locator('[tabulator-field="description"]');
@@ -3407,4 +3506,163 @@ test('clipboard icons and toolbar hover outlines remain sharp without changing b
     await copy.hover();
     await page.screenshot({ path: `test-results/sharp-clipboard-hover-${theme}.png`, animations: 'disabled' });
   }
+});
+
+
+test('feedback 5: schedule returns from analysis with fitting desktop columns', async ({ page }) => {
+  await refinementFixture(page);
+  const item = page.locator('.project-view:visible .project-main-grid .tabulator-row').filter({ has: page.getByText('Foundation', { exact: true }) });
+  for (const width of [1280, 1366, 1600, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await item.locator('[tabulator-field="description"]').click();
+    await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+    const table = page.getByRole('grid', { name: 'Rate analysis table' });
+    const holder = table.locator('.tabulator-tableholder');
+    await expect.poll(() => holder.evaluate(el => getComputedStyle(el).overflowX)).toBe('hidden');
+    const amount = table.locator('.tabulator-row').first().locator('[tabulator-field="amount"]');
+    const edge = await holder.boundingBox(), cell = await amount.boundingBox();
+    expect(cell!.x + cell!.width).toBeLessThanOrEqual(edge!.x + edge!.width + 1);
+    await page.getByRole('button', { name: 'Back to schedule', exact: true }).click();
+    await expect(item).toBeVisible();
+    await expect.poll(() => item.evaluate(el => {
+      const viewport = el.closest('.tabulator')!.querySelector('.tabulator-tableholder')!.getBoundingClientRect();
+      const row = el.getBoundingClientRect();
+      return row.height > 0 && row.top < viewport.bottom && row.bottom > viewport.top;
+    })).toBe(true);
+  }
+  await page.setViewportSize({ width: 820, height: 900 });
+  await item.locator('[tabulator-field="description"]').click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  const narrow = page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-tableholder');
+  await expect.poll(() => narrow.evaluate(el => getComputedStyle(el).overflowX)).toBe('auto');
+  await expect.poll(() => narrow.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+});
+
+test('feedback 5: records drafts apply discard guard navigation and save', async ({ page }) => {
+  await refinementFixture(page);
+  const state = (await call('state')).result;
+  const added = (await call('measurement.add', { revision: state.revision, template: '_1_NLBH', description: 'Draft room' })).result;
+  await page.locator('#view-measurement').click();
+  await page.getByRole('grid', { name: 'Measurements', exact: true }).getByText('Draft room', { exact: true }).dblclick();
+  const ribbon = page.locator('.ribbon');
+  await ribbon.getByRole('button', { name: 'Add record', exact: true }).click();
+  await expect(page.getByText('Unsaved records', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
+  const guard = page.getByRole('dialog', { name: 'Keep your measurement records?' });
+  await expect(guard).toBeVisible();
+  await guard.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await expect(page.locator('.measurement-record-grid .tabulator-row')).toHaveCount(1);
+  await ribbon.getByRole('button', { name: 'Apply records', exact: true }).click();
+  await expect(ribbon.getByRole('button', { name: 'Apply records', exact: true })).toBeDisabled();
+  await ribbon.getByRole('button', { name: 'Add record', exact: true }).click();
+  await page.locator('#view-schedule').click();
+  await expect(guard).toBeVisible();
+  await guard.getByRole('button', { name: 'Discard changes', exact: true }).click();
+  await expect(page.locator('#view-schedule')).toHaveAttribute('aria-selected', 'true');
+  await page.locator('#view-measurement').click();
+  await expect(page.locator('.measurement-record-grid .tabulator-row')).toHaveCount(1);
+  await ribbon.getByRole('button', { name: 'Add record', exact: true }).click();
+  const copy = resolve(directory, 'draft-records.eproj');
+  nativeDialogResults.push(copy);
+  await page.locator('.titlebar').getByRole('button', { name: 'Save copy', exact: true }).click();
+  await expect(page.getByText('Unsaved records', { exact: true })).toHaveCount(0);
+  await expect.poll(async () => readFile(copy).then(() => true).catch(() => false)).toBe(true);
+  expect((await call('measurement.detail', { id: added.selected[0] })).result.detail.total_records).toBe(2);
+  await page.screenshot({ path: 'test-results/records-draft.png' });
+});
+
+test('feedback 5: regional money formatting updates views and preserves raw numeric editing', async ({ page }) => {
+  await refinementFixture(page);
+  const state = (await call('state')).result;
+  const schedule = (await call('schedule.editor.state')).result;
+  const identity = schedule.rows.flatMap((row: any) => row._children || []).find((row: any) => row.code === 'A').id;
+  await call('schedule.editor.edit', { revision: state.revision, id: identity, field: 'rate', value: '1234567.89' });
+  await page.locator('#view-resources').click();
+  await page.locator('#view-schedule').click();
+  await page.getByRole('button', { name: 'Application menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Program settings', exact: true });
+  await settings.getByLabel('Regional format').fill('en-IN');
+  await settings.getByLabel('Show currency symbol').check();
+  await expect(settings.getByLabel('Regional amount preview')).toHaveText('₹12,34,567.89');
+  await settings.getByRole('button', { name: 'Save program settings', exact: true }).click();
+  const row = page.locator('.project-view:visible .project-main-grid .tabulator-row').filter({ has: page.getByText('Foundation', { exact: true }) });
+  const rate = row.locator('[tabulator-field="rate"]');
+  await expect(rate).toHaveText('₹12,34,567.89');
+  await rate.dblclick();
+  await expect(rate.locator('input')).toHaveValue('1234567.89');
+  await page.keyboard.press('Escape');
+  await expect(page.getByLabel('Overall estimate total')).toContainText('₹');
+  await row.locator('[tabulator-field="description"]').click();
+  await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
+  await expect(page.locator('.summary-value')).toContainText('₹');
+  await expect(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row').first().locator('[tabulator-field="amount"]')).toContainText('₹');
+  await page.getByRole('button', { name: 'Application menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
+  await settings.getByLabel('Regional format').fill('de-DE');
+  await settings.getByLabel('Show currency symbol').uncheck();
+  await settings.getByRole('button', { name: 'Save program settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to schedule', exact: true }).click();
+  await expect(rate).toHaveText('1.234.567,89');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gestimator.program-settings.v1')!).settings.number_locale)).toBe('de-DE');
+  const exact = await page.evaluate(async () => { const module = await import('/src/numberFormatting.ts'); return module.formatMoney('9007199254740993.23'); });
+  expect(exact).toBe('9.007.199.254.740.993,23');
+});
+
+
+test('feedback 5: interface and table fonts independently default to the OS', async ({ page }) => {
+  const table = page.getByRole('grid', { name: 'Rate analysis table' });
+  await expect(page.locator('html')).toHaveCSS('font-size', '14.6667px');
+  await expect(table).toHaveCSS('font-size', '14.6667px');
+  await expect(table).toHaveCSS('font-family', /Iosevka/);
+  await page.getByRole('button', { name: 'Application menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Program settings', exact: true });
+  await settings.getByRole('tab', { name: 'Appearance', exact: true }).click();
+  await expect(settings.getByLabel('Interface font size (px)')).toHaveValue('');
+  await expect(settings.getByLabel('Tables font size (px)')).toHaveValue('');
+  await settings.getByLabel('Interface font size (px)').fill('19');
+  await settings.getByRole('button', { name: 'Save program settings', exact: true }).click();
+  await expect(page.locator('html')).toHaveCSS('font-size', '19px');
+  await expect(table).toHaveCSS('font-size', '14.6667px');
+  await page.reload();
+  await expect(page.getByText('Calculation engine connected')).toBeVisible();
+  await expect(page.locator('html')).toHaveCSS('font-size', '19px');
+  await expect(table).toHaveCSS('font-size', '14.6667px');
+});
+
+
+test('feedback 5: records drafts close on list return and switch between measurement items', async ({ page }) => {
+  await refinementFixture(page);
+  const create = async (description: string) => {
+    const state = (await call('state')).result;
+    return (await call('measurement.add', { revision: state.revision, template: '_1_NLBH', description })).result.selected[0];
+  };
+  const first = await create('First measured room');
+  const second = await create('Second measured room');
+  await page.locator('#view-measurement').click();
+  const list = page.getByRole('grid', { name: 'Measurements', exact: true });
+  await list.getByText('First measured room', { exact: true }).dblclick();
+  await page.getByRole('button', { name: 'Add record', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply records', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
+  await expect(list).toBeVisible();
+  await expect.poll(async () => (await call('state')).result.measurement_draft).toBeNull();
+  await page.getByRole('button', { name: 'Properties…', exact: true }).click();
+  const properties = page.getByRole('dialog', { name: 'Measurement properties', exact: true });
+  await properties.getByLabel('Description / remarks').fill('Main properties committed');
+  await properties.getByRole('button', { name: 'Save properties', exact: true }).click();
+  await expect(properties).not.toBeVisible();
+  expect((await call('state')).result.measurement_draft).toBeNull();
+  expect((await call('measurement.detail', { id: first })).result.detail.description).toBe('Main properties committed');
+  await list.getByText('Second measured room', { exact: true }).dblclick();
+  await page.getByRole('button', { name: 'Add record', exact: true }).click();
+  const state = (await call('state')).result;
+  expect(state.measurement_draft.id).toBe(second);
+  expect(state.measurement_draft.dirty).toBe(true);
+  const stored = (await call('mcp.read', { name: 'get_measurements', arguments: { id: second } })).result;
+  expect(stored.data.total_records).toBe(0);
+  await page.getByRole('button', { name: 'Apply records', exact: true }).click();
+  await page.getByRole('button', { name: 'Back to measurements', exact: true }).click();
+  await expect.poll(async () => (await call('state')).result.measurement_draft).toBeNull();
 });

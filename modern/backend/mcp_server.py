@@ -38,7 +38,7 @@ def error_result(error):
         detail = dict(code="invalid_arguments", message="Missing required field", field=str(error.args[0]))
     else:
         message = str(error)
-        code = "draft_conflict" if "Unsaved analysis" in message else "not_found" if isinstance(error, FileNotFoundError) else "invalid_arguments" if isinstance(error, (ValueError, TypeError)) else "operation_failed"
+        code = "draft_conflict" if "Unsaved analysis" in message or "unsaved measurement records" in message.lower() else "not_found" if isinstance(error, FileNotFoundError) else "invalid_arguments" if isinstance(error, (ValueError, TypeError)) else "operation_failed"
         detail = dict(code=code, message=message)
     return dict(content=[dict(type="text", text=detail["message"].replace("\n", " ")[:300])], structuredContent=dict(error=detail), isError=True)
 

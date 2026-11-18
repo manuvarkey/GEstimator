@@ -53,7 +53,8 @@ def projection(service, db):
         if not custom:
             continue
         for j, record in enumerate(item.records):
-            record_id = editor.record_ids[identity][j] if editor else identity + ":" + str(j)
+            draft = editor.measurement_draft if editor else None
+            record_id = (draft.saved_ids if draft and draft.identity == identity else editor.record_ids[identity])[j] if editor else identity + ":" + str(j)
             result["v_measurement_records"].append((identity, record_id, j, json.dumps(record.data_string), json.dumps(record.get_model_rendered(j + 1), default=str)))
         for slot, (key, remark) in enumerate(zip(item.itemnos, item.item_remarks)):
             result["v_links"].append((identity, slot, by_id.get(key), remark))

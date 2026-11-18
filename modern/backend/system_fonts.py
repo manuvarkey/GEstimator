@@ -5,6 +5,49 @@ import subprocess
 import sys
 
 
+def desktop_font():
+    """Windows message/control typography in CSS pixels, independent of screen DPI."""
+    if sys.platform != "win32":
+        return {}
+    from ctypes import wintypes
+
+    class LogFont(ctypes.Structure):
+        _fields_ = [(name, wintypes.LONG) for name in (
+            "height", "width", "escapement", "orientation", "weight",
+        )] + [(name, wintypes.BYTE) for name in (
+            "italic", "underline", "strikeout", "charset", "out_precision",
+            "clip_precision", "quality", "pitch_and_family",
+        )] + [("family", wintypes.WCHAR * 32)]
+
+    class Metrics(ctypes.Structure):
+        _fields_ = [("size", wintypes.UINT)] + [(name, ctypes.c_int) for name in (
+            "border", "scroll_width", "scroll_height", "caption_width", "caption_height",
+        )] + [("caption_font", LogFont), ("small_caption_width", ctypes.c_int),
+              ("small_caption_height", ctypes.c_int), ("small_caption_font", LogFont),
+              ("menu_width", ctypes.c_int), ("menu_height", ctypes.c_int),
+              ("menu_font", LogFont), ("status_font", LogFont),
+              ("message_font", LogFont), ("padded_border", ctypes.c_int)]
+
+    user = ctypes.WinDLL("user32", use_last_error=True)
+    metrics = Metrics(size=ctypes.sizeof(Metrics))
+    dpi = 96
+    if hasattr(user, "SystemParametersInfoForDpi"):
+        query = user.SystemParametersInfoForDpi
+        query.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT, wintypes.UINT]
+        ok = query(0x0029, metrics.size, ctypes.byref(metrics), 0, dpi)
+    else:
+        query = user.SystemParametersInfoW
+        query.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT]
+        ok = query(0x0029, metrics.size, ctypes.byref(metrics), 0)
+        if hasattr(user, "GetDpiForSystem"):
+            dpi = user.GetDpiForSystem() or 96
+    if not ok:
+        return {}
+    font = metrics.message_font
+    size = abs(font.height) * 96 / dpi
+    return dict(family=font.family or None, size=f"{size:g}px" if size else None)
+
+
 def _windows_families():
     from ctypes import wintypes
 

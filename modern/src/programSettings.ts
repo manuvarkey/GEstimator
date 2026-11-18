@@ -4,6 +4,9 @@ import { appearance, programSettingsKey, validateAppearance, type Appearance } f
 
 export interface TemplateRow { kind: Exclude<RowKind, "Resource">; description: string; value: string; code?: string }
 export interface ProgramSettings {
+  number_locale: string;
+  currency_code: string;
+  show_currency_symbol: boolean;
   export_break_items: boolean;
   sch_rate_mult_factor: string;
   ana_copy_delete_rows: number;

@@ -33,6 +33,19 @@ class ProgramSettingsTests(unittest.TestCase):
                 self.call("program.settings.validate", settings=dict(settings, **change))
             self.assertEqual(self.call("state"), before)
 
+    def test_regional_preferences_validate_and_old_preferences_gain_defaults(self):
+        old = dict(export_break_items=False, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
+                   ana_default_rows=[], ana_copy_rows=[])
+        result = self.call("program.settings.validate", settings=old)
+        self.assertEqual(result["number_locale"], "")
+        self.assertFalse(result["show_currency_symbol"])
+        regional = dict(old, number_locale="en-IN", currency_code="INR", show_currency_symbol=True)
+        self.assertEqual(self.call("program.settings.validate", settings=regional)["number_locale"], "en-IN")
+        for changes in [dict(number_locale="en_IN"), dict(number_locale=1), dict(currency_code="rupees"),
+                        dict(currency_code=None), dict(show_currency_symbol="yes")]:
+            with self.assertRaises(ValueError):
+                self.call("program.settings.validate", settings=dict(old, **changes))
+
     def test_configured_default_template_preserves_codes_and_undo(self):
         before = self.call("state")
         rows = [dict(kind="Group", code="LAB", description="Labour", value=""), dict(kind="Weight", description="Overheads", value="1/10")]

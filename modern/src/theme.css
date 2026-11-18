@@ -2,7 +2,7 @@
 :root {
   font: menu;
   --ui-font-family: system-ui;
-  --ui-font-size: 15px;
+  --ui-font-size: 13px;
   --table-font-family: var(--ui-font-family);
   --table-font-size: var(--ui-font-size);
   font-family: var(--ui-font-family);

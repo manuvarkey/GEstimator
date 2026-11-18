@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from "../numberFormatting";
 import { computed, ref } from "vue";
 import Dialog from "primevue/dialog";
 import { request } from "../backend";
@@ -131,9 +132,9 @@ function openAnalysis(code: string) {
               <td>{{ row.description }}</td>
               <td>{{ row.category }}</td>
               <td>{{ row.unit }}</td>
-              <td>{{ row.rate }}</td>
+              <td>{{ formatMoney(row.rate) }}</td>
               <td>{{ row.quantity }}</td>
-              <td>{{ row.amount }}</td>
+              <td>{{ formatMoney(row.amount) }}</td>
             </tr>
           </tbody>
         </table>

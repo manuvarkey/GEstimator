@@ -257,6 +257,8 @@ class Writes:
     def edit_analysis(self, args, warnings):
         from .clipboard import schedule_data
         service = self.service
+        if service.records_dirty:
+            raise ToolError("draft_conflict", "The desktop has unsaved measurement records. Apply or discard the records draft first.")
         if service.dirty and not args.get("discard_draft", False):
             raise ToolError("draft_conflict", "The desktop has an unsaved analysis draft", "discard_draft", hint="Apply the desktop draft or explicitly discard it.")
         previous_code = service.model.code if service.loaded else None
@@ -365,6 +367,8 @@ class Writes:
 
     def edit_measurements(self, args, warnings):
         self.service.guard_draft({})
+        if self.editor.measurement_draft:
+            self.editor.draft_command("close", {})
         refs, results = {}, []
         for op in args["ops"]:
             action = op["action"]

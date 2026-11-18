@@ -1,6 +1,7 @@
 """Validate application preferences while retaining the legacy calculation rules."""
 
 import copy
+import re
 from pathlib import Path
 import appdirs
 from estimator import misc
@@ -35,6 +36,7 @@ def library_catalog():
 
 def defaults():
     return dict(export_break_items=True, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
+                number_locale="", currency_code="INR", show_currency_symbol=False,
                 ana_default_rows=template_rows(misc.ana_default_add_items), ana_copy_rows=[])
 
 
@@ -71,6 +73,13 @@ def validate(settings):
     base.update({key: settings[key] for key in base if key in settings})
     if type(base["export_break_items"]) is not bool:
         raise ValueError("Choose whether exported descriptions should be split")
+    locale = base["number_locale"]
+    if not isinstance(locale, str) or (locale and not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,4}", locale)):
+        raise ValueError("Choose a valid regional locale, such as en-IN")
+    if not isinstance(base["currency_code"], str) or not re.fullmatch(r"[A-Z]{3}", base["currency_code"]):
+        raise ValueError("Use a three-letter currency code, such as INR")
+    if type(base["show_currency_symbol"]) is not bool:
+        raise ValueError("Choose whether to display currency symbols")
     factor = decimal(base["sch_rate_mult_factor"])
     count = base["ana_copy_delete_rows"]
     if type(count) is not int or not 0 <= count <= 5:

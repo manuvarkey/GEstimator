@@ -11,6 +11,7 @@ import {
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { tableSelection, resetTablePosition } from "../tableSelection";
 import { isRowClipboard } from "../rowClipboard";
+import { formatMoney, moneyFormatKey } from "../numberFormatting";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
@@ -44,6 +45,7 @@ let replacement: Promise<unknown> = Promise.resolve();
 let savedPosition = { top: 0, left: 0 };
 let suspended = false;
 let renderPosition: { top: number; left: number } | undefined;
+let revealFrame = 0;
 function rememberPosition(event: Event) {
   const viewport = event.target as HTMLElement;
   if (!suspended && props.active !== false && viewport.classList.contains("tabulator-tableholder") && viewport.getClientRects().length)
@@ -53,15 +55,25 @@ function restorePosition() {
   const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
   if (viewport) { viewport.scrollTop = savedPosition.top; viewport.scrollLeft = savedPosition.left; }
 }
-async function redraw() {
+async function redraw(force = false) {
   await ready;
-  if (!alive) return;
+  await replacement;
+  await nextTick();
+  if (!alive || props.active === false || !element.value?.clientHeight) return;
   const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
   const position = props.active === undefined && viewport ? { top: viewport.scrollTop, left: viewport.scrollLeft } : { ...savedPosition };
-  table.redraw();
+  // A hidden virtual table can retain an empty render window at the same size.
+  // Force its rows to rebuild after layout, even if no resize was observed.
+  table.redraw(force);
   savedPosition = position;
   restorePosition();
-  requestAnimationFrame(restorePosition);
+  cancelAnimationFrame(revealFrame);
+  revealFrame = requestAnimationFrame(() => {
+    if (!alive || props.active === false) return;
+    if (force && !element.value?.querySelector('.tabulator-editing')) table.redraw(true);
+    restorePosition();
+    suspended = false;
+  });
 }
 watch(() => props.active, async active => {
   if (active === false) {
@@ -70,8 +82,7 @@ watch(() => props.active, async active => {
     suspended = true; return;
   }
   await nextTick();
-  await redraw();
-  requestAnimationFrame(() => { restorePosition(); suspended = false; });
+  await redraw(true);
 });
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
@@ -94,9 +105,23 @@ defineExpose({
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
 });
 function editorColumns(columns: ColumnDefinition[]) {
-  return columns.map(column => column.editor === "textarea" ? { ...column, editor: tableTextEditor }
-    : column.editor === "input" ? { ...column, editor: tableInputEditor } : column);
+  return columns.map(column => ({ ...column,
+    ...(["rate", "effective_rate", "amount"].includes(column.field || "") ? { tooltip: (_event: UIEvent, cell: import("tabulator-tables").CellComponent) => formatMoney(cell.getValue()), formatter: (cell: import("tabulator-tables").CellComponent) => {
+      const value = cell.getValue();
+      // Preserve the project table's convention for empty/zero schedule rates.
+      return column.field === "rate" && cell.getData().rowtype === "Schedule" && Number(value) === 0 ? "" : formatMoney(value);
+    } } : {}),
+    ...(column.editor === "textarea" ? { editor: tableTextEditor }
+      : column.editor === "input" ? { editor: tableInputEditor } : {}),
+  }));
 }
+watch(moneyFormatKey, async () => {
+  await ready;
+  if (!alive) return;
+  const reformat = (rows: RowComponent[]) => rows.forEach(row => { row.reformat(); if (props.tree) reformat(row.getTreeChildren()); });
+  reformat(table.getRows());
+  await redraw();
+});
 function keyboard(event: KeyboardEvent) {
   if (!props.rowOnlySelection && navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
@@ -334,6 +359,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   alive = false;
+  cancelAnimationFrame(revealFrame);
   navigation?.destroy();
   stopDragSelection?.();
   element.value?.removeEventListener("paste", paste);

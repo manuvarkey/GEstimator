@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from "../numberFormatting";
 import { ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -73,7 +74,7 @@ async function apply() {
       <label v-if="!measurement"><input v-model="rateFirst" :disabled="busy" type="checkbox" /> Rate column precedes quantity</label>
       <p class="field-hint" v-if="measurement">Select data rows with editable template columns in order. Omit calculated columns and headers.</p>
       <p class="field-hint" v-else>Include the item code above the six-column analysis header. Formula cells use values saved by Excel or LibreOffice.</p>
-      <p v-if="preview" role="status">{{ preview.rows }} analysis rows, {{ preview.resources }} resources, parsed rate {{ preview.rate }}.</p>
+      <p v-if="preview" role="status">{{ preview.rows }} analysis rows, {{ preview.resources }} resources, parsed rate {{ formatMoney(preview.rate) }}.</p>
       <div v-if="error || props.error" class="dialog-error" role="alert">{{ error || props.error }}</div>
       <div class="dialog-footer">
         <button v-if="measurement" class="button primary" :disabled="busy || !path">Import records</button>

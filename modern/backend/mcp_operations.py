@@ -40,7 +40,7 @@ FIELDS = enum("compact", "full")
 POSITION = obj(dict(before=S, after=S, parent=V, category=S, index=N))
 RANGE = dict(path=S, sheet=S, first_row=dict(type="integer", minimum=1), last_row=dict(type="integer", minimum=1), first_column=dict(type="integer", minimum=1, maximum=100), rate_first=B)
 ROW = obj(dict(kind=enum("Group", "Subtotal", "Weight", "Multiply", "Round"), description=S, code=S, value=S), ("kind",))
-SETTINGS = obj(dict(export_break_items=B, sch_rate_mult_factor=S, ana_copy_delete_rows=N, ana_default_rows=array(ROW, 100), ana_copy_rows=array(ROW, 100)))
+SETTINGS = obj(dict(export_break_items=B, number_locale=S, currency_code=S, show_currency_symbol=B, sch_rate_mult_factor=S, ana_copy_delete_rows=N, ana_default_rows=array(ROW, 100), ana_copy_rows=array(ROW, 100)))
 ROUNDING = enum("No rounding", "Round to .000", "Round to .00", "Round to .0", "Round to 0", "Round to 10", "Round to 100", "Round to 1000", "Round to 10000", "Round within 1%", "Round within 5%", "Round within 10%")
 OPERATIONS = {}
 

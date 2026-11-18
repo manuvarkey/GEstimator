@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from "../numberFormatting";
 import { computed, onMounted, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
@@ -91,9 +92,9 @@ const previewRows = computed(() => preview.value?.rows.flatMap(row => [row, ...(
     <p v-if="status" role="status">{{ status }}</p>
     <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
     <div v-if="preview" class="batch-preview">
-      <p role="status">Calculated rate: {{ state.rate }} → {{ preview.rate }} {{ state.unit ? '/ ' + state.unit : '' }}</p>
+      <p role="status">Calculated rate: {{ formatMoney(state.rate) }} → {{ formatMoney(preview.rate) }} {{ state.unit ? '/ ' + state.unit : '' }}</p>
       <div class="import-sample"><table><thead><tr><th>Type / code</th><th>Description</th><th>Quantity / factor</th><th>Rate</th><th>Amount</th></tr></thead><tbody>
-        <tr v-for="row in previewRows" :key="row.id"><td>{{ row.code || row.kind }}</td><td>{{ row.description }}</td><td>{{ row.value }}</td><td>{{ row.rate }}</td><td>{{ row.amount }}</td></tr>
+        <tr v-for="row in previewRows" :key="row.id"><td>{{ row.code || row.kind }}</td><td>{{ row.description }}</td><td>{{ row.value }}</td><td>{{ formatMoney(row.rate) }}</td><td>{{ formatMoney(row.amount) }}</td></tr>
       </tbody></table></div>
     </div>
     <div class="dialog-footer">

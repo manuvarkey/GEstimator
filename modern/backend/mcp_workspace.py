@@ -120,7 +120,7 @@ class Workspace(Writes):
             enrichment = metadata.presentation(db)
             sources.append(dict(id=identity, name=name, counts=counts,
                 summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources"))
-        state = dict(project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
+        state = dict(project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
         if service.db:
             db = service.db
             state.update(settings={k: v for k, v in db.get_project_settings().items() if k != "project_measurement"}, counts=dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count(), measurements=len(db.get_measurement().items)), enrichment=bool(metadata.read(db)))
@@ -132,7 +132,7 @@ class Workspace(Writes):
         section = args.get("section", "overview")
         if section == "schema":
             from .mcp_query import SCHEMA
-            return dict(views=SCHEMA, draft_policy="Stored working-project data; excludes the unsaved desktop analysis draft.", numeric_policy="Decimal values are exact text; CAST(column AS REAL) for numeric SQL comparisons and aggregations. get_summary uses original decimal calculations.")
+            return dict(views=SCHEMA, draft_policy="Stored working-project data; excludes unsaved desktop analysis and measurement records drafts.", numeric_policy="Decimal values are exact text; CAST(column AS REAL) for numeric SQL comparisons and aggregations. get_summary uses original decimal calculations.")
         if section == "dictionary":
             from .dictionary import entries
             return dict(entries=entries("\n".join(row.description or "" for kind in ("schedule", "resource") for row in item_rows(db, kind)), enrichment, self.user_dictionary()))
@@ -231,14 +231,20 @@ class Workspace(Writes):
                 result.append(dict(entry, columns=columns, links=[dict(code="", remark="") for _ in item.itemnos], user_data=[str(v) for v in item.user_data]))
             return dict(templates=result)
         self.require_project()
+        editor = self.editor
+        if editor.measurement_draft:
+            editor = copy.copy(editor)
+            editor.record_ids = copy.deepcopy(editor.record_ids)
+            editor.record_ids[editor.measurement_draft.identity] = editor.measurement_draft.saved_ids[:]
+            editor.measurement_draft = None
         if "id" in args:
-            data = self.editor.measurement_state(dict(id=args["id"], record_offset=args.get("record_offset", 0), record_limit=args.get("limit", 100)), detail_only=True)
+            data = editor.measurement_state(dict(id=args["id"], record_offset=args.get("record_offset", 0), record_limit=args.get("limit", 100)), detail_only=True)
             if data["detail"] is None:
                 raise ToolError("not_found", "Measurement item was not found or is a heading", "id")
             detail = data["detail"]
             detail["next_offset"] = detail["offset"] + len(detail["rows"]) if detail["offset"] + len(detail["rows"]) < detail["total_records"] else None
             return detail
-        data = self.editor.measurement_state({})
+        data = editor.measurement_state({})
         rows = [dict(row, description=row["description"][:60]) for row in data["rows"]]
         return dict(page(rows, args), caption=data["caption"])
 

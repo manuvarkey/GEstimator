@@ -11,6 +11,7 @@ import { tableTextEditor, tableInputEditor } from "../tableTextEditor";
 import { rowDragSelection } from "../rowDragSelection";
 import { tableSelection, resetTablePosition } from "../tableSelection";
 import { cellNavigation } from "../cellNavigation";
+import { moneyCell, moneyFormatKey } from "../numberFormatting";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
@@ -31,16 +32,28 @@ let replacement: Promise<unknown> = Promise.resolve();
 let stopDragSelection: (() => void) | undefined;
 let anchorId: string | undefined;
 let fitFrame = 0;
-async function fitVisibleTable() {
+const scrollable = ref(false);
+let resizeObserver: ResizeObserver;
+async function fitVisibleTable(force = false) {
   await built;
   await nextTick();
   if (!active || !props.active) return;
   cancelAnimationFrame(fitFrame);
   fitFrame = requestAnimationFrame(() => {
-    if (active && props.active && element.value?.clientWidth) table.redraw();
+    if (active && props.active && element.value?.clientWidth) {
+      // Keep every column accessible at small sizes; normal desktop panes fit.
+      scrollable.value = element.value.clientWidth < 500;
+      table.redraw(force && !element.value.querySelector('.tabulator-editing'));
+    }
   });
 }
-watch(() => props.active, fitVisibleTable, { flush: "post" });
+watch(() => props.active, () => fitVisibleTable(true), { flush: "post" });
+watch(moneyFormatKey, async () => {
+  await built;
+  if (!active) return;
+  for (const row of table.getRows()) { row.reformat(); for (const child of row.getTreeChildren() || []) child.reformat(); }
+  void fitVisibleTable();
+});
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
 function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
@@ -123,7 +136,7 @@ onMounted(() => {
         resizable: false,
         cellClick: (_e, cell) => cell.getRow().toggleSelect(),
       },
-      { title: "TYPE / CODE", field: "kind", formatter: kindBadge, width: 118, minWidth: 84, widthShrink: 1 },
+      { title: "TYPE / CODE", field: "kind", formatter: kindBadge, width: 118, minWidth: 64, widthShrink: 1 },
       {
         title: "DESCRIPTION",
         field: "description",
@@ -132,13 +145,13 @@ onMounted(() => {
         editable: cell => !isResource(cell),
         formatter: "textarea",
         variableHeight: true,
-        minWidth: 112,
+        minWidth: 80,
       },
       {
         title: "UNIT",
         field: "unit",
         width: 56,
-        minWidth: 42,
+        minWidth: 32,
         widthShrink: 1,
         tooltip: true,
       },
@@ -148,21 +161,22 @@ onMounted(() => {
         editor: tableInputEditor,
         hozAlign: "right",
         width: 87,
-        minWidth: 68,
+        minWidth: 56,
         widthShrink: 1,
         tooltip: true,
         editable: (cell) =>
           !["Group", "Subtotal"].includes(cell.getData().kind),
       },
-      { title: "RATE", field: "effective_rate", hozAlign: "right", width: 90, minWidth: 72, widthShrink: 1, tooltip: true },
+      { title: "RATE", field: "effective_rate", formatter: moneyCell, hozAlign: "right", width: 110, minWidth: 56, widthShrink: 1, tooltip: (_event, cell) => moneyCell(cell) },
       {
         title: "AMOUNT",
         field: "amount",
+        formatter: moneyCell,
         hozAlign: "right",
-        width: 94,
-        minWidth: 76,
+        width: 114,
+        minWidth: 60,
         widthShrink: 1,
-        tooltip: true,
+        tooltip: (_event, cell) => moneyCell(cell),
         frozen: true,
       },
     ],
@@ -177,6 +191,8 @@ onMounted(() => {
     position: cell => navigation.clicked(cell),
   });
   built = new Promise<void>((resolve) => table.on("tableBuilt", resolve));
+  resizeObserver = new ResizeObserver(() => void fitVisibleTable());
+  resizeObserver.observe(element.value!);
   table.on("rowContext", (_event, row) => {
     if (!row.isSelected()) {
       table.deselectRow();
@@ -202,6 +218,7 @@ defineExpose({
 onBeforeUnmount(() => {
   active = false;
   cancelAnimationFrame(fitFrame);
+  resizeObserver?.disconnect();
   navigation?.destroy();
   stopDragSelection?.();
   table?.destroy();
@@ -211,7 +228,7 @@ onBeforeUnmount(() => {
   <div
     ref="element"
     class="analysis-table tabulator compact fit-table"
-    :class="{ blocked: busy }"
+    :class="{ blocked: busy, 'analysis-scrollable': scrollable }"
     :aria-busy="busy"
     aria-label="Rate analysis table"
     tabindex="0"

@@ -105,3 +105,14 @@ The modern workspace is not yet a complete GTK replacement. Consult the parity l
 Editor previews: [Schedule](../docs/migration/screenshots/schedule-desktop.png) · [Resources](../docs/migration/screenshots/resources-desktop.png) · [Measurements](../docs/migration/screenshots/measurements-desktop.png).
 
 See the [workbench refinement](../docs/migration/workbench-refinement.md) for compact layout, client decorations, filters and cell-navigation behavior.
+
+
+## November 18 editor corrections
+
+Returning from Analysis rebuilds the visible Schedule viewport while retaining scroll position. Analysis fits desktop panes and allows horizontal scrolling only below a 500 CSS px pane width. Library additions use the original batch insertion helpers, retaining a single undo step.
+
+Measurement records now use a draft: **Apply records** (Ctrl+Enter) accepts records, links, description and properties as one project operation; **Discard records** (Ctrl+Escape) opens confirmation. Navigation and closing protect unsaved records. Undo/redo within records edits the draft; project undo after leaving records reverts the complete applied operation. Save/Save copy and recovery include pending records.
+
+**Program settings → General** controls the regional locale (blank follows the system), three-letter currency code and symbol visibility for rates/amounts in all views and previews. Editors keep raw numeric strings and expressions. Blank interface and table font settings independently use OS control typography; the fallback is 13 px.
+
+See the [November 18 parity review](../docs/migration/parity-review-2026-11-18.md) for remaining original commands and validation limits.
