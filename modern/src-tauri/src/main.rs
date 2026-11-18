@@ -8,6 +8,8 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 
+mod project_open;
+
 struct Backend {
     child: Child,
     input: ChildStdin,
@@ -156,6 +158,15 @@ fn gtk_font(settings: &gtk::Settings) -> Value {
 }
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            project_open::enqueue(app, project_open::arguments(args.into_iter().skip(1), std::path::Path::new(&cwd)));
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
+        .manage(project_open::Pending::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(Bridge::default())
@@ -164,6 +175,7 @@ fn main() {
         )))
         .setup(|app| {
             app.remove_menu()?;
+            project_open::launch(app.handle(), project_open::arguments(std::env::args().skip(1), &std::env::current_dir()?));
             #[cfg(target_os = "linux")]
             {
                 use gtk::prelude::*;
@@ -181,10 +193,14 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backend_request, desktop_font, open_library_directory])
+        .invoke_handler(tauri::generate_handler![backend_request, desktop_font, open_library_directory, project_open::take_project_open_requests])
         .build(tauri::generate_context!())
         .expect("Unable to start GEstimator")
         .run(|app, event| {
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            if let tauri::RunEvent::Opened { ref urls } = event {
+                project_open::opened(app, urls.iter().filter_map(|url| url.to_file_path().ok()).map(|path| path.to_string_lossy().into_owned()).collect());
+            }
             if let tauri::RunEvent::Exit = event {
                 if let Ok(mut backend) = app.state::<Bridge>().0.lock() {
                     *backend = None;

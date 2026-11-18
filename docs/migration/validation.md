@@ -507,3 +507,34 @@ visually reviewed, with the scope limited to the database dialog's content.
 - Native Windows font detection returned **Segoe UI / 13 px**. Browser tests verify independent OS defaults for interface and tables, saved overrides and restart persistence.
 
 The [source/workflow parity review](parity-review-2026-11-18.md) records six remaining GTK command gaps and corrects the previous PDF claim. No native installer was rebuilt or installed. Native OS dialogs/clipboard, installed packaging, other platforms and larger real/custom-template corpora remain validation limits.
+
+## 2026-11-18 — dropdowns, draft headerbars, record totals and remaining commands
+
+Implemented PARITY-001 through PARITY-006 in the [ledger](parity.md), plus native value dropdowns, shared draft headerbars, an all-page measurement total footer, currency-setting explanation and [central UI guidelines](../ui-guidelines.md). `modern/AGENTS.md` directs future UI work to those guidelines.
+
+Validation:
+
+- `.venv/bin/python -m unittest discover -s tests`: **151 passed**. New fixtures cover original rate-discrepancy boundaries and saved-colour preservation, resource identities/exclusions/references with undo/redo, same-code synchronization, real multi-item XLSX matching, parser options, metadata preservation, duplicate/unmatched/bounded inputs, rollback on the second item and one-operation undo/redo.
+- `cargo test` in `modern/src-tauri`: **5 passed**, covering launch paths with spaces, relative/absolute paths, invalid argument filtering, startup event deduplication and subsequent reopening. Argument fixtures use platform-native paths.
+- `npm run --prefix modern build`: TypeScript and production build passed. Vite retains its existing large-chunk advisory.
+- Full browser run initially passed **66 of 69** scenarios. The three failures identified a duplicate code label, an ambiguous workbook field label and an incorrect pagination parameter in a new test; these were corrected before the affected recheck. The recheck also exposed a multi-table parser boundary issue when “Say” was absent and an incorrect virtualized-row-count assertion. Both are fixed and covered.
+- Affected browser recheck: **8 passed**; final workbook/measurement recheck: **2 passed**. Together with the full run, **all 69 distinct browser scenarios passed across runs**. The final workbook regression includes multiple analyses without “Say” terminators; the measurement regression verifies the same total on both pages of 101 records.
+- `git diff --check` passed.
+
+Browser tests replace the Tauri transport but use the real Python service. New scenarios cover Manual/About and embedded licence, Apply/Discard headerbars, native-event forwarding through Cancel/Discard guards, invalid/missing project paths, discrepancy clearing, resource renumber exclusions and synchronization, multi-analysis workbook import, and an all-record total across 101 records on two pages.
+
+Installed-package association registration, real Finder/Explorer second-instance delivery, native drops, clipboard/input methods and platform scaling still require the supported-platform smoke checks; no installed Windows/macOS validation is claimed.
+
+## 2026-11-18 — themed dropdowns and editor completion
+
+The shared `ThemedDropdowns` presenter renders value choices as anchored, field-width, themed listboxes, with option groups and keyboard navigation. Form values and bindings remain on their selects. Editable locale/category suggestions use the shared themed autocomplete and retain free-text entry; browser-native datalists are removed. Command menus remain separate. Draft headerbar Apply/Discard now returns to the corresponding Schedule/Measurements list; independent back buttons were removed. Finishing records updates draft state before returning, including clean drafts, so no stale close request is sent. Resource renumbering lists each database prefix on its own row with an accessible Enable/Exclude switch. Shared checkbox/radio rules set control dimensions, remove text-field padding and align wrapping labels.
+
+The [UI guidelines](../ui-guidelines.md), modern workspace instructions, README and offline manual describe these conventions.
+
+- Focused browser checks: **6 passed**, covering themed dropdown keyboard interaction, groups, draft completion, discarded data, clean-draft exit, database switch rows, checkbox dimensions and manual access.
+- Broader browser verification: **58 scenarios passed** before the process ended with signal 15. The remaining **14 passed** in a separate run: **all 72 distinct scenarios passed across runs**. Both dropdown themes were checked in the browser; dark-dropdown and shared-checkbox screenshots were inspected.
+- Editable-suggestion follow-up: **6 affected scenarios passed**, plus the new locale/category selection and free-text regression (**1 passed** after correcting its Description field locator). All **73 distinct browser scenarios** passed across the completed runs. No native datalists remain.
+- `npm run --prefix modern build`: TypeScript and production build passed; existing Vite chunk-size advisory remains.
+- `git diff --check` passed.
+
+The broader browser suite uses the real Python backend through the mocked desktop transport. Native WebView and installed-platform checks remain separate.

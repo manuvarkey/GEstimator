@@ -4,6 +4,7 @@ import { moneyFormatter } from "../numberFormatting";
 import Dialog from "primevue/dialog";
 import AutoComplete from "primevue/autocomplete";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
+import ThemedAutocomplete from "./ThemedAutocomplete.vue";
 import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
 import { appearance, defaultAppearance } from "../appearance";
 import { request } from "../backend";
@@ -76,9 +77,9 @@ async function reset() {
     <section v-if="draft" :id="'settings-panel-' + tab" role="tabpanel" :aria-labelledby="'settings-tab-' + tab">
       <template v-if="tab === 'general'">
         <h3>Rates and amounts</h3>
-        <label class="field">Regional format<input v-model="draft.number_locale" list="money-locales" placeholder="System default" :disabled="busy" /></label>
-        <datalist id="money-locales"><option value="en-IN">India · 12,34,567.89</option><option value="en-US">United States · 1,234,567.89</option><option value="en-GB">United Kingdom</option><option value="de-DE">Germany · 1.234.567,89</option><option value="fr-FR">France</option></datalist>
-        <label class="field">Currency code<input v-model="draft.currency_code" maxlength="3" :disabled="busy" @input="draft.currency_code = draft.currency_code.toUpperCase()" /></label>
+        <label class="field">Regional format<ThemedAutocomplete v-model="draft.number_locale" label="Regional format" :suggestions="['en-IN', 'en-US', 'en-GB', 'de-DE', 'fr-FR']" placeholder="System default" :disabled="busy" /></label>
+        <label class="field">Currency code<input v-model="draft.currency_code" maxlength="3" aria-describedby="currency-code-help" :disabled="busy" @input="draft.currency_code = draft.currency_code.toUpperCase()" /></label>
+        <p id="currency-code-help" class="field-hint">Three-letter currency code (for example INR, USD or EUR). Selects the symbol for displayed rates, amounts and monetary totals when enabled below. It does not convert prices or change calculations or workbook numeric values.</p>
         <label class="library-remember"><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label>
         <p class="field-hint">Preview: <output aria-label="Regional amount preview">{{ moneyPreview }}</output>. Leave the region blank to follow your system. Numeric editing uses the original values and arithmetic expressions.</p>
         <h3>Export options</h3>

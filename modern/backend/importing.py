@@ -34,7 +34,7 @@ def selected_rows(params, width, *, cached=False):
     last = params.get("last_row")
     column = params.get("first_column", 1)
     if (type(first) is not int or first < 1 or type(column) is not int
-            or not 1 <= column <= 100 or (last is not None and
+            or not 1 <= column <= 101 - width or (last is not None and
             (type(last) is not int or not first <= last < first + 10000))):
         raise ValueError("Choose a valid spreadsheet range")
     path = Path(params["path"]).resolve(strict=True)
@@ -55,7 +55,7 @@ def selected_rows(params, width, *, cached=False):
         book.close()
 
 
-def import_analysis(model, params):
+def analysis_data(params):
     records = selected_rows(params, 6, cached=True)
     if params.get("rate_first") is True:
         records = [(code, desc, unit, qty, rate, amount)
@@ -72,8 +72,21 @@ def import_analysis(model, params):
             ])
         except ValueError as exc:
             raise ValueError(f"Invalid analysis number on worksheet row {line}") from exc
+    return data
+
+
+def parser_settings(params):
+    comment = params.get("comment_position", 1)
+    rounding = params.get("rounding", -1)
+    if type(comment) is not int or comment not in (0, 1) or type(rounding) not in (int, float) or rounding not in (-1, 0, 1, 2, 1.5, 2.5):
+        raise ValueError("Invalid analysis parser options")
+    return comment, rounding
+
+
+def import_analysis(model, params):
+    data = analysis_data(params)
     draft = ScheduleItemModel(model.code, model.description, model.unit)
-    parse_analysis(data, draft, 0, set_code=True)
+    parse_analysis(data, draft, 0, set_code=True, settings=parser_settings(params))
     if not any(row.get("resource_list") for row in draft.ana_items):
         raise ValueError("No analysis resources found. Check the worksheet range and column order.")
     draft.resources.update({
@@ -261,3 +274,47 @@ def apply(editor, params, progress):
     if changed:
         editor.owner.update_dependent_rates(db, resources=changed)
     return dict(added=added, updated=updated, skipped=skipped)
+
+
+def workbook_analyses(editor, params, *, apply=False):
+    data = analysis_data(params)
+    settings = parser_settings(params)
+    drafts = {}
+    # Bound each legacy parse to its own table. A final "Say" row is
+    # optional; without this boundary the legacy parser consumes later items.
+    starts = []
+    for header, row in enumerate(data):
+        if "description" in row[1].lower() and "unit" in row[2].lower():
+            start = next((i for i in range(header - 1, max(-1, header - 5), -1) if data[i][0]), None)
+            if start is not None:
+                starts.append(start)
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(data)
+        draft = ScheduleItemModel("", "", "")
+        parse_analysis(data[start:end], draft, 0, set_code=True, settings=settings)
+        if draft.code and any(row.get("resource_list") for row in draft.ana_items):
+            if draft.code in drafts:
+                raise ValueError(f"Duplicate workbook analysis code: {draft.code}")
+            drafts[draft.code] = draft
+    if not drafts:
+        raise ValueError("No analysis resources found")
+    matched, unmatched = [], []
+    for code, draft in drafts.items():
+        if not editor.db.ScheduleTable.get_or_none(editor.db.ScheduleTable.code == code):
+            unmatched.append(code)
+            continue
+        matched.append(code)
+        if apply:
+            model = editor.db.get_item(code, modify_res_code=False)
+            model.ana_items = draft.ana_items
+            model.ana_remarks = draft.ana_remarks
+            model.resources = {key: editor.db.get_resource(key) or resource
+                               for key, resource in draft.resources.items()}
+            model.evaluate_results()
+            if not editor.db.insert_item_atomic(model, update=True):
+                raise ValueError(f"Could not import analysis: {code}")
+    if apply and not matched:
+        raise ValueError("No workbook item codes match existing schedule items")
+    if apply:
+        editor.owner.update_dependent_rates(editor.db, schedules=set(matched))
+    return dict(matched=matched, unmatched=unmatched)

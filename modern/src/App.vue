@@ -15,7 +15,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
-import SelectMenus from "./components/SelectMenus.vue";
+import ApplicationHelp from "./components/ApplicationHelp.vue";
+import ThemedDropdowns from "./components/ThemedDropdowns.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
 import DatabasePicker from "./components/DatabasePicker.vue";
@@ -32,6 +33,7 @@ import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
+import { installProjectOpening } from "./projectOpening";
 import { request, type AnalysisRow, type RowKind } from "./backend";
 import { formatMoney } from "./numberFormatting";
 const w = useWorkspace();
@@ -218,6 +220,8 @@ const explorer = ref("schedule");
 const sidebar = ref(true);
 const inspector = ref(true);
 const helpOpen = ref(false);
+const manualOpen = ref(false);
+const aboutOpen = ref(false);
 const shortcutGroups = [
   { title: "Project and search", items: [
     ["Open project", "Ctrl / ⌘ + O"],
@@ -297,6 +301,7 @@ const form = ref({
 const groupId = ref("");
 const discardOpen = ref(false);
 let pending: ((discard: boolean) => Promise<unknown>) | undefined;
+let finishOsOpen: (() => void) | undefined;
 let unsubscribers: UnlistenFn[] = [];
 const rowKinds: {
   kind: RowKind;
@@ -393,6 +398,21 @@ async function discard() {
 function cancelDiscard() {
   pending = undefined;
   discardOpen.value = false;
+  finishOsOpen?.();
+  finishOsOpen = undefined;
+}
+async function openOsProject(path: string) {
+  while (uiBusy.value || discardOpen.value || fileMode.value !== null) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  await new Promise<void>((resolve, reject) => {
+    finishOsOpen = resolve;
+    void navigate(async discard => {
+      try {
+        if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
+      } finally { finishOsOpen = undefined; resolve(); }
+    }, true).catch(reason => { finishOsOpen = undefined; reject(reason); });
+  });
 }
 async function showFile(mode: "open" | "save") {
   filePath.value = mode === "save" ? state.value?.source_path?.replace(/\.eproj$/i, "-edited.eproj") || "estimate.eproj" : "";
@@ -572,12 +592,12 @@ function keyboard(event: KeyboardEvent) {
   }
   if (mod && event.key === "Enter") {
     event.preventDefault();
-    if (canEdit.value && state.value?.project) void w.command("analysis.apply");
+    if (canEdit.value && state.value?.project) void applyAnalysis();
     return;
   }
   if (mod && event.key === "Escape" && state.value?.project && state.value.dirty) {
     event.preventDefault();
-    void navigate(async () => { await w.load(state.value!.code, true); });
+    void discardAnalysis();
     return;
   }
   if (mod && ["z", "y", "c", "v", "d"].includes(key)) {
@@ -672,16 +692,27 @@ async function applyAndContinue() {
     await action?.(false);
   }
 }
-async function applyRecords() {
-  const result = await projectViews.measurement?.applyRecords() ?? false;
+async function applyRecords(returnToList = false) {
+  const result = await projectViews.measurement?.applyRecords(returnToList) ?? false;
   await w.refresh();
+  if (result && returnToList) measurementEntry.value = undefined;
   return result;
 }
 async function changeMeasurementEntry(id: string | undefined) {
   await navigate(async () => { measurementEntry.value = id; });
 }
 async function discardRecords() {
-  await navigate(async () => {}, false);
+  if (uiBusy.value) return;
+  const ok = await projectViews.measurement?.discardRecords() ?? false;
+  await w.refresh();
+  if (ok) measurementEntry.value = undefined;
+}
+async function applyAnalysis() {
+  if (await w.command("analysis.apply")) await returnToSchedule();
+}
+async function discardAnalysis() {
+  if (!state.value?.project || uiBusy.value) return;
+  if (await w.load(state.value.code, true)) await returnToSchedule();
 }
 async function chooseAnalysisExport() {
   try {
@@ -732,6 +763,12 @@ async function applicationAction(action: string) {
       await refreshRecovery();
       if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
       break;
+    case "manual":
+      manualOpen.value = true;
+      break;
+    case "about":
+      aboutOpen.value = true;
+      break;
     case "help":
       helpOpen.value = true;
       break;
@@ -780,6 +817,7 @@ onMounted(async () => {
       );
     }
     await w.reconnect();
+    unsubscribers.push(await installProjectOpening(openOsProject, message => { error.value = message; }));
     await initializeMCP();
     mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
     await refreshRecovery();
@@ -1043,16 +1081,6 @@ onBeforeUnmount(() => {
           <div class="ribbon-actions">
             <button
               class="ribbon-action"
-              aria-label="Apply analysis"
-              title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Save the project to keep the changes on disk."
-              :disabled="!canEdit || !state?.project"
-              @click="w.command('analysis.apply')"
-            >
-              <AppIcon name="check" /><span class="ribbon-label"
-                >Apply analysis</span
-              ></button
-            ><button
-              class="ribbon-action"
               aria-label="Export analysis"
               title="Export this analysis, including unapplied draft edits, to an Excel workbook."
               :disabled="!canEdit || !state?.project"
@@ -1300,13 +1328,19 @@ onBeforeUnmount(() => {
           @busy="projectBusy = $event"
           @analysis="loadAnalysis"
           @entry="changeMeasurementEntry"
-          @apply-records="applyRecords"
+          @apply-records="applyRecords(true)"
           @discard-records="discardRecords"
           @libraries="libraryManagerOpen = true"
           @database="showDatabase"
           @analysis-rules="showAnalysisRules"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
+          <div class="draft-headerbar" role="region" aria-label="Analysis draft">
+            <strong>Rate analysis <span v-if="state?.code" class="code-tag">{{ state.code }}</span></strong>
+            <span class="spacer" />
+            <button class="button small danger" aria-label="Discard analysis" title="Discard this draft and return to Schedule." :disabled="uiBusy || !state?.project" @click="discardAnalysis"><AppIcon name="close" :size="16" />Discard analysis</button>
+            <button class="button small apply" aria-label="Apply analysis" title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Return to Schedule after applying. Save the project to retain changes on disk." :disabled="uiBusy || !canEdit || !state?.project" @click="applyAnalysis"><AppIcon name="check" :size="16" />Apply analysis</button>
+          </div>
           <div class="analysis-intro">
             <div class="breadcrumbs">
               Workspace<AppIcon name="chevron" :size="12" />{{ projectName
@@ -1314,11 +1348,8 @@ onBeforeUnmount(() => {
             </div>
             <div class="analysis-heading">
               <div>
-                <button v-if="state?.project_open" class="button small secondary analysis-back" aria-label="Back to schedule" title="Return to the matching schedule item. Unsaved analysis changes use the normal Apply / Discard / Cancel prompt." :disabled="uiBusy" @click="returnToSchedule"><AppIcon name="back" :size="16" />Schedule</button>
                 <div class="eyebrow">
-                  RATE ANALYSIS<span v-if="state?.code" class="code-tag">{{
-                    state.code
-                  }}</span>
+                  RATE ANALYSIS
                 </div>
                 <h1>{{ state?.description || "Select a schedule item" }}</h1>
                 <p>
@@ -1829,7 +1860,8 @@ onBeforeUnmount(() => {
   <LibraryManager ref="libraryManager" v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
   <MCPSettings v-model="mcpSettingsOpen" />
   <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">{{ mcpMessage }}</div>
-  <SelectMenus />
+  <ThemedDropdowns />
+  <ApplicationHelp v-model:manual="manualOpen" v-model:about="aboutOpen" />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
   <DatabasePicker v-for="kind in (['schedule', 'resources'] as const)" :key="projectSession + kind" v-model="databasePickers[kind].open" :kind="kind" :mode="databasePickers[kind].mode" :revision="databasePickers[kind].revision" :target-ids="databasePickers[kind].targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />
   <DatabasePicker :key="projectSession + 'rates'" v-model="databaseRatesPicker.open" :kind="databaseRatesPicker.kind" mode="rates" :revision="databaseRatesPicker.revision" :target-ids="databaseRatesPicker.targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />

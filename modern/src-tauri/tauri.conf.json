@@ -26,7 +26,22 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.png", "../../GEstimator.ico"],
-    "externalBin": ["binaries/gestimator-backend"]
+    "icon": [
+      "icons/icon.png",
+      "../../GEstimator.ico"
+    ],
+    "externalBin": [
+      "binaries/gestimator-backend"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "eproj"
+        ],
+        "name": "GEstimator project",
+        "role": "Editor",
+        "mimeType": "application/x-gestimator-project"
+      }
+    ]
   }
 }

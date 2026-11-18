@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ThemedAutocomplete from "./ThemedAutocomplete.vue";
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import PersistentDialog from "./PersistentDialog.vue";
@@ -52,6 +53,23 @@ const emit = defineEmits<{
   discardRecords: [];
 }>();
 const state = ref<GridState>();
+const discrepancy = ref<any>();
+const excludedPrefixes = ref<string[]>([]);
+const resourceRenumberOpen = ref(false);
+const resourcePrefixes = ref<string[]>([]);
+async function showDiscrepancies() {
+  await run(async () => { const result = await request<any>('schedule.editor.discrepancies', {});
+    if (state.value?.revision === result.revision && !source.value) discrepancy.value = result; });
+}
+async function showResourceRenumber() {
+  await run(async () => {
+    const result = await request<{ prefixes: string[] }>('resources.editor.prefixes', {});
+    resourcePrefixes.value = result.prefixes;
+    excludedPrefixes.value = [...result.prefixes];
+    resourceRenumberOpen.value = true;
+  });
+}
+
 const emptyRows: GridRow[] = [];
 watch(
   () => [state.value?.undo, state.value?.redo, state.value?.measurement_draft, props.entryId, props.active],
@@ -65,7 +83,8 @@ defineExpose({
   revealCode,
   handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") => command(props.entryId && state.value?.measurement_draft ? "draft." + method : "project." + method),
-  applyRecords: () => command("draft.apply"),
+  applyRecords: (finish = false) => finish ? finishRecords("apply") : command("draft.apply"),
+  discardRecords: () => finishRecords("discard"),
   applyDatabase,
   lastError: () => error.value,
   exportWorkbook,
@@ -80,6 +99,7 @@ const query = ref("");
 const categoryFilters = ref<string[]>([]);
 watch(categoryFilters, () => { page.value = 0; void load(); });
 const source = ref("");
+watch([() => state.value?.revision, source, () => props.view], () => { discrepancy.value = undefined; });
 const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
 const usageCode = ref<string>();
@@ -162,6 +182,7 @@ const deletion = ref<{
 }>();
 const importOpen = ref(false);
 const recordImportOpen = ref(false);
+const multiAnalysisImportOpen = ref(false);
 const importPath = ref("");
 const importSheet = ref("");
 const importPreview = ref<{
@@ -229,7 +250,14 @@ const title = computed(
 );
 const isMeasurement = computed(() => props.view === "measurement");
 const mainRows = computed(() => {
-  if (!isMeasurement.value) return state.value?.rows || emptyRows;
+  if (!isMeasurement.value) {
+    const marks = new Map((discrepancy.value?.rows || []).map((row: any) => [row.id, row.colour]));
+    const decorate = (row: GridRow): GridRow => ({ ...row,
+      ...(discrepancy.value && props.view === 'schedule' && marks.has(row.id) ? { colour: marks.get(row.id) } : {}),
+      ...(row._children ? { _children: row._children.map(decorate) } : {}),
+    });
+    return discrepancy.value ? (state.value?.rows || []).map(decorate) : state.value?.rows || emptyRows;
+  }
   const categories: GridRow[] = [];
   let current: GridRow | undefined;
   for (const row of state.value?.rows || []) {
@@ -431,6 +459,17 @@ function syncMeasurementSummary() {
 function selectedItemIds() {
   return [...new Set(selected.value.flatMap(row => isMeasurement.value && row.rowtype === "Category" ? [row.id, ...(row._children || []).map((item: GridRow) => item.id)] : [row.id]))]
     .filter(id => id !== "measurement:uncategorised");
+}
+async function finishRecords(operation: "apply" | "discard") {
+  return run(async () => {
+    await request("measurement.draft." + operation, { revision: state.value?.revision });
+    let next = await request<GridState>("measurement.state", {});
+    if (operation === "apply" && next.measurement_draft) {
+      await request("measurement.draft.close", { revision: next.revision });
+      next = await request<GridState>("measurement.state", {});
+    }
+    state.value = next;
+  });
 }
 async function command(
   operation: string,
@@ -973,10 +1012,6 @@ watch(
               <button class="ribbon-action" aria-label="Import records…" :disabled="busy || detailBusy" @click="error = ''; recordImportOpen = true"><AppIcon name="import" /><span class="ribbon-label">Import records</span></button>
               <button class="ribbon-action" aria-label="Properties…" :disabled="busy || detailBusy" @click="showProperties"><AppIcon name="settings" /><span class="ribbon-label">Properties</span></button>
             </div><small>MEASUREMENT</small></div>
-            <div class="ribbon-group"><div class="ribbon-actions">
-              <button class="ribbon-action" aria-label="Apply records" title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Save the project to retain them on disk." :disabled="busy || detailBusy || !state?.measurement_draft?.dirty" @click="emit('applyRecords')"><AppIcon name="check" /><span class="ribbon-label">Apply records</span></button>
-              <button class="ribbon-action ribbon-icon danger" aria-label="Discard records" :disabled="busy || detailBusy || !state?.measurement_draft?.dirty" @click="emit('discardRecords')"><AppIcon name="close" /><span class="ribbon-label">Discard records</span></button>
-            </div><small>DRAFT</small></div>
           </template>
           <template v-else>
           <div v-if="!isMeasurement" class="ribbon-group">
@@ -1085,6 +1120,8 @@ watch(
             >
               <AppIcon name="edit" /><span class="ribbon-label">Edit analysis</span>
             </button>
+            <button class="ribbon-action" aria-label="Import multiple analyses" :disabled="busy || !!source" @click="multiAnalysisImportOpen = true"><AppIcon name="import" /><span class="ribbon-label">Import analyses</span></button>
+            <button class="ribbon-action" aria-label="Show rate discrepancies" :disabled="busy || !!source" @click="showDiscrepancies"><AppIcon name="search" /><span class="ribbon-label">Rate discrepancies</span></button>
             <button class="ribbon-action" aria-label="Bulk edit analysis…" title="Match and modify analysis rows across selected schedule items/categories or the whole schedule. Preview ordered rules and rate changes before applying as one project undo step." :disabled="busy" @click="emit('analysisRules', selected.map(row => row.id))"><AppIcon name="filter" /><span class="ribbon-label">Bulk edit analysis</span></button>
             <button
               class="ribbon-action"
@@ -1163,6 +1200,8 @@ watch(
             >
               <AppIcon name="refresh" /><span class="ribbon-label">Refresh rates</span>
             </button>
+              <button v-if="view === 'resources'" class="ribbon-action" :disabled="busy || !!source" @click="showResourceRenumber"><AppIcon name="edit" /><span class="ribbon-label">Renumber resources</span></button>
+              <button v-if="view === 'resources'" class="ribbon-action" :disabled="busy || !!source || !selected.length" @click="command('sync_schedule')"><AppIcon name="refresh" /><span class="ribbon-label">Rates from schedule</span></button>
             </div>
             <small>RESOURCES</small>
           </div>
@@ -1267,6 +1306,11 @@ watch(
           @activate="activateRow"
         />
       </div>
+      <div v-if="view === 'schedule' && discrepancy" role="status">
+        {{ discrepancy.counts.items }} items · {{ discrepancy.counts.mismatch }} mismatches · ≤0.10: {{ discrepancy.counts.small }} · ≤1.00: {{ discrepancy.counts.medium }} · >1.00: {{ discrepancy.counts.large }} · Missing analysis: {{ discrepancy.counts.missing }}
+        <button class="button secondary" @click="discrepancy = undefined">Clear highlighting</button>
+        <details><summary>Stored / calculated rates</summary><div v-for="row in discrepancy.rows" :key="row.id">{{ row.code }}: {{ formatMoney(row.stored) }} / {{ row.calculated == null ? 'Missing analysis' : formatMoney(row.calculated) }}</div></details>
+      </div>
       <div v-if="view === 'schedule' && state" class="schedule-estimate-total" role="status" aria-label="Overall estimate total">
         <span>Overall estimate total</span><strong>{{ formatMoney(state.grand_total ?? '0.00') }}</strong>
       </div>
@@ -1292,8 +1336,7 @@ watch(
           Next
         </button>
       </div>
-      <div v-if="isMeasurement && entryId" class="measurement-entry-heading">
-        <button class="button small secondary" aria-label="Back to measurements" @click="emit('entry', undefined)"><AppIcon name="back" />Measurements</button>
+      <div v-if="isMeasurement && entryId" class="measurement-entry-heading draft-headerbar">
         <textarea
           v-if="descriptionDraft !== undefined"
           ref="measurementDescription"
@@ -1306,6 +1349,8 @@ watch(
         />
         <h2 v-else v-middle-ellipsis="fullMeasurementTitle || 'Measurement entry'" class="measurement-entry-title five-line-description" :title="fullMeasurementTitle" :aria-label="fullMeasurementTitle" @dblclick="editMeasurementDescription" />
         <button class="button small secondary" aria-label="Edit measurement description / remarks" :disabled="busy || state?.detail?.id !== entryId" @mousedown.prevent @click="descriptionDraft === undefined ? editMeasurementDescription() : measurementDescription?.focus()"><AppIcon name="edit" />Edit description</button>
+              <button class="button primary" aria-label="Apply records" title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Return to Measurements after applying. Save the project to retain them on disk." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('applyRecords')"><AppIcon name="check" /><span >Apply records</span></button>
+              <button class="button danger" aria-label="Discard records" title="Discard this draft and return to Measurements." :disabled="busy || detailBusy || !state?.measurement_draft" @click="emit('discardRecords')"><AppIcon name="close" /><span >Discard records</span></button>
         <span class="draft-badge" :class="{ dirty: state?.measurement_draft?.dirty }">{{ state?.measurement_draft?.dirty ? 'Unsaved records' : 'Up to date' }}</span>
       </div>
       <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
@@ -1350,7 +1395,7 @@ watch(
             ></label
           >
         </div>
-        <div class="measurement-record-summary"><strong>Measurement records</strong><span>Totals: {{ state.detail.totals.join(" · ") }}</span></div>
+        <div class="measurement-record-summary"><strong>Measurement records</strong></div>
         <div class="table-panel measurement-record-grid">
           <DataTable
             ref="recordTable"
@@ -1369,6 +1414,7 @@ watch(
             @paste-rows="data => command('record_paste', { id: activeMeasurement, record_id: selectedRecord?.id, record_ids: selectedRecords.map(row => row.id), clipboardData: data })"
           />
         </div>
+        <div class="measurement-total-row" role="status" aria-label="All measurement records total"><span>Total · all records</span><strong><template v-for="(total, index) in state.detail.totals" :key="index"><span v-if="index"> · </span>{{ state.detail.links[index]?.label || `Quantity ${Number(index) + 1}` }}: {{ total }} {{ state.detail.links[index]?.unit || '' }}</template></strong></div>
         <div class="pagination">
           <button class="text-button" :disabled="busy || detailBusy || !state.detail.offset" @click="changeRecordPage(-1)">Previous records</button>
           <span>{{ state.detail.total_records }} records · Page {{ Math.floor(state.detail.offset / 100) + 1 }}</span>
@@ -1382,6 +1428,12 @@ watch(
         <label class="field">Destination category<select v-model="moveCategory" data-primary-input autofocus :disabled="busy"><option v-for="category in state?.categories" :key="category">{{ category }}</option></select></label>
         <p v-if="error" class="dialog-error" role="alert">{{ error }}</p><div class="dialog-footer"><button type="button" class="button secondary" :disabled="busy" @click="moveResourcesOpen = false">Cancel</button><button class="button primary" :disabled="busy">Move resources</button></div>
       </form>
+    </Dialog>
+    <Dialog v-model:visible="resourceRenumberOpen" modal header="Renumber resources" class="workspace-dialog">
+      <p>Project resources are renumbered. Enable each database below to include its resources; excluded databases keep their codes.</p>
+      <div class="database-toggle-list"><div v-for="prefix in resourcePrefixes" :key="prefix" class="database-toggle-row"><span>{{ prefix }}</span><button type="button" class="button small secondary" role="switch" :aria-label="`Renumber ${prefix} resources`" :aria-checked="!excludedPrefixes.includes(prefix)" :disabled="busy" @click="excludedPrefixes = excludedPrefixes.includes(prefix) ? excludedPrefixes.filter(value => value !== prefix) : [...excludedPrefixes, prefix]">{{ excludedPrefixes.includes(prefix) ? 'Excluded' : 'Enabled' }}</button></div></div>
+      <p v-if="!resourcePrefixes.length" class="field-hint">No database-prefixed resources in this project.</p>
+      <div class="dialog-footer"><button class="button secondary" :disabled="busy" @click="resourceRenumberOpen = false">Cancel</button><button class="button primary" :disabled="busy" @click="async () => { if (await command('renumber', { exclude: excludedPrefixes })) resourceRenumberOpen = false; }">Renumber resources</button></div>
     </Dialog>
     <Dialog v-model:visible="recordsOpen" modal header="Insert measurement records" class="workspace-dialog file-dialog" :closable="!busy" :close-on-escape="!busy">
       <form @submit.prevent="async () => { if (await command('record_add', { id: activeMeasurement, record_id: selectedRecord?.id, count: recordCount })) recordsOpen = false; }">
@@ -1458,15 +1510,7 @@ watch(
                 >Rate<input v-model="form.rate" required
               /></label>
             </div>
-            <label class="field"
-              >Category<input
-                v-model="form.category"
-                list="project-categories"
-              /><datalist id="project-categories">
-                <option v-for="category in state?.categories" :key="category">
-                  {{ category }}
-                </option>
-              </datalist></label
+            <label class="field">Category<ThemedAutocomplete v-model="form.category" label="Category" :suggestions="state?.categories || []" :disabled="busy" /></label
             ><template v-if="view === 'schedule'"
               ><label class="field">Quantity<input v-model="form.qty" /></label
               ><label class="field"
@@ -1686,6 +1730,7 @@ watch(
         </button>
       </div></Dialog
     >
+    <SpreadsheetRangeImport v-if="multiAnalysisImportOpen" v-model="multiAnalysisImportOpen" multiple :apply="params => command('project.import_analysis_apply', params)" :error="error" />
     <SpreadsheetRangeImport v-if="recordImportOpen" v-model="recordImportOpen" measurement
       :apply="(params) => command('record_import', {
         ...params, id: activeMeasurement, record_id: selectedRecord?.id,

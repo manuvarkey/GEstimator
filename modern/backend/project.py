@@ -323,6 +323,53 @@ class ProjectEditor:
                         children.get((category, item.id), [])
                     ))
 
+    def rate_discrepancies(self):
+        rows = []
+        counts = dict(items=0, mismatch=0, small=0, medium=0, large=0, missing=0)
+        colours = dict(small=misc.MEAS_COLOR_LOCKED, medium=misc.MEAS_COLOR_LOCKED_L1,
+                       large=misc.MEAS_COLOR_LOCKED_L2, missing=misc.MEAS_COLOR_MISSING)
+        for row in self.db.ScheduleTable.select():
+            if not row.unit:
+                continue
+            counts['items'] += 1
+            model = self.db.get_item(row.code, modify_res_code=False)
+            calculated = Currency(model.get_ana_rate()) if model.results else None
+            delta = abs(calculated - Currency(row.rate)) if calculated is not None else None
+            band = ('missing' if delta is None else 'equal' if delta == 0 else
+                    'small' if delta <= Decimal('0.1') else 'medium' if delta <= 1 else 'large')
+            if band != 'equal':
+                counts[band] += 1
+                if band != 'missing':
+                    counts['mismatch'] += 1
+            rows.append(dict(id=str(row.id), code=row.code, stored=str(row.rate),
+                             calculated=None if calculated is None else str(calculated),
+                             band=band, colour=colours.get(band)))
+        return dict(rows=rows, counts=counts, revision=self.owner.revision)
+
+    def renumber_resources(self, exclude):
+        if not isinstance(exclude, list) or any(not isinstance(v, str) for v in exclude):
+            raise ValueError('Select library prefixes to exclude')
+        table = self.db.ResourceTable
+        categories = list(self.db.ResourceCategoryTable.select().order_by(self.db.ResourceCategoryTable.order))
+        assigned = {}
+        category_number = 1
+        for category in categories:
+            counter = 1
+            for row in table.select().where(table.category == category.id).order_by(table.order, table.id):
+                if category.description == misc.SUB_ANA_TITLE or (':' in row.code and row.code.split(':')[0] in exclude):
+                    assigned[row.id] = row.code
+                    continue
+                assigned[row.id] = (str(category_number) + '.' if len(categories) > 1 else '') + str(counter).zfill(3)
+                counter += 1
+            if category.description != misc.SUB_ANA_TITLE:
+                category_number += 1
+        if len(set(assigned.values())) != len(assigned):
+            raise ValueError('Generated numbers conflict with excluded resource codes')
+        for identity in assigned:
+            table.update(code='__renumber_' + uuid4().hex).where(table.id == identity).execute()
+        for identity, code in assigned.items():
+            table.update(code=code).where(table.id == identity).execute()
+
     def renumber_schedule(self):
         table = self.db.ScheduleTable
         category = self.db.ScheduleCategoryTable
@@ -1085,10 +1132,17 @@ class ProjectEditor:
                     selected=[str(row.id) for row in table.select().where(table.code.in_(inserted_codes))])
 
     def call(self, method, p, progress):
+        if method == "resources.editor.prefixes":
+            return dict(prefixes=sorted({row.code.split(":")[0] for row in self.db.ResourceTable.select() if ":" in row.code}))
+        if method == "schedule.editor.discrepancies":
+            return self.rate_discrepancies()
         if method == "library.attach":
             return self.attach_library(p["path"])
         if method == "library.list":
             return self.sources()
+        if method == "project.import_analysis_preview":
+            from .importing import workbook_analyses
+            return workbook_analyses(self, p)
         if method == "project.import_preview":
             from .importing import preview
 
@@ -1138,6 +1192,9 @@ class ProjectEditor:
         if method == "schedule.editor.library_rules_preview":
             from .analysis_rules import preview_in_copy
             return preview_in_copy(self, lambda scratch: scratch.from_library("schedule", p, progress, review=True))
+        if method == "project.import_analysis_apply":
+            from .importing import workbook_analyses
+            return self.mutate(lambda: workbook_analyses(self, p, apply=True))
         if method == "project.import_apply":
             from .importing import apply
 
@@ -1251,6 +1308,21 @@ class ProjectEditor:
                 for order, row in enumerate(table.select().where(table.category == category_id).order_by(table.order, table.id)):
                     table.update(order=order).where(table.id == row.id).execute()
             return dict(selected=[str(row.id) for row in records])
+        if resource and op == "renumber":
+            return self.renumber_resources(p.get('exclude', []))
+        if resource and op == "sync_schedule":
+            _, rows = self.selection(kind, p.get('ids'), include_descendants=False)
+            if not rows:
+                raise ValueError('Select resources to synchronize')
+            changed = set()
+            for row in rows:
+                schedule = db.ScheduleTable.get_or_none(db.ScheduleTable.code == row.code)
+                if schedule is not None and Currency(row.rate) != Currency(schedule.rate):
+                    table.update(rate=Currency(schedule.rate)).where(table.id == row.id).execute()
+                    changed.add(row.code)
+            if changed:
+                self.owner.update_dependent_rates(db, resources=changed)
+            return
         if not resource and op == "renumber":
             return self.renumber_schedule()
         if not resource and op in ("colour", "update_quantities", "update_rates"):

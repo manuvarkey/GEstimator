@@ -16,7 +16,9 @@ Reference: the GTK implementation in this checkout (`estimator/gtk_app.py`, `est
 
 MCP reads continue to expose committed working-project measurements, with stable original record IDs even when the human draft deletes records. State reports `records_dirty`; conflicting agent writes return `draft_conflict`. Recovery snapshots include the draft without applying it to the working project.
 
-## Remaining concrete gaps found
+## Concrete gaps found in the original audit
+
+These six gaps were subsequently implemented. See the [follow-up ledger](parity.md#follow-up-implementation--2026-11-18) for current status; native platform gates remain open.
 
 | Original command | Modern coverage / gap | Reference |
 |---|---|---|

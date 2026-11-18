@@ -1531,16 +1531,7 @@ kbd {
   }
 }
 
-.analysis-table input[type="checkbox"] {
-  height: 12px;
-  width: 12px;
-  min-width: 12px;
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-  accent-color: var(--accent-fill);
-  cursor: pointer;
-}
+
 .analysis-table .tabulator-row .tabulator-cell .tabulator-data-tree-control {
   min-width: 12px;
   min-height: 12px;
@@ -1888,11 +1879,7 @@ textarea {
   border-top: 1px solid var(--line);
   margin: 5px;
 }
-.themed-select-menu .p-menu-list { max-height: min(55vh, 380px); overflow-y: auto; }
-.themed-select-menu { max-width: 94vw; }
-.themed-select-menu .p-menu-submenu-label { color: var(--muted); padding: 8px 12px 3px; font-size: var(--text-size-small); }
-.themed-select-menu .application-menu-item[aria-current="true"] { color: var(--accent); background: var(--accent-soft); }
-.themed-select-menu .application-menu-item span { white-space: normal; overflow-wrap: anywhere; }
+
 .measurement-cell-value { white-space: pre-wrap; overflow-wrap: anywhere; }
 .database-picker-dialog { width: min(94vw, 1100px); }
 .persistent-dialog-mask { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: #0006; }
@@ -2168,3 +2155,45 @@ textarea.measurement-entry-title {
 /* WebKitGTK can embolden composited scroll content despite an unchanged weight.
    Keep its text rasterization consistent before and after overflow appears. */
 .library-manager-dialog .p-dialog-content { -webkit-font-smoothing: antialiased; }
+
+/* Shared draft acceptance controls: see docs/ui-guidelines.md. */
+.draft-headerbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--raised); }
+.draft-headerbar .button { display: inline-flex; align-items: center; gap: 6px; }
+.draft-headerbar .button.apply, .draft-headerbar .button.primary { background: var(--green); color: var(--bg); border-color: var(--green); }
+.draft-headerbar .button.apply:hover:not(:disabled), .draft-headerbar .button.primary:hover:not(:disabled) { filter: brightness(1.12); }
+.measurement-total-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--accent-soft); border-top: 1px solid var(--accent); font-weight: 700; }
+.application-help section { margin-block: 18px; }
+.application-help h3 { margin-bottom: 6px; }
+.application-help p { line-height: 1.55; }
+.application-help a { color: var(--accent); }
+.application-help pre { white-space: pre-wrap; max-height: 40vh; overflow: auto; font: inherit; }
+
+/* Shared value dropdowns and check controls; see docs/ui-guidelines.md. */
+select:not([multiple]) { appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%; background-size: 4px 4px; background-repeat: no-repeat; }
+.themed-dropdown { overflow-y: auto; overscroll-behavior: contain; padding: 3px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); font: inherit; }
+.themed-dropdown [role="option"] { padding: 6px 8px; min-height: 30px; cursor: pointer; overflow-wrap: anywhere; }
+.themed-dropdown [role="option"].active { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
+.themed-dropdown [aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.themed-dropdown .disabled { opacity: .45; cursor: default; }
+.dropdown-group { padding: 8px 8px 4px; color: var(--muted); font-size: var(--text-size-small); font-weight: 600; }
+input[type="checkbox"], input[type="radio"] { appearance: auto; box-sizing: border-box; width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex: 0 0 16px; margin: 0; padding: 0; accent-color: var(--accent-fill); vertical-align: middle; cursor: pointer; }
+input[type="checkbox"]:disabled, input[type="radio"]:disabled { cursor: default; }
+label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 8px; line-height: 1.5; text-align: start; }
+label > input[type="checkbox"], label > input[type="radio"] { margin-top: max(0px, calc((1lh - 16px) / 2)); }
+.database-toggle-list { display: grid; gap: 0; }
+.database-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.database-toggle-row > span { min-width: 0; overflow-wrap: anywhere; }
+.database-toggle-row [role="switch"] { min-width: 90px; flex-shrink: 0; }
+.database-toggle-row [aria-checked="true"] { color: var(--green); border-color: var(--green); }
+.themed-autocomplete, .themed-autocomplete input { width: 100%; min-width: 0; }
+.themed-autocomplete-options { color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: var(--control-radius); box-shadow: var(--shadow); }
+.themed-autocomplete-options .p-autocomplete-list { padding: 3px; }
+.themed-autocomplete-options .p-autocomplete-option { padding: 6px 8px; color: var(--text); white-space: normal; overflow-wrap: anywhere; }
+.themed-autocomplete-options .p-autocomplete-option:hover,
+.themed-autocomplete-options .p-autocomplete-option.p-focus,
+.themed-autocomplete-options .p-autocomplete-option-selected { background: var(--accent-soft); color: var(--accent); }
+.themed-autocomplete .p-inputtext { color: var(--text); background: var(--well); border: 1px solid var(--line); border-radius: var(--control-radius); box-shadow: none; font: inherit; }
+.themed-autocomplete .p-inputtext:enabled:focus { border-color: var(--accent); outline: var(--focus-width) solid var(--accent); outline-offset: -2px; box-shadow: none; }
+.themed-autocomplete-options.p-autocomplete-overlay { color: var(--text); background: var(--panel); border-color: var(--line); box-shadow: var(--shadow); }
+.themed-autocomplete-options .p-autocomplete-option:not(.p-disabled).p-focus,
+.themed-autocomplete-options .p-autocomplete-option.p-autocomplete-option-selected { color: var(--accent); background: var(--accent-soft); }
