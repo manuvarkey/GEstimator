@@ -568,3 +568,12 @@ Validation: production build, `git diff --check` and **3 focused browser scenari
 All `AppIcon` glyphs were redrawn locally in the OpenAEC B2 visual grammar: rounded 1.6-unit corners, open line work, about 1.25 px lines at 16–18 px and 1.75 units on CSS-sized ribbon icons, a neutral body and at most one small amber detail. Navigation, window and state glyphs are monochrome. Oversized accents (import/export arrows, help glyph, library book, undo/redo heads, percent slash, half-plus) were removed or reduced. Copy/Paste are now stroked like the rest, replacing the filled crisp-edge special case. The light-theme `--icon-accent` is `#b45309` (about 5:1 on white panels). No B2 artwork is copied.
 
 Validation: production build passed; full browser suite 73/75 on the first run. The pane-icon test now asserts `data-icon` instead of path data, and the analysis header order check uses an auto-waiting assertion; both pass. `schedule row colour is visible and undoable` also fails on the unchanged checkpoint and is unrelated. Icon contact sheets and ribbon screenshots were inspected in both themes.
+
+## 2026-11-19 — tax display, numeric edit selection, transient notices and Linux shadows
+
+- Tax % values keep four-place rounding but drop padding zeros (`18`, `2.5`, `1.2345`) in resource and analysis rows; new-resource forms default to `0`.
+- Editing a right-aligned numeric cell (rate, quantity, tax, discount, measurement numbers) selects the whole value; text cells keep the caret at the end.
+- Copy, paste and import results appear in the status bar via `notify()` and clear after 5–10 s instead of persisting below the ribbon. Analysis copy/paste feedback uses the same path.
+- Linux: the main window keeps GTK client-side decorations with an empty, zero-height titlebar widget (widget CSS removes the theme headerbar height that otherwise left a transparent strip), so GTK draws the compositor shadow and resize border while the web titlebar remains the only title bar. Applied before first show.
+
+Validation: production build, `cargo build`, Python unit tests (151 OK) and the full browser suite passed except `schedule row colour is visible and undoable`, which also fails on the earlier checkpoint. A new browser regression covers select-all, tax display and the transient status notice. The Linux shadow still needs a visual check on an installed or `tauri dev` build (an XWayland capture confirmed no strip above the web titlebar and symmetric 24–29 px shadow margins).

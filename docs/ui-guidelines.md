@@ -35,7 +35,7 @@ List each database on its own row in resource renumbering, with a labelled Enabl
 
 ## Dialogs, accessibility and validation
 
-Use dialogs for bounded tasks that require input or review. Use inline status and error messages for routine feedback. Every field needs a label, every icon-only action an accessible name, and every interactive control a visible focus state. Long lists and dialogs must scroll within the viewport. Preserve focus and cell selection after edits and navigation.
+Use dialogs for bounded tasks that require input or review. Show transient results of routine actions (copy, paste, import) in the status bar through `notify()` in `statusNotice.ts`; they clear after a timeout. Do not add persistent banners below the ribbon for them. Keep errors inline until resolved. Every field needs a label, every icon-only action an accessible name, and every interactive control a visible focus state. Long lists and dialogs must scroll within the viewport. Preserve focus and cell selection after edits and navigation. Editing a numeric (right-aligned) cell selects its whole value so typing replaces it; text cells place the caret at the end. Show tax percentages without padding zeros (18, 2.5, 1.2345).
 
 Before completing a UI change, build the frontend and exercise affected workflows in browser tests. Verify keyboard operation, disabled/busy states, narrow layouts and both themes when affected. Add regression tests for behavior, not mirrored CSS implementation. Document native WebView/platform checks that still need an installed build.
 

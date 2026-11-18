@@ -252,6 +252,42 @@ test("compact contrast, category filters, expanded trees and client window contr
   await page.screenshot({ path: "test-results/compact-light-categories.png", animations: "disabled" });
 });
 
+test("numeric edits select the value, tax shows only entered decimals and clipboard feedback is transient", async ({ page }) => {
+  await refinementFixture(page);
+  const main = page.locator(".project-view:visible .project-main-grid");
+  const row = (code: string) => main.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: new RegExp(`^${code}$`) }) });
+  const active = main.locator('.tabulator-cell.tabulator-editing input,.tabulator-cell.tabulator-editing textarea');
+  const selection = () => active.evaluate(el => { const input = el as HTMLInputElement; return [input.selectionStart, input.selectionEnd, input.value.length]; });
+  await row("A").locator('[tabulator-field="rate"]').click();
+  await page.keyboard.press("Enter");
+  const [start, end, length] = await selection();
+  expect([start, end]).toEqual([0, length]);
+  expect(length).toBeGreaterThan(0);
+  await page.keyboard.type("7");
+  await page.keyboard.press("Enter");
+  await expect(row("A").locator('[tabulator-field="rate"]')).toHaveText("7");
+  await row("A").locator('[tabulator-field="description"]').dblclick();
+  const [textStart, textEnd] = await selection();
+  expect(textStart).toBe(textEnd);
+  await page.keyboard.press("Escape");
+  await applyRecordsIfDirty(page);
+  await page.locator("#view-resources").click();
+  await expect(row("L").locator('[tabulator-field="vat"]')).toHaveText("0");
+  await row("L").locator('[tabulator-field="vat"]').dblclick();
+  await active.fill("2.5");
+  await active.press("Enter");
+  await expect(row("L").locator('[tabulator-field="vat"]')).toHaveText("2.5");
+  await row("L").locator('[tabulator-field="vat"]').dblclick();
+  await active.fill("18");
+  await active.press("Enter");
+  await expect(row("L").locator('[tabulator-field="vat"]')).toHaveText("18");
+  await row("L").locator('[tabulator-field="description"]').click();
+  await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
+  const statusbar = page.locator(".statusbar");
+  await expect(statusbar.locator(".status-notice")).toContainText("Rows copied");
+  await expect(page.locator('.project-view:visible p[role="status"]')).toHaveCount(0);
+  await expect(statusbar.locator(".status-notice")).toHaveCount(0, { timeout: 8000 });
+});
 test("cell navigation commits with Tab and Enter across schedule resources measurements and analysis", async ({ page }) => {
   await refinementFixture(page);
   const main = page.locator(".project-view:visible .project-main-grid");
@@ -3006,7 +3042,7 @@ test('feedback 3: tax labels and four-place precision', async ({ page }) => {
   const row = page.locator('.project-view:visible .tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^R$/ }) });
   await expect(page.locator('.project-view:visible .tabulator-col[tabulator-field="vat"]')).toHaveText('TAX %');
   const tax = row.locator('[tabulator-field="vat"]');
-  await expect(tax).toHaveText('0.0000');
+  await expect(tax).toHaveText('0');
   await tax.dblclick();
   await tax.locator('input').fill('1.2345');
   await tax.locator('input').press('Tab');
@@ -3019,7 +3055,7 @@ test('feedback 3: tax labels and four-place precision', async ({ page }) => {
   await expect(page.locator('.inspector').getByLabel('Tax %', { exact: true })).toHaveValue('1.2345');
   await page.getByRole('button', { name: 'Add custom resource', exact: true }).click();
   const custom = page.getByRole('dialog', { name: 'Add custom resource', exact: true });
-  await expect(custom.getByLabel('Tax %', { exact: true })).toHaveValue('0.0000');
+  await expect(custom.getByLabel('Tax %', { exact: true })).toHaveValue('0');
   await expect(custom).not.toContainText('VAT');
 });
 

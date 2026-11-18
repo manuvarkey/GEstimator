@@ -2202,3 +2202,4 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .measurement-draft-header { flex-wrap: nowrap; }
 .measurement-draft-header > strong { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .measurement-draft-header > .button { flex-shrink: 0; }
+.statusbar > .status-notice { color: var(--text); }

@@ -29,6 +29,7 @@ import { programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
+import { statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
@@ -292,7 +293,7 @@ const form = ref({
   unit: "",
   rate: "0",
   qty: "0",
-  vat: "0.0000",
+  vat: "0",
   discount: "0",
   reference: "",
   category: "",
@@ -509,7 +510,7 @@ async function insertResource(libraryCode?: string) {
       unit: "",
       rate: "0",
       qty: "0",
-      vat: "0.0000",
+      vat: "0",
       discount: "0",
       reference: "",
       category: "",
@@ -1597,7 +1598,7 @@ onBeforeUnmount(() => {
       <span
         class="status-indicator"
         :class="{ working: busy, offline: !connected }"
-      /><span>{{ status }}</span
+      /><span :class="{ 'status-notice': statusNotice }">{{ statusNotice || status }}</span
       ><span
         v-if="state?.dirty || recordsDirty || state?.workspace_dirty"
         class="status-unsaved"

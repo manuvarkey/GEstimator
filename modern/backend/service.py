@@ -20,7 +20,7 @@ from estimator.undo import Stack
 from estimator import misc
 
 
-from .numbers import decimal
+from .numbers import decimal, tax_text
 from .persistence import fingerprint, save_existing, write_recovery
 
 
@@ -127,7 +127,7 @@ class Service:
                             unit=res.unit,
                             value=str(entry[1]),
                             rate=str(res.rate),
-                            vat=str(Currency(res.vat or 0, 4)),
+                            vat=tax_text(res.vat),
                             discount=str(res.discount or 0),
                             effective_rate=str(res_result[0]),
                             amount=str(res_result[1]),

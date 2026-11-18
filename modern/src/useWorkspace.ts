@@ -9,6 +9,8 @@ import {
   type LibraryItem,
 } from "./backend";
 
+import { notify } from "./statusNotice";
+
 export function useWorkspace() {
   const state = ref<AnalysisState>();
   const projectSession = ref(0);
@@ -104,6 +106,7 @@ export function useWorkspace() {
         }
         if (method === "paste") {
           await pasteRows("analysis", clipboardParams);
+          feedback = "Rows pasted.";
           await refresh();
           return;
         }
@@ -123,7 +126,7 @@ export function useWorkspace() {
         throw e;
       }
     }, "Updating analysis…");
-    if (ok && feedback) status.value = feedback;
+    if (ok && feedback) notify(feedback);
     return ok;
   }
   async function searchSchedule(page = 0) {

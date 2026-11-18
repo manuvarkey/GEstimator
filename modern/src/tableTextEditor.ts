@@ -56,7 +56,10 @@ function textEditor(multiline: boolean): Editor {
         cell.getRow().normalizeHeight();
       }
     };
-    onRendered(() => { input.focus({ preventScroll: true }); });
+    // Numeric cells (rates, quantities, percentages) are right-aligned. Their usual edit
+    // replaces the whole value, so start with it selected; text cells keep the caret at the end.
+    const numeric = params.selectAll ?? cell.getColumn().getDefinition().hozAlign === "right";
+    onRendered(() => { input.focus({ preventScroll: true }); if (numeric) input.select(); });
     input.addEventListener("blur", commit);
     input.addEventListener("input", resize);
     input.addEventListener("keydown", raw => {

@@ -63,3 +63,11 @@ def decimal(value):
         RecursionError,
     ) as exc:
         raise ValueError("Invalid numeric expression") from exc
+
+
+def tax_text(value):
+    """Tax percentage rounded to four places, shown without padding zeros (18, 2.5, 1.2345)."""
+    from estimator.data.schedule import Currency
+
+    text = str(Currency(value or 0, 4))
+    return text.rstrip("0").rstrip(".") if "." in text else text

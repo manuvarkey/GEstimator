@@ -179,6 +179,24 @@ fn main() {
             #[cfg(target_os = "linux")]
             {
                 use gtk::prelude::*;
+                // Undecorated GTK windows get no compositor shadow or resize border.
+                // Keep client-side decorations with an empty titlebar widget instead:
+                // GTK draws the shadow while the web titlebar stays the only title bar.
+                // Must run before the window is first shown (it starts hidden).
+                if let Some(window) = app.get_webview_window("main") {
+                    if let Ok(gtk_window) = window.gtk_window() {
+                        let titlebar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+                        // Themes give the `.titlebar` slot headerbar height and padding,
+                        // which leaves a transparent strip above the web titlebar.
+                        let css = gtk::CssProvider::new();
+                        let _ = css.load_from_data(b"* { min-height: 0; padding: 0; margin: 0; border: none; background: none; box-shadow: none; }");
+                        titlebar.style_context().add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+                        titlebar.set_size_request(-1, 0);
+                        titlebar.show();
+                        gtk_window.set_titlebar(Some(&titlebar));
+                        gtk_window.set_decorated(true);
+                    }
+                }
                 if let Some(settings) = gtk::Settings::default() {
                     *app.state::<DesktopTypography>().0.lock().unwrap() = gtk_font(&settings);
                     let handle = app.handle().clone();

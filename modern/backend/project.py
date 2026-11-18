@@ -11,7 +11,7 @@ from peewee import fn
 from estimator import misc
 from estimator.data import measurement
 from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
-from .numbers import decimal
+from .numbers import decimal, tax_text
 from estimator.data.schedule import ScheduleDatabase
 from estimator.undo import Stack
 
@@ -420,7 +420,7 @@ class ProjectEditor:
         )
         if resource:
             data.update(
-                vat=str(Currency(row.vat or 0, 4)),
+                vat=tax_text(row.vat),
                 discount=str(row.discount or 0),
                 reference=row.reference or "",
             )

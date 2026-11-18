@@ -16,6 +16,7 @@ import { programSettings } from "../programSettings";
 import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
+import { notify } from "../statusNotice";
 
 type View = "schedule" | "resources" | "measurement";
 interface GridRow {
@@ -94,7 +95,6 @@ const busy = ref(false);
 watch(busy, (value) => emit("busy", value));
 onBeforeUnmount(() => emit("busy", false));
 const error = ref("");
-const clipboardMessage = ref("");
 const query = ref("");
 const categoryFilters = ref<string[]>([]);
 watch(categoryFilters, () => { page.value = 0; void load(); });
@@ -209,7 +209,6 @@ const roundingOptions = [
   "Round to .000",
   "No rounding",
 ];
-const importResult = ref("");
 const importFields = computed(() =>
   props.view === "resources"
     ? [
@@ -476,17 +475,16 @@ async function command(
   params: Record<string, unknown> = {},
 ) {
   return run(async () => {
-    clipboardMessage.value = "";
     const clipboardParams = { revision: state.value?.revision, id: one.value?.id, ids: selectedItemIds(), source: source.value, ...params };
     const clipboardKind: ClipboardKind = operation.startsWith("record_") ? "records" : props.view;
     let result: { selected?: string[]; selected_records?: string[]; record_offset?: number } | undefined;
     if (operation === "copy" || operation === "record_copy") {
-      clipboardMessage.value = await copyRows(clipboardKind, clipboardParams);
+      notify(await copyRows(clipboardKind, clipboardParams));
       return;
     } else if (operation === "paste" || operation === "record_paste") {
       const pasted = await pasteRows(clipboardKind, clipboardParams);
       result = pasted;
-      clipboardMessage.value = pasted.unlinked ? `Rows pasted. ${pasted.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.";
+      notify(pasted.unlinked ? `Rows pasted. ${pasted.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.", pasted.unlinked ? 10000 : 5000);
     } else result = await request(
       operation.startsWith("project.")
         ? operation
@@ -675,7 +673,7 @@ async function showForm(mode = "add", child = false) {
     unit: "",
     rate: "0",
     qty: "0",
-    vat: "0.0000",
+    vat: "0",
     discount: "0",
     category: one.value?.category || (one.value?.rowtype === "Category" ? one.value.description : ""),
     parent: "",
@@ -929,7 +927,7 @@ async function applyImport() {
     await refresh();
     emit("changed");
     importOpen.value = false;
-    importResult.value = `Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`;
+    notify(`Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`, 8000);
   });
 }
 async function exportWorkbook() {
@@ -988,9 +986,7 @@ watch(
       >
     </div>
     <template v-else
-      ><p v-if="importResult" role="status">{{ importResult }}</p>
-      <p v-if="clipboardMessage" role="status">{{ clipboardMessage }}</p>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
+      ><div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div v-show="active" class="view-ribbon-tools">
           <template v-if="isMeasurement && entryId">
