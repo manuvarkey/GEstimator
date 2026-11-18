@@ -2716,7 +2716,7 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
   }
   await applyRecordsIfDirty(page);
   await page.locator('#view-analysis').click();
-  await expect(ribbon.getByRole('button', { name: 'Hide explorer', exact: true }).locator('path')).toHaveAttribute('d', /M9 4v16/);
+  await expect(ribbon.getByRole('button', { name: 'Hide explorer', exact: true }).locator('svg')).toHaveAttribute('data-icon', 'panel-left');
   await expect(ribbon.getByRole('button', { name: 'Hide analysis inspector', exact: true })).not.toHaveClass(/ribbon-icon/);
   await expect(ribbon.getByRole('button', { name: 'Delete', exact: true })).toHaveCSS('color', 'rgb(252, 165, 165)');
 });
@@ -3386,7 +3386,11 @@ test('arrows edit text within a cell and toolbar SVGs use two-tone engineering i
     await expect(icon).toHaveCSS('color', color!);
     await expect(icon).toHaveCSS('stroke-linecap', 'round');
     await expect(icon).toHaveCSS('stroke-linejoin', 'round');
-    await expect(icon).toHaveCSS('stroke-width', '1.6px');
+    // B2-style line weight: 1.25–1.75 rendered px at toolbar sizes.
+    const renderedStroke = await icon.evaluate(el => parseFloat(getComputedStyle(el).strokeWidth) * el.getBoundingClientRect().width / 24);
+    expect(renderedStroke).toBeGreaterThanOrEqual(1.2);
+    expect(renderedStroke).toBeLessThanOrEqual(1.8);
+    await expect(icon.locator('.icon-accent')).toHaveCount(0);
     await page.screenshot({ path: `test-results/monochrome-toolbar-${theme}.png`, animations: 'disabled' });
   }
   await page.locator('.project-view:visible').getByText('Foundation', { exact: true }).click();
@@ -3486,9 +3490,9 @@ test('clipboard icons and toolbar hover outlines remain sharp without changing b
     const copy = ribbon.getByRole('button', { name: 'Copy', exact: true });
     for (const name of ['Copy', 'Paste']) {
       const icon = ribbon.getByRole('button', { name, exact: true }).locator('svg');
-      await expect(icon).toHaveAttribute('fill', 'currentColor');
-      await expect(icon).toHaveAttribute('stroke', 'none');
-      await expect(icon).toHaveAttribute('shape-rendering', 'crispEdges');
+      await expect(icon).toHaveAttribute('fill', 'none');
+      await expect(icon).toHaveAttribute('stroke', 'currentColor');
+      await expect(icon.locator('.icon-accent')).toHaveCount(1);
       await expect(icon).toHaveCSS('color', color!);
     }
     for (const button of [copy, ribbon.getByRole('button', { name: 'Add item', exact: true }), page.locator('.titlebar').getByRole('button', { name: 'Save copy', exact: true })]) {
@@ -3972,7 +3976,7 @@ test('measurement draft puts type and ordered actions on the first row in both t
     await expect(page.locator('.titlebar')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(42, 42, 50)' : 'rgb(244, 244, 245)');
     await expect(page.locator('.ribbon')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(51, 51, 60)' : 'rgb(255, 255, 255)');
     const icon = page.getByRole('button', { name: 'Import records…', exact: true }).locator('svg');
-    await expect(icon.locator('.icon-accent')).toHaveCSS('stroke', 'rgb(217, 119, 6)');
+    await expect(icon.locator('.icon-accent')).toHaveCSS('stroke', theme === 'dark' ? 'rgb(217, 119, 6)' : 'rgb(180, 83, 9)');
     await expect(icon).toHaveCSS('color', theme === 'dark' ? 'rgb(190, 189, 189)' : 'rgb(95, 95, 101)');
     await page.screenshot({ path: `test-results/measurement-type-header-${theme}.png`, animations: 'disabled' });
   }
@@ -3988,7 +3992,7 @@ test('analysis header save applies without leaving and failed saves retain the d
   await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
   const header = page.getByRole('region', { name: 'Analysis draft', exact: true });
   const save = header.getByRole('button', { name: 'Save analysis without leaving', exact: true });
-  expect((await header.getByRole('button').allTextContents()).map(text => text.trim())).toEqual(['Discard analysis', 'Save analysis', 'Apply analysis']);
+  await expect(header.getByRole('button')).toHaveText(['Discard analysis', 'Save analysis', 'Apply analysis']);
   const actions = await header.getByRole('button').evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect()));
   expect(new Set(actions.map(rect => Math.round(rect.height))).size).toBe(1);
   expect(actions[0]!.x + actions[0]!.width).toBeLessThanOrEqual(actions[1]!.x);

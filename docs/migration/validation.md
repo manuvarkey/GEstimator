@@ -562,3 +562,9 @@ Production build, `git diff --check` and **3 focused browser scenarios passed**.
 Analysis header actions are ordered **Discard analysis → Save analysis → Apply analysis**. Save uses the shared labelled green action styling and retains the editor; Apply returns to Schedule. Current locally maintained icons remain in production. The OpenAEC comparison is retained under `artifacts/icon-comparison` for separate review.
 
 Validation: production build, `git diff --check` and **3 focused browser scenarios passed**. Header action order, equal button heights, save-without-leaving, failed-save retention and finish-and-return behavior are covered.
+
+## 2026-11-19 — B2-style icon redraw
+
+All `AppIcon` glyphs were redrawn locally in the OpenAEC B2 visual grammar: rounded 1.6-unit corners, open line work, about 1.25 px lines at 16–18 px and 1.75 units on CSS-sized ribbon icons, a neutral body and at most one small amber detail. Navigation, window and state glyphs are monochrome. Oversized accents (import/export arrows, help glyph, library book, undo/redo heads, percent slash, half-plus) were removed or reduced. Copy/Paste are now stroked like the rest, replacing the filled crisp-edge special case. The light-theme `--icon-accent` is `#b45309` (about 5:1 on white panels). No B2 artwork is copied.
+
+Validation: production build passed; full browser suite 73/75 on the first run. The pane-icon test now asserts `data-icon` instead of path data, and the analysis header order check uses an auto-waiting assertion; both pass. `schedule row colour is visible and undoable` also fails on the unchanged checkpoint and is unrelated. Icon contact sheets and ribbon screenshots were inspected in both themes.

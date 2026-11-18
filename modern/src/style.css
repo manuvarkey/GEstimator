@@ -2126,7 +2126,8 @@ textarea.measurement-entry-title {
 .shortcut-group h3 { margin: 0; padding-bottom: 6px; color: var(--accent); font-size: var(--text-size-ui); border-bottom: 1px solid var(--line); }
 .shortcut-list > div { flex-wrap: wrap; gap: 6px 15px; }
 
-.ribbon svg, .titlebar svg { stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+/* Ribbon SVGs are CSS-sized to 20–24 px: use the B2 24-grid weight (1.75 units). */
+.ribbon svg { stroke-width: 1.75; }
 .titlebar .icon-button svg { color: var(--toolbar-icon); }
 
 /* Long descriptions must not squeeze tree markers before/after editing. */
