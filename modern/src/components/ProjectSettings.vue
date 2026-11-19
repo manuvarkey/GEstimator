@@ -50,7 +50,7 @@ async function save() {
             <button type="button" role="tab" :aria-selected="tab === 'preview'" :class="{ active: tab === 'preview' }" @click="tab = 'preview'">Preview</button>
           </div>
         </div>
-        <textarea v-if="tab === 'write'" v-model="settings.project_metadata" class="notes-editor" aria-labelledby="project-notes-label" :disabled="saving"
+        <textarea v-if="tab === 'write'" v-model="settings.project_metadata" class="notes-editor" data-multiline aria-labelledby="project-notes-label" :disabled="saving"
           placeholder="# Scope&#10;Describe the source, rate basis, revision date and conventions. **Bold**, *italics*, lists and headings are supported." />
         <div v-else class="notes-preview markdown" aria-labelledby="project-notes-label" v-html="preview || '<p class=&quot;field-hint&quot;>Nothing to preview.</p>'" />
         <p class="field-hint">Shown to MCP clients with this database. Markdown: # headings, **bold**, *italics*, `code`, - lists, &gt; quotes.</p>

@@ -2185,7 +2185,13 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
     .getByLabel("Project name", { exact: true })
     .fill("New desktop estimate");
   // Database notes: Markdown with a rendered preview, kept with the project.
-  await settings.getByLabel("Database notes", { exact: true }).fill("# Scope\n**Rates** as on *2025*\n- GST included\n<script>x</script>");
+  const notesEditor = settings.getByLabel("Database notes", { exact: true });
+  await notesEditor.fill("# Scope");
+  // Enter adds a line in the notes instead of applying the dialog.
+  await notesEditor.press("Enter");
+  await expect(settings).toBeVisible();
+  await expect(notesEditor).toHaveValue("# Scope\n");
+  await notesEditor.fill("# Scope\n**Rates** as on *2025*\n- GST included\n<script>x</script>");
   await settings.getByRole("tab", { name: "Preview" }).click();
   const notes = settings.locator(".notes-preview");
   await expect(notes.locator("h1")).toHaveText("Scope");

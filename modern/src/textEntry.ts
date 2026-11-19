@@ -11,6 +11,8 @@ export function installTextEntry() {
       return;
     }
     if (event.key !== "Enter" || event.isComposing || !(input instanceof HTMLTextAreaElement) || input.disabled || input.readOnly || input.closest(".tabulator")) return;
+    // Free-text editors (e.g. Markdown notes) opt out: Enter is a line break there.
+    if (input.dataset.multiline !== undefined) return;
     event.preventDefault();
     event.stopPropagation();
     if (event.shiftKey || event.ctrlKey || event.metaKey) {
