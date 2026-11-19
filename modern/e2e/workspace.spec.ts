@@ -799,8 +799,11 @@ test("database pickers retain their table, source, filters, selection, page and 
       expect(await table.locator(".tabulator-tableholder").evaluate(element => element.scrollTop)).toBeCloseTo(scroll, 0);
       expect(frontendRequests.filter(method => method === kind + ".editor.state:library")).toHaveLength(reads);
     }
-    await page.keyboard.press("Escape");
-    await expect(picker).not.toBeVisible();
+    // Escape can land during the opening animation; retry until it closes.
+    await expect(async () => {
+      await page.keyboard.press("Escape");
+      await expect(picker).not.toBeVisible({ timeout: 500 });
+    }).toPass();
   }
 });
 
