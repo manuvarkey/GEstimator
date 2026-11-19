@@ -30,6 +30,8 @@ import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectLanding from "./components/ProjectLanding.vue";
+import DocumentRail from "./components/DocumentRail.vue";
+import { activeDocument, activeTab as currentDocument, closeConfirmed, closeDocument, createDocument, documentForPath, documents, pendingPaths, startup, switchDocument, takeDocumentAction, updateDocument, type DocumentAction } from "./documents";
 import { statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
@@ -127,10 +129,13 @@ const views = [
 const settingsOpen = ref(false);
 const settings = ref<Record<string, string>>({});
 // Start on Schedule: with no project open it shows the landing page.
+// Each project tab remounts this workspace; restore the tab's last editor.
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
-  "schedule",
+  currentDocument.value.view,
 );
-const activeTab = ref<(typeof views)[number]["key"]>("schedule");
+const activeTab = ref<(typeof views)[number]["key"]>(currentDocument.value.view);
+const documentId = activeDocument.value;
+watch(activeView, view => updateDocument(documentId, { view }));
 const measurementEntry = ref<string>();
 // Project views show the landing page (and no ribbon tools) until a project is open.
 const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
@@ -215,6 +220,55 @@ async function syncMCPChanges() {
 }
 const projectBusy = ref(false);
 const uiBusy = computed(() => busy.value || projectBusy.value);
+watch(() => [state.value?.project_open, projectName.value, state.value?.source_path, state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty] as const,
+  ([open, title, path, dirty]) => { if (state.value) updateDocument(documentId, { open: !!open, title, path: path || null, dirty: !!dirty }); });
+/** New and opened projects use a new tab when this tab already holds a project. */
+async function inNewDocument(action: DocumentAction) {
+  if (action.type === "open") {
+    const existing = documentForPath(action.path);
+    if (existing) { if (existing.id !== documentId) await switchDocument(existing.id); return true; }
+  }
+  if (!state.value?.project_open) return false;
+  try { await createDocument(action); }
+  catch (reason) { error.value = String(reason); }
+  return true;
+}
+async function switchProjectTab(id: string) {
+  if (uiBusy.value || id === documentId) return;
+  try { await switchDocument(id); } catch (reason) { error.value = String(reason); }
+}
+async function addProjectTab() {
+  if (uiBusy.value) return;
+  try { await createDocument(); } catch (reason) { error.value = String(reason); }
+}
+/** Close a tab; unsaved work in the tab is offered for Save/Discard first. */
+async function closeProjectTab(id: string) {
+  if (uiBusy.value) return;
+  const tab = documents.value.find(item => item.id === id);
+  if (!tab) return;
+  try {
+    if (id !== documentId) {
+      if (tab.dirty) await switchDocument(id, { type: "close-tab" });
+      else await closeDocument(id);
+      return;
+    }
+    await navigate(async discard => {
+      if (discard) await request("recovery.discard");
+      await closeDocument(id);
+    }, true);
+  } catch (reason) { error.value = String(reason); }
+}
+async function cycleProjectTab(delta: number) {
+  const index = documents.value.findIndex(tab => tab.id === documentId);
+  const next = documents.value[(index + delta + documents.value.length) % documents.value.length];
+  if (next) await switchProjectTab(next.id);
+}
+/** Window close: every tab with unsaved work is offered for Save/Discard in turn. */
+async function continueWindowClose() {
+  const other = documents.value.find(tab => tab.id !== documentId && tab.dirty && !closeConfirmed.has(tab.id));
+  if (other) await switchDocument(other.id, { type: "close-window" });
+  else await getCurrentWindow().destroy();
+}
 
 let pendingProject = false;
 const duplicateCode = ref("");
@@ -307,6 +361,7 @@ const groupId = ref("");
 const discardOpen = ref(false);
 let pending: ((discard: boolean) => Promise<unknown>) | undefined;
 let finishOsOpen: (() => void) | undefined;
+let switchingAway = false;
 let unsubscribers: UnlistenFn[] = [];
 const rowKinds: {
   kind: RowKind;
@@ -401,6 +456,7 @@ async function discard() {
   await action?.(true);
 }
 function cancelDiscard() {
+  closeConfirmed.clear();
   pending = undefined;
   discardOpen.value = false;
   finishOsOpen?.();
@@ -409,6 +465,16 @@ function cancelDiscard() {
 async function openOsProject(path: string) {
   while (uiBusy.value || discardOpen.value || fileMode.value !== null) {
     await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (switchingAway) { pendingPaths.push(path); return; }
+  const existing = documentForPath(path);
+  if (existing?.id === documentId) return;
+  if (existing || state.value?.project_open) {
+    // The next tab's workspace drains the remaining OS requests.
+    switchingAway = true;
+    await inNewDocument({ type: "open", path });
+    if (activeDocument.value === documentId) switchingAway = false;
+    return;
   }
   await new Promise<void>((resolve, reject) => {
     finishOsOpen = resolve;
@@ -434,6 +500,7 @@ async function showFile(mode: "open" | "save") {
   } catch (reason) { error.value = String(reason); }
 }
 async function openProjectPath(path: string) {
+  if (await inNewDocument({ type: "open", path })) return;
   await navigate(async discard => {
     if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
   }, true);
@@ -451,6 +518,7 @@ async function refreshRecovery() {
 }
 async function recoverProject(id: string) {
   fileMode.value = null;
+  if (await inNewDocument({ type: "recover", id })) return;
   await navigate((discard) => w.openProject(id, discard, true), true);
 }
 async function browse() {
@@ -470,6 +538,7 @@ async function submitFile() {
   if (!path) return;
   if (fileMode.value === "open") {
     fileMode.value = null;
+    if (await inNewDocument({ type: "open", path })) return;
     await navigate(async (discard) => {
       if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
     }, true);
@@ -567,6 +636,14 @@ function keyboard(event: KeyboardEvent) {
     void travelNavigation(event.key === "ArrowLeft" ? -1 : 1);
     return;
   }
+  if (mod && (key === "t" || key === "w" || event.key === "Tab")) {
+    event.preventDefault();
+    if (uiBusy.value) return;
+    if (key === "t") void addProjectTab();
+    else if (key === "w") void closeProjectTab(documentId);
+    else void cycleProjectTab(event.shiftKey ? -1 : 1);
+    return;
+  }
   if (mod && ["o", "s"].includes(key)) {
     event.preventDefault();
     if (busy.value || projectBusy.value) return;
@@ -637,6 +714,7 @@ function keyboard(event: KeyboardEvent) {
   } else if (event.key === "Escape") analysisTable.value?.clearSelection();
 }
 async function newProject() {
+  if (await inNewDocument({ type: "new" })) return;
   await navigate(async (discard) => {
     await w.run(async () => {
       await request("project.new", { discard });
@@ -821,12 +899,17 @@ onMounted(async () => {
             event.preventDefault();
             return;
           }
-          if (state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty) {
+          const dirty = state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty;
+          if (dirty && !closeConfirmed.has(documentId)) {
             event.preventDefault();
             await navigate(async (discard) => {
               if (discard) await request("recovery.discard");
-              await getCurrentWindow().destroy();
+              closeConfirmed.add(documentId);
+              await continueWindowClose();
             }, true);
+          } else if (documents.value.some(tab => tab.id !== documentId && tab.dirty && !closeConfirmed.has(tab.id))) {
+            event.preventDefault();
+            await continueWindowClose();
           }
         }),
       );
@@ -835,8 +918,13 @@ onMounted(async () => {
     unsubscribers.push(await installProjectOpening(openOsProject, message => { error.value = message; }));
     await initializeMCP();
     mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
-    await refreshRecovery();
-    if (recoveryProjects.value.length && !state.value?.project_open) await showFile("open");
+    const action = takeDocumentAction();
+    if (!startup.done) {
+      startup.done = true;
+      await refreshRecovery();
+      if (recoveryProjects.value.length && !state.value?.project_open) await showFile("open");
+    } else if (action) void runDocumentAction(action);
+    else if (pendingPaths.length) void openOsProject(pendingPaths.shift()!);
   } catch (reason) {
     error.value = String(reason);
   }
@@ -854,6 +942,16 @@ onMounted(async () => {
   }
   if (isTauri()) await getCurrentWindow().show();
 });
+/** Work handed over by the tab that created or activated this one. */
+async function runDocumentAction(action: DocumentAction) {
+  await nextTick();
+  if (action.type === "new") await newProject();
+  else if (action.type === "open") await openProjectPath(action.path);
+  else if (action.type === "recover") await recoverProject(action.id);
+  else if (action.type === "close-tab") await closeProjectTab(documentId);
+  else if (action.type === "close-window") await getCurrentWindow().close();
+  while (pendingPaths.length && !switchingAway) await openOsProject(pendingPaths.shift()!);
+}
 onBeforeUnmount(() => {
   if (mcpPoll) clearInterval(mcpPoll);
   window.removeEventListener("keydown", keyboard);
@@ -1147,6 +1245,7 @@ onBeforeUnmount(() => {
       <button class="text-button" :disabled="uiBusy" @click="libraryManagerOpen = true">Manage libraries</button>
     </div>
     <div class="workspace">
+      <DocumentRail :busy="uiBusy" @switch="switchProjectTab" @close="closeProjectTab" @add="addProjectTab" />
       <aside v-show="sidebar && activeView === 'analysis'" class="explorer">
         <div class="panel-heading"><span>PROJECT EXPLORER</span></div>
         <div class="explorer-project">

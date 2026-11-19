@@ -53,16 +53,21 @@ interface Response<T> {
   result?: T;
   error?: { code: string; message: string };
 }
+// Each open document tab is a backend session; requests go to the active tab.
+let backendSession = "main";
+export function setBackendSession(session: string) { backendSession = session; }
+export function currentBackendSession() { return backendSession; }
 export async function request<T>(
   method: string,
   params: Record<string, unknown> = {},
+  session = backendSession,
 ): Promise<T> {
   const started = performance.now();
   debugAction("request.start", { method, fields: Object.keys(params) });
   let response: Response<T>;
   try {
     response = await invoke<Response<T>>("backend_request", {
-      request: { id: crypto.randomUUID(), method, params },
+      request: { id: crypto.randomUUID(), method, params, session },
     });
   } catch (error) {
     debugAction("request.failed", { method, ms: Math.round(performance.now() - started), code: "transport" });

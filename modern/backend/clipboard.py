@@ -181,7 +181,8 @@ def export(service, params):
         service.guard_draft(params, records=not service.project_editor.records_operation("clipboard.export", params))
         editor = service.project_editor
         if kind in ("schedule", "resources"):
-            cats, records = editor.selection(kind, params.get("ids"))
+            # GTK copies only the selected rows; selected categories bring their contents.
+            cats, records = editor.selection(kind, params.get("ids"), include_descendants=False)
             categories = [cat.description for cat in cats]
             records.sort(key=order if kind == "schedule" else lambda row: (row.category.order, row.order, row.id))
             models = [(service.db.get_item(row.code, modify_res_code=False) if kind == "schedule" else service.db.get_resource(row.code)) for row in records]
@@ -221,7 +222,10 @@ def export(service, params):
         raise ValueError("Selection is too large for the system clipboard; copy fewer rows")
     if not items and not categories:
         raise ValueError("Select one or more rows to copy")
-    data = json.dumps(dict(format=FORMAT, version=1, kind=kind, items=items, categories=categories, dependencies=dependencies), ensure_ascii=False)
+    document = dict(format=FORMAT, version=1, kind=kind, items=items, categories=categories, dependencies=dependencies)
+    if kind == "schedule":
+        document["instance"] = service.instance_code()
+    data = json.dumps(document, ensure_ascii=False)
     if len(data) > MAX_TEXT:
         raise ValueError("Selection is too large for the system clipboard; copy fewer rows")
     return data
@@ -270,16 +274,16 @@ def decode(data, expected, service):
         codes = {item.code for item in items}
         if len(codes) != len(items):
             raise ValueError("Duplicate copied schedule codes")
+        # Keep the copied order (GTK pastes rows in sequence) and each parent
+        # code: a subitem copied without its parent still pastes as a subitem.
+        parents = {item.code: item.parent for item in items}
         for item in items:
-            if item.parent not in codes:
-                item.parent = None
-        pending, items = {item.code: item for item in items}, []
-        while pending:
-            ready = [item for item in pending.values() if item.parent not in pending]
-            if not ready:
-                raise ValueError("Copied schedule hierarchy contains a cycle")
-            for item in ready:
-                items.append(pending.pop(item.code))
+            seen, current = {item.code}, item.parent
+            while current in parents:
+                if current in seen:
+                    raise ValueError("Copied schedule hierarchy contains a cycle")
+                seen.add(current)
+                current = parents[current]
         dependencies = [schedule_model(value) for value in array(document.get("dependencies", []))]
         dependency_codes = {item.code for item in dependencies}
         if len(dependency_codes) != len(dependencies) or dependency_codes.intersection(codes):
@@ -294,7 +298,10 @@ def decode(data, expected, service):
         if any(obj(value).get("template") != item.itemtype for value in values):
             raise ValueError("Copied records must use the same measurement template")
         items = (item.itemtype, [record_values(value.get("values"), item) for value in values])
-    return kind, items, categories, dependencies, missing
+    instance = document.get("instance") if kind == "schedule" else None
+    if instance is not None and not (isinstance(instance, str) and re.fullmatch(r"[0-9A-F]{1,16}", instance)):
+        raise ValueError("Invalid clipboard instance code")
+    return kind, items, categories, dependencies, missing, instance
 
 
 def paste(service, params):
@@ -303,7 +310,10 @@ def paste(service, params):
         raise ValueError("Library snapshots are read-only")
     if kind != "analysis" and not service.db:
         raise ValueError("Open a project first")
-    kind, items, categories, dependencies, missing = decode(params.get("data"), kind, service)
+    kind, items, categories, dependencies, missing, instance = decode(params.get("data"), kind, service)
+    # GTK: rows from another project keep their own resources under
+    # "<instance>.<code>" instead of merging with same-coded local ones.
+    local = instance if instance and instance != service.instance_code() else None
     if kind == "analysis":
         previous = service.clipboard
         try:
@@ -323,16 +333,18 @@ def paste(service, params):
                 if not table.select().where(table.description == category).exists() and insert(category, [-1]) is False:
                     raise ValueError("Unable to paste category")
             for dependency in dependencies:
+                if local is not None and ":" not in dependency.code:
+                    dependency.code = local + "." + dependency.code
                 existing = service.db.get_item(dependency.code, copy_ana=False)
                 if existing and existing.category != misc.SUB_ANA_TITLE:
                     raise ValueError("Copied sub-analysis conflicts with schedule item " + dependency.code)
                 if not existing:
                     dependency.category, dependency.parent = misc.SUB_ANA_TITLE, None
-                    if not service.db.insert_item(dependency):
+                    if not service.db.insert_item_atomic(dependency, local_res_code=local):
                         raise ValueError("Unable to paste referenced sub-analysis")
             editor.clipboard = (kind, items)
             if items:
-                return editor.edit(kind, "paste", dict(params, preserve_categories=bool(categories)))
+                return editor.edit(kind, "paste", dict(params, preserve_categories=bool(categories), _local_res_code=local))
         elif kind == "measurement":
             editor.clipboard = (kind, items)
             return editor.measurement_edit("paste", params)

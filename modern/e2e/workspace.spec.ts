@@ -21,8 +21,8 @@ let frontendRequests: string[] = [];
 let frontendCalls: { method: string; params: Record<string, any> }[] = [];
 let nativeDialogResults: (string | null)[] = [];
 let backend: ReturnType<typeof createBackend>;
-function call(method: string, params: Record<string, unknown> = {}) {
-  return backend.call(method, params);
+function call(method: string, params: Record<string, unknown> = {}, session?: string) {
+  return backend.call(method, params, session);
 }
 function createBackend() {
   const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
@@ -43,11 +43,11 @@ function createBackend() {
   });
   return {
     child: process,
-    call(method: string, params: Record<string, unknown> = {}) {
+    call(method: string, params: Record<string, unknown> = {}, session?: string) {
       const id = String(++sequence);
       return new Promise<any>((resolve, reject) => {
         pending.set(id, { resolve, reject });
-        process.stdin.write(JSON.stringify({ id, method, params }) + "\n");
+        process.stdin.write(JSON.stringify({ id, method, params, session }) + "\n");
       });
     },
   };
@@ -62,7 +62,7 @@ async function connectDesktop(page: Page, transport = call) {
     frontendRequests.push(request.method + (request.params?.source ? ":library" : ""));
     if (request.method === "measurement.state" && measurementDelay)
       await new Promise(resolve => setTimeout(resolve, measurementDelay));
-    return transport(request.method, request.params);
+    return transport(request.method, request.params, request.session);
   });
   await page.exposeBinding("nativeDialogTransport", () => nativeDialogResults.shift() ?? null);
   await page.exposeBinding("clipboardTransport", (_source, method, text) => {
@@ -283,6 +283,59 @@ test("landing page starts, opens and reopens recent projects when none is open",
   await recent.getByRole("button", { name: /landing/ }).click();
   await expect(landing).not.toBeVisible();
   await expect(page.locator(".project-view:visible .project-main-grid .tabulator-row").first()).toBeVisible();
+});
+
+test("project tabs keep separate projects in a vertical rail", async ({ page }) => {
+  const landing = page.getByRole("region", { name: "Start an estimate" });
+  const rail = page.getByRole("navigation", { name: "Open projects" });
+  const tabs = rail.getByRole("tab");
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "tabs.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  await page.locator("#view-schedule").click();
+  await expect(tabs).toHaveCount(1);
+  nativeDialogResults.push(project);
+  await landing.getByRole("button", { name: /Open project/ }).click();
+  await expect(grid).toContainText("Foundation");
+  // New project while a project is open: a second tab, the first stays open.
+  await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
+  await expect(tabs).toHaveCount(2);
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(grid).toBeVisible();
+  await expect(grid).not.toContainText("Foundation");
+  await page.mouse.move(1, 1);
+  await page.screenshot({ path: "test-results/project-tabs.png", animations: "disabled" });
+  // Switching back restores the first project from its own session.
+  await tabs.nth(0).click();
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(grid).toContainText("Foundation");
+  // Opening the already open project switches to its tab instead of duplicating it.
+  await tabs.nth(1).click();
+  await expect(grid).not.toContainText("Foundation");
+  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
+  const openDialog = page.getByRole("dialog", { name: /Open project/ });
+  await openDialog.getByLabel("Project file").fill(project);
+  await openDialog.getByLabel("Project file").press("Enter");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs).toHaveCount(2);
+  // The add tile opens an empty tab with the landing page; closing it keeps the others.
+  await rail.getByRole("button", { name: "New project tab", exact: true }).click();
+  await expect(tabs).toHaveCount(3);
+  await expect(landing).toBeVisible();
+  await tabs.nth(2).hover();
+  await rail.getByRole("button", { name: "Close Empty tab", exact: true }).click();
+  await expect(tabs).toHaveCount(2);
+  await expect(grid).toBeVisible();
+  // Ctrl+Tab cycles tabs; Ctrl+W closes a clean tab.
+  const selected = await tabs.evaluateAll(items => items.findIndex(item => item.getAttribute("aria-selected") === "true"));
+  await page.keyboard.press("Control+Tab");
+  await expect(tabs.nth(1 - selected)).toHaveAttribute("aria-selected", "true");
+  // Shortcuts wait until the remounted tab finished connecting.
+  await expect(async () => {
+    await page.keyboard.press("Control+o");
+    await expect(page.getByRole("dialog", { name: /Open project/ })).toBeVisible({ timeout: 500 });
+  }).toPass();
 });
 
 test("landing page creates a new project", async ({ page }) => {
@@ -637,6 +690,10 @@ for (const kind of ["schedule", "resources"] as const) test(`database ${kind} pi
   await expect(grid.locator('.tabulator-selected[data-kind="Group"]')).toHaveCount(0);
   await expect(grid.locator(".cell-range-selected,.cell-focused")).toHaveCount(0);
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+  // Selected rows are highlighted without hover (the shell row surface must not hide them).
+  await page.mouse.move(1, 1);
+  const background = (row: string) => grid.locator(row).first().evaluate(element => getComputedStyle(element).backgroundColor);
+  expect(await background('.tabulator-row.tabulator-selected')).not.toBe(await background('.tabulator-row:not(.tabulator-selected)'));
   await page.screenshot({ path: `test-results/database-${kind}-row-selection.png`, animations: "disabled" });
   await picker.getByRole("button", { name: "Add selected items", exact: true }).click();
   await expect(picker).not.toBeVisible();
@@ -1057,7 +1114,8 @@ test("system row clipboard transfers schedule, resources and analysis between in
     await expect.poll(() => { try { return JSON.parse(systemClipboard).kind; } catch { return ""; } }).toBe("resources");
     await destination.locator("#view-resources").click();
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
-    await expect(destination.locator('.project-main-grid .tabulator-row [tabulator-field="code"]').filter({ hasText: /^R-copy$/ })).toHaveCount(1);
+    // GTK numbering: the pasted resource gets a new code after the selection.
+    await expect(destination.locator('.project-main-grid .tabulator-row [tabulator-field="description"]').filter({ hasText: /^Material$/ })).toHaveCount(2);
     systemClipboard = "ordinary text";
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
     await expect(destination.getByRole("alert")).toContainText("valid GEstimator rows");
@@ -1866,10 +1924,11 @@ test("real project navigation protects unsaved drafts and save-copy clears dirty
   await dialog
     .getByRole("button", { name: "Open project", exact: true })
     .click();
-  await expect(
-    page.getByRole("dialog", { name: "Keep your analysis changes?" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Keep editing" }).click();
+  // The other project opens in a new tab; this project and its draft stay open.
+  const projectTabs = page.getByRole("navigation", { name: "Open projects" }).getByRole("tab");
+  await expect(projectTabs).toHaveCount(2);
+  await expect(projectTabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await projectTabs.nth(0).click();
   await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
   const output = resolve(directory, "review.eproj");
   nativeDialogResults.push(output);
@@ -3799,16 +3858,20 @@ test('OS project requests serialize through the unsaved guard and reject invalid
   await qty.locator('input').fill('3');
   await qty.locator('input').press('Enter');
   const before = frontendCalls.filter(call => call.method === 'project.open').length;
+  const tabs = page.getByRole('navigation', { name: 'Open projects' }).getByRole('tab');
+  // The already open project keeps its tab and its unapplied analysis.
   await emitOs([project]);
-  const guard = page.getByRole('dialog', { name: /Keep your analysis/ });
-  await expect(guard).toBeVisible();
-  await guard.getByRole('button', { name: 'Keep editing', exact: true }).click();
-  expect(frontendCalls.filter(call => call.method === 'project.open')).toHaveLength(before);
   await expect(page.locator('.summary-value')).toContainText('30.00');
-  await emitOs([project], true);
-  await expect(guard).toBeVisible();
-  await guard.getByRole('button', { name: 'Discard changes', exact: true }).click();
+  expect(frontendCalls.filter(call => call.method === 'project.open')).toHaveLength(before);
+  await expect(tabs).toHaveCount(1);
+  // Another project opens in a new tab without discarding this draft.
+  const second = resolve(directory, 'second.eproj');
+  await copyFile(project, second);
+  await emitOs([second], true);
   await expect.poll(() => frontendCalls.filter(call => call.method === 'project.open').length).toBe(before + 1);
+  await expect(tabs).toHaveCount(2);
+  await tabs.nth(0).click();
+  await expect(page.locator('.summary-value')).toContainText('30.00');
   await emitOs(['/tmp/not-a-project.txt'], true);
   await expect(page.getByRole('alert').filter({ hasText: 'Not a GEstimator project' })).toBeVisible();
   await emitOs([resolve(directory, 'missing file.eproj')]);

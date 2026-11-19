@@ -1,3 +1,4 @@
+import json
 import copy
 import tempfile
 import unittest
@@ -61,10 +62,34 @@ class EditorParity(unittest.TestCase):
         self.assertEqual([row["code"] for row in state["rows"][0]["_children"][0]["_children"]], ["1.0", "1.1", "1.2"])
         wire = self.call("clipboard.export", kind="schedule", ids=[first])
         self.call("clipboard.paste", kind="schedule", data=wire, id=parent)
-        # A copied standalone child becomes a root when its parent is not copied.
-        self.assertEqual([row.code for row in table.select().where(table.parent.is_null()).order_by(table.order)], ["1", "1.1-copy", "2"])
+        # GTK: a subitem pasted on a priced (non-heading) main item follows it as a
+        # main item, numbered from the selection ("2" exists, so the "_" fallback).
+        self.assertEqual([row.code for row in table.select().where(table.parent.is_null()).order_by(table.order)], ["1", "_1", "2"])
         self.call("project.undo")
-        self.assertFalse(table.select().where(table.code == "1.1-copy").exists())
+        self.assertFalse(table.select().where(table.code == "_1").exists())
+
+    def test_paste_follows_gtk_selection_rules(self):
+        heading = self.add("1", unit="")
+        child = self.call("schedule.editor.add", id=heading, data=dict(code="1.1", parent="1", unit="m"))["selected"][0]
+        other = self.add("2", unit="m")
+        table = self.service.db.ScheduleTable
+        wire = self.call("clipboard.export", kind="schedule", ids=[child])
+        # Selected heading: the copied subitem becomes its first child.
+        self.call("clipboard.paste", kind="schedule", data=wire, id=heading, ids=[heading])
+        children = [row.code for row in table.select().where(table.parent == int(heading)).order_by(table.suborder)]
+        # "1.1" is taken, so GTK numbering falls back to "_1".
+        self.assertEqual(children, ["_1", "1.1"])
+        # Selected subitem: the paste follows it as the next sibling.
+        self.call("clipboard.paste", kind="schedule", data=wire, ids=[child])
+        children = [row.code for row in table.select().where(table.parent == int(heading)).order_by(table.suborder)]
+        self.assertEqual(children, ["_1", "1.1", "1.3"])
+        # Selected main item: a copied main item follows it; no -copy suffix.
+        wire = self.call("clipboard.export", kind="schedule", ids=[other])
+        self.call("clipboard.paste", kind="schedule", data=wire, ids=[other])
+        roots = [row.code for row in table.select().where(table.parent.is_null()).order_by(table.order)]
+        self.assertEqual(roots, ["1", "2", "3"])
+        # Copy takes only the selected rows, not the heading's children.
+        self.assertEqual(len(json.loads(self.call("clipboard.export", kind="schedule", ids=[heading]))["items"]), 1)
 
     def test_resources_generate_codes_and_insert_after_or_at_category_start(self):
         first = self.call("resources.editor.add", data=dict(code="R1", category="Materials"))["selected"][0]

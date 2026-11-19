@@ -81,3 +81,32 @@ class BatchAdditionsTests(unittest.TestCase):
         self.assertEqual(len(self.service.history), 2)
         self.call("undo")
         self.assertEqual(self.call("state")["rows"], before["rows"])
+
+
+class LibraryRateTests(unittest.TestCase):
+    def test_import_keeps_stored_library_rate_like_gtk(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "rates.eproj"
+        db = ScheduleDatabase(Stack())
+        db.create_new_database(str(path))
+        resource = ResourceItemModel("R", "R", "kg", Decimal("5"), category="Materials")
+        db.insert_resource(resource)
+        item = ScheduleItemModel("X", "X", "m", Decimal("99"), category="Work")
+        item.resources = {"R": resource}
+        item.add_ana_group("Materials")
+        item.add_ana_res(["R", Decimal("1"), ""], 0)
+        db.insert_item(item)
+        db.close_database()
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        source = call("library.attach", path=str(path))[0]["id"]
+        rows = call("schedule.editor.state", source=source)["rows"]
+        ids = [child["id"] for row in rows for child in row.get("_children", [])]
+        call("schedule.editor.add_from_library", source=source, ids=ids)
+        self.assertEqual(service.db.get_item("X").rate, Decimal("99"))
+        call("project.undo")
+        call("schedule.editor.add_from_library", source=source, ids=ids, recalculate=True)
+        self.assertEqual(service.db.get_item("X").rate, Decimal("5"))

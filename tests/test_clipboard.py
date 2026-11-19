@@ -90,7 +90,10 @@ class ClipboardTests(unittest.TestCase):
         copied = self.b.db.get_item("A-copy", modify_res_code=False)
         nested = self.b.db.get_item("A.1", modify_res_code=False)
         self.assertEqual((copied.colour, copied.remarks, nested.parent), ("#AABBCC", "Schedule note", "A-copy"))
-        self.assertEqual(copied.resources["R"].description, "Material\nDescription")
+        # GTK: resources from another project are qualified by its instance code.
+        local = self.a.instance_code() + ".R"
+        self.assertEqual(copied.resources[local].description, "Material\nDescription")
+        self.assertIsNone(self.b.db.get_resource("R"))
         self.call(self.b, "project.undo")
         self.assertIsNone(self.b.db.get_item("A-copy"))
         self.assertIsNone(self.b.db.get_item("A.1"))
@@ -99,6 +102,12 @@ class ClipboardTests(unittest.TestCase):
         self.call(self.b, "clipboard.paste", kind="resources", data=resource_data)
         self.call(self.b, "clipboard.paste", kind="resources", data=resource_data)
         self.assertEqual(self.b.db.get_resource("R-copy").rate, Decimal("10"))
+        # With a selected resource, GTK numbers pasted resources after it.
+        first = str(self.b.db.ResourceTable.get(code="R").id)
+        pasted = self.call(self.b, "clipboard.paste", kind="resources", data=resource_data, ids=[first])
+        code = self.b.db.ResourceTable.get_by_id(int(pasted["selected"][0])).code
+        self.assertNotIn(code, ("R", "R-copy"))
+        self.assertTrue(code.startswith("MR."))
         self.call(self.a, "schedule.editor.category_add", description="Empty")
         empty = self.a.db.ScheduleCategoryTable.get(description="Empty")
         self.call(self.b, "clipboard.paste", kind="schedule", data=self.transfer("schedule", ids=["cat:" + str(empty.id)]))
@@ -187,11 +196,16 @@ class ClipboardTests(unittest.TestCase):
         data = self.transfer("schedule", ids=[identity])
         self.assertEqual([item["code"] for item in json.loads(data)["dependencies"]], ["SUB"])
         self.call(self.b, "clipboard.paste", kind="schedule", data=data)
-        self.assertEqual(self.b.db.get_item("SUB").category, misc.SUB_ANA_TITLE)
-        self.assertIn("SUB", self.b.db.get_item("A").resources)
+        sub = self.a.instance_code() + ".SUB"
+        self.assertEqual(self.b.db.get_item(sub).category, misc.SUB_ANA_TITLE)
+        self.assertIn(sub, self.b.db.get_item("A").resources)
         self.call(self.b, "project.undo")
-        self.assertIsNone(self.b.db.get_item("SUB"))
-        self.add_destination_item("SUB")
+        self.assertIsNone(self.b.db.get_item(sub))
+        # Pasting into the same project reuses the existing definitions.
+        same = self.call(self.a, "clipboard.paste", kind="schedule", data=data)
+        pasted = self.a.db.ScheduleTable.get_by_id(int(same["selected"][0])).code
+        self.assertIn("SUB", self.a.db.get_item(pasted).resources)
+        self.add_destination_item(sub)
         before = self.b.state()
         with self.assertRaisesRegex(ValueError, "conflicts"):
             self.call(self.b, "clipboard.paste", kind="schedule", data=data)
@@ -226,12 +240,12 @@ class ClipboardTests(unittest.TestCase):
         self.b.project_editor.clipboard = old_clipboard
         insert = self.b.project_editor.insert_schedule_item
         count = 0
-        def fail_second(item):
+        def fail_second(item, *args):
             nonlocal count
             count += 1
             if count == 2:
                 raise ValueError("Injected insertion failure")
-            return insert(item)
+            return insert(item, *args)
         with patch.object(self.b.project_editor, "insert_schedule_item", side_effect=fail_second), self.assertRaisesRegex(ValueError, "Injected"):
             self.call(self.b, "clipboard.paste", kind="schedule", data=data)
         self.assertEqual(count, 2)

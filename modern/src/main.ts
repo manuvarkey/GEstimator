@@ -1,14 +1,14 @@
 import { createApp } from "vue";
 import PrimeVue from "primevue/config";
 import Aura from "@primeuix/themes/aura";
-import App from "./App.vue";
+import Root from "./Root.vue";
 import "./theme.css";
 import "./style.css";
 import { installUIActions } from "./uiActions";
 import { installTextEntry } from "./textEntry";
 installTextEntry();
 installUIActions();
-createApp(App)
+createApp(Root)
   .use(PrimeVue, {
     theme: { preset: Aura, options: { darkModeSelector: "[data-theme=dark]" } },
   })

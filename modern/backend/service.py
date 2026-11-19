@@ -31,9 +31,13 @@ def text(value: Any) -> str:
 
 
 class Service:
-    def __init__(self, recovery_dir=None, dispatch=None):
+    def __init__(self, recovery_dir=None, dispatch=None, mcp=None, peers=None):
         from .mcp_server import MCPServer
-        self.mcp = MCPServer(dispatch)
+        # Document sessions share one MCP listener owned by the runtime.
+        self.owns_mcp = mcp is None
+        self.mcp = mcp if mcp is not None else MCPServer(dispatch)
+        # Other open documents in this process; their live recovery copies are not offered.
+        self.peers = peers or (lambda: ())
         self.temp = tempfile.TemporaryDirectory(prefix="gestimator-")
         self.db = None
         self.loaded = False
@@ -848,8 +852,10 @@ class Service:
         if not self.recovery_dir:
             return []
         projects = []
+        live = {self.recovery_id} | {peer.recovery_id for peer in self.peers()}
+        claimed = {self.recovered_path} | {peer.recovered_path for peer in self.peers()}
         for path in self.recovery_dir.glob("*.eproj"):
-            if path.stem == self.recovery_id or path == self.recovered_path:
+            if path.stem in live or path in claimed:
                 continue
             try:
                 projects.append(dict(id=path.stem, updated=path.stat().st_mtime))
@@ -878,6 +884,12 @@ class Service:
         else:
             path.unlink(missing_ok=True)
         self.recovery_state = state
+
+    def instance_code(self):
+        """GTK MainWindow.get_instance_code: a short per-document identity."""
+        from hashlib import blake2b
+        seed = self.source_path or self.recovery_id
+        return blake2b(seed.encode("utf-8"), digest_size=2).hexdigest().upper()
 
     def update_dependent_rates(self, db, resources=(), schedules=()):
         schedule_codes = {
@@ -947,7 +959,8 @@ class Service:
         self._mcp_search = {}
 
     def close(self):
-        self.mcp.stop()
+        if self.owns_mcp:
+            self.mcp.stop()
         self.clear_mcp_indexes()
         if hasattr(self, "_mcp_catalog"):
             self._mcp_catalog.close()

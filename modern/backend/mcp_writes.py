@@ -204,7 +204,8 @@ class Writes:
         if not rows:
             raise ToolError("invalid_arguments", "Select at least one code", "codes")
         prefix = "resources" if kind == "resource" else "schedule"
-        params = dict(source=source_id, ids=[str(r.id) for r in rows], include_parents=args.get("include_parents", True), on_conflict=args.get("on_conflict", "rename"))
+        params = dict(source=source_id, ids=[str(r.id) for r in rows], include_parents=args.get("include_parents", True), on_conflict=args.get("on_conflict", "rename"),
+                      recalculate=kind == "schedule" and args.get("rate_mode", "recalculate") == "recalculate")
         if "settings" in args:
             from .program_settings import validate as validate_settings
             params.update(modify=True, settings=validate_settings(args["settings"]))
@@ -226,13 +227,14 @@ class Writes:
             for original, imported in code_map.items():
                 if imported not in changed_codes:
                     continue
-                model = db.get_item(original, modify_res_code=False)
-                stored = model.rate
-                current = self.row(kind, imported).rate
-                if current != stored:
-                    warnings.append(dict(code=imported, stored=str(stored), recalculated=str(current)))
+                stored = db.get_item(original, modify_res_code=False).rate
                 if args.get("rate_mode", "recalculate") == "stored":
-                    self.app("schedule.editor.edit", dict(id=str(self.row(kind, imported).id), field="rate", value=str(stored)))
+                    # The import kept the stored rate; report what analysis would give.
+                    current = self.service.db.get_item(imported, modify_res_code=False).get_ana_rate()
+                else:
+                    current = self.row(kind, imported).rate
+                if current is not None and current != stored:
+                    warnings.append(dict(code=imported, stored=str(stored), recalculated=str(current)))
         self.place_items(kind, codes, args.get("position", {}))
         return dict(imported=data["imported"], skipped=data["skipped"], parents=len(set(code_map) - set(args["codes"])), code_map=code_map)
 

@@ -33,6 +33,7 @@ def main():
                     raise ValueError("Expected request id")
                 method = request.get("method")
                 params = request.get("params", {})
+                session = request.get("session")
                 if not isinstance(method, str) or not isinstance(params, dict):
                     raise ValueError("Invalid method or params")
                 if method == "shutdown":
@@ -44,9 +45,11 @@ def main():
                     lambda message: emit(
                         dict(id=identity, event="progress", message=message)
                     ),
+                    session=session,
                 )
                 try:
-                    service.checkpoint_recovery()
+                    if not method.startswith("session."):
+                        service.checkpoint_recovery(session)
                 except Exception:
                     logging.exception("Could not write project recovery copy")
                     emit(dict(id=identity, event="progress", message="Recovery copy could not be updated"))

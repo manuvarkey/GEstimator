@@ -247,12 +247,14 @@ class ProjectEditor:
             self._compound = False
             self.db.stack.clear()
 
-    def insert_schedule_item(self, item):
+    def insert_schedule_item(self, item, local_res_code=None):
         table = self.db.ScheduleTable
         parent = table.get(table.code == item.parent) if item.parent else None
         if parent:
             item.category = parent.category.description
-        if not self.db.insert_item(item):
+        inserted = (self.db.insert_item(item) if local_res_code is None
+                    else self.db.insert_item_atomic(item, local_res_code=local_res_code))
+        if not inserted:
             return False
         if parent:
             inserted = table.get(table.code == item.code)
@@ -911,6 +913,12 @@ class ProjectEditor:
                 rate_factor = Currency(decimal(params.get("rate_factor", "1")), 5)
         if review and rules is None:
             raise ValueError("Choose analysis rules or a rate policy to preview")
+        # GTK keeps the stored library rate on import. Recalculating every
+        # imported analysis is opt-in (MCP "recalculate" mode, calculated rule policy).
+        recalculate = params.get("recalculate", False)
+        if type(recalculate) is not bool:
+            raise ValueError("Invalid recalculation option")
+        recalculate = recalculate or rate_policy == "calculated"
         if modify:
             from .program_settings import validate, legacy_rows
             settings = validate(params.get("settings", {}))
@@ -1008,6 +1016,7 @@ class ProjectEditor:
         from .insertion import prepare, place
         target = dict(ids=params.get("target_ids", []), destination=not categories)
         inserted_codes = []
+        updated_resources = []
         conflict = params.get("on_conflict")
         code_map = {}
         additions = []
@@ -1030,6 +1039,7 @@ class ProjectEditor:
                             additions[additions.index(staged)] = item
                         elif not self.db.update_resource(item.code, res_model=item):
                             raise ValueError("Unable to update resource")
+                        updated_resources.append(item.code)
                         inserted_codes.append(item.code)
                         imported += 1
                         continue
@@ -1107,9 +1117,10 @@ class ProjectEditor:
         elif kind == "schedule":
             self.insert_schedule_items(additions)
         place(self, kind, inserted_codes, target)
-        if kind == "resources" and inserted_codes:
-            self.owner.update_dependent_rates(self.db, resources=inserted_codes)
-        if renamed:
+        # Only replaced definitions can have dependants; new resources have none.
+        if kind == "resources" and updated_resources:
+            self.owner.update_dependent_rates(self.db, resources=updated_resources)
+        if renamed and recalculate:
             self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
         # GTK Modify & Add retains the selected library item's multiplied stored rate,
         # even when its replacement calculation rows produce a different analysis rate.
@@ -1289,6 +1300,92 @@ class ProjectEditor:
             return self.delete_preview(kind, p)
         return self.mutate(lambda: self.edit(kind, operation, p)) or dict(ok=True)
 
+    def gtk_path(self, kind, params):
+        """GTK tree path of the last selected row, or None without a selection."""
+        from .insertion import last_selected
+        selected, is_category = last_selected(self, kind, params)
+        if selected is None:
+            return None
+        if is_category:
+            return [selected.order]
+        if kind == "resources":
+            return [selected.category.order, selected.order]
+        if selected.parent_id:
+            return [selected.category.order, selected.parent.order, selected.suborder]
+        return [selected.category.order, selected.order]
+
+    def paste_schedule(self, items, p, local=None):
+        """GTK ScheduleView.paste_at_selection: insert after the selection,
+        subitems under a selected heading, codes numbered from the position.
+        Rows copied from another project get project-qualified resource codes."""
+        db, table = self.db, self.db.ScheduleTable
+        categories = {row.id for row in db.ScheduleCategoryTable.select()}
+        self.normalize_schedule_order(categories)
+        path = None if p.get("preserve_categories") else self.gtk_path("schedule", p)
+        if path is not None:
+            added, _ = db.insert_item_multiple_atomic(items, path=path, number_with_path=True, local_res_code=local)
+            if len(added) - sum(len(key) == 1 for key in added) != len(items):
+                raise ValueError("Unable to paste item")
+            codes = [code for key, code in added.items() if len(key) > 1]
+        else:
+            renamed, codes = {}, []
+            pending, ordered = {item.code: item for item in items}, []
+            while pending:
+                ready = [item for item in pending.values() if item.parent not in pending]
+                if not ready:
+                    raise ValueError("Copied schedule hierarchy contains a cycle")
+                for item in ready:
+                    ordered.append(pending.pop(item.code))
+            for item in ordered:
+                base = code = item.code
+                counter = 1
+                while table.select().where(table.code == code).exists() or code in renamed.values():
+                    code = base + "-copy" + (str(counter) if counter > 1 else "")
+                    counter += 1
+                renamed[base] = code
+                item.code = code
+                if item.parent in renamed:
+                    item.parent = renamed[item.parent]
+                elif local is not None or not table.select().where(table.code == item.parent).exists():
+                    item.parent = None
+                # GTK's path-less insert only nests under headings; relocate instead.
+                if not self.insert_schedule_item(item, local):
+                    raise ValueError("Unable to paste item")
+                codes.append(code)
+        return dict(selected=[str(row.id) for row in table.select().where(table.code.in_(codes))])
+
+    def paste_resources(self, items, p):
+        """GTK ResourceView.add_resource_at_selection: new codes follow the
+        selected resource and rows are inserted after it in its category."""
+        db, table = self.db, self.db.ResourceTable
+        path = None if p.get("preserve_categories") else self.gtk_path("resources", p)
+        codes = []
+        if path is None:
+            for item in items:
+                base = code = item.code
+                counter = 1
+                while table.select().where(table.code == code).exists():
+                    code = base + "-copy" + (str(counter) if counter > 1 else "")
+                    counter += 1
+                item.code = code
+                if not db.insert_resource_atomic(item):
+                    raise ValueError("Unable to paste item")
+                codes.append(code)
+        else:
+            near = None
+            if len(path) == 2:
+                selected = table.select().join(db.ResourceCategoryTable).where(
+                    (db.ResourceCategoryTable.order == path[0]) & (table.order == path[1])).get()
+                near = None if ":" in selected.code else selected.code
+            for index, item in enumerate(items):
+                item.code = db.get_new_resource_code(near_item_code=near, shift=index) if near else db.get_new_resource_code()
+                added = db.insert_resource_atomic(item, path)
+                if not added:
+                    raise ValueError("Unable to paste item")
+                path = added[0]
+                codes.append(item.code)
+        return dict(selected=[str(row.id) for row in table.select().where(table.code.in_(codes))])
+
     def edit(self, kind, op, p):
         db = self.db
         resource = kind == "resources"
@@ -1356,20 +1453,12 @@ class ProjectEditor:
             ]
             if not records:
                 raise ValueError("Select one or more items")
-            selected = {row.id for row in records}
             if not resource:
-                for row in list(records):
-                    if row.parent_id in selected:
-                        records.remove(row)
-
-                def collect(row):
-                    return [db.get_item(row.code, modify_res_code=False)] + [
-                        item
-                        for child in row.children.order_by(table.suborder)
-                        for item in collect(child)
-                    ]
-
-                models = [model for row in records for model in collect(row)]
+                # GTK copies exactly the selected rows; a subitem keeps its parent
+                # code so paste can place it under the selected heading.
+                from .clipboard import order as tree_order
+                records.sort(key=tree_order)
+                models = [db.get_item(row.code, modify_res_code=False) for row in records]
             else:
                 models = [db.get_resource(row.code) for row in records]
             self.clipboard = (kind, copy.deepcopy(models))
@@ -1377,29 +1466,13 @@ class ProjectEditor:
         if op == "paste":
             if not self.clipboard or self.clipboard[0] != kind:
                 raise ValueError("Copy items from this editor first")
-            from .insertion import prepare, place
-            renamed = {}
-            for original in self.clipboard[1]:
-                item = copy.deepcopy(original)
-                base = item.code
-                code = base
-                counter = 1
-                while (
-                    table.select().where(table.code == code).exists()
-                    or code in renamed.values()
-                ):
-                    code = base + "-copy" + (str(counter) if counter > 1 else "")
-                    counter += 1
-                renamed[base] = code
-                item.code = code
-                if not resource and item.parent in renamed:
-                    item.parent = renamed[item.parent]
-                prepare(self, kind, item, dict(p, destination=not p.get("preserve_categories")))
-                method = db.insert_resource if resource else self.insert_schedule_item
-                if not method(item):
-                    raise ValueError("Unable to paste item")
-            place(self, kind, list(renamed.values()), p)
-            return dict(selected=[str(table.get(code=code).id) for code in renamed.values()])
+            items = copy.deepcopy(self.clipboard[1])
+            local = p.get("_local_res_code")
+            if local is not None and not (isinstance(local, str) and re.fullmatch(r"[0-9A-F]{1,16}", local)):
+                raise ValueError("Invalid clipboard instance code")
+            if resource:
+                return self.paste_resources(items, p)
+            return self.paste_schedule(items, p, local)
         if op == "delete_many":
             return self.delete_selection(kind, p)
         if op == "category_add":
