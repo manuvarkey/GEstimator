@@ -230,11 +230,20 @@ class Spreadsheet:
 
         # Set font
         if font:
-            for row in range(1, self.length()+1):
-                for cell in self.sheet[row]:
-                    font_style = copy.copy(cell.font)
-                    font_style.name = font
-                    cell.font = font_style
+            # sheet[row] recomputes the sheet width on every call (quadratic for
+            # large sheets); iterate once and reuse one font per distinct style.
+            fonts = {}
+            width = self.sheet.max_column
+            for row in self.sheet.iter_rows(min_row=1, max_row=self.length(), max_col=width):
+                for cell in row:
+                    if isinstance(cell, openpyxl.cell.cell.MergedCell):
+                        continue
+                    key = cell._style.fontId if getattr(cell, "_style", None) is not None else 0
+                    if key not in fonts:
+                        font_style = copy.copy(cell.font)
+                        font_style.name = font
+                        fonts[key] = font_style
+                    cell.font = fonts[key]
 
     def set_column_widths(self, widths):
         """Set column widths of sheet"""

@@ -14,6 +14,7 @@ parse_analysis state machine it:
 """
 
 import ast
+from fractions import Fraction
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 import hashlib
 import re
@@ -242,15 +243,30 @@ _EXPORT_RATE = re.compile(r"\n\(Basic rate (?P<rate>-?[\d.]+)(?: \[(?P<ref>[^\]]
 
 
 def _factor(amount, base):
-    """Smallest-precision multiplier that reproduces the worksheet amount."""
+    """Multiplier that reproduces the worksheet amount: a simple fraction
+    (1/9 -> 0.111111, 3/20 -> 0.15) when one fits, else the fewest decimals."""
     if not base:
         return None
     exact = amount / base
+    fraction = Fraction(exact).limit_denominator(1000)
+    candidate = _round(Decimal(fraction.numerator) / Decimal(fraction.denominator), 6)
+    if _round(candidate * base, 2) == _round(amount, 2):
+        return candidate.normalize() if candidate == candidate.to_integral() else candidate
     for places in range(2, 7):
         factor = _round(exact, places)
         if _round(factor * base, 2) == _round(amount, 2):
             return factor
     return _round(exact, 6)
+
+
+def _round_rule(total, amount):
+    """GTK round value reproducing the worksheet: places 0/1/2, or 1.5 / 2.5
+    for the nearest 0.5 / 0.05 (MROUND)."""
+    for rule, rounded in ((0, _round(total, 0)), (1.5, _mround(total, Decimal("0.5"))), (1, _round(total, 1)),
+                          (2.5, _mround(total, Decimal("0.05"))), (2, _round(total, 2))):
+        if rounded == amount:
+            return rule
+    return _round_places(amount)
 
 
 def _round_places(amount):
@@ -363,7 +379,7 @@ class _Block:
                 return
             self.close_group()
         if _has(description, ROUND_KEYS) and abs(amount - self.total) < 1:
-            places = self.round_places if self.round_places != -1 else _round_places(amount)
+            places = self.round_places if self.round_places != -1 else _round_rule(self.total, amount)
             self.item.add_ana_round(description, places)
             self.total = self.base = amount
             self.finished = True
@@ -376,7 +392,7 @@ class _Block:
         # following rounding row close to this amount confirms it numerically.
         rounds_this = following is not None and _has(following[0], ROUND_KEYS) and abs(following[1] - amount) < 1
         per_unit = _has(description, TIMES_KEYS) or re.search(r"\bper\b", description.lower())
-        if self.base and not _has(description, ("@", "%")) and (per_unit or rounds_this) and amount < self.total:
+        if self.base and not _has(description, ("@", "%")) and (per_unit or rounds_this):
             factor = _factor(amount, self.base)
             self.item.add_ana_times(description, factor)
             self.total = self.base = Currency(self.base * factor)
