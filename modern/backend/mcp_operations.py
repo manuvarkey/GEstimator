@@ -58,13 +58,13 @@ def operation(name, description, properties=None, required=(), write=False):
 
 
 operation("get_state", "Project state/sources.")
-operation("describe_source", "Source documentation and SQL schema.", dict(source=S, section=S))
+operation("describe_source", "Source docs (author notes), schema.", dict(source=S, section=S))
 operation("search_items", "Ranked item search.", dict(source=S, query=dict(type="string", maxLength=500), kind=KINDS, category=S, limit=dict(type="integer", minimum=1, maximum=50)), ("query", "kind"))
 operation("browse", "Paged category/parent hierarchy.", dict(source=S, kind=KINDS, under=S, depth=dict(type="integer", minimum=1, maximum=10), offset=N, limit=dict(type="integer", minimum=1, maximum=200), fields=FIELDS), ("kind",))
 operation("get_items", "Definitions/relations by code.", dict(source=S, kind=KINDS, codes=CODES, include=array(enum("analysis", "resources", "children", "parent", "usage", "dependents"), 6)), ("kind", "codes"))
 operation("get_measurements", "Measurements or template columns.", dict(id=S, section=enum("items", "templates"), offset=N, limit=dict(type="integer", minimum=1, maximum=200), record_offset=N))
 operation("get_summary", "Totals and consistency checks.", dict(fields=FIELDS))
-operation("project", "Project/files/settings/import.", dict(action=enum("new", "open", "save", "save_copy", "export_xlsx", "set_settings", "import_xlsx"), path=S, discard=B, settings=obj(dict(project_name=S, project_item_code=S, project_resource_code=S)), kind=KINDS, preview=B, mapping=obj(extra=N), duplicates=enum("error", "skip", "update"), sheet=S, header_row=dict(type="integer", minimum=1), break_lines=B), ("action",), True)
+operation("project", "Project/files/settings/import.", dict(action=enum("new", "open", "save", "save_copy", "export_xlsx", "set_settings", "import_xlsx"), path=S, discard=B, settings=obj(dict(project_name=S, project_item_code=S, project_resource_code=S, project_metadata=S)), kind=KINDS, preview=B, mapping=obj(extra=N), duplicates=enum("error", "skip", "update"), sheet=S, header_row=dict(type="integer", minimum=1), break_lines=B), ("action",), True)
 operation("import_items", "Import with ancestors/dependencies; returns code_map.", dict(source=S, kind=KINDS, codes=CODES, include_parents=B, qty=obj(extra=S), rate_mode=enum("recalculate", "stored"), position=POSITION, on_conflict=enum("error", "skip", "rename", "update"), settings=SETTINGS), ("source", "kind", "codes"), True)
 ITEM = obj(dict(code=S, duplicate_from=S, parent=V, category=S, description=S, unit=S, rate=S, vat=S, discount=S, qty=S, remarks=S, reference=S, colour=V))
 operation("upsert_items", "Upsert/duplicate by code; categories use category_kind.", dict(kind=enum("schedule", "resource", "category"), category_kind=KINDS, items=array(ITEM), position=POSITION), ("kind", "items"), True)

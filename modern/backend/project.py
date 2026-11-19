@@ -1304,11 +1304,15 @@ class ProjectEditor:
                         "project_name",
                         "project_item_code",
                         "project_resource_code",
+                        "project_metadata",
                     )
                     for key in changes
                 ):
                     raise ValueError("Invalid project setting")
-                settings.update({key: text(value) for key, value in changes.items()})
+                metadata = changes.get("project_metadata")
+                if metadata is not None and (not isinstance(metadata, str) or len(metadata) > 100_000):
+                    raise ValueError("Database notes must be text of at most 100,000 characters")
+                settings.update({key: metadata if key == "project_metadata" else text(value) for key, value in changes.items()})
                 self.db.set_project_settings(settings)
 
             self.mutate(update_settings)

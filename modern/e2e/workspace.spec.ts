@@ -2179,8 +2179,18 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
     exact: true,
   });
   await settings
-    .getByLabel("project name", { exact: true })
+    .getByLabel("Project name", { exact: true })
     .fill("New desktop estimate");
+  // Database notes: Markdown with a rendered preview, kept with the project.
+  await settings.getByLabel("Database notes", { exact: true }).fill("# Scope\n**Rates** as on *2025*\n- GST included\n<script>x</script>");
+  await settings.getByRole("tab", { name: "Preview" }).click();
+  const notes = settings.locator(".notes-preview");
+  await expect(notes.locator("h1")).toHaveText("Scope");
+  await expect(notes.locator("strong")).toHaveText("Rates");
+  await expect(notes.locator("em")).toHaveText("2025");
+  await expect(notes.locator("li")).toHaveText("GST included");
+  await expect(notes.locator("script")).toHaveCount(0);
+  await page.screenshot({ path: "test-results/project-notes.png", animations: "disabled" });
   await settings
     .getByRole("button", { name: "Apply settings", exact: true })
     .click();
@@ -2188,6 +2198,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await expect(page.locator(".titlebar-project")).toContainText(
     "New desktop estimate",
   );
+  expect((await call("project.settings", {})).result.project_metadata).toContain("GST included");
 });
 
 test("application menu and ribbon views share context-aware header actions", async ({

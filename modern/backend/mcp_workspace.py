@@ -118,12 +118,15 @@ class Workspace(Writes):
         for identity, (name, db) in self.editor.libraries.items():
             counts = dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count())
             enrichment = metadata.presentation(db)
+            notes = db.get_project_settings().get("project_metadata") or ""
             sources.append(dict(id=identity, name=name, counts=counts,
-                summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources"))
+                summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources",
+                **({"metadata": notes[:600] + ("…" if len(notes) > 600 else "")} if notes else {})))
         state = dict(project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
         if service.db:
             db = service.db
-            state.update(settings={k: v for k, v in db.get_project_settings().items() if k != "project_measurement"}, counts=dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count(), measurements=len(db.get_measurement().items)), enrichment=bool(metadata.read(db)))
+            state.update(settings={k: v for k, v in db.get_project_settings().items() if k not in ("project_measurement", "project_metadata")},
+                         metadata=db.get_project_settings().get("project_metadata") or "", counts=dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count(), measurements=len(db.get_measurement().items)), enrichment=bool(metadata.read(db)))
         return state
 
     def describe_source(self, args, warnings):
@@ -144,7 +147,10 @@ class Workspace(Writes):
             return {kind: [row for row in rows if row["name"] == name] for kind, rows in groups.items()}
         if section != "overview":
             raise ToolError("invalid_arguments", "Unknown source section", "section", ["overview", "categories", "category:<name>", "dictionary", "schema"])
-        result = dict(settings={k: v for k, v in db.get_project_settings().items() if k != "project_measurement"}, categories={kind: [dict(name=c["name"], count=c["count"]) for c in rows] for kind, rows in groups.items()})
+        settings = db.get_project_settings()
+        # Author-maintained notes (Markdown): scope, rate basis, revision, conventions.
+        result = dict(settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
+                      metadata=settings.get("project_metadata") or "", categories={kind: [dict(name=c["name"], count=c["count"]) for c in rows] for kind, rows in groups.items()})
         if enrichment:
             result.update(enrichment=enrichment.get("database", {}), provenance=enrichment.get("provenance", {}), ai_generated=True)
         return result

@@ -74,12 +74,16 @@ class MCPEditingTests(MCPFixture):
                 for code, parent in (("1.2", ""), ("1.2.1", "1.2"), ("1.2.2", "1.2")):
                     source.call("schedule.editor.add", dict(revision=source.revision, data=dict(code=code, parent=parent, rate="25", category="Work")))
                 source.call("resources.editor.add", dict(revision=source.revision, data=dict(code="R", rate="8", unit="kg", category="Materials")))
+                source.call("project.settings.edit", dict(revision=source.revision, settings=dict(project_metadata="# Test library\nRates as on 2025.")))
                 source.call("project.save_copy", dict(path=str(path)))
             finally:
                 source.close()
             original = hashlib.sha256(path.read_bytes()).digest()
             data = self.agent("describe_source", source=str(path))["data"]
             self.assertIn("categories", data)
+            # Author notes reach MCP clients separately from technical settings.
+            self.assertEqual(data["metadata"], "# Test library\nRates as on 2025.")
+            self.assertNotIn("project_metadata", data["settings"])
             imported = self.agent("import_items", source=str(path), kind="schedule", codes=["1.2.1"], qty={"1.2.1":"3"})["data"]
             self.assertEqual(imported["parents"], 1)
             self.assertEqual(imported["code_map"], {"1.2":"1.2", "1.2.1":"1.2.1"})

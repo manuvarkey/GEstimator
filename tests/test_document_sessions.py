@@ -52,3 +52,19 @@ class CloseProjectTests(unittest.TestCase):
         self.assertIsNone(service.db)
         call("project.new")
         self.assertTrue(service.state()["project_open"])
+
+
+class DatabaseNotesTests(unittest.TestCase):
+    def test_notes_are_saved_with_project_and_validated(self):
+        from modern.backend.service import Service
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        call("project.settings.edit", settings=dict(project_metadata="# DSR\n**2025** rates"))
+        self.assertEqual(call("project.settings")["project_metadata"], "# DSR\n**2025** rates")
+        self.assertEqual(service.db.get_project_settings()["project_metadata"], "# DSR\n**2025** rates")
+        with self.assertRaisesRegex(ValueError, "100,000"):
+            call("project.settings.edit", settings=dict(project_metadata="x" * 100_001))
+        call("project.undo")
+        self.assertEqual(call("project.settings")["project_metadata"], "")

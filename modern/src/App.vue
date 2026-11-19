@@ -22,6 +22,7 @@ import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
 import DatabasePicker from "./components/DatabasePicker.vue";
 import AnalysisRulesDialog from "./components/AnalysisRulesDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
+import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
 import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
@@ -128,7 +129,6 @@ const views = [
   { key: "mcp", label: "MCP" },
 ] as const;
 const settingsOpen = ref(false);
-const settings = ref<Record<string, string>>({});
 // Start on Schedule: with no project open it shows the landing page.
 // Each project tab remounts this workspace; restore the tab's last editor.
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
@@ -718,21 +718,7 @@ async function closeProject() {
   }, true);
 }
 async function showSettings() {
-  if (!state.value?.project_open) return;
-  settings.value = await request("project.settings");
-  settingsOpen.value = true;
-}
-async function saveSettings() {
-  if (
-    await w.run(async () => {
-      await request("project.settings.edit", {
-        revision: state.value?.revision,
-        settings: settings.value,
-      });
-      await w.refresh();
-    })
-  )
-    settingsOpen.value = false;
+  if (state.value?.project_open) settingsOpen.value = true;
 }
 async function switchView(view: typeof activeTab.value) {
   if (view === "analysis" && state.value?.dirty) {
@@ -1958,21 +1944,7 @@ onBeforeUnmount(() => {
   >
   <SpreadsheetRangeImport v-if="importAnalysisOpen" v-model="importAnalysisOpen"
     :apply="(params) => w.command('analysis.import_xlsx', params)" :error="error" />
-  <Dialog
-    v-model:visible="settingsOpen"
-    modal
-    header="Project settings"
-    class="workspace-dialog file-dialog"
-    ><label v-for="(value, key) in settings" :key="key" class="field"
-      >{{ String(key).replaceAll("_", " ") }}<input v-model="settings[key]"
-    /></label>
-    <div v-if="error" class="dialog-error">{{ error }}</div>
-    <div class="dialog-footer">
-      <button class="button primary" :disabled="uiBusy" @click="saveSettings">
-        Apply settings
-      </button>
-    </div></Dialog
-  >
+  <ProjectSettings v-if="settingsOpen" v-model="settingsOpen" :revision="state?.revision" :busy="uiBusy" @saved="w.refresh()" />
   <LibraryManager ref="libraryManager" v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
   <MCPSettings v-model="mcpSettingsOpen" />
   <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">{{ mcpMessage }}</div>

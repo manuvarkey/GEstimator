@@ -312,6 +312,7 @@ class Service:
                     "project_name",
                     "project_item_code",
                     "project_resource_code",
+                    "project_metadata",
                 )
             }
         if method == "project.open":

@@ -2308,3 +2308,25 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .sheet-grid { user-select: none; }
 .import-warnings { margin: 0; padding: 6px 10px 8px 28px; max-height: 14vh; overflow: auto; color: var(--amber); font-size: var(--text-size-small); }
 .import-option { display: flex; gap: 8px; align-items: flex-start; }
+
+/* Project settings: author notes with a Markdown preview. */
+.workspace-dialog.project-settings-dialog { width: min(94vw, 760px); }
+.project-settings { display: flex; flex-direction: column; gap: 10px; }
+.project-settings .field { margin: 0; }
+.notes-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.notes-tabs { display: flex; border: 1px solid var(--line); border-radius: var(--control-radius); overflow: hidden; }
+.notes-tabs button { padding: 3px 12px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.notes-tabs button.active { background: var(--accent-soft); color: var(--text); }
+.notes-tabs button:focus-visible { outline: var(--focus-width) solid var(--accent); outline-offset: -2px; }
+.notes-editor { min-height: 240px; resize: vertical; font-family: var(--table-font-family); }
+.notes-preview { min-height: 240px; max-height: 50vh; overflow: auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--well); }
+.markdown h1, .markdown h2, .markdown h3 { margin: .6em 0 .3em; line-height: 1.25; }
+.markdown h1 { font-size: 1.35em; } .markdown h2 { font-size: 1.2em; } .markdown h3 { font-size: 1.05em; }
+.markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown pre { margin: .4em 0; }
+.markdown ul, .markdown ol { padding-left: 1.4em; }
+.markdown code { padding: 0 4px; border-radius: 3px; background: var(--raised); font-family: var(--table-font-family); }
+.markdown pre { padding: 8px; background: var(--raised); overflow: auto; }
+.markdown pre code { padding: 0; background: none; }
+.markdown blockquote { padding-left: 10px; border-left: 3px solid var(--accent); color: var(--muted); }
+.markdown hr { border: 0; border-top: 1px solid var(--line); }
+.markdown a { color: var(--accent); }
