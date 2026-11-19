@@ -110,3 +110,43 @@ class LibraryRateTests(unittest.TestCase):
         call("project.undo")
         call("schedule.editor.add_from_library", source=source, ids=ids, recalculate=True)
         self.assertEqual(service.db.get_item("X").rate, Decimal("5"))
+
+
+class LibraryGTKPlacementTests(unittest.TestCase):
+    def test_selection_numbering_subitems_and_sub_analysis_codes(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / "lib.eproj"
+        db = ScheduleDatabase(Stack())
+        db.create_new_database(str(path))
+        db.set_project_settings(dict(db.get_project_settings(), project_item_code="DSR", project_resource_code="DSR"))
+        resource = ResourceItemModel("R", "R", "kg", Decimal("5"), category="Materials")
+        db.insert_resource(resource)
+        sub = ScheduleItemModel("9.9", "Sub", "m", Decimal("5"), category="Work")
+        sub.resources = {"R": resource}
+        sub.add_ana_group("M")
+        sub.add_ana_res(["R", Decimal("1"), ""], 0)
+        db.insert_item(sub)
+        db.insert_resource(ResourceItemModel("9.9", "Sub", "m", Decimal("5"), category="Sub"))
+        item = ScheduleItemModel("1.1", "Uses sub", "m", Decimal("10"), category="Work", parent=None)
+        item.resources = {"9.9": db.get_resource("9.9")}
+        item.add_ana_group("S")
+        item.add_ana_res(["9.9", Decimal("2"), ""], 0)
+        db.insert_item(item)
+        db.close_database()
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        call("schedule.editor.add", data=dict(code="3", description="Heading", unit="", category="Work"))["selected"][0]
+        main = call("schedule.editor.add", data=dict(code="4", description="Priced", unit="m", category="Work"))["selected"][0]
+        source = call("library.attach", path=str(path))[0]["id"]
+        rows = call("schedule.editor.state", source=source)["rows"]
+        ids = {child["code"]: child["id"] for row in rows for child in row.get("_children", [])}
+        call("schedule.editor.add_from_library", source=source, ids=[ids["1.1"]], target_ids=[main])
+        imported = service.db.get_item("5", modify_res_code=False)
+        self.assertEqual(imported.remarks, "DSR 1.1")
+        # The sub-analysis keeps its (prefixed) code and the analysis still links it.
+        self.assertIsNotNone(service.db.get_item("DSR:9.9"))
+        self.assertIn("DSR:9.9", imported.resources)
+        self.assertIsNone(service.db.get_item("1.1"))

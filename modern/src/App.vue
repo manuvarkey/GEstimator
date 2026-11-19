@@ -32,7 +32,7 @@ import AppIcon from "./components/AppIcon.vue";
 import ProjectLanding from "./components/ProjectLanding.vue";
 import DocumentRail from "./components/DocumentRail.vue";
 import { activeDocument, activeTab as currentDocument, closeConfirmed, closeDocument, createDocument, documentForPath, documents, pendingPaths, startup, switchDocument, takeDocumentAction, updateDocument, type DocumentAction } from "./documents";
-import { statusNotice } from "./statusNotice";
+import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
@@ -287,10 +287,14 @@ const shortcutGroups = [
     ["Save project", "Ctrl / ⌘ + S"],
     ["Save project copy", "Ctrl / ⌘ + Shift + S"],
     ["Focus search in current view or selection dialog", "Ctrl / ⌘ + F"],
+    ["New project tab / Close project tab", "Ctrl / ⌘ + T / W"],
+    ["Next / previous project tab", "Ctrl / ⌘ + Tab / Shift + Tab"],
   ] },
   { title: "Rows and clipboard", items: [
     ["Undo / Redo", "Ctrl / ⌘ + Z / Y"],
     ["Copy / Paste rows", "Ctrl / ⌘ + C / V"],
+    ["Cut resources (Paste moves them)", "Ctrl / ⌘ + X"],
+    ["Repair stored item order (GTK reorder)", "Ctrl / ⌘ + Shift + R"],
     ["Add item / measurement record / analysis resource", "Ctrl / ⌘ + I"],
     ["Add schedule subitem / custom analysis resource", "Ctrl / ⌘ + Shift + I"],
     ["Duplicate selected rows", "Ctrl / ⌘ + D"],
@@ -634,6 +638,17 @@ function keyboard(event: KeyboardEvent) {
   if (event.altKey && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
     event.preventDefault();
     void travelNavigation(event.key === "ArrowLeft" ? -1 : 1);
+    return;
+  }
+  if (mod && event.shiftKey && key === "r") {
+    event.preventDefault();
+    if (uiBusy.value || !state.value?.project_open) return;
+    void w.run(async () => {
+      await request("project.reorder", { revision: state.value?.revision });
+      await w.refresh();
+      await projectView.value?.reload();
+      notify("Item order repaired.");
+    }, "Repairing item order…");
     return;
   }
   if (mod && (key === "t" || key === "w" || event.key === "Tab")) {

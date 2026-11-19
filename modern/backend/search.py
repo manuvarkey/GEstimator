@@ -25,7 +25,8 @@ class Index:
             self.connection.executemany("INSERT INTO items(rowid,text) VALUES (?,?)", enumerate(texts, 1))
         except sqlite3.OperationalError:
             self.fts = False
-        self.counts = [Counter(tokens(text)) for text in texts]
+        # Term counts serve only the BM25 fallback when SQLite lacks FTS5.
+        self.counts = None if self.fts else [Counter(tokens(text)) for text in texts]
 
     def close(self):
         self.connection.close()
@@ -80,12 +81,20 @@ def search(service, db, kind, query, limit=20, category=None, user_path=None, us
         entries = dictionary.entries(source_text, enrichment, user_path) if use_dictionary else []
         context = " ".join(dict.fromkeys(r.category.description or "" for r in rows))
         records, texts, originals = [], [], []
+        # Edits change few rows; reuse normalized/expanded text of unchanged rows.
+        memos = getattr(service, "_search_text_memo", {})
+        memo_key = (key, dictionary.fingerprint(entries), context)
+        previous = memos.get(memo_key, {})
+        memo = {}
         for row in rows:
             parent = row.parent.description if kind == "schedule" and row.parent_id else ""
             extra = enrichment.get("items", {}).get(row.code, {})
             text = " ".join([row.code, row.category.description or "", parent or "", row.description or "", row.unit or "", metadata.short(row, enrichment), " ".join(extra.get("keywords", []))])
-            originals.append(dictionary.normalize(text))
-            texts.append(dictionary.normalize(dictionary.expand(text, entries, context)))
+            if text not in memo:
+                memo[text] = previous.get(text) or (dictionary.normalize(text), dictionary.normalize(dictionary.expand(text, entries, context)))
+            original, expanded = memo[text]
+            originals.append(original)
+            texts.append(expanded)
             records.append(dict(code=row.code, short=metadata.short(row, enrichment), unit=row.unit or "", rate=str(row.rate or 0), category=row.category.description or "", parent_code=row.parent.code if kind == "schedule" and row.parent_id else None))
         if index:
             index.close()
@@ -95,6 +104,9 @@ def search(service, db, kind, query, limit=20, category=None, user_path=None, us
             index.original = Index(records, originals)
         cache[key] = (signature, index)
         service._mcp_search = cache
+        memos = {k: v for k, v in memos.items() if k[0] != key}
+        memos[memo_key] = memo
+        service._search_text_memo = memos
     expanded = dictionary.normalize(dictionary.expand(query, index.entries, index.context))
     if use_dictionary:
         # Expansion broadens recall; it must not overwhelm the user's original

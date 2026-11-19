@@ -242,7 +242,8 @@ test("compact contrast, category filters, expanded trees and client window contr
   const minor = page.locator('.ribbon-actions').filter({ has: page.getByRole("button", { name: "Copy", exact: true }) });
   expect((await minor.evaluate(element => getComputedStyle(element).gridTemplateRows)).split(" ")).toHaveLength(3);
   await expect(minor.locator('.ribbon-label').filter({ hasText: /^Copy$/ })).toBeVisible();
-  const buttons = await minor.locator('.ribbon-action[aria-label="Copy"],.ribbon-action[aria-label="Paste"],.ribbon-action[aria-label="Delete"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect()));
+  // Resources stack Cut / Copy / Paste in one column (GTK clipboard order).
+  const buttons = await minor.locator('.ribbon-action[aria-label="Cut"],.ribbon-action[aria-label="Copy"],.ribbon-action[aria-label="Paste"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect()));
   expect(new Set(buttons.map(button => Math.round(button.top))).size).toBe(3);
   expect(Math.max(...buttons.map(button => button.left)) - Math.min(...buttons.map(button => button.left))).toBeLessThan(1);
   const full = page.locator('.ribbon-action:visible').filter({ has: page.locator('.ribbon-label').filter({ hasText: /^Add from database$/ }) });
@@ -336,6 +337,26 @@ test("project tabs keep separate projects in a vertical rail", async ({ page }) 
     await page.keyboard.press("Control+o");
     await expect(page.getByRole("dialog", { name: /Open project/ })).toBeVisible({ timeout: 500 });
   }).toPass();
+});
+
+test("resources cut and paste moves them like GTK", async ({ page }) => {
+  await refinementFixture(page);
+  await page.locator("#view-resources").click();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const ribbon = page.locator(".ribbon");
+  const codes = () => grid.locator(".tabulator-row").evaluateAll(items => items.map(item => item.querySelector('[tabulator-field="code"]')?.textContent?.trim() || item.querySelector('[tabulator-field="description"]')?.textContent?.trim()));
+  const code = (value: string) => grid.locator('[tabulator-field="code"]').filter({ hasText: new RegExp(`^${value}$`) });
+  await code("R").click();
+  await ribbon.getByRole("button", { name: "Cut", exact: true }).click();
+  await expect.poll(() => { try { return JSON.parse(systemClipboard).cut; } catch { return null; } }).toEqual(["R"]);
+  await code("L").click();
+  await ribbon.getByRole("button", { name: "Paste", exact: true }).click();
+  // Moved after the selected resource, into its category, keeping its code.
+  await expect.poll(async () => { const list = await codes(); return list[list.indexOf("L") + 1]; }).toBe("R");
+  // The reference is used once; the clipboard is cleared after the move.
+  expect(systemClipboard).toBe("");
+  await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+  await expect.poll(async () => { const list = await codes(); return list[list.indexOf("L") + 1]; }).not.toBe("R");
 });
 
 test("landing page creates a new project", async ({ page }) => {
@@ -3872,8 +3893,11 @@ test('OS project requests serialize through the unsaved guard and reject invalid
   await expect(tabs).toHaveCount(2);
   await tabs.nth(0).click();
   await expect(page.locator('.summary-value')).toContainText('30.00');
-  await emitOs(['/tmp/not-a-project.txt'], true);
-  await expect(page.getByRole('alert').filter({ hasText: 'Not a GEstimator project' })).toBeVisible();
+  // The remounted tab registers its drop listener after connecting; retry until it does.
+  await expect(async () => {
+    await emitOs(['/tmp/not-a-project.txt'], true);
+    await expect(page.getByRole('alert').filter({ hasText: 'Not a GEstimator project' })).toBeVisible({ timeout: 500 });
+  }).toPass();
   await emitOs([resolve(directory, 'missing file.eproj')]);
   await expect(page.getByRole('alert')).toContainText(/not found|does not exist|No such|Cannot|exist/i);
 });

@@ -465,10 +465,11 @@ class ProjectEditor:
             or not 1 <= limit <= 200
         ):
             raise ValueError("Invalid page")
+        # Tuples, not models: hydrating every schedule row dominated this request.
         summary = {} if resource else dict(grand_total=str(Currency(sum(
-            (Currency((row.rate or 0) * (row.qty or 0))
-             for row in table.select(table, category).join(category)
-             if row.unit and row.category.description != misc.SUB_ANA_TITLE),
+            (Currency((rate or 0) * (qty or 0))
+             for rate, qty, unit, description in table.select(table.rate, table.qty, table.unit, category.description).join(category).tuples()
+             if unit and description != misc.SUB_ANA_TITLE),
             Decimal(0),
         ))))
         if not p.get("source") and "since" in p and not p.get("reveal_id"):
@@ -486,7 +487,7 @@ class ProjectEditor:
                 return dict(delta=True, updates=updates, view_seq=self.changes.sequence,
                     revision=self.owner.revision, undo=bool(self.history), redo=bool(self.future), enrichment=presentation(db), **summary)
         records = (
-            table.select()
+            table.select(table, category)
             .join(category)
             .order_by(category.order, table.order, *([] if resource else [table.suborder]), table.id)
         )
@@ -1020,6 +1021,12 @@ class ProjectEditor:
         conflict = params.get("on_conflict")
         code_map = {}
         additions = []
+        subitem = {}
+        # GTK places library items at the selection and numbers them from it
+        # (insert_item_multiple, number_with_path=True). Sub-analyses keep their
+        # codes. Category imports and MCP conflict policies keep library codes.
+        gtk_path = (self.gtk_path("schedule", dict(ids=target["ids"]))
+                    if kind == "schedule" and not categories and conflict is None and target["ids"] and not review else None)
         reserved = set()
         for index, row in enumerate(records):
             if index % 100 == 0:
@@ -1056,12 +1063,14 @@ class ProjectEditor:
                     imported += 1
                     continue
                 item = source.get_item(row.code, modify_res_code=True)
+                subitem[id(item)] = item.parent is not None
                 if modify:
                     item.rate *= Currency(decimal(settings["sch_rate_mult_factor"]), 5)
                     count = settings["ana_copy_delete_rows"]
                     if count and replacement and len(item.ana_items) > count:
                         item.ana_items = item.ana_items[:-count] + copy.deepcopy(replacement)
-                    item.remarks = source.get_project_settings().get("project_item_code", "") + " " + item.code
+                # GTK SelectScheduleDialog records the library reference in remarks.
+                item.remarks = (source.get_project_settings().get("project_item_code") or "") + " " + item.code
                 code = item.code
                 existing = self.db.get_item(code, copy_ana=False)
                 if existing and conflict == "error":
@@ -1114,9 +1123,24 @@ class ProjectEditor:
             inserted = self.db.insert_resource_multiple_atomic(additions, preserve_structure=True)
             if not {item.code for item in additions}.issubset(set(inserted.values())):
                 raise ValueError("Unable to import resources")
+        elif kind == "schedule" and gtk_path is not None and additions:
+            self.normalize_schedule_order({row.id for row in self.db.ScheduleCategoryTable.select()})
+            for item in additions:
+                item.parent = item.parent or ("SUBITEM" if subitem.get(id(item)) else None)
+            added, _ = self.db.insert_item_multiple_atomic(additions, path=gtk_path, number_with_path=True)
+            numbered = [code for key, code in added.items() if len(key) > 1]
+            if len(numbered) != len(additions):
+                raise ValueError("Unable to import schedule items")
+            moved = {item.code: code for item, code in zip(additions, numbered)}
+            renumber = lambda code: moved.get(code, code)
+            inserted_codes = [renumber(code) for code in inserted_codes]
+            renamed = {key: renumber(value) for key, value in renamed.items()}
+            code_map = {key: renumber(value) for key, value in code_map.items()}
+            modified_rates = {renumber(code): rate for code, rate in modified_rates.items()}
         elif kind == "schedule":
             self.insert_schedule_items(additions)
-        place(self, kind, inserted_codes, target)
+        if gtk_path is None:
+            place(self, kind, inserted_codes, target)
         # Only replaced definitions can have dependants; new resources have none.
         if kind == "resources" and updated_resources:
             self.owner.update_dependent_rates(self.db, resources=updated_resources)
@@ -1253,6 +1277,10 @@ class ProjectEditor:
                 dst.append(self.snapshot())
                 self.restore(src.pop())
             return dict(ok=True)
+        if method == "project.reorder":
+            # GTK Ctrl+Shift+R: renumber stored orders to repair insertion errors.
+            self.mutate(self.db.reorder_items)
+            return dict(ok=True)
         if method == "project.settings.edit":
 
             def update_settings():
@@ -1353,6 +1381,33 @@ class ProjectEditor:
                     raise ValueError("Unable to paste item")
                 codes.append(code)
         return dict(selected=[str(row.id) for row in table.select().where(table.code.in_(codes))])
+
+    def move_resources(self, codes, p):
+        """GTK ResourceView paste of a cut reference: move the resources after
+        the selected resource, or to the start of a selected category."""
+        from .insertion import last_selected
+        db, table = self.db, self.db.ResourceTable
+        target, is_category = last_selected(self, "resources", p)
+        if target is None:
+            raise ValueError("Select where to paste the cut resources")
+        rows = [row for row in (table.get_or_none(table.code == code) for code in codes) if row is not None]
+        if not rows:
+            raise ValueError("The cut resources no longer exist")
+        moved = {row.id for row in rows}
+        if not is_category and target.id in moved:
+            raise ValueError("Paste the cut resources at a different position")
+        destination = target.id if is_category else target.category_id
+        previous = {row.category_id for row in rows}
+        siblings = [row for row in table.select().where(table.category == destination).order_by(table.order, table.id) if row.id not in moved]
+        index = 0 if is_category else next(i + 1 for i, row in enumerate(siblings) if row.id == target.id)
+        siblings[index:index] = rows
+        for order, row in enumerate(siblings):
+            table.update(category=destination, order=order).where(table.id == row.id).execute()
+        for category in previous - {destination}:
+            for order, row in enumerate(table.select().where(table.category == category).order_by(table.order, table.id)):
+                if row.order != order:
+                    table.update(order=order).where(table.id == row.id).execute()
+        return dict(selected=[str(row.id) for row in rows])
 
     def paste_resources(self, items, p):
         """GTK ResourceView.add_resource_at_selection: new codes follow the
@@ -1486,7 +1541,8 @@ class ProjectEditor:
                 raise ValueError("Category could not be added")
             return
         if op == "rates":
-            db.update_rates([r.code for r in db.ScheduleTable.select()])
+            from .rates import recalculate_rates
+            recalculate_rates(db, [r.code for r in db.ScheduleTable.select()])
             return
         identity = str(p.get("id", ""))
         if identity.startswith("cat:") and op != "add":

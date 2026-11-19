@@ -96,6 +96,11 @@ async function apply(modify = false, ids = selected.value.map(row => row.id)) {
     if (await props.apply({ revision: props.revision, ...params })) visible.value = false;
   } finally { busy.value = false; }
 }
+/** GTK SelectScheduleDialog: Enter/double-click is Modify & Add; with Ctrl it adds unmodified. */
+function activate(row: { id: string; rowtype?: string }, ctrl: boolean) {
+  if (row.rowtype === "Category") return;
+  void apply(props.kind === "schedule" && props.mode === "add" && !props.analysis && !ctrl, [row.id]);
+}
 async function applyRules(params: Record<string, unknown>) {
   const applied = await props.apply({ ...params, operation: "add_from_library" });
   if (applied) visible.value = false;
@@ -110,7 +115,7 @@ async function applyRules(params: Record<string, unknown>) {
     <template v-if="mode === 'add' && libraries.length">
       <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>
       <div class="project-filter-bar"><form class="search-field" @submit.prevent="page = 0; load()"><AppIcon name="search" :size="16" /><input data-primary-input autofocus v-model="query" aria-label="Find database items" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
-      <div class="database-picker-grid"><DataTable class="fit-table" :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="row => { if (row.rowtype !== 'Category') apply(false, [row.id]); }" /></div>
+      <div class="database-picker-grid"><DataTable class="fit-table" :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="(row, keys) => activate(row, keys?.ctrl ?? false)" /></div>
       <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="page--; load()">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="page++; load()">Next</button></div>
     </template>
     <template v-if="mode === 'rates'">
@@ -123,7 +128,7 @@ async function applyRules(params: Record<string, unknown>) {
       <button class="button secondary" :disabled="busy" @click="visible = false; emit('manage')">Manage databases…</button><span class="spacer" />
       <button class="button secondary" :disabled="busy" @click="visible = false">Cancel</button>
       <template v-if="mode === 'add' && kind === 'schedule'">
-        <button class="button secondary" :disabled="busy || !selected.length" title="Use the rate multiplier and analysis-row replacement configured in Program Settings." @click="apply(true)">Modify &amp; Add</button>
+        <button class="button secondary" :disabled="busy || !selected.length" title="Use the rate multiplier and analysis-row replacement configured in Program Settings. Enter or double-click on an item does the same; Ctrl+Enter or Ctrl+double-click adds it unmodified." @click="apply(true)">Modify &amp; Add</button>
         <button class="button secondary" :disabled="busy || !selected.length" @click="rulesOpen = true">Modify &amp; Add with rules…</button>
       </template>
       <button class="button primary" :disabled="busy || !source || (mode === 'rates' ? !preview?.changed : !selected.length)" @click="apply()">{{ mode === 'rates' ? 'Apply database rates' : 'Add selected items' }}</button>

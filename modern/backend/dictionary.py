@@ -1,5 +1,6 @@
 """Deterministic normalization and optional, layered abbreviation expansion."""
 
+import functools
 import hashlib
 import json
 from pathlib import Path
@@ -37,8 +38,14 @@ def extract(text):
     return result
 
 
+@functools.lru_cache(maxsize=8)
+def _extract(text):
+    return tuple(extract(text))
+
+
 def entries(text, enrichment=None, user_path=None):
-    layers = [extract(text)]
+    # Extraction scans every description; unchanged text reuses the result.
+    layers = [list(_extract(text))]
     builtin = []
     for path in sorted((Path(__file__).parent / "data" / "dictionary").glob("*.json")):
         builtin.extend(json.loads(path.read_text()))
@@ -63,22 +70,41 @@ def entries(text, enrichment=None, user_path=None):
     return list(merged.values())
 
 
+_FIELDS = {"civil": r"civil|concrete|masonry|damp|brick|structur", "electrical": r"electric|e&m|wiring|circuit|switch|conduit|cable", "plumbing": r"plumb|sanitar|water|pipe|tap|fitting", "hvac": r"hvac|duct|air condition|ventilat"}
+
+
+@functools.lru_cache(maxsize=4096)
+def _scope(scope):
+    return re.compile(_FIELDS.get(scope, re.escape(scope)))
+
+
+@functools.lru_cache(maxsize=65536)
+def _term(term, flags):
+    # '&' remains part of an abbreviation: CP must not match CP&OH.
+    return re.compile(r"(?<![\w&])" + re.escape(term) + r"(?![\w&])", flags)
+
+
+@functools.lru_cache(maxsize=65536)
+def _expansion(expansion):
+    return re.compile(r"(?<!\w)" + re.escape(expansion) + r"(?!\w)", re.IGNORECASE)
+
+
 def expand(text, dictionary, category="", embedding=False):
     additions = []
+    context = (category + " " + text).casefold()
+    folded = text.casefold()
     for entry in dictionary:
         term = entry["term"]
         scope = entry.get("scope", "")
-        context = (category + " " + text).casefold()
-        fields = {"civil": r"civil|concrete|masonry|damp|brick|structur", "electrical": r"electric|e&m|wiring|circuit|switch|conduit|cable", "plumbing": r"plumb|sanitar|water|pipe|tap|fitting", "hvac": r"hvac|duct|air condition|ventilat"}
-        if scope and not re.search(fields.get(scope, re.escape(scope)), context):
+        if scope and not _scope(scope).search(context):
             continue
         flags = 0 if entry.get("case", len(term) <= 3) else re.IGNORECASE
-        # '&' remains part of an abbreviation: CP must not match CP&OH.
-        if re.search(r"(?<![\w&])" + re.escape(term) + r"(?![\w&])", text, flags):
+        # The substring tests are cheap prefilters; the patterns decide.
+        if term.casefold() in folded and _term(term, flags).search(text):
             additions.extend(entry["expand"][:1] if embedding else entry["expand"])
         else:
             for expansion in entry["expand"]:
-                if re.search(r"(?<!\w)" + re.escape(expansion) + r"(?!\w)", text, re.IGNORECASE):
+                if expansion.casefold() in folded and _expansion(expansion).search(text):
                     additions.append(term)
                     break
     return text + " " + " ".join(additions)

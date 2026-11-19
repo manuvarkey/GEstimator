@@ -230,6 +230,25 @@ class EditorParity(unittest.TestCase):
             library = self.call("library.attach", path=str(path))[-1]["id"]
             self.call("schedule.editor.add_from_library", source=library, ids=["1"], target_ids=[first])
             rows = list(self.service.db.ScheduleTable.select().order_by(self.service.db.ScheduleTable.order))
-            self.assertEqual([row.code for row in rows], ["A", "LIB", "B"])
+            # GTK numbers library items from the selection ("A" is not numeric: "_1")
+            # and records the library code in remarks.
+            self.assertEqual([row.code for row in rows], ["A", "_1", "B"])
+            self.assertEqual(self.service.db.get_item("_1").remarks.split()[-1], "LIB")
             self.assertTrue(all(row.category.description == "Work" for row in rows))
             self.assertEqual(path.read_bytes(), original)
+
+
+class ReorderTests(unittest.TestCase):
+    def test_project_reorder_repairs_gaps_and_undoes(self):
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        for code in ("1", "2"):
+            call("schedule.editor.add", data=dict(code=code, category="Work", unit="m"))
+        table = service.db.ScheduleTable
+        table.update(order=7).where(table.code == "2").execute()
+        call("project.reorder")
+        self.assertEqual([row.order for row in table.select().order_by(table.order)], [0, 1])
+        call("project.undo")
+        self.assertEqual(table.get(code="2").order, 7)

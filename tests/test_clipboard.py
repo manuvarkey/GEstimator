@@ -272,3 +272,34 @@ class ClipboardTests(unittest.TestCase):
                 self.call(self.b, "clipboard.paste", kind="measurement", data=json.dumps(document))
             self.assertEqual(self.b.state(), before)
             self.assertFalse(self.b.db.get_measurement().items)
+
+
+class ResourceCutTests(unittest.TestCase):
+    def test_cut_moves_resources_within_project_only(self):
+        a, b = Service(), Service()
+        self.addCleanup(a.close)
+        self.addCleanup(b.close)
+        call = lambda service, method, **params: service.call(method, dict(revision=service.revision, **params))
+        call(a, "project.new")
+        call(b, "project.new")
+        for code, category in [("R1", "Materials"), ("R2", "Materials"), ("L1", "Labour"), ("L2", "Labour")]:
+            call(a, "resources.editor.add", data=dict(code=code, description=code, unit="kg", rate="1", category=category))
+        table = a.db.ResourceTable
+        ident = lambda code: str(table.get(code=code).id)
+        data = call(a, "clipboard.export", kind="resources", ids=[ident("R1")], cut=True)
+        with self.assertRaisesRegex(ValueError, "project they were cut from"):
+            call(b, "clipboard.paste", kind="resources", data=data, ids=[])
+        result = call(a, "clipboard.paste", kind="resources", data=data, ids=[ident("L1")])
+        self.assertTrue(result["moved"])
+        labour = table.get(code="L1").category_id
+        self.assertEqual([row.code for row in table.select().where(table.category == labour).order_by(table.order)], ["L1", "R1", "L2"])
+        self.assertEqual(table.get(code="R2").order, 0)
+        self.assertEqual(table.select().count(), 4)
+        call(a, "project.undo")
+        self.assertNotEqual(table.get(code="R1").category_id, labour)
+        # A category target moves the resources to its start.
+        cat = "cat:" + str(table.get(code="R2").category_id)
+        data = call(a, "clipboard.export", kind="resources", ids=[ident("L2")], cut=True)
+        call(a, "clipboard.paste", kind="resources", data=data, ids=[cat])
+        self.assertEqual(table.get(code="L2").order, 0)
+        self.assertEqual(table.get(code="L2").category_id, table.get(code="R2").category_id)

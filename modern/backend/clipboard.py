@@ -225,6 +225,14 @@ def export(service, params):
     document = dict(format=FORMAT, version=1, kind=kind, items=items, categories=categories, dependencies=dependencies)
     if kind == "schedule":
         document["instance"] = service.instance_code()
+    if kind == "resources" and params.get("cut"):
+        # GTK ResourceView.cut_selection: a reference that moves the resources
+        # on paste within the same project.
+        codes = [item["code"] for item in items]
+        if not codes:
+            raise ValueError("Select resources to cut")
+        document["instance"] = service.instance_code()
+        document["cut"] = codes
     data = json.dumps(document, ensure_ascii=False)
     if len(data) > MAX_TEXT:
         raise ValueError("Selection is too large for the system clipboard; copy fewer rows")
@@ -298,10 +306,15 @@ def decode(data, expected, service):
         if any(obj(value).get("template") != item.itemtype for value in values):
             raise ValueError("Copied records must use the same measurement template")
         items = (item.itemtype, [record_values(value.get("values"), item) for value in values])
-    instance = document.get("instance") if kind == "schedule" else None
+    instance = document.get("instance") if kind in ("schedule", "resources") else None
     if instance is not None and not (isinstance(instance, str) and re.fullmatch(r"[0-9A-F]{1,16}", instance)):
         raise ValueError("Invalid clipboard instance code")
-    return kind, items, categories, dependencies, missing, instance
+    cut = document.get("cut")
+    if cut is not None:
+        cut = [text(code) for code in array(cut)]
+        if kind != "resources" or not cut:
+            raise ValueError("Invalid cut clipboard")
+    return kind, items, categories, dependencies, missing, (instance, cut)
 
 
 def paste(service, params):
@@ -310,7 +323,13 @@ def paste(service, params):
         raise ValueError("Library snapshots are read-only")
     if kind != "analysis" and not service.db:
         raise ValueError("Open a project first")
-    kind, items, categories, dependencies, missing, instance = decode(params.get("data"), kind, service)
+    kind, items, categories, dependencies, missing, (instance, cut) = decode(params.get("data"), kind, service)
+    if cut is not None:
+        if instance != service.instance_code():
+            raise ValueError("Cut resources can only be pasted in the project they were cut from")
+        service.guard_draft(params)
+        result = service.project_editor.mutate(lambda: service.project_editor.move_resources(cut, params))
+        return dict(ok=True, moved=True, **result)
     # GTK: rows from another project keep their own resources under
     # "<instance>.<code>" instead of merging with same-coded local ones.
     local = instance if instance and instance != service.instance_code() else None
@@ -336,6 +355,9 @@ def paste(service, params):
                 if local is not None and ":" not in dependency.code:
                     dependency.code = local + "." + dependency.code
                 existing = service.db.get_item(dependency.code, copy_ana=False)
+                # Same project: the referenced item is already here (any category); reuse it.
+                if existing and local is None:
+                    continue
                 if existing and existing.category != misc.SUB_ANA_TITLE:
                     raise ValueError("Copied sub-analysis conflicts with schedule item " + dependency.code)
                 if not existing:

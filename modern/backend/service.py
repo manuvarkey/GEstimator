@@ -336,6 +336,7 @@ class Service:
                 "project.redo",
                 "project.export",
                 "project.settings.edit",
+                "project.reorder",
                 "project.enrichment.clear",
                 "project.import",
             )
@@ -892,39 +893,8 @@ class Service:
         return blake2b(seed.encode("utf-8"), digest_size=2).hexdigest().upper()
 
     def update_dependent_rates(self, db, resources=(), schedules=()):
-        schedule_codes = {
-            row.id: row.code
-            for row in db.ScheduleTable.select(
-                db.ScheduleTable.id, db.ScheduleTable.code
-            )
-        }
-        resource_codes = {
-            row.id: row.code
-            for row in db.ResourceTable.select(
-                db.ResourceTable.id, db.ResourceTable.code
-            )
-        }
-        dependents = {}
-        for schedule_id, resource_id in db.ResourceItemTable.select(
-            db.ResourceItemTable.id_sch, db.ResourceItemTable.id_res
-        ).tuples():
-            dependents.setdefault(resource_codes[resource_id], set()).add(
-                schedule_codes[schedule_id]
-            )
-        affected = set(schedules)
-        queue = list(resources) + list(schedules)
-        seen = set()
-        while queue:
-            code = queue.pop()
-            if code in seen:
-                continue
-            seen.add(code)
-            for parent in dependents.get(code, ()):
-                if parent not in affected:
-                    affected.add(parent)
-                    queue.append(parent)
-        if affected:
-            db.update_rates(list(affected))
+        from .rates import update_dependents
+        update_dependents(db, resources, schedules)
 
     def export_analysis(self, params, progress):
         if not self.loaded:
@@ -957,6 +927,7 @@ class Service:
         for _, index in getattr(self, "_mcp_search", {}).values():
             index.close()
         self._mcp_search = {}
+        self._search_text_memo = {}
 
     def close(self):
         if self.owns_mcp:

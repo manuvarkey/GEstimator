@@ -30,7 +30,7 @@ const emit = defineEmits<{
   selection: [rows: { id: string; [key: string]: any }[]];
   paste: [changes: { id: string; field: string; value: string }[]];
   edit: [row: { id: string; [key: string]: any }, field: string, value: string];
-  activate: [row: { id: string; [key: string]: any }];
+  activate: [row: { id: string; [key: string]: any }, modifiers?: { ctrl: boolean }];
   pasteRows: [data: string];
   action: [operation: string];
 }>();
@@ -139,7 +139,7 @@ function keyboard(event: KeyboardEvent) {
   if (event.key === "Enter" && !event.ctrlKey && !event.metaKey && !event.altKey && table.getSelectedRows().length === 1) {
     event.preventDefault();
     event.stopPropagation();
-    emit("activate", table.getSelectedData()[0]);
+    emit("activate", table.getSelectedData()[0], { ctrl: event.ctrlKey || event.metaKey });
   }
 }
 function paste(event: ClipboardEvent) {
@@ -353,8 +353,9 @@ onMounted(() => {
   table.on("rowSelectionChanged", (rows) => {
     if (!replacingRows) emit("selection", rows);
   });
-  table.on("cellDblClick", (_event, cell) => {
-    if (props.activateOnDoubleClick && !props.busy) emit("activate", cell.getData() as { id: string; [key: string]: any });
+  table.on("cellDblClick", (event, cell) => {
+    const mouse = event as MouseEvent;
+    if (props.activateOnDoubleClick && !props.busy) emit("activate", cell.getData() as { id: string; [key: string]: any }, { ctrl: mouse.ctrlKey || mouse.metaKey });
   });
 });
 onBeforeUnmount(() => {

@@ -15,7 +15,7 @@ import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
 import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
-import { copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
+import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 import { notify } from "../statusNotice";
 
 type View = "schedule" | "resources" | "measurement";
@@ -400,6 +400,7 @@ async function run(work: () => Promise<void>) {
 const rowActions = computed(() => source.value ? [] : [
   { label: "Add item after selection", action: "add" },
   ...(props.view === "schedule" ? [{ label: "Add subitem", action: "child", itemOnly: true, single: true }, { label: "Open analysis", action: "activate", itemOnly: true, single: true }] : [{ label: isMeasurement.value ? "Measurement properties…" : "Edit resource…", action: "properties", single: true, itemOnly: !isMeasurement.value }]),
+  ...(props.view === "resources" ? [{ label: "Cut selected resources", action: "cut", itemOnly: true }] : []),
   { label: "Copy selected rows", action: "copy" }, { label: "Paste rows here", action: "paste" },
   { label: "Duplicate selection", action: "duplicate", single: !isMeasurement.value, itemOnly: !isMeasurement.value }, { label: "Delete selection…", action: "delete" },
 ]);
@@ -481,10 +482,16 @@ async function command(
     if (operation === "copy" || operation === "record_copy") {
       notify(await copyRows(clipboardKind, clipboardParams));
       return;
+    } else if (operation === "cut") {
+      // GTK ResourceView: cut stores a reference; Paste moves the resources.
+      await copyRows("resources", { ...clipboardParams, ids: selected.value.filter(row => row.rowtype !== "Category").map(row => row.id), cut: true });
+      notify("Resources cut. Select a resource or category and paste to move them.");
+      return;
     } else if (operation === "paste" || operation === "record_paste") {
       const pasted = await pasteRows(clipboardKind, clipboardParams);
       result = pasted;
-      notify(pasted.unlinked ? `Rows pasted. ${pasted.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.", pasted.unlinked ? 10000 : 5000);
+      if (pasted.moved) { await clearRowClipboard(); notify("Resources moved."); }
+      else notify(pasted.unlinked ? `Rows pasted. ${pasted.unlinked} missing schedule links were cleared; records and remarks were retained.` : "Rows pasted.", pasted.unlinked ? 10000 : 5000);
     } else result = await request(
       operation.startsWith("project.")
         ? operation
@@ -843,6 +850,12 @@ function keyboard(event: KeyboardEvent) {
     }
   }
   if (!target.closest(".project-grid")) return;
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x" && props.view === "resources" && !records) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (selected.value.some(row => row.rowtype !== "Category")) void command("cut");
+    return;
+  }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
     event.preventDefault();
     event.stopPropagation();
@@ -1056,7 +1069,15 @@ watch(
           </div>
           <div class="ribbon-group">
             <div class="ribbon-actions">
-            <button
+            <button v-if="view === 'resources'"
+              class="ribbon-action ribbon-icon"
+              aria-label="Cut"
+              title="Cut the selected resources. Paste after a resource or on a category moves them there, keeping their codes and analysis links. Works within this project only (Ctrl+X)."
+              :disabled="busy || !selected.some(row => row.rowtype !== 'Category')"
+              @click="command('cut')"
+            >
+              <AppIcon name="cut" /><span class="ribbon-label">Cut</span></button
+            ><button
               class="ribbon-action ribbon-icon"
               aria-label="Copy"
               title="Copy selected items or categories, including off-page contents, to the system clipboard for use in this or another GEstimator window (Ctrl+C)."
@@ -1067,7 +1088,7 @@ watch(
             ><button
               class="ribbon-action ribbon-icon"
               aria-label="Paste"
-              title="Paste rows copied from the same editor in any GEstimator window. Schedule and resource code collisions receive a copy suffix; measurement links match schedule codes. Undo restores the previous state (Ctrl+V)."
+              title="Paste rows copied from the same editor in any GEstimator window at the selection, numbered like GTK: schedule subitems go under a selected heading; rows from another project keep their resources under that project's code. Cut resources move. Undo restores the previous state (Ctrl+V)."
               :disabled="busy"
               @click="command('paste')"
             >
