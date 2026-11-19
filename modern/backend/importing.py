@@ -1,10 +1,9 @@
-"""Mapped Excel import using openpyxl and existing project CRUD operations."""
+"""Worksheet helpers (lenient numbers, cell previews, ranges) and mapped schedule/resource import."""
 
 from pathlib import Path
 import re
 from openpyxl import load_workbook
-from peewee import fn
-from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel, parse_analysis
+from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
 from .numbers import decimal
 
 FIELDS = {
@@ -79,46 +78,6 @@ def selected_rows(params, width, *, cached=False):
         book.close()
 
 
-def analysis_data(params):
-    records = selected_rows(params, 6, cached=True)
-    if params.get("rate_first") is True:
-        records = [(code, desc, unit, qty, rate, amount)
-                   for code, desc, unit, rate, qty, amount in records]
-    data = []
-    for record in records:
-        record = tuple(record) + (None,) * (6 - len(record))
-        labels = [str(value).strip() if value is not None else "" for value in record[:3]]
-        header = "description" in labels[1].lower() and "unit" in labels[2].lower()
-        # Text in a number column (units such as "LS", notes, dashes) reads as 0.
-        data.append([*labels, *[decimal("0") if header else (loose_number(value) or decimal("0")) for value in record[3:6]]])
-    return data
-
-
-def parser_settings(params):
-    comment = params.get("comment_position", 1)
-    rounding = params.get("rounding", -1)
-    if type(comment) is not int or comment not in (0, 1) or type(rounding) not in (int, float) or rounding not in (-1, 0, 1, 2, 1.5, 2.5):
-        raise ValueError("Invalid analysis parser options")
-    return comment, rounding
-
-
-def import_analysis(model, params, warnings=None):
-    from .analysis_import import parse_analyses, read_rows
-    drafts, found = parse_analyses(read_rows(params), parser_settings(params))
-    if warnings is not None:
-        warnings.extend(found)
-    if not drafts:
-        raise ValueError("No analysis resources found. Click the item code cell above the analysis header, or check the column order.")
-    parsed = next(iter(drafts.values()))
-    draft = ScheduleItemModel(model.code, model.description, model.unit)
-    draft.ana_items, draft.ana_remarks, draft.resources = parsed.ana_items, parsed.ana_remarks, parsed.resources
-    draft.resources.update({
-        code: model.resources[code] for code in draft.resources if code in model.resources
-    })
-    draft.evaluate_results()
-    return draft
-
-
 def data_range(params):
     start = params.get("header_row", 1)
     first = params.get("first_row", start + 1)
@@ -169,12 +128,33 @@ def header_key(text):
     return " ".join(re.sub(r"[^\w%]+", " ", text).split())
 
 
+HEADER_LOOKUP = {alias: field for field, aliases in HEADER_ALIASES.items() for alias in aliases}
+# Prefixes tolerate misspelt or extended headers ("Descpription", "Quantity (cum)", "Sr. No.").
+HEADER_PREFIXES = (("desc", "description"), ("particul", "description"), ("quant", "qty"), ("qty", "qty"),
+                   ("sr no", "code"), ("sl no", "code"), ("s no", "code"), ("item no", "code"), ("code", "code"),
+                   ("remark", "remarks"), ("unit rate", "rate"), ("rate", "rate"), ("unit", "unit"))
+
+
+def header_field(text):
+    key = header_key(text)
+    if key in HEADER_LOOKUP:
+        return HEADER_LOOKUP[key]
+    return next((field for prefix, field in HEADER_PREFIXES if key.startswith(prefix)), None)
+
+
+def is_header_row(values):
+    """True for a row whose code (and description) cells are column names."""
+    code = values.get("code", "")
+    description = values.get("description")
+    return (bool(code.strip()) and header_field(code) == "code"
+            and (description is None or header_field(description) == "description"))
+
+
 def preview(params):
     sheets, headers, records = rows(params, cached=True)
-    lookup = {alias: field for field, aliases in HEADER_ALIASES.items() for alias in aliases}
     mapping = {}
     for index, header in enumerate(headers):
-        field = lookup.get(header_key(header))
+        field = header_field(header)
         if field and field not in mapping:
             mapping[field] = index
     return dict(
@@ -292,6 +272,8 @@ def apply(editor, params, progress):
             if isinstance(raw, str) and raw.startswith("=") and saved[index] is not None and field not in ("rate", "vat", "discount", "qty"):
                 raw = saved[index]
             values[field] = ("%.12g" % raw if isinstance(raw, float) else str(raw)) if raw is not None else ""
+        if is_header_row(values):
+            continue  # a header repeated on a later printed page
         numbers = {}
         for field in ("rate", "vat", "discount", "qty"):
             if field not in mapping:
@@ -417,41 +399,6 @@ def apply(editor, params, progress):
     return dict(added=added, updated=updated, skipped=skipped, warnings=warnings[:200], warning_count=len(warnings))
 
 
-def workbook_analyses(editor, params, *, apply=False):
-    from .analysis_import import parse_analyses, read_rows
-    drafts, warnings = parse_analyses(read_rows(params), parser_settings(params))
-    if not drafts:
-        raise ValueError("No analysis resources found")
-    matched, unmatched, analyses, targets = [], [], [], set()
-    for code, draft in drafts.items():
-        table = editor.db.ScheduleTable
-        # Worksheet codes are trimmed; project codes may carry stray spaces.
-        row = table.get_or_none(table.code == code) or table.get_or_none(fn.TRIM(table.code) == code)
-        draft.evaluate_results()
-        analyses.append(dict(code=code, matched=row is not None, description=row.description if row else "",
-                             current=str(row.rate or 0) if row else "", rate=str(draft.get_ana_rate() or 0),
-                             rows=len(draft.ana_items), resources=len(draft.resources)))
-        if row is None:
-            unmatched.append(code)
-            continue
-        matched.append(code)
-        targets.add(row.code)
-        if apply:
-            model = editor.db.get_item(row.code, modify_res_code=False)
-            model.ana_items = draft.ana_items
-            model.ana_remarks = draft.ana_remarks
-            model.resources = {key: editor.db.get_resource(key) or resource
-                               for key, resource in draft.resources.items()}
-            model.evaluate_results()
-            if not editor.db.insert_item_atomic(model, update=True):
-                raise ValueError(f"Could not import analysis: {code}")
-    if apply and not matched:
-        raise ValueError("No workbook item codes match existing schedule items")
-    if apply:
-        editor.owner.update_dependent_rates(editor.db, schedules=targets)
-    return dict(matched=matched, unmatched=unmatched, analyses=analyses, warnings=warnings[:200])
-
-
 def sheet_preview(params):
     """Cells of one worksheet for the import range picker (saved values)."""
     path = Path(params["path"]).resolve(strict=True)
@@ -473,20 +420,3 @@ def sheet_preview(params):
         book.close()
 
 
-def analysis_rows(draft):
-    """Parsed analysis as display rows for an import preview."""
-    rows = []
-    draft.evaluate_results()
-    for index, item in enumerate(draft.ana_items):
-        kind = item["itemtype"]
-        if kind == ScheduleItemModel.ANA_GROUP:
-            rows.append(dict(kind="Group", description=item["description"] or "", amount=str(draft.results[index][-1])))
-            for (code, qty, remarks), (rate, total) in zip(item["resource_list"], draft.results[index][:-1]):
-                resource = draft.resources.get(code)
-                rows.append(dict(kind="Resource", code=code, description=getattr(resource, "description", "") or "",
-                                 unit=getattr(resource, "unit", "") or "", qty=str(qty), rate=str(rate), amount=str(total), remarks=remarks or ""))
-        else:
-            label = {ScheduleItemModel.ANA_SUM: "Subtotal", ScheduleItemModel.ANA_WEIGHT: "Weight",
-                     ScheduleItemModel.ANA_TIMES: "Multiply", ScheduleItemModel.ANA_ROUND: "Round"}.get(kind, "")
-            rows.append(dict(kind=label, description=item.get("description") or "", qty=str(item.get("value") or ""), amount=str(draft.results[index])))
-    return rows

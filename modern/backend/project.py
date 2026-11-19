@@ -1183,7 +1183,7 @@ class ProjectEditor:
         if method == "library.list":
             return self.sources()
         if method == "project.import_analysis_preview":
-            from .importing import workbook_analyses
+            from .analysis_import import workbook_analyses
             return workbook_analyses(self, p)
         if method == "project.import_preview":
             from .importing import preview
@@ -1208,6 +1208,8 @@ class ProjectEditor:
             return self.resource_usage(p)
         if method == "resources.editor.dependents":
             return self.resource_dependents(p)
+        if method == "measurement.record_import_preview":
+            return self.record_import_preview(p)  # read-only
         if p.get("revision") != self.owner.revision and not method.startswith(
             "project.export"
         ):
@@ -1235,7 +1237,7 @@ class ProjectEditor:
             from .analysis_rules import preview_in_copy
             return preview_in_copy(self, lambda scratch: scratch.from_library("schedule", p, progress, review=True))
         if method == "project.import_analysis_apply":
-            from .importing import workbook_analyses
+            from .analysis_import import workbook_analyses
             return self.mutate(lambda: workbook_analyses(self, p, apply=True))
         if method == "project.import_apply":
             from .importing import apply
@@ -1876,6 +1878,26 @@ class ProjectEditor:
         for index, raw in values.items():
             item.records[index] = measurement.RecordCustom(raw, item.cust_funcs, item.total_func_item, item.columntypes)
         self.set_measurement(meas)
+
+    def record_import_preview(self, p):
+        """Rows a record import would insert, under the template's column names."""
+        from .importing import selected_rows
+        from .measurement_templates import column_title
+        meas = self.get_measurement()
+        self.ensure_ids(meas)
+        if p.get("id") not in self.ids:
+            raise ValueError("Select a measurement item")
+        item = meas.items[self.ids.index(p["id"])]
+        if not hasattr(item, "columntypes"):
+            raise ValueError("Headings have no records")
+        fields = [i for i, kind in enumerate(item.columntypes) if kind != misc.MEAS_CUST]
+        first = p.get("first_row", 1)
+        rows = []
+        for line, values in enumerate(selected_rows(p, len(fields), cached=True), first if type(first) is int else 1):
+            if all(value is None for value in values):
+                continue
+            rows.append(dict(row=line, values=["" if value is None else ("%.12g" % value if isinstance(value, float) else str(value)) for value in values]))
+        return dict(columns=[column_title(item, i) for i in fields], count=len(rows), rows=rows[:200])
 
     def measurement_edit(self, op, p):
         meas = self.get_measurement()

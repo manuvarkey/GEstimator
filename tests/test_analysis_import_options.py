@@ -1,5 +1,5 @@
 import unittest
-from modern.backend.importing import parser_settings
+from modern.backend.analysis_import import parser_settings
 
 
 class ParserOptionsTests(unittest.TestCase):

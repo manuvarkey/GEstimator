@@ -16,8 +16,8 @@ const props = defineProps<{
   error: string;
   measurement?: boolean;
   multiple?: boolean;
-  /** Editable template columns, in order (measurement records). */
-  columns?: string[];
+  /** Measurement item receiving records; the backend reads its template columns. */
+  measurementId?: string;
 }>();
 const analysisColumns = ["Code", "Description", "Unit", "Quantity", "Rate", "Amount"];
 const path = ref("");
@@ -43,22 +43,15 @@ type AnalysisLine = { kind: string; code?: string; description: string; unit?: s
 const preview = ref<{ rows: number; resources: number; rate: string; items?: AnalysisLine[]; matched?: string[]; unmatched?: string[]; warnings?: string[];
   analyses?: { code: string; matched: boolean; description: string; current: string; rate: string; rows: number; resources: number }[] }>();
 const workbook = ref<{ sheets: string[]; sheet: string; rows: string[][]; max_row: number; max_column: number }>();
-const labels = computed(() => props.measurement ? props.columns ?? [] : rateFirst.value ? ["Code", "Description", "Unit", "Rate", "Quantity", "Amount"] : analysisColumns);
+const recordPreview = ref<{ columns: string[]; count: number; rows: { row: number; values: string[] }[] }>();
+const recordColumns = ref<string[]>([]);
+const labels = computed(() => props.measurement ? recordColumns.value : rateFirst.value ? ["Code", "Description", "Unit", "Rate", "Quantity", "Amount"] : analysisColumns);
 const title = computed(() => props.measurement ? "Import measurement records" : props.multiple ? "Import analyses from Excel" : "Import analysis from Excel");
 const fileName = computed(() => path.value.split(/[\\/]/).pop() || "");
 const lastColumn = computed(() => column.value + labels.value.length - 1);
-// Records are read from the preview cells, matching the backend's row selection.
-const records = computed(() => {
-  if (!props.measurement || !workbook.value) return [];
-  const end = Math.min(last.value || workbook.value.rows.length, workbook.value.rows.length);
-  const rows: { row: number; values: string[] }[] = [];
-  for (let row = first.value; row <= end; row++) {
-    const values = labels.value.map((_, index) => workbook.value!.rows[row - 1]?.[column.value - 1 + index] ?? "");
-    if (values.some(Boolean)) rows.push({ row, values });
-  }
-  return rows;
-});
-const ready = computed(() => props.measurement ? records.value.length > 0 : props.multiple ? !!preview.value?.matched?.length : !!preview.value);
+const records = computed(() => recordPreview.value?.rows ?? []);
+const recordCount = computed(() => recordPreview.value?.count ?? 0);
+const ready = computed(() => props.measurement ? recordCount.value > 0 : props.multiple ? !!preview.value?.matched?.length : !!preview.value);
 
 function letter(value: number) {
   let text = "";
@@ -74,7 +67,9 @@ async function loadSheet() {
   busy.value = true;
   error.value = "";
   try {
-    workbook.value = await request("workbook.sheet", { path: path.value, sheet: sheet.value || undefined, rows: props.measurement ? 2000 : 400 });
+    workbook.value = await request("workbook.sheet", { path: path.value, sheet: sheet.value || undefined, rows: 400 });
+    if (props.measurement && !recordColumns.value.length)
+      recordColumns.value = (await request<{ columns: string[] }>("measurement.record_import_preview", { path: path.value, sheet: sheet.value || undefined, first_row: 1, last_row: 1, first_column: 1, id: props.measurementId })).columns;
     if (!sheet.value) sheet.value = workbook.value!.sheet;
   } catch (reason) {
     workbook.value = undefined;
@@ -100,15 +95,20 @@ function pick(row: number, col: number, keys: { shift: boolean }) {
 let reviewToken = 0;
 let reviewTimer: ReturnType<typeof setTimeout> | undefined;
 async function review() {
-  if (props.measurement || !path.value || !workbook.value) return;
+  if (!path.value || !workbook.value) return;
   const token = ++reviewToken;
   reviewing.value = true;
   error.value = "";
   try {
+    if (props.measurement) {
+      const result = await request<typeof recordPreview.value>("measurement.record_import_preview", { ...params(), id: props.measurementId });
+      if (token === reviewToken) { recordPreview.value = result; recordColumns.value = result!.columns; }
+      return;
+    }
     const result = await request<typeof preview.value>(props.multiple ? "project.import_analysis_preview" : "analysis.import_preview", params());
     if (token === reviewToken) preview.value = result;
   } catch (reason) {
-    if (token === reviewToken) { preview.value = undefined; error.value = String(reason); }
+    if (token === reviewToken) { preview.value = recordPreview.value = undefined; error.value = String(reason); }
   } finally {
     if (token === reviewToken) reviewing.value = false;
   }
@@ -177,7 +177,7 @@ async function apply() {
           <header>
             <strong>Preview</strong>
             <span v-if="reviewing" class="field-hint">Reading worksheet…</span>
-            <span v-else-if="measurement" role="status">{{ records.length }} record{{ records.length === 1 ? "" : "s" }} will be inserted{{ workbook.max_row > workbook.rows.length && !last ? " (rows beyond the preview are included)" : "" }}</span>
+            <span v-else-if="measurement" role="status">{{ recordCount }} record{{ recordCount === 1 ? "" : "s" }} will be inserted</span>
             <span v-else-if="preview && !multiple" role="status">{{ preview.rows }} analysis rows · {{ preview.resources }} resources · rate {{ formatMoney(preview.rate) }}</span>
             <span v-else-if="preview?.matched" role="status">{{ preview.matched.length }} matched · {{ preview.unmatched?.length ?? 0 }} not in this project</span>
           </header>
@@ -187,7 +187,7 @@ async function apply() {
           <div class="import-sample">
             <table v-if="measurement && records.length">
               <thead><tr><th>Row</th><th v-for="name in labels" :key="name">{{ name }}</th></tr></thead>
-              <tbody><tr v-for="record in records.slice(0, 200)" :key="record.row"><td>{{ record.row }}</td><td v-for="(value, index) in record.values" :key="index">{{ value }}</td></tr></tbody>
+              <tbody><tr v-for="record in records" :key="record.row"><td>{{ record.row }}</td><td v-for="(value, index) in record.values" :key="index">{{ value }}</td></tr></tbody>
             </table>
             <table v-else-if="preview?.items">
               <thead><tr><th>Type</th><th>Code</th><th>Description</th><th>Unit</th><th>Qty / factor</th><th>Rate</th><th>Amount</th></tr></thead>
@@ -217,7 +217,7 @@ async function apply() {
         <button type="button" class="button secondary" :disabled="busy" @click="visible = false">Cancel</button>
         <button v-if="!workbook" class="button primary" :disabled="busy || !path">Open workbook</button>
         <button v-else type="button" class="button primary" :disabled="busy || reviewing || !ready" @click="apply">
-          {{ measurement ? `Import ${records.length} record${records.length === 1 ? "" : "s"}` : multiple ? `Import ${preview?.matched?.length ?? 0} ${preview?.matched?.length === 1 ? "analysis" : "analyses"}` : "Replace analysis draft" }}
+          {{ measurement ? `Import ${recordCount} record${recordCount === 1 ? "" : "s"}` : multiple ? `Import ${preview?.matched?.length ?? 0} ${preview?.matched?.length === 1 ? "analysis" : "analyses"}` : "Replace analysis draft" }}
         </button>
       </div>
     </form>

@@ -174,7 +174,7 @@ async function apply() {
           </select>
         </label>
         <label v-if="kind === 'schedule'" class="import-option"><input v-model="hierarchy" type="checkbox" :disabled="busy" />
-          <span>Deduce hierarchy from codes — uppercase description-only rows start a category, unpriced code rows are headings, and 1.1.1 becomes a subitem of 1.1 (as in GEstimator GTK)</span></label>
+          <span>Deduce hierarchy from codes — uppercase description-only rows start a category, unpriced code rows are headings, and 1.1.1 becomes a subitem of 1.1</span></label>
         <section class="range-import-result" aria-label="Import preview">
           <header><strong>Preview</strong>
             <span v-if="mapping.code === undefined" class="field-hint">Choose the Code column to continue.</span>

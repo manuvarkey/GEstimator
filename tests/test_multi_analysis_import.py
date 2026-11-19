@@ -6,7 +6,8 @@ import unittest
 from unittest.mock import patch
 from openpyxl import Workbook
 from modern.backend.service import Service
-from modern.backend.importing import import_analysis, selected_rows
+from modern.backend.analysis_import import import_analysis
+from modern.backend.importing import selected_rows
 from estimator.data.schedule import ScheduleItemModel
 
 
@@ -95,8 +96,10 @@ class MultiAnalysisImportTests(unittest.TestCase):
 
     def test_duplicates_unmatched_and_bounds(self):
         params = self.workbook([self.codes[0], self.codes[0]])
-        with self.assertRaisesRegex(ValueError, 'Duplicate'):
-            self.call('project.import_analysis_preview', params)
+        # A repeated code keeps the first analysis and reports the second.
+        preview = self.call('project.import_analysis_preview', params)
+        self.assertEqual(preview['matched'], [self.codes[0]])
+        self.assertTrue(any('already used' in warning for warning in preview['warnings']))
         params = self.workbook(['UNKNOWN'])
         preview = self.call('project.import_analysis_preview', params)
         self.assertEqual({k: preview[k] for k in ('matched', 'unmatched')}, dict(matched=[], unmatched=['UNKNOWN']))

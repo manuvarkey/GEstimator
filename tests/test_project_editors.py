@@ -1112,3 +1112,51 @@ class StructuredScheduleImportTests(unittest.TestCase):
         flat = call("project.import_apply", kind="schedule", path=str(path), mapping=mapping)
         self.assertEqual(flat["added"], 5)
         self.assertIsNone(db.get_item("1.1.1").parent)
+
+
+class RepeatedHeaderImportTests(unittest.TestCase):
+    def test_header_rows_on_later_pages_are_skipped(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "pages.xlsx"
+        book = Workbook()
+        for row in [["Code No.", "DESCRIPTION", "Unit", "Rate"], ["1001", "Wireman", "day", 981],
+                    ["SR.NO.", "Descpription", "UNIT", "RATE"], ["1002", "Jointer", "day", 981]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        preview = call("project.import_preview", path=str(path))
+        result = call("project.import_apply", kind="resources", path=str(path), mapping=preview["mapping"])
+        self.assertEqual((result["added"], result["warning_count"]), (2, 0))
+
+
+class RecordImportPreviewTests(unittest.TestCase):
+    def test_preview_lists_template_columns_and_non_empty_rows(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "records.xlsx"
+        book = Workbook()
+        for row in [["Kitchen", 1, 3, 4, 2.5], [], ["Hall", 2, 5, 4, 3]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        call("measurement.add", template="_1_NLBH", description="Rooms")
+        identity = call("measurement.state")["rows"][0]["id"]
+        preview = call("measurement.record_import_preview", id=identity, path=str(path), first_row=1, first_column=1)
+        self.assertEqual(preview["count"], 2)
+        self.assertEqual([row["row"] for row in preview["rows"]], [1, 3])
+        self.assertEqual(len(preview["columns"]), 5)

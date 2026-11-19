@@ -4,6 +4,9 @@ These rules apply to the modern desktop workspace. Keep design decisions in shar
 
 ## Ownership
 
+- User-facing text describes GEstimator behaviour only. Never mention the GTK application, earlier versions or implementation references in labels, tooltips, help or messages; keep such notes in code comments and developer docs.
+- Parsing, calculation, validation and data rules live in the Python backend; Vue components render backend results and collect input. Shared frontend behaviour belongs in composables (`useWorkspace`, `useDocumentTabs`) or helpers, not in `App.vue`.
+
 - `modern/src/theme.css` owns semantic colours, typography, spacing-related tokens, focus treatment and theme variants. Use tokens instead of literal colours in components.
 - `modern/src/style.css` owns shared control, dialog, headerbar, ribbon, table and summary classes. Change the shared rule before adding a local override.
 - Reuse `RibbonToolbar`, `AppIcon`, `DataTable`, `PersistentDialog` and the standard dialog/button classes. Add a shared component when multiple callers need the same behavior; do not duplicate editor-specific copies.

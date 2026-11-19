@@ -630,3 +630,11 @@ Validation: 157 Python tests, `vue-tsc`, production build, browser suite 81 pass
 - Export: `Spreadsheet.set_page_settings(font=...)` indexed `sheet[row]`, which rescans every cell for the sheet width on each call; it now iterates once. With the cached row extent and direct merged-row registration, the DSR EM 2022 analysis sheet exports in 4 s instead of 160 s (DSR 2021 full workbook 22 s).
 
 Validation: 165 Python tests, browser suite 81 passed.
+
+## 2026-11-20 — E&M 2025 workbook, layering cleanup
+
+- UI text no longer mentions the GTK application (import option, shortcut help, paste tooltip). The guideline is recorded in `docs/ui-guidelines.md`.
+- Layering: record-import previews are read by the backend (`measurement.record_import_preview`, read-only) instead of the Vue component; analysis-import project operations moved from `importing.py` to `analysis_import.py` (dead `analysis_data` removed); project-tab commands moved from `App.vue` to `useDocumentTabs.ts`.
+- `Other databases/reference/DSR EandM 2025 3 09 2025.xlsx`: misspelt headers ("Descripion", "Descpription", "SR.NO."), repeated page headers, section totals ("Total B" of the additions only), totals in the unit column, item codes up to 15 rows above the header, rounded final totals without "Say", "per cent" additions, deductions, multipliers above 1 and sentence notes containing "labour" are now handled; duplicate codes in a sheet are reported instead of failing. 41 chapter sheets: 2,136 of 2,181 analysis tables import; the remainder are sheet issues (missing or duplicate codes) and are listed. With resources from "APPENDIX-II BASIC MATERIAL RATE" and schedule from "DSR 2025" (code hierarchy on), all 175 "CH-1 Wiring" analyses match and import at the sheet rates; 48 analyses across the book differ by ₹1 because the sheet keeps unrounded intermediate amounts while GEstimator rounds each step (reported as warnings). DSR 2021 and DSR EM 2022 export round trips still import every analysis at its original rate.
+
+Validation: 174 Python tests, browser suite 81 passed.

@@ -1035,7 +1035,7 @@ watch(
             ><button
               class="ribbon-action ribbon-icon"
               aria-label="Paste"
-              title="Paste rows copied from the same editor in any GEstimator window at the selection, numbered like GTK: schedule subitems go under a selected heading; rows from another project keep their resources under that project's code. Cut resources move. Undo restores the previous state (Ctrl+V)."
+              title="Paste rows copied from the same editor in any GEstimator window at the selection, numbered from it: schedule subitems go under a selected heading; rows from another project keep their resources under that project's code. Cut resources move. Undo restores the previous state (Ctrl+V)."
               :disabled="busy"
               @click="command('paste')"
             >
@@ -1594,7 +1594,7 @@ watch(
     <MappedImport v-if="importOpen" v-model="importOpen" :kind="view === 'resources' ? 'resources' : 'schedule'" :fields="importFields" :revision="state?.revision" @imported="importDone" />
     <SpreadsheetRangeImport v-if="multiAnalysisImportOpen" v-model="multiAnalysisImportOpen" multiple :apply="params => command('project.import_analysis_apply', params)" :error="error" />
     <SpreadsheetRangeImport v-if="recordImportOpen" v-model="recordImportOpen" measurement
-      :columns="(state?.detail?.columns ?? []).filter((c: any) => c.editable).map((c: any) => c.title)"
+      :measurement-id="activeMeasurement"
       :apply="(params) => command('record_import', {
         ...params, id: activeMeasurement, record_id: selectedRecord?.id,
       })" :error="error" />

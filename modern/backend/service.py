@@ -387,9 +387,9 @@ class Service:
         if method == "analysis.import_preview":
             if not self.loaded:
                 raise ValueError("Load an analysis first")
-            from .importing import import_analysis
+            from .analysis_import import import_analysis
 
-            from .importing import analysis_rows
+            from .analysis_import import analysis_rows
             warnings = []
             draft = import_analysis(self.model, p, warnings)
             return dict(rows=len(draft.ana_items), resources=len(draft.resources),
@@ -597,7 +597,7 @@ class Service:
         if method == "analysis.import_xlsx":
             if not self.loaded:
                 raise ValueError("Load an analysis first")
-            from .importing import import_analysis
+            from .analysis_import import import_analysis
 
             draft = import_analysis(self.model, p)
             self.model.ana_items = draft.ana_items

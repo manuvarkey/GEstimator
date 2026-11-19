@@ -5,7 +5,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from estimator.data.schedule import ScheduleItemModel
 from modern.backend.analysis_import import parse_analyses, read_rows
-from modern.backend.importing import import_analysis
+from modern.backend.analysis_import import import_analysis
 
 
 class AnalysisImportResilienceTests(unittest.TestCase):
@@ -114,3 +114,45 @@ class AnalysisImportResilienceTests(unittest.TestCase):
         warnings = []
         draft = import_analysis(ScheduleItemModel("TARGET", "Target", "m"), params, warnings)
         self.assertEqual((draft.code, draft.get_ana_rate(), warnings), ("TARGET", Decimal("200"), []))
+
+
+class WorksheetLayoutTests(AnalysisImportResilienceTests):
+    def test_misspelt_header_section_totals_and_unit_column_labels(self):
+        drafts, warnings = self.parse([
+            ["19.1.1", "25W fitting"],
+            ["", "Descripion", "Unit"],
+            ["", "(A) Material"],
+            ["5135", "25W", "Nos.", 1, 25025, 25025],
+            ["", "Total", None, None, None, 25025],
+            ["", "Cartage@ 1% of A", None, None, None, 250.25],
+            ["", "Total A", None, None, None, 25275.25],
+            ["", "(B) LABOUR"],
+            ["", "ITC @4% of A", None, None, None, 1011.01],
+            ["", "Total B", None, None, None, 1011.01],
+            ["", "Total (A +B)", None, None, None, 26286.26],
+            ["", "Overhead & Profit @15%", None, None, None, 3942.94],
+            ["", "", "Total", None, None, 30229.2],
+            ["", "Add 10 per cent of cost of carriage", None, None, None, 3022.92],
+            ["", "Total", None, None, None, 33252.12],
+        ])
+        item = drafts["19.1.1"]
+        self.assertEqual([row["itemtype"] for row in item.ana_items], [0, 2, 1, 2, 1, 2, 1, 2, 1])
+        self.assertEqual([row.get("value") for row in item.ana_items if row["itemtype"] == 2],
+                         [Decimal("0.01"), Decimal("0.04"), Decimal("0.15"), Decimal("0.1")])
+        self.assertEqual(item.get_ana_rate(), Decimal("33252.12"))
+
+    def test_running_total_after_group_and_deductions(self):
+        drafts, warnings = self.parse([
+            ["27.13", "Orifice plate"],
+            ["ICD No.", "Descripion", "Unit", "Qty.", "Rate", "Amount"],
+            ["", "Materials"], ["4319", "Plate", "Each", 1, 802, 802],
+            ["", "Total", None, None, None, 802],
+            ["", "Labour"], ["1004", "Fitter", "day", 0.1, 981, 98.1],
+            ["", "Total", None, None, None, 900.1],
+            ["", "OVERHEADS & PROFIT @ 15 %", None, None, None, 135.02],
+            ["", "Total", None, None, None, 1035.12],
+            ["", "Say", None, None, None, 1035],
+        ])
+        item = drafts["27.13"]
+        self.assertEqual([row["itemtype"] for row in item.ana_items], [0, 0, 1, 2, 1, 4])
+        self.assertEqual(item.get_ana_rate(), Decimal("1035"))

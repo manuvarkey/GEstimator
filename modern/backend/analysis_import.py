@@ -14,15 +14,15 @@ parse_analysis state machine it:
 """
 
 import ast
-from fractions import Fraction
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 import hashlib
 import re
 from pathlib import Path
 
 from openpyxl import load_workbook
-from openpyxl.utils import column_index_from_string, get_column_letter
+from openpyxl.utils import column_index_from_string
 
+from peewee import fn
 from estimator.data.schedule import Currency, ResourceItemModel, ScheduleItemModel
 
 ZERO = Decimal(0)
@@ -33,7 +33,8 @@ SUM_KEYS = ("total", "sub total", "subtotal", "rate per", "cost per", "cost for"
 WEIGHT_KEYS = ("@", "%", "add", "profit", "overhead", "water charge", "contractor")
 TIMES_KEYS = ("rate per", "rate for", "cost per", "cost for", "cost of", "rate of", "per unit", "for one", "for 1 ")
 ROUND_KEYS = ("say", "rounded", "round off")
-DESCRIPTION_HEADERS = ("description", "particular", "item", "details", "name of")
+# Prefixes, so misspelt headers ("Descripion", "Particlars") still match.
+DESCRIPTION_HEADERS = ("descr", "desc ", "particul", "item", "detail", "name of", "specification")
 UNIT_HEADERS = ("unit", "uom")
 
 
@@ -248,10 +249,15 @@ def _factor(amount, base):
     if not base:
         return None
     exact = amount / base
-    fraction = Fraction(exact).limit_denominator(1000)
-    candidate = _round(Decimal(fraction.numerator) / Decimal(fraction.denominator), 6)
-    if _round(candidate * base, 2) == _round(amount, 2):
-        return candidate.normalize() if candidate == candidate.to_integral() else candidate
+    target = _round(amount, 2)
+    # Smallest denominator first: 1/100 -> 0.01, 3/20 -> 0.15, 1/9 -> 0.111111.
+    for denominator in range(1, 1001):
+        numerator = (exact * denominator).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+        if not numerator:
+            continue
+        candidate = _round(numerator / denominator, 6)
+        if _round(candidate * base, 2) == target:
+            return candidate.normalize() if candidate == candidate.to_integral() else candidate
     for places in range(2, 7):
         factor = _round(exact, places)
         if _round(factor * base, 2) == _round(amount, 2):
@@ -291,8 +297,13 @@ class _Block:
         self.round_places = settings[1]
         self.group = None
         self.group_sum = ZERO
-        self.base = ZERO  # GTK sum_item: base for weights and multipliers
-        self.total = ZERO  # running total
+        self.base = ZERO  # model base for weights and multipliers (last group or subtotal)
+        self.total = ZERO  # model running total
+        # The worksheet's own figures: factors are read against these, so slips
+        # in the sheet (a double-counted line) do not distort percentages.
+        self.sheet_base = ZERO
+        self.sheet_total = ZERO
+        self.section = ZERO  # worksheet additions since the last subtotal
         self.last_resource = None
         self.pending_remarks = []
         self.finished = False
@@ -305,10 +316,13 @@ class _Block:
         self.group = len(self.item.ana_items) - 1
         self.group_sum = ZERO
 
-    def close_group(self):
+    def close_group(self, sheet_amount=None):
         if self.group is not None:
             self.total = Currency(self.total + self.group_sum)
             self.base = self.group_sum
+            self.sheet_base = sheet_amount if sheet_amount is not None else self.group_sum
+            self.sheet_total += self.sheet_base
+            self.section += self.sheet_base
             self.group = None
             self.last_resource = None
 
@@ -371,40 +385,68 @@ class _Block:
                 return None
         return None
 
-    def numeric_row(self, line, description, amount, following=None):
+    def matches_total(self, amount):
+        return _close(amount, self.total) or _close(amount, self.sheet_total)
+
+    def subtotal(self, description, amount):
+        self.item.add_ana_sum(description)
+        self.base = self.total
+        self.sheet_base = self.sheet_total = amount
+        self.section = ZERO
+
+    def resources_follow(self, index):
+        return any(self.is_resource(row) for row in self.rows[index + 1:])
+
+    def numeric_row(self, line, description, amount, following=None, last=False):
         """A row with only a description and an amount: total, weight, multiplier or rounding."""
+        label = " ".join(description.lower().replace(":", " ").split())
+        plain_total = label in ("total", "sub total", "subtotal", "grand total", "net total") or label.startswith("total ")
         if self.group is not None:
-            if _has(description, ("total",)) or _close(amount, self.group_sum):
-                self.close_group()
+            running = self.sheet_total + self.group_sum
+            nearer_running = self.sheet_total and abs(amount - running) < abs(amount - self.group_sum)
+            if _close(amount, self.group_sum) or (_has(description, ("total",)) and not nearer_running):
+                # The group's own total line (its amount may differ slightly).
+                self.close_group(amount)
                 return
             self.close_group()
-        if _has(description, ROUND_KEYS) and abs(amount - self.total) < 1:
+        # The last figure of an analysis may be rounded without saying so ("Total 1328495").
+        rounded_last = last and following is None and abs(amount - self.total) < 1 and amount != _round(self.total, 2) and amount == amount.to_integral()
+        if (_has(description, ROUND_KEYS) or rounded_last) and (abs(amount - self.total) < 1 or abs(amount - self.sheet_total) < 1):
             places = self.round_places if self.round_places != -1 else _round_rule(self.total, amount)
             self.item.add_ana_round(description, places)
             self.total = self.base = amount
             self.finished = True
             return
-        if _close(amount, self.total) and (_has(description, SUM_KEYS) or not _has(description, WEIGHT_KEYS)):
-            self.item.add_ana_sum(description)
-            self.base = self.total
+        if self.matches_total(amount) and (_has(description, SUM_KEYS) or not _has(description, WEIGHT_KEYS)):
+            self.subtotal(description, amount)
             return
         # A multiplier replaces the total ("Rate per cum", "Per meter cost"); a
         # following rounding row close to this amount confirms it numerically.
         rounds_this = following is not None and _has(following[0], ROUND_KEYS) and abs(following[1] - amount) < 1
-        per_unit = _has(description, TIMES_KEYS) or re.search(r"\bper\b", description.lower())
-        if self.base and not _has(description, ("@", "%")) and (per_unit or rounds_this):
-            factor = _factor(amount, self.base)
+        per_unit = _has(description, TIMES_KEYS) or re.search(r"\bper\b(?!\s*cent)", description.lower())
+        reference = self.sheet_base or self.base
+        percentage = _has(description, ("@", "%", "per cent", "percent"))
+        if reference and not plain_total and not percentage and (per_unit or rounds_this):
+            factor = _factor(amount, reference)
             self.item.add_ana_times(description, factor)
             self.total = self.base = Currency(self.base * factor)
+            self.sheet_base = self.sheet_total = amount
+            self.section = ZERO
             return
-        if self.base and amount < self.total:
-            factor = _factor(amount, self.base)
+        if plain_total and self.section and _close(amount, self.section) and not self.matches_total(amount):
+            return  # a section total (e.g. "Total B" of the additions only); not part of the analysis
+        if reference and not plain_total and abs(amount) < max(abs(self.total), abs(self.sheet_total)):
+            factor = _factor(amount, reference)
             self.item.add_ana_weight(description, factor)
             self.total = Currency(self.total + Currency(self.base * factor))
+            self.sheet_total += amount
+            self.section += amount
             return
-        if _close(amount, self.total):
-            self.item.add_ana_sum(description)
-            self.base = self.total
+        if plain_total:
+            # The sheet's arithmetic differs (e.g. a line counted twice); keep
+            # the subtotal and let the analysis calculate it.
+            self.warn(line, f"worksheet total {amount} differs from the calculated {self.total}")
+            self.subtotal(description, amount)
             return
         self.warn(line, f"'{description[:60]}' ({amount}) does not match the running total {self.total}; skipped")
 
@@ -421,14 +463,17 @@ class _Block:
                 self.add_resource(line, code, description, unit, qty, rate, amount)
                 continue
             if not unit and not qty and not rate and not amount and description:
-                if self.next_is_resource(index) and (_has(description, GROUP_KEYS) or description.isupper() or description.endswith(":")):
+                short = len(description.split()) <= 4  # "Materials", "Machinery charges"; not a sentence note
+                if self.next_is_resource(index) and (description.isupper() or (short and (_has(description, GROUP_KEYS) or description.endswith(":")))):
                     self.close_group()
                     self.start_group(description.rstrip(":").strip(), code)
                 elif self.group is not None or self.last_resource is not None or self.comment_up:
                     self.remark(description)
                 continue
+            if not description and unit and not qty and not rate and not unit.replace(".", "").isdigit():
+                description, unit = unit, ""  # label written in the unit column ("Total")
             if amount and not unit:
-                self.numeric_row(line, description, amount, self.next_numeric(index))
+                self.numeric_row(line, description, amount, self.next_numeric(index), not self.resources_follow(index))
                 continue
             if any(row[4:]):
                 self.warn(line, f"'{(description or code)[:60]}' not understood; skipped")
@@ -447,11 +492,11 @@ def parse_analyses(rows, settings):
     previous_end = 0
     for position, header in enumerate(headers):
         # The item code sits in the code column of a label row (no unit/numbers).
-        start = next((i for i in range(header - 1, max(previous_end - 1, header - 6), -1)
+        start = next((i for i in range(header - 1, max(previous_end - 1, header - 16), -1)
                       if rows[i][1] and not rows[i][3] and not any(rows[i][4:])), None)
         if start is None:
             # "Item No. 1.2" written in the description column.
-            for i in range(header - 1, max(previous_end - 1, header - 6), -1):
+            for i in range(header - 1, max(previous_end - 1, header - 16), -1):
                 match = re.match(r"^\s*item\s*(?:no\.?|number|code)?\s*[:.]?\s*([\w./-]+)", rows[i][2], re.IGNORECASE)
                 if match:
                     start = i
@@ -476,9 +521,86 @@ def parse_analyses(rows, settings):
             warnings.append(f"Row {rows[header][0]} ({code}): no analysis resources found; skipped")
             continue
         if code in drafts:
-            raise ValueError(f"Duplicate workbook analysis code: {code}")
+            warnings.append(f"Row {rows[start][0]} ({code}): code already used by an earlier analysis; this one is skipped")
+            continue
         worksheet_rate = next((row[6] for row in reversed(rows[header + 1:end]) if row[6] and not row[3]), None)
         if worksheet_rate is not None and item.get_ana_rate() is not None and abs(item.get_ana_rate() - worksheet_rate) > Decimal("0.011"):
             warnings.append(f"{code}: imported rate {item.get_ana_rate()} differs from the worksheet's {worksheet_rate}")
         drafts[code] = item
     return drafts, warnings
+
+
+# Project operations -------------------------------------------------------
+
+def parser_settings(params):
+    comment = params.get("comment_position", 1)
+    rounding = params.get("rounding", -1)
+    if type(comment) is not int or comment not in (0, 1) or type(rounding) not in (int, float) or rounding not in (-1, 0, 1, 2, 1.5, 2.5):
+        raise ValueError("Invalid analysis parser options")
+    return comment, rounding
+
+def import_analysis(model, params, warnings=None):
+    drafts, found = parse_analyses(read_rows(params), parser_settings(params))
+    if warnings is not None:
+        warnings.extend(found)
+    if not drafts:
+        raise ValueError("No analysis resources found. Click the item code cell above the analysis header, or check the column order.")
+    parsed = next(iter(drafts.values()))
+    draft = ScheduleItemModel(model.code, model.description, model.unit)
+    draft.ana_items, draft.ana_remarks, draft.resources = parsed.ana_items, parsed.ana_remarks, parsed.resources
+    draft.resources.update({
+        code: model.resources[code] for code in draft.resources if code in model.resources
+    })
+    draft.evaluate_results()
+    return draft
+
+def workbook_analyses(editor, params, *, apply=False):
+    drafts, warnings = parse_analyses(read_rows(params), parser_settings(params))
+    if not drafts:
+        raise ValueError("No analysis resources found")
+    matched, unmatched, analyses, targets = [], [], [], set()
+    for code, draft in drafts.items():
+        table = editor.db.ScheduleTable
+        # Worksheet codes are trimmed; project codes may carry stray spaces.
+        row = table.get_or_none(table.code == code) or table.get_or_none(fn.TRIM(table.code) == code)
+        draft.evaluate_results()
+        analyses.append(dict(code=code, matched=row is not None, description=row.description if row else "",
+                             current=str(row.rate or 0) if row else "", rate=str(draft.get_ana_rate() or 0),
+                             rows=len(draft.ana_items), resources=len(draft.resources)))
+        if row is None:
+            unmatched.append(code)
+            continue
+        matched.append(code)
+        targets.add(row.code)
+        if apply:
+            model = editor.db.get_item(row.code, modify_res_code=False)
+            model.ana_items = draft.ana_items
+            model.ana_remarks = draft.ana_remarks
+            model.resources = {key: editor.db.get_resource(key) or resource
+                               for key, resource in draft.resources.items()}
+            model.evaluate_results()
+            if not editor.db.insert_item_atomic(model, update=True):
+                raise ValueError(f"Could not import analysis: {code}")
+    if apply and not matched:
+        raise ValueError("No workbook item codes match existing schedule items")
+    if apply:
+        editor.owner.update_dependent_rates(editor.db, schedules=targets)
+    return dict(matched=matched, unmatched=unmatched, analyses=analyses, warnings=warnings[:200])
+
+def analysis_rows(draft):
+    """Parsed analysis as display rows for an import preview."""
+    rows = []
+    draft.evaluate_results()
+    for index, item in enumerate(draft.ana_items):
+        kind = item["itemtype"]
+        if kind == ScheduleItemModel.ANA_GROUP:
+            rows.append(dict(kind="Group", description=item["description"] or "", amount=str(draft.results[index][-1])))
+            for (code, qty, remarks), (rate, total) in zip(item["resource_list"], draft.results[index][:-1]):
+                resource = draft.resources.get(code)
+                rows.append(dict(kind="Resource", code=code, description=getattr(resource, "description", "") or "",
+                                 unit=getattr(resource, "unit", "") or "", qty=str(qty), rate=str(rate), amount=str(total), remarks=remarks or ""))
+        else:
+            label = {ScheduleItemModel.ANA_SUM: "Subtotal", ScheduleItemModel.ANA_WEIGHT: "Weight",
+                     ScheduleItemModel.ANA_TIMES: "Multiply", ScheduleItemModel.ANA_ROUND: "Round"}.get(kind, "")
+            rows.append(dict(kind=label, description=item.get("description") or "", qty=str(item.get("value") or ""), amount=str(draft.results[index])))
+    return rows
