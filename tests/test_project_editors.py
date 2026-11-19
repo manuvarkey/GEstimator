@@ -965,7 +965,7 @@ class ProjectEditors(unittest.TestCase):
         self.call("analysis.load", code="A")
         preview = self.call("analysis.import_preview", path=str(path))
         items = preview.pop("items")
-        self.assertEqual(preview, dict(rows=2, resources=1, rate="21.00"))
+        self.assertEqual(preview, dict(rows=2, resources=1, rate="21.00", warnings=[]))
         self.assertEqual((items[0]["kind"], items[1]["kind"], items[1]["code"], items[1]["amount"]), ("Group", "Resource", "X", "21.00"))
         self.assertFalse(self.s.dirty)
         self.call("analysis.import_xlsx", path=str(path))
@@ -1075,3 +1075,40 @@ class LenientMappedImportTests(unittest.TestCase):
         self.assertEqual((db.get_item("1.1").rate, db.get_item("1.1").qty), (Decimal("1234.50"), Decimal("6")))
         self.assertEqual((db.get_item("1.2").rate, db.get_item("1.2").qty), (Decimal("50"), Decimal("0")))
         self.assertIsNone(db.get_item("1.4"))
+
+
+class StructuredScheduleImportTests(unittest.TestCase):
+    def test_codes_categories_and_multiline_headings_like_gtk(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "structured.xlsx"
+        book = Workbook()
+        for row in [["Code", "Description", "Unit", "Rate", "Qty"],
+                    [None, "EARTH WORK"],
+                    ["1.1", "Excavation in all kinds of soil"], [None, "including disposal"],
+                    ["1.1.1", "Depth up to 1.5 m", "cum", 100, 2], ["1.1.2", "Depth 1.5 to 3 m", "cum", 120, 3],
+                    ["1.2", "Filling", "cum", 50, 4],
+                    [None, "CONCRETE"], ["2.1", "PCC 1:4:8", "cum", 5000, 1]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        mapping = dict(code=0, description=1, unit=2, rate=3, qty=4)
+        result = call("project.import_apply", kind="schedule", path=str(path), mapping=mapping, hierarchy=True)
+        self.assertEqual(result["added"], 5)
+        db = service.db
+        heading = db.get_item("1.1")
+        self.assertEqual((heading.unit, heading.description, heading.category), ("", "Excavation in all kinds of soil\nincluding disposal", "EARTH WORK"))
+        self.assertEqual([db.get_item(code).parent for code in ("1.1.1", "1.1.2", "1.2", "2.1")], ["1.1", "1.1", None, None])
+        self.assertEqual(db.get_item("2.1").category, "CONCRETE")
+        self.assertEqual(db.get_item("1.1.2").qty, Decimal("3"))
+        call("project.undo")
+        flat = call("project.import_apply", kind="schedule", path=str(path), mapping=mapping)
+        self.assertEqual(flat["added"], 5)
+        self.assertIsNone(db.get_item("1.1.1").parent)

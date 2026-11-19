@@ -191,7 +191,18 @@ class Spreadsheet:
 
     def length(self):
         """Get number of rows in sheet"""
-        return self.sheet.max_row
+        # Worksheet.max_row scans every cell; exports call length() per row,
+        # which made large exports quadratic. Track the extent while writing.
+        rows = getattr(self.sheet, '_gestimator_rows', None)
+        if rows is None:
+            rows = self.sheet.max_row
+            self.sheet._gestimator_rows = rows
+        return rows
+
+    def _touch(self, row):
+        """Record that cells up to row exist (see length)."""
+        if row > self.length():
+            self.sheet._gestimator_rows = row
 
     def set_title(self, title):
         """Set title of sheet"""
@@ -250,6 +261,7 @@ class Spreadsheet:
         font = openpyxl.styles.Font(bold=bold)
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
 
+        self._touch(row)
         self.sheet.cell(row=row, column=col).font = font
         self.sheet.cell(row=row, column=col).alignment = alignment
 
@@ -267,6 +279,7 @@ class Spreadsheet:
         sheet = ss_obj.spreadsheet.active
         rowcount = self.length()
         for row_no, row in enumerate(sheet.rows, 1):
+            self._touch(row_no + rowcount)
             for col_no, cell in enumerate(row, 1):
                 self.sheet.cell(row=row_no+rowcount, column=col_no).value = cell.value
                 if cell.has_style:
@@ -295,6 +308,7 @@ class Spreadsheet:
         alignment = openpyxl.styles.Alignment(wrap_text=wrap_text, horizontal=horizontal, vertical=vertical)
         # Apply data and styles
         for row_no, row in enumerate(data, start_row):
+            self._touch(row_no)
             for col_no, value in enumerate(row, start_col):
                 self.sheet.cell(row=row_no, column=col_no).value = value
                 self.sheet.cell(row=row_no, column=col_no).font = font
@@ -310,16 +324,29 @@ class Spreadsheet:
             rowstart = self.length() + 1
         else:
             rowstart = row
-        self.sheet.merge_cells(start_row=rowstart,start_column=start_column,end_row=rowstart,end_column=start_column+width-1)
+        if row is None:
+            # A freshly appended row cannot overlap an existing merge; skip
+            # openpyxl's linear overlap scan (quadratic over large exports).
+            from openpyxl.worksheet.merge import MergedCellRange
+            from openpyxl.utils import get_column_letter
+            coord = '{0}{1}:{2}{1}'.format(get_column_letter(start_column), rowstart, get_column_letter(start_column+width-1))
+            merged = MergedCellRange(self.sheet, coord)
+            self.sheet.merged_cells.ranges.add(merged)
+            self.sheet._clean_merge_range(merged)
+        else:
+            self.sheet.merge_cells(start_row=rowstart,start_column=start_column,end_row=rowstart,end_column=start_column+width-1)
+        self._touch(rowstart)
         self.__setitem__([rowstart,start_column], value)
         self.set_style(rowstart, start_column, bold, wrap_text, horizontal)
 
     def __setitem__(self, index, value):
         """Set an individual cell"""
+        self._touch(index[0])
         self.sheet.cell(row=index[0], column=index[1]).value = value
 
     def __getitem__(self, index):
         """Set an individual cell"""
+        self._touch(index[0])
         return self.sheet.cell(row=index[0], column=index[1]).value
 
     # Bulk read functions

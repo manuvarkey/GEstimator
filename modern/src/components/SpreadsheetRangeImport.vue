@@ -40,7 +40,7 @@ const busy = ref(false);
 const reviewing = ref(false);
 const error = ref("");
 type AnalysisLine = { kind: string; code?: string; description: string; unit?: string; qty?: string; rate?: string; amount?: string; remarks?: string };
-const preview = ref<{ rows: number; resources: number; rate: string; items?: AnalysisLine[]; matched?: string[]; unmatched?: string[];
+const preview = ref<{ rows: number; resources: number; rate: string; items?: AnalysisLine[]; matched?: string[]; unmatched?: string[]; warnings?: string[];
   analyses?: { code: string; matched: boolean; description: string; current: string; rate: string; rows: number; resources: number }[] }>();
 const workbook = ref<{ sheets: string[]; sheet: string; rows: string[][]; max_row: number; max_column: number }>();
 const labels = computed(() => props.measurement ? props.columns ?? [] : rateFirst.value ? ["Code", "Description", "Unit", "Rate", "Quantity", "Amount"] : analysisColumns);
@@ -181,6 +181,9 @@ async function apply() {
             <span v-else-if="preview && !multiple" role="status">{{ preview.rows }} analysis rows · {{ preview.resources }} resources · rate {{ formatMoney(preview.rate) }}</span>
             <span v-else-if="preview?.matched" role="status">{{ preview.matched.length }} matched · {{ preview.unmatched?.length ?? 0 }} not in this project</span>
           </header>
+          <ul v-if="preview?.warnings?.length" class="import-warnings" aria-label="Import warnings">
+            <li v-for="(warning, index) in preview.warnings.slice(0, 50)" :key="index">{{ warning }}</li>
+          </ul>
           <div class="import-sample">
             <table v-if="measurement && records.length">
               <thead><tr><th>Row</th><th v-for="name in labels" :key="name">{{ name }}</th></tr></thead>

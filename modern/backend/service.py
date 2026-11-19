@@ -390,9 +390,10 @@ class Service:
             from .importing import import_analysis
 
             from .importing import analysis_rows
-            draft = import_analysis(self.model, p)
+            warnings = []
+            draft = import_analysis(self.model, p, warnings)
             return dict(rows=len(draft.ana_items), resources=len(draft.resources),
-                        rate=str(draft.get_ana_rate()), items=analysis_rows(draft))
+                        rate=str(draft.get_ana_rate()), items=analysis_rows(draft), warnings=warnings[:200])
         if method in ("schedule.list", "resources.search"):
             if not self.db:
                 raise ValueError("Open a project first")

@@ -22,6 +22,8 @@ const firstRow = ref<number>();
 const lastRow = ref<number>();
 const mapping = ref<Record<string, number>>({});
 const policy = ref("error");
+// GTK structured import: headings and subitems from codes (1.1.1 under 1.1).
+const hierarchy = ref(true);
 const busy = ref(false);
 const error = ref("");
 const counting = ref(false);
@@ -73,7 +75,8 @@ function setColumn(field: string, value: string) {
 }
 function params() {
   return { revision: props.revision, kind: props.kind, path: path.value, sheet: sheet.value || undefined,
-    header_row: headerRow.value, first_row: dataFirst.value, last_row: lastRow.value || undefined, mapping: mapping.value, duplicates: policy.value };
+    header_row: headerRow.value, first_row: dataFirst.value, last_row: lastRow.value || undefined, mapping: mapping.value, duplicates: policy.value,
+    ...(props.kind === "schedule" ? { hierarchy: hierarchy.value } : {}) };
 }
 let token = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -91,7 +94,7 @@ async function count() {
     if (current === token) counting.value = false;
   }
 }
-watch([mapping, policy, () => header.value, firstRow, lastRow], () => { clearTimeout(timer); timer = setTimeout(() => void count(), 300); }, { deep: true });
+watch([mapping, policy, () => header.value, firstRow, lastRow, hierarchy], () => { clearTimeout(timer); timer = setTimeout(() => void count(), 300); }, { deep: true });
 watch(sheet, (value, previous) => { if (previous && value !== previous) { headerRow.value = 1; void load(); } });
 /** Click: header row. Ctrl+click: first data row. Shift+click: last data row. */
 async function pick(row: number, keys: { shift: boolean; ctrl: boolean }) {
@@ -170,6 +173,8 @@ async function apply() {
             <option value="update">Update the existing {{ kind === "schedule" ? "item" : "resource" }}</option>
           </select>
         </label>
+        <label v-if="kind === 'schedule'" class="import-option"><input v-model="hierarchy" type="checkbox" :disabled="busy" />
+          <span>Deduce hierarchy from codes — uppercase description-only rows start a category, unpriced code rows are headings, and 1.1.1 becomes a subitem of 1.1 (as in GEstimator GTK)</span></label>
         <section class="range-import-result" aria-label="Import preview">
           <header><strong>Preview</strong>
             <span v-if="mapping.code === undefined" class="field-hint">Choose the Code column to continue.</span>

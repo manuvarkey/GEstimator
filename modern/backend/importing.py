@@ -3,6 +3,7 @@
 from pathlib import Path
 import re
 from openpyxl import load_workbook
+from peewee import fn
 from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel, parse_analysis
 from .numbers import decimal
 
@@ -40,7 +41,8 @@ def loose_number(value):
     if value is None or isinstance(value, bool):
         return decimal("0") if value is None else None
     if isinstance(value, (int, float)):
-        return decimal(repr(value)) if isinstance(value, float) else decimal(str(value))
+        from decimal import Decimal
+        return Decimal(repr(value)) if isinstance(value, float) else Decimal(value)
     text = str(value).strip().replace(",", "").replace("\u00a0", "")
     text = _CURRENCY.sub("", text).rstrip("%").strip()
     if text in ("", "-", "–", "—", "nil", "Nil", "NIL"):
@@ -100,12 +102,16 @@ def parser_settings(params):
     return comment, rounding
 
 
-def import_analysis(model, params):
-    data = analysis_data(params)
+def import_analysis(model, params, warnings=None):
+    from .analysis_import import parse_analyses, read_rows
+    drafts, found = parse_analyses(read_rows(params), parser_settings(params))
+    if warnings is not None:
+        warnings.extend(found)
+    if not drafts:
+        raise ValueError("No analysis resources found. Click the item code cell above the analysis header, or check the column order.")
+    parsed = next(iter(drafts.values()))
     draft = ScheduleItemModel(model.code, model.description, model.unit)
-    parse_analysis(data, draft, 0, set_code=True, settings=parser_settings(params))
-    if not any(row.get("resource_list") for row in draft.ana_items):
-        raise ValueError("No analysis resources found. Check the worksheet range and column order.")
+    draft.ana_items, draft.ana_remarks, draft.resources = parsed.ana_items, parsed.ana_remarks, parsed.resources
     draft.resources.update({
         code: model.resources[code] for code in draft.resources if code in model.resources
     })
@@ -179,6 +185,78 @@ def preview(params):
     )
 
 
+def deduce_hierarchy(entries, mapped_category):
+    """GTK structured schedule import: uppercase description-only rows set the
+    category; code rows without a unit are headings (following description-only
+    rows continue them); a priced item whose code extends the heading's code
+    (1.1.1 under 1.1) becomes its subitem. Headings are added with their first
+    priced subitem, using the joined heading descriptions."""
+    def text(values, field):
+        return (values.get(field) or "").strip()
+
+    def is_child(codes, code):
+        if not codes:
+            return True
+        parts = code.split(".")
+        return len(parts) > 1 and parts[:-1] == codes[-1].split(".")
+
+    result, category, codes, descriptions, parent = [], "", [], [], None
+    index = 0
+    while index < len(entries):
+        number, values, numbers = entries[index]
+        code, description, unit = text(values, "code"), text(values, "description"), text(values, "unit")
+        if not code and description and not unit and description.upper() == description and any(ch.isalpha() for ch in description):
+            category, parent = description, None
+            codes.clear()
+            descriptions.clear()
+            index += 1
+            continue
+        if not (code and description):
+            index += 1
+            continue
+        last = index
+        if not unit:
+            # Multi-line description: following rows without a code (lowercase text).
+            while (last + 1 < len(entries) and not text(entries[last + 1][1], "code")
+                   and text(entries[last + 1][1], "description")
+                   and text(entries[last + 1][1], "description").upper() != text(entries[last + 1][1], "description")):
+                last += 1
+                description += "\n" + text(entries[last][1], "description")
+        final_number, final, final_numbers = entries[last]
+        unit = text(final, "unit")
+
+        def item(item_code, item_description, item_unit, source, source_numbers, item_parent):
+            values = dict(source, code=item_code, description=item_description, unit=item_unit, parent=item_parent or "")
+            if not mapped_category or not text(source, "category"):
+                values["category"] = category
+            return values, dict(source_numbers)
+
+        if not is_child(codes, code) and codes:
+            codes.pop()
+            descriptions.pop()
+            parent = None
+        if not unit and is_child(codes, code):
+            codes.append(code)
+            descriptions.append(description)
+            parent = None
+        elif unit and is_child(codes, code):
+            if parent is None and codes:
+                heading, heading_numbers = item(codes[-1], "\n".join(descriptions), "", {}, {}, None)
+                heading.update(rate="0", qty="0")
+                result.append((final_number, heading, dict(rate=decimal("0"), qty=decimal("0"))))
+                parent = codes[-1]
+            values, item_numbers = item(code, description, unit, final, final_numbers, parent)
+            result.append((final_number, values, item_numbers))
+        else:
+            codes.clear()
+            descriptions.clear()
+            parent = None
+            values, item_numbers = item(code, description, unit, final, final_numbers, None)
+            result.append((final_number, values, item_numbers))
+        index = last + 1
+    return result
+
+
 def apply(editor, params, progress):
     kind = params["kind"]
     mapping = params["mapping"]
@@ -204,13 +282,16 @@ def apply(editor, params, progress):
     table = db.ResourceTable if kind == "resources" else db.ScheduleTable
     added = updated = skipped = 0
     changed = set()
+    entries = []
     for number, (row, saved) in enumerate(zip(records, cached_records), data_range(params)[1]):
         row = tuple(row) + (None,) * (len(headers) - len(row))
         saved = tuple(saved) + (None,) * (len(headers) - len(saved))
-        values = {
-            field: str(row[index]) if row[index] is not None else ""
-            for field, index in mapping.items()
-        }
+        values = {}
+        for field, index in mapping.items():
+            raw = row[index]
+            if isinstance(raw, str) and raw.startswith("=") and saved[index] is not None and field not in ("rate", "vat", "discount", "qty"):
+                raw = saved[index]
+            values[field] = ("%.12g" % raw if isinstance(raw, float) else str(raw)) if raw is not None else ""
         numbers = {}
         for field in ("rate", "vat", "discount", "qty"):
             if field not in mapping:
@@ -220,9 +301,16 @@ def apply(editor, params, progress):
             formula = isinstance(raw, str) and raw.startswith("=")
             parsed = loose_number(value) if formula and value is not None else loose_number(raw)
             if parsed is None:
-                warnings.append(f"Row {number} ({values.get('code', '').strip()}): {field} '{raw}' is not a number; imported as 0")
+                if values.get("code", "").strip():
+                    warnings.append(f"Row {number} ({values.get('code', '').strip()}): {field} '{raw}' is not a number; imported as 0")
                 parsed = decimal("0")
             numbers[field] = parsed
+        entries.append((number, values, numbers))
+    if params.get("hierarchy") is True:
+        if kind != "schedule":
+            raise ValueError("Code hierarchy applies to schedule imports")
+        entries = deduce_hierarchy(entries, "category" in mapping)
+    for number, values, numbers in entries:
         code = values.get("code", "").strip()
         if not code:
             continue
@@ -330,30 +418,15 @@ def apply(editor, params, progress):
 
 
 def workbook_analyses(editor, params, *, apply=False):
-    data = analysis_data(params)
-    settings = parser_settings(params)
-    drafts = {}
-    # Bound each legacy parse to its own table. A final "Say" row is
-    # optional; without this boundary the legacy parser consumes later items.
-    starts = []
-    for header, row in enumerate(data):
-        if "description" in row[1].lower() and "unit" in row[2].lower():
-            start = next((i for i in range(header - 1, max(-1, header - 5), -1) if data[i][0]), None)
-            if start is not None:
-                starts.append(start)
-    for index, start in enumerate(starts):
-        end = starts[index + 1] if index + 1 < len(starts) else len(data)
-        draft = ScheduleItemModel("", "", "")
-        parse_analysis(data[start:end], draft, 0, set_code=True, settings=settings)
-        if draft.code and any(row.get("resource_list") for row in draft.ana_items):
-            if draft.code in drafts:
-                raise ValueError(f"Duplicate workbook analysis code: {draft.code}")
-            drafts[draft.code] = draft
+    from .analysis_import import parse_analyses, read_rows
+    drafts, warnings = parse_analyses(read_rows(params), parser_settings(params))
     if not drafts:
         raise ValueError("No analysis resources found")
-    matched, unmatched, analyses = [], [], []
+    matched, unmatched, analyses, targets = [], [], [], set()
     for code, draft in drafts.items():
-        row = editor.db.ScheduleTable.get_or_none(editor.db.ScheduleTable.code == code)
+        table = editor.db.ScheduleTable
+        # Worksheet codes are trimmed; project codes may carry stray spaces.
+        row = table.get_or_none(table.code == code) or table.get_or_none(fn.TRIM(table.code) == code)
         draft.evaluate_results()
         analyses.append(dict(code=code, matched=row is not None, description=row.description if row else "",
                              current=str(row.rate or 0) if row else "", rate=str(draft.get_ana_rate() or 0),
@@ -362,8 +435,9 @@ def workbook_analyses(editor, params, *, apply=False):
             unmatched.append(code)
             continue
         matched.append(code)
+        targets.add(row.code)
         if apply:
-            model = editor.db.get_item(code, modify_res_code=False)
+            model = editor.db.get_item(row.code, modify_res_code=False)
             model.ana_items = draft.ana_items
             model.ana_remarks = draft.ana_remarks
             model.resources = {key: editor.db.get_resource(key) or resource
@@ -374,8 +448,8 @@ def workbook_analyses(editor, params, *, apply=False):
     if apply and not matched:
         raise ValueError("No workbook item codes match existing schedule items")
     if apply:
-        editor.owner.update_dependent_rates(editor.db, schedules=set(matched))
-    return dict(matched=matched, unmatched=unmatched, analyses=analyses)
+        editor.owner.update_dependent_rates(editor.db, schedules=targets)
+    return dict(matched=matched, unmatched=unmatched, analyses=analyses, warnings=warnings[:200])
 
 
 def sheet_preview(params):

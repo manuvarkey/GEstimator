@@ -2307,3 +2307,4 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 }
 .sheet-grid { user-select: none; }
 .import-warnings { margin: 0; padding: 6px 10px 8px 28px; max-height: 14vh; overflow: auto; color: var(--amber); font-size: var(--text-size-small); }
+.import-option { display: flex; gap: 8px; align-items: flex-start; }
