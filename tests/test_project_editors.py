@@ -1042,3 +1042,36 @@ class ProjectEditors(unittest.TestCase):
             any(c.data_type == "f" for row in book["Analysis"] for c in row)
         )
         book.close()
+
+
+class LenientMappedImportTests(unittest.TestCase):
+    def test_formulas_text_numbers_and_row_range(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "lenient.xlsx"
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["Title row"])
+        sheet.append(["Item No.", "Description of item", "Unit", "Rate (Rs.)", "Qty."])
+        sheet.append(["1.1", "Formula qty", "m", "1,234.50", "=2*3"])
+        sheet.append(["1.2", "Text rate", "LS", "Rs. 50", "-"])
+        sheet.append(["1.3", "Bad rate", "m", "lump sum", "2*3"])
+        sheet.append(["1.4", "Outside range", "m", "1", "1"])
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        preview = call("project.import_preview", path=str(path), header_row=2)
+        self.assertEqual(preview["mapping"], dict(code=0, description=1, unit=2, rate=3, qty=4))
+        result = call("project.import_apply", kind="schedule", path=str(path), header_row=2, first_row=3, last_row=5, mapping=preview["mapping"])
+        self.assertEqual((result["added"], result["warning_count"]), (3, 1))
+        self.assertIn("1.3", result["warnings"][0])
+        db = service.db
+        self.assertEqual((db.get_item("1.1").rate, db.get_item("1.1").qty), (Decimal("1234.50"), Decimal("6")))
+        self.assertEqual((db.get_item("1.2").rate, db.get_item("1.2").qty), (Decimal("50"), Decimal("0")))
+        self.assertIsNone(db.get_item("1.4"))

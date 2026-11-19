@@ -885,10 +885,10 @@ async function recordAction(operation: string, delta?: number) {
     delta,
   });
 }
-async function importDone(result: { added: number; updated: number; skipped: number }) {
+async function importDone(result: { added: number; updated: number; skipped: number; warning_count?: number }) {
   await run(async () => { await refresh(); });
   emit("changed");
-  notify(`Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`, 8000);
+  notify(`Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped${result.warning_count ? `; ${result.warning_count} non-numeric values imported as 0` : ""}.`, 8000);
 }
 async function exportWorkbook() {
   try {

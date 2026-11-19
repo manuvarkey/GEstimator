@@ -248,6 +248,32 @@ class Service:
             if not self.db:
                 raise ValueError("Open a project first")
             return self.project_editor.call(method, p, progress)
+        if method == "project.close":
+            # Close the working project; unsaved work must be saved or discarded first.
+            self.guard_draft(p, project=True)
+            if p.get("discard") is True or not self.workspace_dirty:
+                self.clear_recovery()
+            self.clear_mcp_indexes()
+            if hasattr(self, "project_editor"):
+                self.project_editor.close()
+                del self.project_editor
+            if self.db:
+                self.db.close_database()
+            self.db = None
+            self.loaded = False
+            self.source_path = self.source_fingerprint = self.recovered_path = None
+            self.workspace_dirty = False
+            self.model = ScheduleItemModel("DEMO", "Untitled rate analysis", "m³")
+            self.model.add_ana_group("MATERIALS")
+            self.model.add_ana_sum("TOTAL")
+            self.model.add_ana_round("Say", Decimal("2"))
+            self.identify()
+            self.history.clear()
+            self.future.clear()
+            self.clipboard.clear()
+            self.revision += 1
+            self.saved_signature = copy.deepcopy(self.signature())
+            return self.state()
         if method == "project.new":
             self.guard_draft(p, project=True)
             target = Path(self.temp.name) / (uuid4().hex + ".eproj")

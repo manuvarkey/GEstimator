@@ -15,10 +15,11 @@ const props = defineProps<{
   labels?: string[];
   /** Labels by 1-based column number (mapped imports). */
   tags?: Record<number, string>;
-  /** Header row mode: the first row is a header and data follows to the end. */
+  /** Header row mode: firstRow is the header; data runs from dataFirst to lastRow. */
   header?: boolean;
+  dataFirst?: number;
 }>();
-const emit = defineEmits<{ pick: [row: number, column: number, extend: boolean] }>();
+const emit = defineEmits<{ pick: [row: number, column: number, modifiers: { shift: boolean; ctrl: boolean }] }>();
 const width = computed(() => Math.max(1, ...props.cells.map(row => row.length)));
 const columns = computed(() => Array.from({ length: width.value }, (_, index) => index + 1));
 function letter(column: number) {
@@ -32,7 +33,7 @@ function label(column: number) {
   return props.labels && offset >= 0 && offset < props.labels.length ? props.labels[offset] : undefined;
 }
 function inRows(row: number) {
-  if (props.header) return row > props.firstRow;
+  if (props.header) return row >= (props.dataFirst ?? props.firstRow + 1) && (!props.lastRow || row <= props.lastRow);
   return row >= props.firstRow && (!props.lastRow || row <= props.lastRow);
 }
 function cellClass(row: number, column: number) {
@@ -61,7 +62,8 @@ function cellClass(row: number, column: number) {
           <th scope="row" class="sheet-row-number" :class="{ 'sheet-in-range': inRows(index + 1), 'sheet-header-row': header && index + 1 === firstRow }">{{ index + 1 }}</th>
           <td v-for="column in columns" :key="column" :class="cellClass(index + 1, column)"
             :title="`${letter(column)}${index + 1}${values[column - 1] ? ': ' + values[column - 1] : ''}`"
-            @click="emit('pick', index + 1, column, $event.shiftKey)">{{ values[column - 1] }}</td>
+            @mousedown="($event.shiftKey || $event.ctrlKey || $event.metaKey) && $event.preventDefault()"
+            @click="emit('pick', index + 1, column, { shift: $event.shiftKey, ctrl: $event.ctrlKey || $event.metaKey })">{{ values[column - 1] }}</td>
         </tr>
       </tbody>
     </table>

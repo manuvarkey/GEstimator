@@ -373,6 +373,14 @@ test("landing page creates a new project", async ({ page }) => {
   await landing.getByRole("button", { name: /New project/ }).click();
   await expect(landing).not.toBeVisible();
   await expect(page.locator(".project-view:visible .project-main-grid")).toBeVisible();
+  // Close project from the application menu returns to the landing page.
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Close project", exact: true }).click();
+  const guard = page.getByRole("dialog").filter({ hasText: "Discard changes" });
+  if (await guard.isVisible().catch(() => false)) await guard.getByRole("button", { name: "Discard changes", exact: true }).click();
+  await expect(landing).toBeVisible();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await expect(page.getByRole("menuitem", { name: "Close project", exact: true })).toHaveAttribute("aria-disabled", "true");
 });
 
 test("numeric edits select the value, tax shows only entered decimals and clipboard feedback is transient", async ({ page }) => {
@@ -2146,8 +2154,13 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await expect(dialog.getByRole("grid", { name: "Worksheet preview" })).toContainText("Imported work");
   await expect(dialog.getByLabel("Code column", { exact: true })).toHaveValue("0");
   await expect(dialog.getByRole("table", { name: "Column mapping" })).toContainText("Imported work");
-  await expect(dialog.getByRole("status")).toHaveText("1 new · 0 updated · 0 skipped");
+  await expect(dialog.getByRole("status").filter({ hasText: "new" })).toHaveText("1 new · 0 updated · 0 skipped");
   await page.screenshot({ path: "test-results/mapped-import.png", animations: "disabled" });
+  // Data rows can be limited; Shift+click sets the last row without selecting page text.
+  await dialog.getByRole("grid", { name: "Worksheet preview" }).getByRole("cell", { name: "Imported work" }).click({ modifiers: ["Shift"] });
+  await expect(dialog.getByLabel("Last data row")).toHaveValue("2");
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
+  await expect(dialog.getByRole("status").filter({ hasText: "new" })).toHaveText("1 new · 0 updated · 0 skipped");
   await dialog
     .getByRole("button", { name: "Import 1 row", exact: true })
     .click();

@@ -35,3 +35,20 @@ class DocumentSessionTests(unittest.TestCase):
             self.call("session.close", session="main")
         # The closed document's recovery copy is now recoverable elsewhere.
         self.assertEqual(len(self.call("recovery.list")), 1)
+
+
+class CloseProjectTests(unittest.TestCase):
+    def test_close_requires_discard_for_unsaved_work_and_clears_project(self):
+        from modern.backend.service import Service
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        call("schedule.editor.add", data=dict(code="X", category="Work"))
+        with self.assertRaisesRegex(ValueError, "Unsaved"):
+            call("project.close")
+        state = call("project.close", discard=True)
+        self.assertFalse(state["project_open"])
+        self.assertIsNone(service.db)
+        call("project.new")
+        self.assertTrue(service.state()["project_open"])

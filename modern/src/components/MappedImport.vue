@@ -10,7 +10,7 @@ import WorkbookSheetGrid from "./WorkbookSheetGrid.vue";
 // will be added, updated or skipped before importing.
 const visible = defineModel<boolean>({ required: true });
 const props = defineProps<{ kind: "schedule" | "resources"; fields: string[]; revision?: number }>();
-const emit = defineEmits<{ imported: [result: { added: number; updated: number; skipped: number }] }>();
+const emit = defineEmits<{ imported: [result: { added: number; updated: number; skipped: number; warning_count?: number }] }>();
 const names: Record<string, string> = {
   code: "Code", description: "Description", unit: "Unit", rate: "Rate", qty: "Quantity", remarks: "Remarks",
   category: "Category", parent: "Parent code", vat: "Tax %", discount: "Discount %", reference: "Reference",
@@ -18,18 +18,21 @@ const names: Record<string, string> = {
 const path = ref("");
 const sheet = ref("");
 const headerRow = ref(1);
+const firstRow = ref<number>();
+const lastRow = ref<number>();
 const mapping = ref<Record<string, number>>({});
 const policy = ref("error");
 const busy = ref(false);
 const error = ref("");
 const counting = ref(false);
-const counts = ref<{ added: number; updated: number; skipped: number }>();
+const counts = ref<{ added: number; updated: number; skipped: number; warnings?: string[]; warning_count?: number }>();
 const countError = ref("");
 const header = ref<{ sheets: string[]; headers: string[]; rows: string[][]; mapping: Record<string, number> }>();
 const workbook = ref<{ sheets: string[]; sheet: string; rows: string[][]; max_row: number; max_column: number }>();
 const tags = computed(() => Object.fromEntries(Object.entries(mapping.value).map(([field, index]) => [index + 1, names[field] ?? field])));
 const sample = (field: string) => mapping.value[field] === undefined ? "" : header.value?.rows.find(row => row.some(Boolean))?.[mapping.value[field]] ?? "";
-const dataRows = computed(() => Math.max(0, (workbook.value?.max_row ?? 0) - headerRow.value));
+const dataFirst = computed(() => firstRow.value && firstRow.value > headerRow.value ? firstRow.value : headerRow.value + 1);
+const dataRows = computed(() => Math.max(0, Math.min(lastRow.value || Infinity, workbook.value?.max_row ?? 0) - dataFirst.value + 1));
 
 function letter(value: number) {
   let text = "";
@@ -43,7 +46,7 @@ async function load(resetMapping = true) {
   try {
     const [grid, preview] = await Promise.all([
       request<typeof workbook.value>("workbook.sheet", { path: path.value, sheet: sheet.value || undefined, rows: 300 }),
-      request<typeof header.value>("project.import_preview", { path: path.value, sheet: sheet.value || undefined, header_row: headerRow.value }),
+      request<typeof header.value>("project.import_preview", { path: path.value, sheet: sheet.value || undefined, header_row: headerRow.value, first_row: dataFirst.value }),
     ]);
     workbook.value = grid;
     header.value = preview;
@@ -70,7 +73,7 @@ function setColumn(field: string, value: string) {
 }
 function params() {
   return { revision: props.revision, kind: props.kind, path: path.value, sheet: sheet.value || undefined,
-    header_row: headerRow.value, mapping: mapping.value, duplicates: policy.value };
+    header_row: headerRow.value, first_row: dataFirst.value, last_row: lastRow.value || undefined, mapping: mapping.value, duplicates: policy.value };
 }
 let token = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -88,18 +91,23 @@ async function count() {
     if (current === token) counting.value = false;
   }
 }
-watch([mapping, policy, () => header.value], () => { clearTimeout(timer); timer = setTimeout(() => void count(), 300); }, { deep: true });
+watch([mapping, policy, () => header.value, firstRow, lastRow], () => { clearTimeout(timer); timer = setTimeout(() => void count(), 300); }, { deep: true });
 watch(sheet, (value, previous) => { if (previous && value !== previous) { headerRow.value = 1; void load(); } });
-async function pickHeader(row: number) {
+/** Click: header row. Ctrl+click: first data row. Shift+click: last data row. */
+async function pick(row: number, keys: { shift: boolean; ctrl: boolean }) {
+  if (keys.shift) { if (row >= dataFirst.value) lastRow.value = row; return; }
+  if (keys.ctrl) { if (row > headerRow.value) firstRow.value = row; if (lastRow.value && lastRow.value < row) lastRow.value = undefined; return; }
   if (row === headerRow.value) return;
   headerRow.value = row;
-  await load();
+  firstRow.value = undefined;
+  if (lastRow.value && lastRow.value <= row) lastRow.value = undefined;
+  await load(false);
 }
 async function apply() {
   busy.value = true;
   error.value = "";
   try {
-    const result = await request<{ added: number; updated: number; skipped: number }>("project.import_apply", params());
+    const result = await request<{ added: number; updated: number; skipped: number; warning_count?: number }>("project.import_apply", params());
     visible.value = false;
     emit("imported", result);
   } catch (reason) {
@@ -132,12 +140,17 @@ async function apply() {
             <option v-for="name in workbook?.sheets ?? []" :key="name" :value="name">{{ name }}</option>
           </select>
         </label>
-        <label class="field">Header row <input v-model.number="headerRow" aria-label="Header row" type="number" min="1" :disabled="busy || !workbook" @change="load()" /></label>
+      </div>
+      <div v-if="workbook" class="range-import-range">
+        <label class="field">Header row <input v-model.number="headerRow" aria-label="Header row" type="number" min="1" :disabled="busy" @change="firstRow = undefined; load(false)" /></label>
+        <label class="field">First data row <input v-model.number="firstRow" aria-label="First data row" type="number" :min="headerRow + 1" :placeholder="String(headerRow + 1)" :disabled="busy" /></label>
+        <label class="field">Last data row <input v-model.number="lastRow" aria-label="Last data row" type="number" :min="dataFirst" placeholder="End of sheet" :disabled="busy" /></label>
+        <p class="range-import-summary" role="status">Rows {{ dataFirst }}–{{ lastRow || workbook.max_row }} ({{ dataRows }} rows)</p>
       </div>
       <template v-if="workbook && header">
-        <p class="field-hint">Click a row in the worksheet to use it as the header; every row below it is imported. Columns are matched to fields by header name — adjust them below.</p>
+        <p class="field-hint">Click a row to use it as the header. Ctrl+click the first data row and Shift+click the last; by default every row below the header is imported. Columns are matched to fields by header name — adjust them below.</p>
         <WorkbookSheetGrid :cells="workbook.rows" :max-row="workbook.max_row" :max-column="workbook.max_column"
-          :first-row="headerRow" :first-column="1" :tags="tags" header @pick="row => pickHeader(row)" />
+          :first-row="headerRow" :data-first="dataFirst" :last-row="lastRow" :first-column="1" :tags="tags" header @pick="(row, _column, keys) => pick(row, keys)" />
         <div class="mapping-table" role="table" aria-label="Column mapping">
           <div role="row" class="mapping-head"><span role="columnheader">Field</span><span role="columnheader">Worksheet column</span><span role="columnheader">First value</span></div>
           <div v-for="field in fields" :key="field" role="row" class="mapping-row">
@@ -161,8 +174,11 @@ async function apply() {
           <header><strong>Preview</strong>
             <span v-if="mapping.code === undefined" class="field-hint">Choose the Code column to continue.</span>
             <span v-else-if="counting" class="field-hint">Checking {{ dataRows }} rows…</span>
-            <span v-else-if="counts" role="status">{{ counts.added }} new · {{ counts.updated }} updated · {{ counts.skipped }} skipped</span>
+            <span v-else-if="counts" role="status">{{ counts.added }} new · {{ counts.updated }} updated · {{ counts.skipped }} skipped{{ counts.warning_count ? ` · ${counts.warning_count} value${counts.warning_count === 1 ? "" : "s"} read as 0` : "" }}</span>
           </header>
+          <ul v-if="counts?.warnings?.length" class="import-warnings" aria-label="Import warnings">
+            <li v-for="(warning, index) in counts.warnings.slice(0, 50)" :key="index">{{ warning }}</li>
+          </ul>
           <p v-if="countError" class="dialog-error" role="alert">{{ countError }}</p>
         </section>
       </template>

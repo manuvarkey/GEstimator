@@ -1,6 +1,7 @@
 """Mapped Excel import using openpyxl and existing project CRUD operations."""
 
 from pathlib import Path
+import re
 from openpyxl import load_workbook
 from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel, parse_analysis
 from .numbers import decimal
@@ -27,6 +28,27 @@ FIELDS = {
         "category",
     ),
 }
+
+
+_CURRENCY = re.compile(r"^(?:rs\.?|inr|usd|eur|gbp|[₹$€£])\s*", re.IGNORECASE)
+
+
+def loose_number(value):
+    """Decimal from a worksheet value, tolerating thousands separators,
+    currency marks, percent signs and dash/blank placeholders. None when the
+    text is not a number (e.g. "LS", "Nos")."""
+    if value is None or isinstance(value, bool):
+        return decimal("0") if value is None else None
+    if isinstance(value, (int, float)):
+        return decimal(repr(value)) if isinstance(value, float) else decimal(str(value))
+    text = str(value).strip().replace(",", "").replace("\u00a0", "")
+    text = _CURRENCY.sub("", text).rstrip("%").strip()
+    if text in ("", "-", "–", "—", "nil", "Nil", "NIL"):
+        return decimal("0")
+    try:
+        return decimal(text.lstrip("="))
+    except ValueError:
+        return None
 
 
 def selected_rows(params, width, *, cached=False):
@@ -61,17 +83,12 @@ def analysis_data(params):
         records = [(code, desc, unit, qty, rate, amount)
                    for code, desc, unit, rate, qty, amount in records]
     data = []
-    for line, record in enumerate(records, params.get("first_row", 1)):
-        try:
-            labels = [str(value) if value is not None else "" for value in record[:3]]
-            header = "description" in labels[1].lower() and "unit" in labels[2].lower()
-            data.append([
-                *labels,
-                *[decimal(str(value)) if value is not None and not header else decimal("0")
-                  for value in record[3:]],
-            ])
-        except ValueError as exc:
-            raise ValueError(f"Invalid analysis number on worksheet row {line}") from exc
+    for record in records:
+        record = tuple(record) + (None,) * (6 - len(record))
+        labels = [str(value).strip() if value is not None else "" for value in record[:3]]
+        header = "description" in labels[1].lower() and "unit" in labels[2].lower()
+        # Text in a number column (units such as "LS", notes, dashes) reads as 0.
+        data.append([*labels, *[decimal("0") if header else (loose_number(value) or decimal("0")) for value in record[3:6]]])
     return data
 
 
@@ -96,48 +113,68 @@ def import_analysis(model, params):
     return draft
 
 
-def rows(params):
+def data_range(params):
     start = params.get("header_row", 1)
-    if type(start) is not int or not 1 <= start <= 10000:
-        raise ValueError("Invalid header row")
+    first = params.get("first_row", start + 1)
+    last = params.get("last_row")
+    if (type(start) is not int or not 1 <= start <= 1_000_000 or type(first) is not int or first <= start
+            or (last is not None and (type(last) is not int or last < first))):
+        raise ValueError("Choose a header row followed by a valid data row range")
+    return start, first, last
+
+
+def rows(params, *, cached=False):
+    start, first, last = data_range(params)
     path = Path(params["path"]).resolve(strict=True)
-    book = load_workbook(path, read_only=True, data_only=False)
+    book = load_workbook(path, read_only=True, data_only=cached)
     try:
-        sheet = book[params.get("sheet") or book.sheetnames[0]]
-        if sheet.max_column > 100 or sheet.max_row - start > 10000:
-            raise ValueError("Import sheet is too large; select a smaller worksheet")
-        records = list(
-            sheet.iter_rows(
-                min_row=start,
-                max_row=min(sheet.max_row, start + 10000),
-                values_only=True,
-            )
-        )
-        headers = [str(v or "") for v in records[0]] if records else []
-        return book.sheetnames, headers, records[1:]
+        name = params.get("sheet") or book.sheetnames[0]
+        if name not in book.sheetnames:
+            raise ValueError("Worksheet not found")
+        sheet = book[name]
+        end = min(last or sheet.max_row or first, sheet.max_row or first)
+        if (sheet.max_column or 0) > 100 or end - first >= 10000:
+            raise ValueError("Import at most 10,000 rows and 100 columns; narrow the row range")
+        headers = [str(v or "") for v in next(sheet.iter_rows(min_row=start, max_row=start, values_only=True), ())]
+        records = list(sheet.iter_rows(min_row=first, max_row=max(end, first - 1), values_only=True)) if end >= first else []
+        return book.sheetnames, headers, records
     finally:
         book.close()
 
 
+HEADER_ALIASES = {
+    "code": ("code", "item code", "item no", "item number", "sl no", "s no", "si no", "serial no", "no", "code no", "dsr code", "ref no"),
+    "description": ("description", "particulars", "item description", "description of item", "description of work", "item", "name", "work"),
+    "unit": ("unit", "units", "uom"),
+    "rate": ("rate", "basic rate", "unit rate", "price"),
+    "qty": ("qty", "quantity", "qnty", "nos"),
+    "remarks": ("remarks", "remark", "notes", "note"),
+    "category": ("category", "head", "group", "section"),
+    "parent": ("parent", "parent code"),
+    "vat": ("vat", "tax", "gst", "tax %", "vat %", "gst %"),
+    "discount": ("discount", "discount %"),
+    "reference": ("reference", "ref", "source"),
+}
+
+
+def header_key(text):
+    # "Rate (Rs.)" -> "rate", "Sl. No." -> "sl no", "Qty." -> "qty"
+    text = re.sub(r"\([^)]*\)", " ", text.lower())
+    return " ".join(re.sub(r"[^\w%]+", " ", text).split())
+
+
 def preview(params):
-    sheets, headers, records = rows(params)
-    aliases = {
-        "quantity": "qty",
-        "basic rate": "rate",
-        "tax": "vat",
-        "tax %": "vat",
-        "vat %": "vat",
-        "discount %": "discount",
-    }
+    sheets, headers, records = rows(params, cached=True)
+    lookup = {alias: field for field, aliases in HEADER_ALIASES.items() for alias in aliases}
     mapping = {}
     for index, header in enumerate(headers):
-        key = aliases.get(header.strip().lower(), header.strip().lower())
-        if key in set(FIELDS["schedule"] + FIELDS["resources"]):
-            mapping[key] = index
+        field = lookup.get(header_key(header))
+        if field and field not in mapping:
+            mapping[field] = index
     return dict(
         sheets=sheets,
         headers=headers,
-        rows=[[str(v) if v is not None else "" for v in row] for row in records[:12]],
+        rows=[[("%.12g" % v if isinstance(v, float) else str(v)) if v is not None else "" for v in row] for row in records[:12]],
         mapping=mapping,
     )
 
@@ -154,6 +191,8 @@ def apply(editor, params, progress):
     ):
         raise ValueError("Invalid import mapping")
     sheets, headers, records = rows(params)
+    _, _, cached_records = rows(params, cached=True)
+    warnings = []
     for field, index in mapping.items():
         if (
             field not in FIELDS[kind]
@@ -165,11 +204,25 @@ def apply(editor, params, progress):
     table = db.ResourceTable if kind == "resources" else db.ScheduleTable
     added = updated = skipped = 0
     changed = set()
-    for number, row in enumerate(records, params.get("header_row", 1) + 1):
+    for number, (row, saved) in enumerate(zip(records, cached_records), data_range(params)[1]):
+        row = tuple(row) + (None,) * (len(headers) - len(row))
+        saved = tuple(saved) + (None,) * (len(headers) - len(saved))
         values = {
             field: str(row[index]) if row[index] is not None else ""
             for field, index in mapping.items()
         }
+        numbers = {}
+        for field in ("rate", "vat", "discount", "qty"):
+            if field not in mapping:
+                continue
+            raw, value = row[mapping[field]], saved[mapping[field]]
+            # A typed expression (2*3) is kept; a formula uses Excel's saved value.
+            formula = isinstance(raw, str) and raw.startswith("=")
+            parsed = loose_number(value) if formula and value is not None else loose_number(raw)
+            if parsed is None:
+                warnings.append(f"Row {number} ({values.get('code', '').strip()}): {field} '{raw}' is not a number; imported as 0")
+                parsed = decimal("0")
+            numbers[field] = parsed
         code = values.get("code", "").strip()
         if not code:
             continue
@@ -199,9 +252,9 @@ def apply(editor, params, progress):
             )
             for field, value in values.items():
                 if field in ("rate", "vat", "discount"):
-                    value = Currency(decimal(value.lstrip("=") or "0"), 4 if field == "vat" else 2)
+                    value = Currency(numbers[field], 4 if field == "vat" else 2)
                 elif field == "qty":
-                    value = round(decimal(value.lstrip("=") or "0"), 4)
+                    value = round(numbers[field], 4)
                 elif field == "parent":
                     value = value or None
                     if (
@@ -273,7 +326,7 @@ def apply(editor, params, progress):
             progress(f"Imported through row {number}")
     if changed:
         editor.owner.update_dependent_rates(db, resources=changed)
-    return dict(added=added, updated=updated, skipped=skipped)
+    return dict(added=added, updated=updated, skipped=skipped, warnings=warnings[:200], warning_count=len(warnings))
 
 
 def workbook_analyses(editor, params, *, apply=False):

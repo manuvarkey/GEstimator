@@ -746,6 +746,23 @@ async function newProject() {
     });
   }, true);
 }
+/** Close the project (Save/Discard first). With other tabs open, the tab closes too. */
+async function closeProject() {
+  if (!state.value?.project_open || uiBusy.value) return;
+  if (documents.value.length > 1) { await closeProjectTab(documentId); return; }
+  await navigate(async (discard) => {
+    await w.run(async () => {
+      await request("project.close", { discard });
+      await w.refresh();
+      projectSession.value++;
+      schedule.value = [];
+      resources.value = [];
+      selected.value = [];
+      activeView.value = "schedule";
+      activeTab.value = "schedule";
+    }, "Closing project…");
+  }, true);
+}
 async function showSettings() {
   if (!state.value?.project_open) return;
   settings.value = await request("project.settings");
@@ -851,6 +868,9 @@ async function applicationAction(action: string) {
       break;
     case "save-copy":
       showFile("save");
+      break;
+    case "close-project":
+      await closeProject();
       break;
     case "export":
       if (activeView.value === "analysis") await chooseAnalysisExport();

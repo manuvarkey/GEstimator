@@ -126,10 +126,9 @@ class MultiAnalysisImportTests(unittest.TestCase):
         book.active.cell(5, 4, 'invalid quantity')
         book.save(self.path)
         book.close()
-        before = self.snapshot()
-        with self.assertRaisesRegex(ValueError, 'worksheet row 5'):
-            self.call('project.import_analysis_apply', params)
-        self.assertEqual(self.snapshot(), before)
+        # Text in a number column no longer stops the import; it reads as 0.
+        result = self.call('project.import_analysis_apply', params)
+        self.assertTrue(result['matched'])
 
     def test_multiple_tables_without_say_terminators(self):
         params = self.workbook()

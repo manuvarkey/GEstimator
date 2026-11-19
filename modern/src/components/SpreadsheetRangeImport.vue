@@ -91,8 +91,8 @@ async function browse() {
     error.value = String(reason);
   }
 }
-function pick(row: number, col: number, extend: boolean) {
-  if (extend) { if (row >= first.value) last.value = row; return; }
+function pick(row: number, col: number, keys: { shift: boolean }) {
+  if (keys.shift) { if (row >= first.value) last.value = row; return; }
   first.value = row;
   column.value = Math.min(col, 101 - labels.value.length);
   if (last.value && last.value < row) last.value = undefined;

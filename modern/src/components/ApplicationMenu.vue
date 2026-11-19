@@ -30,6 +30,7 @@ const items = computed<MenuItem[]>(() => [
   item("Open project…", "open", "folder", props.busy),
   item("Save project", "save", "save", props.busy || !props.projectOpen),
   item("Save project copy…", "save-copy", "save", props.busy || !props.projectOpen),
+  item("Close project", "close-project", "close", props.busy || !props.projectOpen),
   item(
     props.analysis ? "Export analysis…" : "Export workbook…",
     "export",
