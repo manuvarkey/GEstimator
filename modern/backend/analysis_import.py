@@ -26,6 +26,7 @@ from peewee import fn
 from estimator.data.schedule import Currency, ResourceItemModel, ScheduleItemModel
 
 ZERO = Decimal(0)
+MAX_ROWS = 200_000
 GROUP_KEYS = ("material", "labour", "labor", "tool", "plant", "machinery", "equipment", "carriage", "transport",
               "hire", "sundr", "a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4")
 REMARK_KEYS = ("cost of", "cost per", "cost for", "rate of", "rate per", "rate for", "details of")
@@ -79,7 +80,7 @@ FUNCTIONS = {
 class Sheet:
     """Cell values for one worksheet: saved values first, formulas evaluated."""
 
-    def __init__(self, path, name=None, max_rows=20000):
+    def __init__(self, path, name=None, max_rows=MAX_ROWS, last_row=None, last_column=100):
         path = Path(path).resolve(strict=True)
         formulas = load_workbook(path, read_only=True, data_only=False)
         values = load_workbook(path, read_only=True, data_only=True)
@@ -90,12 +91,13 @@ class Sheet:
             self.name = name
             source, saved = formulas[name], values[name]
             self.max_row = source.max_row or 0
-            if self.max_row > max_rows:
-                raise ValueError("Select at most 10,000 rows")
-            width = min(source.max_column or 1, 100)
+            end = min(self.max_row, last_row or self.max_row)
+            if end > max_rows:
+                raise ValueError(f"Select at most {max_rows:,} rows")
+            width = min(source.max_column or 1, last_column)
             self.raw, self.saved = {}, {}
-            for row_index, (row, cached) in enumerate(zip(source.iter_rows(max_col=width, values_only=True),
-                                                         saved.iter_rows(max_col=width, values_only=True)), 1):
+            for row_index, (row, cached) in enumerate(zip(source.iter_rows(max_row=end, max_col=width, values_only=True),
+                                                         saved.iter_rows(max_row=end, max_col=width, values_only=True)), 1):
                 for column, (raw, value) in enumerate(zip(row, cached), 1):
                     if raw is not None:
                         self.raw[(row_index, column)] = raw
@@ -200,12 +202,12 @@ def read_rows(params):
     last = params.get("last_row")
     column = params.get("first_column", 1)
     if (type(first) is not int or first < 1 or type(column) is not int or not 1 <= column <= 95
-            or (last is not None and (type(last) is not int or not first <= last < first + 10000))):
+            or (last is not None and (type(last) is not int or last < first))):
         raise ValueError("Choose a valid spreadsheet range")
-    sheet = Sheet(params["path"], params.get("sheet"))
+    # Whole analysis books (tens of thousands of rows) import in one pass;
+    # formulas may refer to rows above the range, so read from the top.
+    sheet = Sheet(params["path"], params.get("sheet"), last_row=last, last_column=column + 5)
     end = min(last, sheet.max_row) if last else sheet.max_row
-    if end >= first + 10000:
-        raise ValueError("Select at most 10,000 rows")
     order = (3, 4) if params.get("rate_first") is not True else (4, 3)
     rows = []
     for line in range(first, end + 1):
@@ -491,9 +493,10 @@ def parse_analyses(rows, settings):
     blocks = []
     previous_end = 0
     for position, header in enumerate(headers):
-        # The item code sits in the code column of a label row (no unit/numbers).
+        # The item code sits in the code column of a label row: no unit, quantity
+        # or rate (some books repeat the item's rate in the amount column).
         start = next((i for i in range(header - 1, max(previous_end - 1, header - 16), -1)
-                      if rows[i][1] and not rows[i][3] and not any(rows[i][4:])), None)
+                      if rows[i][1] and not rows[i][3] and not rows[i][4] and not rows[i][5]), None)
         if start is None:
             # "Item No. 1.2" written in the description column.
             for i in range(header - 1, max(previous_end - 1, header - 16), -1):

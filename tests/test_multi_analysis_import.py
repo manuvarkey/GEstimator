@@ -121,7 +121,8 @@ class MultiAnalysisImportTests(unittest.TestCase):
         book.active.cell(10001, 1, 'too far')
         book.save(self.path)
         book.close()
-        with self.assertRaisesRegex(ValueError, '10,000'):
+        # Large analysis books are read in one pass (no 10,000-row limit).
+        with self.assertRaisesRegex(ValueError, 'No analysis resources'):
             self.call('project.import_analysis_preview', params)
         self.workbook()
         from openpyxl import load_workbook
