@@ -186,6 +186,18 @@ class Service:
                 from .mcp_server import read_tool
                 return read_tool(self, p.get("name"), p.get("arguments", {}))
             raise ValueError("Unknown MCP operation")
+        if method == "search.warm":
+            # Build search indexes after opening so the first search is quick.
+            if self.db:
+                from .search import search
+                from .program_settings import library_directory
+                user = library_directory().parent / "dictionary.user.json"
+                for kind in ("schedule", "resource"):
+                    search(self, self.db, kind, "warm", 1, user_path=user)
+            return dict(ok=True)
+        if method == "workbook.sheet":
+            from .importing import sheet_preview
+            return sheet_preview(p)
         if method.startswith("program."):
             from . import program_settings
             if method == "program.desktop_font":
@@ -351,9 +363,10 @@ class Service:
                 raise ValueError("Load an analysis first")
             from .importing import import_analysis
 
+            from .importing import analysis_rows
             draft = import_analysis(self.model, p)
             return dict(rows=len(draft.ana_items), resources=len(draft.resources),
-                        rate=str(draft.get_ana_rate()))
+                        rate=str(draft.get_ana_rate()), items=analysis_rows(draft))
         if method in ("schedule.list", "resources.search"):
             if not self.db:
                 raise ValueError("Open a project first")

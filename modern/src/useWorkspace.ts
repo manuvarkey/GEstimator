@@ -163,6 +163,7 @@ export function useWorkspace() {
       schedule.value = await request("schedule.list");
       resources.value = [];
       selected.value = [];
+      void request("search.warm").catch(() => {});
     }, "Opening project…");
   }
   async function load(code: string, discard = false) {

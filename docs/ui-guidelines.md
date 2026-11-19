@@ -33,6 +33,10 @@ Checkboxes and radio buttons use the shared 16 px dimensions, zero padding and a
 
 List each database on its own row in resource renumbering, with a labelled Enable/Exclude switch. Enabled means its resources participate in renumbering. Keep project resources included and explain the default exclusions.
 
+## Spreadsheet imports
+
+Every worksheet import uses the guided layout: numbered steps, a workbook field with Browse, a worksheet dropdown from the workbook, and the shared `WorkbookSheetGrid` preview. Users click a cell to choose where the import starts (Shift+click the last row; for mapped imports, click the header row); the imported columns are labelled in the grid. Always show a parsed preview or a dry-run count before the import button becomes active, and put counts in the button label ("Import 12 records").
+
 ## Project tabs
 
 Open projects are tabs in the vertical `DocumentRail` at the left edge of the workspace, following Open Planner Studio's ProjectRail: a two-letter tile per tab (active tile filled with its identity colour plus an amber indicator), an amber dirty dot, a hover/focus flyout with name and path, and a dashed add tile. New project and Open project use a new tab when the current one already holds a project; opening an already open file switches to its tab. Each tab is a separate backend session; only the active tab's workspace is mounted, and closing a tab or the window offers Save/Discard for each tab with unsaved work. MCP clients act on the active tab.

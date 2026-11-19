@@ -1933,61 +1933,60 @@ class ScheduleDatabase:
     ## Schedule item methods
 
     def get_item(self, code, modify_res_code=True, copy_ana=True):
+        """Item model with its analysis. Four statements: resource rows are
+        joined in one query instead of one get_resource per row."""
+        S, C = self.ScheduleTable, self.ScheduleCategoryTable
         with self.database.atomic():
-            try:
-                item = self.ScheduleTable.select().where(self.ScheduleTable.code == code).get()
-            except self.ScheduleTable.DoesNotExist:
+            row = S.select(S, C).join(C).where(S.code == code).first()
+            if row is None:
                 return None
-
-            res_models = dict()
-            proj_code = self.get_project_settings()['project_resource_code']
             parent = None
-            if item.parent:
-                try:
-                    parent_item = self.ScheduleTable.select().where(self.ScheduleTable.id == item.parent).get()
-                    parent = parent_item.code
-                except self.ScheduleTable.DoesNotExist:
-                    log.warning('ScheduleDatabase - get_item - Parent not found for ' + code)
-            sch_model = ScheduleItemModel(code = item.code,
-                                          description = item.description,
-                                          unit = item.unit,
-                                          rate = item.rate,
-                                          qty = item.qty,
-                                          remarks = item.remarks,
-                                          ana_remarks = item.ana_remarks,
-                                          category = item.category.description,
-                                          parent = parent,
-                                          colour = item.colour)
-
-            if copy_ana:
-                for seq in item.sequences:
-                    if seq.itemtype == ScheduleItemModel.ANA_GROUP:
-                        ress = self.ResourceItemTable.select().where(self.ResourceItemTable.id_sch == item.id
-                                                                and self.ResourceItemTable.id_seq == seq.id)
-                        res_list = []
-                        for res in ress:
-                            # If already derived item retain code
-                            if modify_res_code == False or len((res.id_res.code).split(':')) > 1 or proj_code == '':
-                                mod_code = res.id_res.code
-                            # Modify code
-                            else:
-                                mod_code = proj_code + ':' + res.id_res.code
-                            res_list.append([mod_code, res.qty, res.remarks])
-                            res_model = self.get_resource(res.id_res.code)
-                            res_model.code = mod_code  # Modify resource code
-                            res_models[mod_code] = res_model
-                        sch_model.add_ana_group(seq.description, res_list, seq.code)
-                    elif seq.itemtype == ScheduleItemModel.ANA_SUM:
-                        sch_model.add_ana_sum(seq.description)
-                    elif seq.itemtype == ScheduleItemModel.ANA_WEIGHT:
-                        sch_model.add_ana_weight(seq.description, seq.value)
-                    elif seq.itemtype == ScheduleItemModel.ANA_TIMES:
-                        sch_model.add_ana_times(seq.description, seq.value)
-                    elif seq.itemtype == ScheduleItemModel.ANA_ROUND:
-                        sch_model.add_ana_round(seq.description, seq.value)
-                sch_model.resources = res_models
-                sch_model.evaluate_results()
-            return sch_model
+            if row.parent_id:
+                parent = S.select(S.code).where(S.id == row.parent_id).scalar()
+            model = ScheduleItemModel(code=row.code, description=row.description, unit=row.unit,
+                                      rate=row.rate, qty=row.qty, remarks=row.remarks,
+                                      ana_remarks=row.ana_remarks, category=row.category.description,
+                                      parent=parent, colour=row.colour)
+            if not copy_ana:
+                return model
+            Q, RI, R, RC, P = self.SequenceTable, self.ResourceItemTable, self.ResourceTable, self.ResourceCategoryTable, self.ProjectTable
+            proj_code = P.select(P.value).where(P.key == "project_resource_code").scalar()
+            sequences = list(Q.select().where(Q.id_sch == row.id).order_by(Q.id))
+            entries = {}
+            if any(seq.itemtype == ScheduleItemModel.ANA_GROUP for seq in sequences):
+                # GTK filters resource rows by sequence only (rowid order).
+                query = (RI.select(RI.id_seq, RI.qty, RI.remarks, R.code, R.description, R.unit, R.rate,
+                                   R.vat, R.discount, R.reference, RC.description.alias("category"))
+                         .join(R, on=(RI.id_res == R.id)).join(RC, on=(R.category == RC.id))
+                         .where(RI.id_seq.in_([seq.id for seq in sequences])).order_by(RI.id).tuples())
+                for values in query:
+                    entries.setdefault(values[0], []).append(values[1:])
+            resources = {}
+            for seq in sequences:
+                kind = seq.itemtype
+                if kind == ScheduleItemModel.ANA_GROUP:
+                    rows = []
+                    for qty, remarks, rcode, description, unit, rate, vat, discount, reference, category in entries.get(seq.id, []):
+                        if modify_res_code is False or len(rcode.split(":")) > 1 or not proj_code:
+                            mod_code = rcode
+                        else:
+                            mod_code = proj_code + ":" + rcode
+                        rows.append([mod_code, qty, remarks])
+                        resources[mod_code] = ResourceItemModel(code=mod_code, description=description, unit=unit,
+                                                                rate=rate, vat=vat, discount=discount,
+                                                                reference=reference, category=category)
+                    model.add_ana_group(seq.description, rows, seq.code)
+                elif kind == ScheduleItemModel.ANA_SUM:
+                    model.add_ana_sum(seq.description)
+                elif kind == ScheduleItemModel.ANA_WEIGHT:
+                    model.add_ana_weight(seq.description, seq.value)
+                elif kind == ScheduleItemModel.ANA_TIMES:
+                    model.add_ana_times(seq.description, seq.value)
+                elif kind == ScheduleItemModel.ANA_ROUND:
+                    model.add_ana_round(seq.description, seq.value)
+            model.resources = resources
+            model.evaluate_results()
+            return model
 
     def get_item_key(self, code):
         with self.database.atomic():
@@ -2446,6 +2445,21 @@ class ScheduleDatabase:
 
             # Setup self.SequenceTable
 
+            # Resolve every referenced resource in one query; rows are inserted in bulk.
+            def derived(res_item):
+                # If not a library item and local_res_code given, get modified code
+                if local_res_code is not None and len((res_item.code).split(':')) == 1:
+                    return local_res_code + '.' + res_item.code
+                return res_item.code
+            wanted = {derived(item.resources[resource[0]]) for anaitem in item.ana_items
+                      if anaitem['itemtype'] == ScheduleItemModel.ANA_GROUP for resource in anaitem['resource_list']}
+            known = {}
+            wanted = list(wanted)
+            for start in range(0, len(wanted), 500):
+                for res_id, res_code in self.ResourceTable.select(self.ResourceTable.id, self.ResourceTable.code).where(self.ResourceTable.code << wanted[start:start + 500]).tuples():
+                    known[res_code] = res_id
+            resource_rows = []
+
             for slno, anaitem in enumerate(item.ana_items):
 
                 if anaitem['itemtype'] == ScheduleItemModel.ANA_GROUP:
@@ -2459,32 +2473,24 @@ class ScheduleDatabase:
                     for resource in anaitem['resource_list']:
                         # Get resource corresponding to resource_list
                         res_item = item.resources[resource[0]]
-                        # If not a library item and local_res_code given, get modified code
-                        if local_res_code is not None and len((res_item.code).split(':')) == 1:
-                            derived_code = local_res_code + '.' + res_item.code
-                        else:
-                            derived_code = res_item.code
+                        derived_code = derived(res_item)
 
-                        # Check if resource exists
-                        try:
-                            res = self.ResourceTable.select().where(self.ResourceTable.code == derived_code).get()
                         # If resource does not exist, add resource
-                        except peewee.DoesNotExist:
+                        if derived_code not in known:
                             # Modify resource item code
                             res_item.code = derived_code
                             # Add resource
                             [res_path, res_cat] = self.insert_resource_atomic(res_item)
-                            res = self.ResourceTable.select().where(self.ResourceTable.code == derived_code).get()
-                            ress_added[tuple(res_path)] = res.code
+                            known[derived_code] = self.ResourceTable.select(self.ResourceTable.id).where(self.ResourceTable.code == derived_code).scalar()
+                            ress_added[tuple(res_path)] = derived_code
                             if res_cat:
                                 ress_added[(res_path[0],)] = res_cat
 
-                        resitem = self.ResourceItemTable(id_sch = sch.id,
-                                                    id_seq = seq.id,
-                                                    id_res = res.id,
-                                                    qty = resource[1],
-                                                    remarks = resource[2])
-                        resitem.save()
+                        resource_rows.append(dict(id_sch = sch.id,
+                                                  id_seq = seq.id,
+                                                  id_res = known[derived_code],
+                                                  qty = resource[1],
+                                                  remarks = resource[2]))
                 elif anaitem['itemtype'] == ScheduleItemModel.ANA_SUM:
                     seq = self.SequenceTable(id_seq = slno,
                                         id_sch = sch.id,
@@ -2517,6 +2523,9 @@ class ScheduleDatabase:
                                         code = None,
                                         description = anaitem['description'])
                     seq.save()
+
+            for start in range(0, len(resource_rows), 100):
+                self.ResourceItemTable.insert_many(resource_rows[start:start + 100]).execute()
 
             return [code, path_added, sch_category_added, ress_added]
 

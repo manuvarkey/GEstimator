@@ -50,7 +50,8 @@ class MultiAnalysisImportTests(unittest.TestCase):
         before = self.snapshot()
         history = len(self.s.project_editor.history)
         result = self.call('project.import_analysis_preview', params)
-        self.assertEqual(result, dict(matched=self.codes, unmatched=['UNMATCHED']))
+        self.assertEqual({k: result[k] for k in ('matched', 'unmatched')}, dict(matched=self.codes, unmatched=['UNMATCHED']))
+        self.assertEqual([row['code'] for row in result['analyses'] if row['matched']], self.codes)
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(len(self.s.project_editor.history), history)
         metadata = {code: copy.deepcopy(self.s.db.ScheduleTable.get(code=code).__data__) for code in self.codes}
@@ -97,7 +98,8 @@ class MultiAnalysisImportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Duplicate'):
             self.call('project.import_analysis_preview', params)
         params = self.workbook(['UNKNOWN'])
-        self.assertEqual(self.call('project.import_analysis_preview', params), dict(matched=[], unmatched=['UNKNOWN']))
+        preview = self.call('project.import_analysis_preview', params)
+        self.assertEqual({k: preview[k] for k in ('matched', 'unmatched')}, dict(matched=[], unmatched=['UNKNOWN']))
         before = self.snapshot()
         history = len(self.s.project_editor.history)
         with self.assertRaisesRegex(ValueError, 'No workbook item codes match'):
@@ -137,8 +139,8 @@ class MultiAnalysisImportTests(unittest.TestCase):
             book.active.delete_rows(row)
         book.save(self.path)
         book.close()
-        self.assertEqual(self.call('project.import_analysis_preview', params),
-                         dict(matched=self.codes, unmatched=['UNMATCHED']))
+        preview = self.call('project.import_analysis_preview', params)
+        self.assertEqual({k: preview[k] for k in ('matched', 'unmatched')}, dict(matched=self.codes, unmatched=['UNMATCHED']))
         self.call('project.import_analysis_apply', params)
         for code in self.codes:
             self.assertEqual(len(self.s.db.get_item(code, modify_res_code=False).resources), 1)

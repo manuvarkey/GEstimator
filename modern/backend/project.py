@@ -367,10 +367,8 @@ class ProjectEditor:
                 category_number += 1
         if len(set(assigned.values())) != len(assigned):
             raise ValueError('Generated numbers conflict with excluded resource codes')
-        for identity in assigned:
-            table.update(code='__renumber_' + uuid4().hex).where(table.id == identity).execute()
-        for identity, code in assigned.items():
-            table.update(code=code).where(table.id == identity).execute()
+        self.bulk_codes(table, {identity: '__renumber_' + uuid4().hex for identity in assigned})
+        self.bulk_codes(table, assigned)
 
     def renumber_schedule(self):
         table = self.db.ScheduleTable
@@ -399,14 +397,22 @@ class ProjectEditor:
         occupied.update(assigned.values())
         changes = {item.id: assigned[item.id] for item in items
                    if item.id in assigned and item.code != assigned[item.id]}
+        temporaries = {}
         for identity in changes:
             temporary = "__renumber_" + uuid4().hex
             while temporary in occupied:
                 temporary = "__renumber_" + uuid4().hex
             occupied.add(temporary)
-            table.update(code=temporary).where(table.id == identity).execute()
-        for identity, code in changes.items():
-            table.update(code=code).where(table.id == identity).execute()
+            temporaries[identity] = temporary
+        self.bulk_codes(table, temporaries)
+        self.bulk_codes(table, changes)
+
+    def bulk_codes(self, table, codes):
+        """One prepared UPDATE for many rows (renumbering touches every row)."""
+        if codes:
+            cursor = self.db.database.cursor()
+            cursor.executemany(f'UPDATE "{table._meta.table_name}" SET "{table.code.column_name}" = ? WHERE "id" = ?',
+                               [(code, identity) for identity, code in codes.items()])
 
     def serialize_row(self, row, resource):
         cat = row.category
@@ -985,6 +991,7 @@ class ProjectEditor:
         if kind == "schedule":
             pending = [row.code for row in records]
             visited = set()
+            source_codes = {code for (code,) in source.ScheduleTable.select(source.ScheduleTable.code).tuples()}
             while pending:
                 code = pending.pop()
                 if code in visited:
@@ -992,7 +999,7 @@ class ProjectEditor:
                 visited.add(code)
                 model = source.get_item(code, modify_res_code=False)
                 for resource_code in model.resources:
-                    if source.get_item_key(resource_code) is not None:
+                    if resource_code in source_codes:
                         dependency_codes.add(resource_code)
                         pending.append(resource_code)
             for code in sorted(dependency_codes):
@@ -1124,7 +1131,7 @@ class ProjectEditor:
             if not {item.code for item in additions}.issubset(set(inserted.values())):
                 raise ValueError("Unable to import resources")
         elif kind == "schedule" and gtk_path is not None and additions:
-            self.normalize_schedule_order({row.id for row in self.db.ScheduleCategoryTable.select()})
+            self.normalize_schedule_order(self.selected_categories("schedule", dict(ids=target["ids"])))
             for item in additions:
                 item.parent = item.parent or ("SUBITEM" if subitem.get(id(item)) else None)
             added, _ = self.db.insert_item_multiple_atomic(additions, path=gtk_path, number_with_path=True)
@@ -1233,6 +1240,9 @@ class ProjectEditor:
         if method == "project.import_apply":
             from .importing import apply
 
+            if p.get("dry_run"):
+                # Counts for the import screen; everything is rolled back.
+                return self.compound(lambda: apply(self, p, progress), preview=True)
             return self.mutate(lambda: apply(self, p, progress))
         if method in (
             "schedule.editor.edit_many",
@@ -1342,13 +1352,20 @@ class ProjectEditor:
             return [selected.category.order, selected.parent.order, selected.suborder]
         return [selected.category.order, selected.order]
 
+    def selected_categories(self, kind, params):
+        from .insertion import last_selected
+        selected, is_category = last_selected(self, kind, params)
+        if selected is None:
+            return set()
+        return {selected.id if is_category else selected.category_id}
+
     def paste_schedule(self, items, p, local=None):
         """GTK ScheduleView.paste_at_selection: insert after the selection,
         subitems under a selected heading, codes numbered from the position.
         Rows copied from another project get project-qualified resource codes."""
         db, table = self.db, self.db.ScheduleTable
-        categories = {row.id for row in db.ScheduleCategoryTable.select()}
-        self.normalize_schedule_order(categories)
+        # GTK path insertion only touches the selected row's category.
+        self.normalize_schedule_order(self.selected_categories("schedule", p))
         path = None if p.get("preserve_categories") else self.gtk_path("schedule", p)
         if path is not None:
             added, _ = db.insert_item_multiple_atomic(items, path=path, number_with_path=True, local_res_code=local)

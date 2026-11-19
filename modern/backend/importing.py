@@ -298,9 +298,14 @@ def workbook_analyses(editor, params, *, apply=False):
             drafts[draft.code] = draft
     if not drafts:
         raise ValueError("No analysis resources found")
-    matched, unmatched = [], []
+    matched, unmatched, analyses = [], [], []
     for code, draft in drafts.items():
-        if not editor.db.ScheduleTable.get_or_none(editor.db.ScheduleTable.code == code):
+        row = editor.db.ScheduleTable.get_or_none(editor.db.ScheduleTable.code == code)
+        draft.evaluate_results()
+        analyses.append(dict(code=code, matched=row is not None, description=row.description if row else "",
+                             current=str(row.rate or 0) if row else "", rate=str(draft.get_ana_rate() or 0),
+                             rows=len(draft.ana_items), resources=len(draft.resources)))
+        if row is None:
             unmatched.append(code)
             continue
         matched.append(code)
@@ -317,4 +322,44 @@ def workbook_analyses(editor, params, *, apply=False):
         raise ValueError("No workbook item codes match existing schedule items")
     if apply:
         editor.owner.update_dependent_rates(editor.db, schedules=set(matched))
-    return dict(matched=matched, unmatched=unmatched)
+    return dict(matched=matched, unmatched=unmatched, analyses=analyses)
+
+
+def sheet_preview(params):
+    """Cells of one worksheet for the import range picker (saved values)."""
+    path = Path(params["path"]).resolve(strict=True)
+    limit = params.get("rows", 400)
+    if type(limit) is not int or not 1 <= limit <= 2000:
+        raise ValueError("Invalid preview size")
+    book = load_workbook(path, read_only=True, data_only=True)
+    try:
+        name = params.get("sheet") or book.sheetnames[0]
+        if name not in book.sheetnames:
+            raise ValueError("Worksheet not found")
+        sheet = book[name]
+        width = min(sheet.max_column or 1, 40)
+        cells = []
+        for row in sheet.iter_rows(min_row=1, max_row=min(sheet.max_row or 1, limit), max_col=width, values_only=True):
+            cells.append(["" if value is None else ("%.12g" % value if isinstance(value, float) else str(value)) for value in row])
+        return dict(sheets=book.sheetnames, sheet=name, rows=cells, max_row=sheet.max_row or 0, max_column=sheet.max_column or 0)
+    finally:
+        book.close()
+
+
+def analysis_rows(draft):
+    """Parsed analysis as display rows for an import preview."""
+    rows = []
+    draft.evaluate_results()
+    for index, item in enumerate(draft.ana_items):
+        kind = item["itemtype"]
+        if kind == ScheduleItemModel.ANA_GROUP:
+            rows.append(dict(kind="Group", description=item["description"] or "", amount=str(draft.results[index][-1])))
+            for (code, qty, remarks), (rate, total) in zip(item["resource_list"], draft.results[index][:-1]):
+                resource = draft.resources.get(code)
+                rows.append(dict(kind="Resource", code=code, description=getattr(resource, "description", "") or "",
+                                 unit=getattr(resource, "unit", "") or "", qty=str(qty), rate=str(rate), amount=str(total), remarks=remarks or ""))
+        else:
+            label = {ScheduleItemModel.ANA_SUM: "Subtotal", ScheduleItemModel.ANA_WEIGHT: "Weight",
+                     ScheduleItemModel.ANA_TIMES: "Multiply", ScheduleItemModel.ANA_ROUND: "Round"}.get(kind, "")
+            rows.append(dict(kind=label, description=item.get("description") or "", qty=str(item.get("value") or ""), amount=str(draft.results[index])))
+    return rows

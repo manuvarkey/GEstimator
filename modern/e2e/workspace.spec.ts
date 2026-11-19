@@ -21,6 +21,7 @@ let frontendRequests: string[] = [];
 let frontendCalls: { method: string; params: Record<string, any> }[] = [];
 let nativeDialogResults: (string | null)[] = [];
 let backend: ReturnType<typeof createBackend>;
+let requestTimings: { method: string; start: number; end: number }[] = [];
 function call(method: string, params: Record<string, unknown> = {}, session?: string) {
   return backend.call(method, params, session);
 }
@@ -59,11 +60,16 @@ function startBackend() {
 async function connectDesktop(page: Page, transport = call) {
   await page.exposeBinding("backendTransport", async (_source, request) => {
     frontendCalls.push(request);
+    const timing = { method: request.method, start: performance.now(), end: 0 };
+    requestTimings.push(timing);
+    try { return await transportCall(request); } finally { timing.end = performance.now(); }
+  });
+  async function transportCall(request: any) {
     frontendRequests.push(request.method + (request.params?.source ? ":library" : ""));
     if (request.method === "measurement.state" && measurementDelay)
       await new Promise(resolve => setTimeout(resolve, measurementDelay));
     return transport(request.method, request.params, request.session);
-  });
+  }
   await page.exposeBinding("nativeDialogTransport", () => nativeDialogResults.shift() ?? null);
   await page.exposeBinding("clipboardTransport", (_source, method, text) => {
     if (clipboardUnavailable) throw new Error("Clipboard unavailable");
@@ -2131,16 +2137,19 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
     .getByRole("button", { name: "Import workbook", exact: true })
     .click();
   const dialog = page.getByRole("dialog", {
-    name: "Import spreadsheet",
+    name: "Import schedule from Excel",
     exact: true,
   });
   await dialog.getByLabel("Workbook", { exact: true }).fill(workbook);
-  await dialog.getByRole("button", { name: "Preview", exact: true }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Import rows", exact: true }),
-  ).toBeEnabled();
+  await dialog.getByLabel("Workbook", { exact: true }).press("Enter");
+  // Header detected, columns mapped by name with sample values, and a dry-run count.
+  await expect(dialog.getByRole("grid", { name: "Worksheet preview" })).toContainText("Imported work");
+  await expect(dialog.getByLabel("Code column", { exact: true })).toHaveValue("0");
+  await expect(dialog.getByRole("table", { name: "Column mapping" })).toContainText("Imported work");
+  await expect(dialog.getByRole("status")).toHaveText("1 new · 0 updated · 0 skipped");
+  await page.screenshot({ path: "test-results/mapped-import.png", animations: "disabled" });
   await dialog
-    .getByRole("button", { name: "Import rows", exact: true })
+    .getByRole("button", { name: "Import 1 row", exact: true })
     .click();
   await expect(dialog).not.toBeVisible();
   await expect(
@@ -2610,8 +2619,12 @@ test("Excel analysis import previews a calculated rate and can be undone", async
   await page.locator(".ribbon").getByRole("button", { name: "Import analysis" }).click();
   const dialog = page.getByRole("dialog", { name: "Import analysis from Excel" });
   await dialog.getByLabel(/Workbook/).fill(workbook);
-  await dialog.getByRole("button", { name: "Preview analysis" }).click();
-  await expect(dialog.getByRole("status")).toContainText("parsed rate 21.00");
+  await dialog.getByLabel(/Workbook/).press("Enter");
+  // The worksheet preview starts at A1 (the item code); the parsed analysis is listed.
+  await expect(dialog.getByRole("grid", { name: "Worksheet preview" })).toContainText("Cement");
+  await expect(dialog.getByRole("status").filter({ hasText: "rate" })).toContainText("rate 21.00");
+  await expect(dialog.getByRole("region", { name: "Import preview" })).toContainText("Cement");
+  await page.screenshot({ path: "test-results/analysis-import.png", animations: "disabled" });
   await dialog.getByRole("button", { name: "Replace analysis draft" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".summary-value")).toContainText("21.00");
@@ -3703,6 +3716,36 @@ test('feedback 5: schedule returns from analysis with fitting desktop columns', 
   await expect.poll(() => narrow.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
 });
 
+test('records import picks a range in the worksheet preview and lists template columns', async ({ page }) => {
+  await refinementFixture(page);
+  const workbook = resolve(directory, 'records.xlsx');
+  const { execFileSync } = await import('node:child_process');
+  execFileSync(python, ['-c', `import sys
+from openpyxl import Workbook
+b=Workbook()
+for row in [['Room schedule'],[],['Kitchen',1,3,4,2.5],['Hall',2,5,4,3]]:
+ b.active.append(row)
+b.save(sys.argv[1])`, workbook], { cwd: resolve('..') });
+  const state = (await call('state')).result;
+  await call('measurement.add', { revision: state.revision, template: '_1_NLBH', description: 'Imported rooms' });
+  await page.locator('#view-measurement').click();
+  await page.getByRole('grid', { name: 'Measurements', exact: true }).getByText('Imported rooms', { exact: true }).dblclick();
+  await page.locator('.ribbon').getByRole('button', { name: 'Import records…', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import measurement records', exact: true });
+  await dialog.getByLabel('Workbook', { exact: true }).fill(workbook);
+  await dialog.getByLabel('Workbook', { exact: true }).press('Enter');
+  const sheet = dialog.getByRole('grid', { name: 'Worksheet preview' });
+  // Clicking the first record cell sets the range; template columns label the worksheet.
+  await sheet.getByRole('cell', { name: 'Kitchen', exact: true }).click();
+  await expect(dialog.getByLabel('First row')).toHaveValue('3');
+  await expect(dialog.getByRole('status').filter({ hasText: 'records will be inserted' })).toContainText('2 records');
+  await expect(dialog.getByRole('region', { name: 'Import preview' })).toContainText('Hall');
+  await page.screenshot({ path: 'test-results/records-import.png', animations: 'disabled' });
+  await dialog.getByRole('button', { name: 'Import 2 records', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator('.measurement-record-grid .tabulator-row')).toHaveCount(2);
+});
+
 test('feedback 5: records drafts apply discard guard navigation and save', async ({ page }) => {
   await refinementFixture(page);
   const state = (await call('state')).result;
@@ -3947,13 +3990,14 @@ for code in ['A','B','UNMATCHED']:
   b.active.append(row)
 b.save(sys.argv[1])`, workbook], { cwd: resolve('..') });
   await page.getByRole('button', { name: 'Import multiple analyses', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Import analysis from Excel', exact: true });
+  const dialog = page.getByRole('dialog', { name: 'Import analyses from Excel', exact: true });
   await dialog.getByLabel('Workbook', { exact: true }).fill(workbook);
+  await dialog.getByLabel('Workbook', { exact: true }).press('Enter');
   await dialog.getByLabel('Resource comments').selectOption('0');
   await dialog.getByLabel('Rounding', { exact: true }).selectOption('2');
-  await dialog.getByRole('button', { name: 'Preview analysis', exact: true }).click();
-  await expect(dialog.getByRole('status')).toContainText('Matched: A, B. Unmatched: UNMATCHED.');
-  await dialog.getByRole('button', { name: 'Import matched analyses', exact: true }).click();
+  await expect(dialog.getByRole("status").filter({ hasText: "not in this project" })).toHaveText("2 matched · 1 not in this project");
+  await expect(dialog.getByRole('region', { name: 'Import preview' })).toContainText('Not in project – skipped');
+  await dialog.getByRole('button', { name: 'Import 2 analyses', exact: true }).click();
   await expect(dialog).not.toBeVisible();
   const grid = page.locator('.project-view:visible .project-main-grid');
   await expect(grid).toContainText('Foundation');
@@ -4200,4 +4244,95 @@ test('analysis header save applies without leaving and failed saves retain the d
   await expect(page.locator('#view-schedule')).toHaveAttribute('aria-selected', 'true');
   const row = page.locator('.project-view:visible .project-main-grid .tabulator-row').filter({ has: page.getByText('Foundation', { exact: true }) });
   await expect(row.locator('[tabulator-field="rate"]')).toHaveText('30');
+});
+
+
+// Performance profile on a large real database: GESTIMATOR_PERF=1 npx playwright test -g "perf:"
+test("perf: everyday operations on a large project", async ({ page }) => {
+  test.skip(!process.env.GESTIMATOR_PERF, "Set GESTIMATOR_PERF=1 to profile");
+  test.setTimeout(300000);
+  const project = resolve(directory, "large.eproj");
+  await copyFile(resolve("../Other databases/DSR2021_12GST.eproj"), project);
+  await page.locator("#view-schedule").click();
+  await openFixture(page, project);
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  await expect(grid.locator(".tabulator-row").first()).toBeVisible();
+  const ribbon = page.locator(".ribbon");
+  const results: string[] = [];
+  async function settle() {
+    await expect.poll(() => requestTimings.some(timing => !timing.end), { intervals: [20] }).toBe(false);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect.poll(() => requestTimings.some(timing => !timing.end), { intervals: [20] }).toBe(false);
+  }
+  async function measure(label: string, action: () => Promise<void>) {
+    await settle();
+    const first = requestTimings.length;
+    await page.evaluate(() => {
+      const w = window as any;
+      w.perfStart = performance.now(); w.perfLast = w.perfStart;
+      w.perfObserver?.disconnect();
+      w.perfObserver = new MutationObserver(() => { w.perfLast = performance.now(); });
+      w.perfObserver.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+    });
+    const started = performance.now();
+    await action();
+    await settle();
+    await page.waitForTimeout(300);
+    const visual = await page.evaluate(() => { const w = window as any; w.perfObserver.disconnect(); return w.perfLast - w.perfStart; });
+    const total = performance.now() - started;
+    const calls = requestTimings.slice(first);
+    const backendMs = calls.reduce((sum, call) => sum + (call.end - call.start), 0);
+    results.push(`${label.padEnd(34)} visual ${visual.toFixed(0).padStart(5)} ms  harness ${total.toFixed(0).padStart(5)} ms  backend ${backendMs.toFixed(0).padStart(5)} ms  requests ${calls.length}: ${calls.map(call => `${call.method}@${(call.start - started).toFixed(0)}+${(call.end - call.start).toFixed(0)}`).join(" ")}`);
+    console.log(results[results.length - 1]);
+  }
+  const row = (n: number) => grid.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="description"]').nth(n);
+  async function dialogSubmit() {
+    const dialog = page.getByRole("dialog").last();
+    await dialog.locator(".button.primary").last().click();
+    await expect(dialog).not.toBeVisible();
+  }
+  await row(3).click();
+  await measure("open analysis (Ctrl+E)", async () => { await grid.press("Control+e"); await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true"); });
+  await measure("analysis -> schedule (no edit)", async () => { await page.locator("#view-schedule").click(); await expect(grid).toBeVisible(); });
+  await row(3).click();
+  await measure("add item", async () => { await ribbon.getByRole("button", { name: "Add item", exact: true }).click(); await dialogSubmit(); });
+  await row(3).click();
+  await measure("add subitem", async () => { await ribbon.getByRole("button", { name: "Add subitem", exact: true }).click(); await dialogSubmit(); });
+  await measure("add category", async () => { await ribbon.getByRole("button", { name: "Add category", exact: true }).click(); const dialog = page.getByRole("dialog").last(); await dialog.getByRole("textbox").first().fill("Perf category"); await dialog.getByRole("textbox").first().press("Enter"); await expect(dialog).not.toBeVisible(); });
+  await row(5).click();
+  await measure("duplicate", async () => { await ribbon.getByRole("button", { name: "Duplicate", exact: true }).click(); await dialogSubmit(); });
+  await row(5).click();
+  await row(14).click({ modifiers: ["Shift"] });
+  await measure("copy 10 rows", async () => { await ribbon.getByRole("button", { name: "Copy", exact: true }).click(); });
+  await row(20).click();
+  await measure("paste 10 rows", async () => { await ribbon.getByRole("button", { name: "Paste", exact: true }).click(); });
+  await measure("undo", async () => { await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click(); });
+  await measure("renumber schedule", async () => { await ribbon.getByRole("button", { name: "Renumber schedule…", exact: true }).click(); await dialogSubmit(); });
+  await measure("edit cell (remarks)", async () => {
+    const cell = grid.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="remarks"]').nth(2);
+    await cell.dblclick(); await page.keyboard.type("perf"); await page.keyboard.press("Enter");
+  });
+  await attachDatabase(page, resolve("../estimator/database/DSR2021.eproj"));
+  await row(8).click();
+  await measure("open database picker", async () => { await ribbon.getByRole("button", { name: "Add item from database", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Add item from database" }).locator(".tabulator-row").first()).toBeVisible(); });
+  const picker = page.getByRole("dialog", { name: "Add item from database" });
+  const pick = picker.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="code"]');
+  await pick.nth(2).click();
+  await pick.nth(12).click({ modifiers: ["Shift"] });
+  await measure("add 11 from database", async () => { await picker.getByRole("button", { name: "Add selected items", exact: true }).click(); await expect(picker).not.toBeVisible(); });
+  await measure("search schedule", async () => {
+    const search = page.locator(".project-view:visible").getByPlaceholder(/Search codes/);
+    await search.fill("cement concrete"); await search.press("Enter");
+  });
+  await measure("switch to resources", async () => { await page.locator("#view-resources").click(); });
+  const rrow = (n: number) => page.locator(".project-view:visible .project-main-grid").locator('.tabulator-row[data-kind="Resource"] [tabulator-field="description"]').nth(n);
+  await rrow(3).click();
+  await measure("add resource", async () => { await ribbon.getByRole("button", { name: "Add item", exact: true }).click(); await dialogSubmit(); });
+  await rrow(4).click();
+  await measure("edit resource rate", async () => {
+    const cell = page.locator(".project-view:visible .project-main-grid").locator('.tabulator-row[data-kind="Resource"] [tabulator-field="rate"]').nth(4);
+    await cell.dblclick(); await page.keyboard.type("123"); await page.keyboard.press("Enter");
+  });
+  await measure("switch to schedule", async () => { await page.locator("#view-schedule").click(); });
+  console.log("PERF\n" + results.join("\n"));
 });

@@ -234,15 +234,18 @@ watch(
         for (const row of rows) {
           if (ids.delete(row.getData().id)) row.select();
           if (props.tree) {
-            row.treeExpand();
-            restoreSelection(row.getTreeChildren());
+            // treeExpand re-renders the whole table; rows start expanded, so
+            // only expand a collapsed row (otherwise O(rows²) layout work).
+            const children = row.getTreeChildren();
+            if (children.length && !row.isTreeExpanded()) row.treeExpand();
+            restoreSelection(children);
           }
         }
       };
       if (alive) restoreSelection(table.getRows());
       if (alive && selectIds !== previousIds) {
         for (const row of table.getSelectedRows()) {
-          if (props.tree) { let parent = row.getTreeParent(); while (parent) { parent.treeExpand(); parent = parent.getTreeParent(); } }
+          if (props.tree) { let parent = row.getTreeParent(); while (parent) { if (!parent.isTreeExpanded()) parent.treeExpand(); parent = parent.getTreeParent(); } }
         }
         const selected = table.getSelectedRows();
         if (selected.length) void selected[0]!.scrollTo("nearest", false).catch(() => {});

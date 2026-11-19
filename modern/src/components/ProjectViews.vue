@@ -8,6 +8,7 @@ import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
+import MappedImport from "./MappedImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
@@ -183,17 +184,7 @@ const deletion = ref<{
 const importOpen = ref(false);
 const recordImportOpen = ref(false);
 const multiAnalysisImportOpen = ref(false);
-const importPath = ref("");
-const importSheet = ref("");
-const importPreview = ref<{
-  sheets: string[];
-  headers: string[];
-  rows: string[][];
-  mapping: Record<string, number>;
-}>();
-const importMapping = ref<Record<string, number>>({});
-const importPolicy = ref("error");
-const headerRow = ref(1);
+
 const quantityRounding = ref("Round to .000");
 const roundingOptions = [
   "Round within 1%",
@@ -894,54 +885,10 @@ async function recordAction(operation: string, delta?: number) {
     delta,
   });
 }
-async function previewImport() {
-  await run(async () => {
-    importPreview.value = await request("project.import_preview", {
-      path: importPath.value,
-      sheet: importSheet.value || undefined,
-      header_row: headerRow.value,
-    });
-    importMapping.value = Object.fromEntries(
-      Object.entries(importPreview.value!.mapping).filter(([field]) =>
-        importFields.value.includes(field),
-      ),
-    );
-  });
-}
-async function browseImport() {
-  try {
-    const path = await open({
-      multiple: false,
-      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-    });
-    if (typeof path === "string") {
-      importPath.value = path;
-      await previewImport();
-    }
-  } catch (e) {
-    error.value = String(e);
-  }
-}
-async function applyImport() {
-  await run(async () => {
-    const result = await request<{
-      added: number;
-      updated: number;
-      skipped: number;
-    }>("project.import_apply", {
-      revision: state.value?.revision,
-      kind: props.view,
-      path: importPath.value,
-      sheet: importSheet.value || undefined,
-      header_row: headerRow.value,
-      mapping: importMapping.value,
-      duplicates: importPolicy.value,
-    });
-    await refresh();
-    emit("changed");
-    importOpen.value = false;
-    notify(`Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`, 8000);
-  });
+async function importDone(result: { added: number; updated: number; skipped: number }) {
+  await run(async () => { await refresh(); });
+  emit("changed");
+  notify(`Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped.`, 8000);
 }
 async function exportWorkbook() {
   try {
@@ -1644,112 +1591,10 @@ watch(
         </button>
       </div></Dialog
     >
-    <Dialog
-      v-model:visible="importOpen"
-      modal
-      header="Import spreadsheet"
-      class="workspace-dialog resource-dialog"
-      ><p class="dialog-intro">
-        Map worksheet columns into this editor. The whole import is one undoable
-        transaction.
-      </p>
-      <label class="field"
-        >Workbook
-        <div class="file-input">
-          <input v-model="importPath" data-primary-input autofocus aria-label="Workbook" /><button
-            class="button secondary"
-            @click="browseImport"
-          >
-            Browse</button
-          ><button
-            class="button secondary"
-            :disabled="busy || !importPath"
-            @click="previewImport"
-          >
-            Preview
-          </button>
-        </div></label
-      ><template v-if="importPreview"
-        ><div class="field-pair">
-          <label class="field"
-            >Worksheet<select v-model="importSheet" @change="previewImport">
-              <option value="">First worksheet</option>
-              <option v-for="sheet in importPreview.sheets" :key="sheet">
-                {{ sheet }}
-              </option>
-            </select></label
-          ><label class="field"
-            >Header row<input
-              v-model.number="headerRow"
-              type="number"
-              min="1"
-              @change="previewImport"
-          /></label>
-        </div>
-        <div class="import-mapping">
-          <label v-for="field in importFields" :key="field" class="field"
-            >{{ field === "vat" ? "Tax %" : field
-            }}<select
-              :value="importMapping[field] ?? ''"
-              @change="
-                ($event.target as HTMLSelectElement).value === ''
-                  ? delete importMapping[field]
-                  : (importMapping[field] = Number(
-                      ($event.target as HTMLSelectElement).value,
-                    ))
-              "
-            >
-              <option value="">Do not import</option>
-              <option
-                v-for="(header, index) in importPreview.headers"
-                :key="index"
-                :value="index"
-              >
-                {{ index + 1 }} · {{ header }}
-              </option>
-            </select></label
-          >
-        </div>
-        <label class="field"
-          >Existing codes<select v-model="importPolicy">
-            <option value="error">Reject duplicates</option>
-            <option value="skip">Skip existing codes</option>
-            <option value="update">Update existing items</option>
-          </select></label
-        >
-        <div class="import-sample">
-          <table>
-            <thead>
-              <tr>
-                <th
-                  v-for="(header, index) in importPreview.headers"
-                  :key="index"
-                >
-                  {{ header }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, index) in importPreview.rows" :key="index">
-                <td v-for="(value, col) in row" :key="col">{{ value }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div></template
-      >
-      <div v-if="error" class="dialog-error">{{ error }}</div>
-      <div class="dialog-footer">
-        <button
-          class="button primary"
-          :disabled="busy || !importPreview || importMapping.code === undefined"
-          @click="applyImport"
-        >
-          Import rows
-        </button>
-      </div></Dialog
-    >
+    <MappedImport v-if="importOpen" v-model="importOpen" :kind="view === 'resources' ? 'resources' : 'schedule'" :fields="importFields" :revision="state?.revision" @imported="importDone" />
     <SpreadsheetRangeImport v-if="multiAnalysisImportOpen" v-model="multiAnalysisImportOpen" multiple :apply="params => command('project.import_analysis_apply', params)" :error="error" />
     <SpreadsheetRangeImport v-if="recordImportOpen" v-model="recordImportOpen" measurement
+      :columns="(state?.detail?.columns ?? []).filter((c: any) => c.editable).map((c: any) => c.title)"
       :apply="(params) => command('record_import', {
         ...params, id: activeMeasurement, record_id: selectedRecord?.id,
       })" :error="error" />

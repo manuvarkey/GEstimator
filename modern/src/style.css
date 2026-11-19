@@ -2247,3 +2247,61 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .document-rail-flyout-dirty { margin-top: 6px; color: var(--amber); }
 /* Compact windows keep editor width until a second project tab exists (Ctrl/⌘+T still adds one). */
 @media (max-width: 1200px) { .document-rail.single { display: none; } }
+
+/* Faster modal transitions: PrimeVue's 300 ms enter/leave made every dialog
+   action feel slow (the request itself takes tens of milliseconds). */
+.p-dialog-enter-active { animation-duration: 120ms !important; }
+.p-dialog-leave-active { animation-duration: 90ms !important; }
+.p-overlay-mask-enter-active, .p-overlay-mask-enter { animation-duration: 120ms !important; }
+.p-overlay-mask-leave-active, .p-overlay-mask-leave { animation-duration: 90ms !important; }
+
+/* Guided spreadsheet import (schedule, resources, analyses, records). */
+.workspace-dialog.range-import-dialog { width: min(96vw, 1120px); }
+.range-import { display: flex; flex-direction: column; gap: 10px; }
+.range-import .field { margin: 0; }
+.import-steps { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: step; font-size: var(--text-size-small); color: var(--muted); flex-wrap: wrap; }
+.import-steps li { counter-increment: step; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--panel); }
+.import-steps li::before { content: counter(step); width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--raised); border: 1px solid var(--line); font-weight: 650; }
+.import-steps li.done { color: var(--text); border-color: var(--accent); }
+.import-steps li.done::before { content: "✓"; background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent); }
+.range-import-source { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 220px) auto; gap: 10px; align-items: end; }
+.range-import-source:has(> :nth-child(2):last-child) { grid-template-columns: minmax(0, 1fr) minmax(140px, 240px); }
+.range-import-range { display: grid; grid-template-columns: repeat(3, minmax(90px, 130px)) minmax(0, 1fr); gap: 10px; align-items: end; }
+.range-import-summary { margin: 0 0 8px; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.range-import-options { display: grid; grid-template-columns: auto minmax(150px, 220px) minmax(150px, 240px); gap: 10px; align-items: end; }
+.range-import-result { border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--panel); }
+.range-import-result > header { display: flex; gap: 12px; align-items: baseline; padding: 7px 10px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+.range-import-result > .dialog-error { margin: 8px 10px; }
+.range-import-result .import-sample { border: 0; max-height: 26vh; }
+.range-import-result .field-hint { margin: 10px; }
+.import-sample td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+.import-sample .import-line-group td { font-weight: 650; background: var(--raised); }
+.import-sample .import-line-subtotal td, .import-sample .import-line-round td { color: var(--green); }
+.import-sample .import-unmatched td { color: var(--hint); }
+.import-remark { display: block; color: var(--muted); }
+.sheet-grid { max-height: 34vh; overflow: auto; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--workspace); font-variant-numeric: tabular-nums; }
+.sheet-grid table { border-collapse: separate; border-spacing: 0; font-size: var(--text-size-small); }
+.sheet-grid th, .sheet-grid td { border-right: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); padding: 3px 7px; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.sheet-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--bg); color: var(--muted); font-weight: 600; vertical-align: bottom; }
+.sheet-grid .sheet-letter { display: block; }
+.sheet-grid .sheet-tag { display: block; color: var(--accent); font-weight: 650; }
+.sheet-grid thead th.sheet-tagged { background: var(--accent-soft); color: var(--text); }
+.sheet-grid .sheet-corner, .sheet-grid .sheet-row-number { position: sticky; left: 0; z-index: 1; background: var(--bg); color: var(--muted); text-align: right; min-width: 38px; }
+.sheet-grid .sheet-corner { z-index: 3; }
+.sheet-grid td { cursor: cell; color: var(--text); }
+.sheet-grid td:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+.sheet-grid td.sheet-in-range { background: var(--accent-soft); }
+.sheet-grid .sheet-row-number.sheet-in-range { color: var(--accent); }
+.sheet-grid td.sheet-start { box-shadow: inset 0 0 0 2px var(--accent); }
+.sheet-grid .sheet-header-row { font-weight: 700; background: var(--raised); box-shadow: inset 0 -2px 0 var(--accent); }
+.sheet-more { margin: 0; padding: 6px 10px; color: var(--muted); font-size: var(--text-size-small); }
+.mapping-table { display: grid; grid-template-columns: minmax(110px, 160px) minmax(180px, 280px) minmax(0, 1fr); gap: 6px 12px; align-items: center; }
+.mapping-table > div { display: contents; }
+.mapping-head > span { color: var(--muted); font-size: var(--text-size-small); font-weight: 600; }
+.mapping-row abbr { color: var(--accent); text-decoration: none; margin-left: 2px; }
+.mapping-sample { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 760px) {
+  .range-import-source, .range-import-range, .range-import-options { grid-template-columns: 1fr; }
+  .mapping-table { grid-template-columns: 1fr 1fr; }
+  .mapping-sample { display: none; }
+}

@@ -605,3 +605,18 @@ Validation: Python unit tests (154 OK, new session, stored-rate and GTK paste te
 - Rates: `modern/backend/rates.py` replaces `ScheduleDatabase.update_rates` for dependent-rate updates and full refreshes. It loads the analysis graph once (raw SQL) and evaluates each affected item once, children first. On DSR 2021 (3910 items, perturbed resource rates) it matches GTK `update_rates` run repeatedly until stable (0 differences; a single GTK pass stops after two sub-analysis levels), in 0.43 s instead of 38.9 s per pass. A resource rate edit in DSR 2021 went from 7.2 s to 65 ms.
 - Search: abbreviation expansion prefilters by substring and caches compiled patterns; unchanged rows reuse their expanded text across index rebuilds; BM25 term counts are built only without FTS5; description extraction is memoized. First schedule search in DSR 2021: 4.3 s → 0.8 s; searches after an edit 0.15–0.36 s (previously a full 4.3 s rebuild). The schedule grand total reads tuples instead of models (state 72 → 24 ms).
 - Same-project schedule paste no longer fails when an analysis uses another schedule item as a resource (existing item reused).
+
+## 2026-11-20 — everyday operation speed and guided imports
+
+Profiled on DSR 2021 (3910 items) as the open project, backend and browser end to end (`GESTIMATOR_PERF=1 npx playwright test -g "perf:"`; "visual" is the time to the last DOM change).
+
+- Frontend: after every full table refresh, `DataTable` called `treeExpand()` on every row; each call re-renders the whole Tabulator table (O(rows²)). It now expands only collapsed rows. Add item/subitem/duplicate/renumber went from about 3 s to 0.45–0.55 s visual, including dialog animation; the browser suite runs in 3.2 instead of 4.2 minutes.
+- Dialog open/close animations shortened from 300 ms to 120/90 ms.
+- `ScheduleDatabase.get_item` (shared with GTK) reads an item with four statements instead of one `get_resource` per analysis row; output is identical for every item of DSR 2021, DSR EM 2022 and DSR BLDC 2019 (3× faster). `insert_item_atomic` resolves referenced resources in one query and bulk-inserts analysis rows.
+- Renumbering uses one prepared `executemany` (schedule 680 → 124 ms, resources 567 → 68 ms). Library and paste placement normalize only the destination category.
+- Backend times, 20 items: library add 989 → 339 ms, Modify & Add 911 → 311 ms, copy 265 → 83 ms, paste 296 → 139 ms. Analysis → Schedule with no edit: 125 ms visual.
+- Search indexes are built in the background right after a project opens (`search.warm`), so the first search takes ~30 ms instead of ~1 s.
+
+Imports: schedule/resource, single and multiple analysis, and measurement-record imports share a guided layout: numbered steps, worksheet dropdown, and a spreadsheet-like preview (`WorkbookSheetGrid`, `workbook.sheet`) where clicking a cell sets the start (Shift+click the last row, or the header row for mapped imports) and imported columns are labelled in place. Mapped imports show each field's first value and a live dry-run count (`project.import_apply` with `dry_run`, rolled back). Analysis imports re-parse automatically and list the parsed rows (`analysis.import_preview` `items`), or per-code matched/current/imported rates for multiple analyses (`analyses`). Record imports list rows under the template's column names.
+
+Validation: 157 Python tests, `vue-tsc`, production build, browser suite 81 passed (new records-import scenario; perf scenario skipped by default).
