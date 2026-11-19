@@ -512,7 +512,7 @@ def parse_analyses(rows, settings):
             continue
         blocks.append((start, header, code))
         previous_end = header + 1
-    drafts = {}
+    drafts, alternatives = {}, {}
     for position, (start, header, code) in enumerate(blocks):
         end = blocks[position + 1][0] if position + 1 < len(blocks) else len(rows)
         block = _Block(code, header, rows[header + 1:end], settings, warnings)
@@ -524,12 +524,16 @@ def parse_analyses(rows, settings):
             warnings.append(f"Row {rows[header][0]} ({code}): no analysis resources found; skipped")
             continue
         if code in drafts:
-            warnings.append(f"Row {rows[start][0]} ({code}): code already used by an earlier analysis; this one is skipped")
+            # Kept as an alternative; the import picks the block that matches the item.
+            alternatives.setdefault(code, []).append(item)
+            warnings.append(f"Row {rows[start][0]} ({code}): code repeated in the worksheet; the block closest to the item's rate is used")
             continue
         worksheet_rate = next((row[6] for row in reversed(rows[header + 1:end]) if row[6] and not row[3]), None)
         if worksheet_rate is not None and item.get_ana_rate() is not None and abs(item.get_ana_rate() - worksheet_rate) > Decimal("0.011"):
             warnings.append(f"{code}: imported rate {item.get_ana_rate()} differs from the worksheet's {worksheet_rate}")
         drafts[code] = item
+    for code, items in alternatives.items():
+        drafts[code].alternatives = items
     return drafts, warnings
 
 
@@ -566,7 +570,11 @@ def workbook_analyses(editor, params, *, apply=False):
         table = editor.db.ScheduleTable
         # Worksheet codes are trimmed; project codes may carry stray spaces.
         row = table.get_or_none(table.code == code) or table.get_or_none(fn.TRIM(table.code) == code)
-        draft.evaluate_results()
+        candidates = [draft] + getattr(draft, "alternatives", [])
+        for candidate in candidates:
+            candidate.evaluate_results()
+        if row is not None and len(candidates) > 1:
+            draft = min(candidates, key=lambda candidate: abs((candidate.get_ana_rate() or 0) - (row.rate or 0)))
         analyses.append(dict(code=code, matched=row is not None, description=row.description if row else "",
                              current=str(row.rate or 0) if row else "", rate=str(draft.get_ana_rate() or 0),
                              rows=len(draft.ana_items), resources=len(draft.resources)))

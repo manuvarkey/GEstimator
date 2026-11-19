@@ -99,7 +99,7 @@ class MultiAnalysisImportTests(unittest.TestCase):
         # A repeated code keeps the first analysis and reports the second.
         preview = self.call('project.import_analysis_preview', params)
         self.assertEqual(preview['matched'], [self.codes[0]])
-        self.assertTrue(any('already used' in warning for warning in preview['warnings']))
+        self.assertTrue(any('code repeated' in warning for warning in preview['warnings']))
         params = self.workbook(['UNKNOWN'])
         preview = self.call('project.import_analysis_preview', params)
         self.assertEqual({k: preview[k] for k in ('matched', 'unmatched')}, dict(matched=[], unmatched=['UNKNOWN']))

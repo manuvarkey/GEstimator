@@ -1160,3 +1160,27 @@ class RecordImportPreviewTests(unittest.TestCase):
         self.assertEqual(preview["count"], 2)
         self.assertEqual([row["row"] for row in preview["rows"]], [1, 3])
         self.assertEqual(len(preview["columns"]), 5)
+
+
+class StructuredImportCategoryColumnTests(unittest.TestCase):
+    def test_headings_use_their_own_category_column(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "categories.xlsx"
+        book = Workbook()
+        for row in [["Code", "Description", "Unit", "Rate", "Category"], ["1.1", "Wiring for points", None, None, "WIRING"],
+                    ["1.1.1", "Group A", "Point", 1417, "WIRING"], ["2.1", "MCB", "each", 100, "MCB"]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        result = call("project.import_apply", kind="schedule", path=str(path), mapping=dict(code=0, description=1, unit=2, rate=3, category=4), hierarchy=True)
+        self.assertEqual(result["added"], 3)
+        db = service.db
+        self.assertEqual((db.get_item("1.1").category, db.get_item("1.1.1").parent, db.get_item("2.1").category), ("WIRING", "1.1", "MCB"))

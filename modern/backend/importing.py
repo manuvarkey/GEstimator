@@ -167,7 +167,7 @@ def preview(params):
 
 def deduce_hierarchy(entries, mapped_category):
     """GTK structured schedule import: uppercase description-only rows set the
-    category; code rows without a unit are headings (following description-only
+    category; code rows without a unit or rate are headings (following description-only
     rows continue them); a priced item whose code extends the heading's code
     (1.1.1 under 1.1) becomes its subitem. Headings are added with their first
     priced subitem, using the joined heading descriptions."""
@@ -180,7 +180,7 @@ def deduce_hierarchy(entries, mapped_category):
         parts = code.split(".")
         return len(parts) > 1 and parts[:-1] == codes[-1].split(".")
 
-    result, category, codes, descriptions, parent = [], "", [], [], None
+    result, category, codes, descriptions, sources, parent = [], "", [], [], [], None
     index = 0
     while index < len(entries):
         number, values, numbers = entries[index]
@@ -189,13 +189,14 @@ def deduce_hierarchy(entries, mapped_category):
             category, parent = description, None
             codes.clear()
             descriptions.clear()
+            sources.clear()
             index += 1
             continue
         if not (code and description):
             index += 1
             continue
         last = index
-        if not unit:
+        if not unit and not numbers.get("rate"):
             # Multi-line description: following rows without a code (lowercase text).
             while (last + 1 < len(entries) and not text(entries[last + 1][1], "code")
                    and text(entries[last + 1][1], "description")
@@ -204,6 +205,8 @@ def deduce_hierarchy(entries, mapped_category):
                 description += "\n" + text(entries[last][1], "description")
         final_number, final, final_numbers = entries[last]
         unit = text(final, "unit")
+        # A priced row is an item even when the sheet leaves its unit blank.
+        priced = bool(unit) or bool(final_numbers.get("rate"))
 
         def item(item_code, item_description, item_unit, source, source_numbers, item_parent):
             values = dict(source, code=item_code, description=item_description, unit=item_unit, parent=item_parent or "")
@@ -214,14 +217,17 @@ def deduce_hierarchy(entries, mapped_category):
         if not is_child(codes, code) and codes:
             codes.pop()
             descriptions.pop()
+            sources.pop()
             parent = None
-        if not unit and is_child(codes, code):
+        if not priced and is_child(codes, code):
             codes.append(code)
             descriptions.append(description)
+            sources.append(values)
             parent = None
-        elif unit and is_child(codes, code):
+        elif priced and is_child(codes, code):
             if parent is None and codes:
-                heading, heading_numbers = item(codes[-1], "\n".join(descriptions), "", {}, {}, None)
+                # The heading keeps its own row's mapped fields (category, remarks).
+                heading, heading_numbers = item(codes[-1], "\n".join(descriptions), "", sources[-1], {}, None)
                 heading.update(rate="0", qty="0")
                 result.append((final_number, heading, dict(rate=decimal("0"), qty=decimal("0"))))
                 parent = codes[-1]
@@ -230,6 +236,7 @@ def deduce_hierarchy(entries, mapped_category):
         else:
             codes.clear()
             descriptions.clear()
+            sources.clear()
             parent = None
             values, item_numbers = item(code, description, unit, final, final_numbers, None)
             result.append((final_number, values, item_numbers))
