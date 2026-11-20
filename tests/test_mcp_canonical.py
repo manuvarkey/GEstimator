@@ -9,7 +9,7 @@ from test_mcp_server import MCPFixture
 class MCPCanonicalTests(MCPFixture):
     def test_house_estimate_in_at_most_twenty_http_tool_calls(self):
         fixture = json.loads((Path(__file__).parent / "data/mcp_canonical.json").read_text())
-        source = Path("estimator/database/DSREM2022.eproj")
+        source = Path("Other databases/DSREM2022.eproj")
         original = hashlib.sha256(source.read_bytes()).digest()
         self.runtime.call("mcp.configure", dict(access="read-write"))
         self.start()
@@ -22,6 +22,7 @@ class MCPCanonicalTests(MCPFixture):
         agent("get_state")
         agent("project", action="new")
         agent("project", action="set_settings", settings=dict(project_name=fixture["name"]))
+        fixture["source"] = str(Path(fixture["source"]).resolve())  # the 2022 book, kept outside the bundle
         agent("describe_source", source=fixture["source"])
         matches = agent("search_items", source=fixture["source"], kind="schedule", query="modular switch light point PVC conduit")["data"]["items"]
         self.assertIn("1.10.1", [m["code"] for m in matches[:5]])

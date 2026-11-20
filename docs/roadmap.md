@@ -19,6 +19,6 @@ The project settings now hold **Database notes** (`project_metadata`, Markdown),
 - [x] Resolve the DSR E&M 2025 book inconsistencies (duplicate codes, analyses numbered differently, resource rate/code mismatches, chapter 16 layout, book arithmetic): every analysis now reproduces its published rate within ₹1; changes are listed in `spreadsheets/DSREM2025/corrections.csv`.
 - [x] Apply DSR E&M 2025 Correction Slip No. 1 (27-11-2025) to schedule, Appendix II and analyses.
 - [x] Take the DSR E&M 2025 schedule text, numbering and rates from the printed book (rates checked against the analyses).
-- [ ] Decide the 194 DSR E&M 2025 items whose printed schedule rate disagrees with the printed analysis, and whether the printed Appendix I/II should replace the workbook's (63 rate differences).
-- [ ] Finish DSR E&M 2025: fix Appendix II descriptions that carry the previous section's heading, import the two-level headings 30.7/30.11, and write its database notes (remaining gaps in `spreadsheets/DSREM2025/README.md`).
-- [ ] Then make DSR E&M 2025 the bundled E&M database: move `Other databases/DSREM2025.eproj` to `estimator/database/`, move `estimator/database/DSREM2022.eproj` to `Other databases/`, and update bundled-source references (MCP tests use `bundled:DSREM2022.eproj`, packaging, documentation).
+- [x] Decide the DSR E&M 2025 items whose printed schedule rate disagrees with the printed analysis (the analysis rate is kept) and the printed Appendix I/II (the workbook's is kept).
+- [x] Finish DSR E&M 2025: analyses under the wrong heading attached, orphan analyses removed, chapter 19 category, Appendix II sub-headings and section heading, 1020/1021, whole-rupee rates, two-level headings 30.7/30.11 (remaining gaps in `spreadsheets/DSREM2025/README.md`).
+- [x] Make DSR E&M 2025 the bundled E&M database (`estimator/database/DSREM2025.eproj`); DSR E&M 2022 moved to `Other databases/`, where the tests that need its fixed figures read it.

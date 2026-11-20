@@ -1,6 +1,6 @@
 {
   "name": "House electrical estimate",
-  "source": "bundled:DSREM2022.eproj",
+  "source": "Other databases/DSREM2022.eproj",
   "notes": "Reproducible representative fixture, not a reconstruction of the unavailable historical trial. Rates use the existing recalculation engine rather than stored library prices.",
   "grand_total": "58660.00",
   "items": [

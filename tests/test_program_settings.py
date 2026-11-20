@@ -76,16 +76,16 @@ class ProgramSettingsTests(unittest.TestCase):
                 custom = [entry for entry in catalog["rows"] if not entry["bundled"]]
                 self.assertEqual([entry["name"] for entry in custom], ["Custom"])
                 self.assertTrue(Path(custom[0]["path"]).is_absolute())
-                self.assertIn("bundled:DSREM2022.eproj", [entry["path"] for entry in catalog["rows"]])
+                self.assertIn("bundled:DSREM2025.eproj", [entry["path"] for entry in catalog["rows"]])
         self.call("project.new")
-        sources = self.call("library.attach", path="bundled:DSREM2022.eproj")
+        sources = self.call("library.attach", path="bundled:DSREM2025.eproj")
         from estimator import misc
-        repeated = self.call("library.attach", path=misc.abs_path("database", "DSREM2022.eproj"))
+        repeated = self.call("library.attach", path=misc.abs_path("database", "DSREM2025.eproj"))
         self.assertEqual(len(repeated), 1)
         self.assertEqual(repeated[0]["id"], sources[0]["id"])
         state = self.call("schedule.editor.state", source=sources[0]["id"], query="1.1.1")
         self.assertGreater(state["total"], 0)
-        for path in ("bundled:../DSREM2022.eproj", "bundled:folder\\DSREM2022.eproj", "bundled:/DSREM2022.eproj", "bundled:script.py"):
+        for path in ("bundled:../DSREM2025.eproj", "bundled:folder\\DSREM2025.eproj", "bundled:/DSREM2025.eproj", "bundled:script.py"):
             with self.assertRaises(ValueError):
                 self.call("library.attach", path=path)
 

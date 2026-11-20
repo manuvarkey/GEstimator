@@ -89,7 +89,8 @@ schedule,40.9,replace,cover distance up to 300 meter or above,cover distance 150
 schedule,40.10,replace,minimum 2 SATA Slots with 20TB capacity/ Slot.,minimum 2 SATA Slots with 16TB capacity/ Slot.,
 schedule,40.11,replace,minimum 8 SATA Slots with 20TB capacity/ Slot and RAID support of RAID 0/1/5/6/10.,minimum 8 SATA Slots with 16 TB capacity/ Slot and RAID support of RAID 0/1/5/6/10. (4 SATA (32 Channel) & 8 SATA Slot for 64 Channel),
 resource,1021,add,day|981|LABOUR & HIRE CHARGES,Technician,Appendix I lists 1021 Technician; Appendix II repeats 1020 Electronic Technician instead
-analysis,1020,code,Technician,1021,Analysis lines for Technician use 1021
+analysis,1020,code,,1021,"Analysis lines with 1020 (Electronic Technician, Technician) use 1021"
+resource,1020,delete,,,The slip replaces Appendix I code 1020 by 1021 Technician
 resource,5246,rate,35,26.25,
 resource,5247,rate,70,52.50,
 resource,5248,rate,105,78.75,

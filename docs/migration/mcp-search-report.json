@@ -1,18 +1,18 @@
 {
   "results": [
     {
-      "database": "DSREM2022.eproj",
+      "database": "DSREM2025.eproj",
       "setup": "FTS5",
       "queries": 30,
-      "recall_at_5": 0.8667,
-      "mrr_at_5": 0.8
+      "recall_at_5": 0.8333,
+      "mrr_at_5": 0.75
     },
     {
-      "database": "DSREM2022.eproj",
+      "database": "DSREM2025.eproj",
       "setup": "FTS5 + dictionary",
       "queries": 30,
-      "recall_at_5": 0.8667,
-      "mrr_at_5": 0.8167
+      "recall_at_5": 0.8333,
+      "mrr_at_5": 0.7667
     },
     {
       "database": "DSR2021.eproj",

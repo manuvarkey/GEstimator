@@ -17,7 +17,7 @@ class MultiAnalysisImportTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.s = Service()
         self.addCleanup(self.s.close)
-        self.s.call('project.open', {'path': 'estimator/database/DSREM2022.eproj'})
+        self.s.call('project.open', {'path': 'Other databases/DSREM2022.eproj'})
         self.codes = [row.code for row in self.s.db.ScheduleTable.select().join(self.s.db.SequenceTable).distinct().limit(2)]
         self.path = Path(self.temp.name) / 'multi.xlsx'
 

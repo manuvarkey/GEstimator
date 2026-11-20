@@ -144,6 +144,13 @@ def printed_schedule(pdf):
         if current is None:
             continue
         if text and current["rate"] and not code:
+            letters = [c for c in text if c.isalpha()]
+            if (not pending and current["lines"] and current["lines"][-1][0][0] != page
+                    and not all(c.isupper() for c in letters) and not LIST_ITEM.match(text)):
+                # The first line of a page that finishes the item before the page
+                # break ("CM/Min (Minimum)" of 9.2.3, "loading < 5300watt)" of 24.27.23).
+                current["lines"].append(((page, top), text))
+                continue
             pending.append(text)  # after an item's rate: the heading of the next items
             continue
         if text:

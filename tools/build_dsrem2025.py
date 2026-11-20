@@ -24,7 +24,7 @@ from modern.backend.service import Service  # noqa: E402
 from tools.dsrem2025_reconcile import published_rates, reconcile  # noqa: E402
 
 FOLDER = ROOT / "spreadsheets" / "DSREM2025"
-OUTPUT = ROOT / "Other databases" / "DSREM2025.eproj"
+OUTPUT = ROOT / "estimator" / "database" / "DSREM2025.eproj"
 MAPPING = dict(code=0, description=1, unit=2, rate=3, category=4)
 SCHEDULE_MAPPING = dict(MAPPING, remarks=5)
 

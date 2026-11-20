@@ -37,10 +37,10 @@ class MCPSearchTests(unittest.TestCase):
             self.assertNotEqual(dictionary.fingerprint(dictionary.entries("", {}, path)), before)
 
     def test_bundled_search_and_automatic_abbreviation_extraction_without_a_project(self):
-        result = self.tool("search_items", source="bundled:DSREM2022.eproj", kind="schedule", query="modular switch light point PVC conduit", limit=5)
+        result = self.tool("search_items", source="bundled:DSREM2025.eproj", kind="schedule", query="modular switch light point PVC conduit", limit=5)
         self.assertIn("1.10.1", [row["code"] for row in result["items"]])
         self.assertFalse(self.s.state()["project_open"])
-        entries = self.tool("describe_source", source="bundled:DSREM2022.eproj", section="dictionary")["entries"]
+        entries = self.tool("describe_source", source="bundled:DSREM2025.eproj", section="dictionary")["entries"]
         self.assertTrue(any(e["term"] == "RCCB" and any("residual" in x.casefold() for x in e["expand"]) for e in entries))
         self.assertTrue(any(e["term"] == "MCB" and any("miniature" in x.casefold() for x in e["expand"]) for e in entries))
 
@@ -93,5 +93,5 @@ class MCPSearchTests(unittest.TestCase):
 
     def test_evaluation_has_thirty_queries_per_bundled_database(self):
         data = json.loads((Path(__file__).parent / "data/search_eval.json").read_text())
-        self.assertEqual(set(data["databases"]), {"DSREM2022.eproj", "DSR2021.eproj"})
+        self.assertEqual(set(data["databases"]), {"DSREM2025.eproj", "DSR2021.eproj"})
         self.assertTrue(all(len(cases) >= 30 for cases in data["databases"].values()))

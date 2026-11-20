@@ -1184,3 +1184,32 @@ class StructuredImportCategoryColumnTests(unittest.TestCase):
         self.assertEqual(result["added"], 3)
         db = service.db
         self.assertEqual((db.get_item("1.1").category, db.get_item("1.1.1").parent, db.get_item("2.1").category), ("WIRING", "1.1", "MCB"))
+
+
+class StructuredImportNestedHeadingTests(unittest.TestCase):
+    def test_upper_heading_over_headings_is_added_once(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "nested.xlsx"
+        book = Workbook()
+        for row in [["Code", "Description", "Unit", "Rate"], ["30.7", "INSULATED VALVES\nof following valves", None, None],
+                    ["30.7.1", "Butterfly valve", None, None], ["30.7.1.1", "200 mm dia", "Each", 16887],
+                    ["30.7.2", "Balancing valve", None, None], ["30.7.2.1", "100 mm dia", "Each", 9000],
+                    ["30.8", "Gauges", None, None], ["30.8.1", "Pressure gauge", "Each", 900]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        result = call("project.import_apply", kind="schedule", path=str(path), mapping=dict(code=0, description=1, unit=2, rate=3), hierarchy=True)
+        self.assertEqual(result["added"], 7)
+        db = service.db
+        self.assertEqual(db.get_item("30.7").description, "INSULATED VALVES\nof following valves")
+        self.assertIsNone(db.get_item("30.7").parent)
+        self.assertEqual(db.get_item("30.7.1").description, "INSULATED VALVES\nof following valves\nButterfly valve")
+        self.assertEqual([db.get_item(code).parent for code in ("30.7.1", "30.7.1.1", "30.7.2.1", "30.8.1")], [None, "30.7.1", "30.7.2", "30.8"])

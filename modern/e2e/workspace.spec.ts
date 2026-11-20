@@ -1936,7 +1936,7 @@ test("resource editing, authoritative calculations, undo and workspace presentat
 test("real project navigation protects unsaved drafts and save-copy clears dirty state", async ({
   page,
 }) => {
-  await openFixture(page, resolve("../estimator/database/DSREM2022.eproj"));
+  await openFixture(page, resolve("../Other databases/DSREM2022.eproj"));
   let dialog = page.getByRole("dialog", { name: "Open project", exact: true });
   await expect(dialog).not.toBeVisible();
   const search = page.getByRole("textbox", { name: "Find schedule items" });
@@ -3725,7 +3725,7 @@ test('repeated bundled database attachment keeps regular weight and stable smoot
   await page.setViewportSize({ width: 1280, height: 900 });
   const catalog = (await call('program.libraries')).result.rows.filter((entry: any) => entry.bundled);
   expect(catalog.length).toBeGreaterThanOrEqual(2);
-  const sourceBytes = await Promise.all(['DSR2021.eproj', 'DSREM2022.eproj'].map(name => readFile(resolve('../estimator/database', name))));
+  const sourceBytes = await Promise.all(['DSR2021.eproj', 'DSREM2025.eproj'].map(name => readFile(resolve('../estimator/database', name))));
   const manager = await openDatabaseManager(page);
   const fields = [manager.locator('.dialog-intro'), manager.getByLabel('Library project', { exact: true }), manager.locator('.library-remember')];
   const selected = manager.getByLabel('Available databases');
@@ -3753,7 +3753,7 @@ test('repeated bundled database attachment keeps regular weight and stable smoot
   await page.screenshot({ path: 'test-results/repeated-bundled-attachment.png', animations: 'disabled' });
   await page.locator('body').evaluate(el => { el.style.removeProperty('font-weight'); });
   expect(await readFile(resolve('../estimator/database/DSR2021.eproj'))).toEqual(sourceBytes[0]);
-  expect(await readFile(resolve('../estimator/database/DSREM2022.eproj'))).toEqual(sourceBytes[1]);
+  expect(await readFile(resolve('../estimator/database/DSREM2025.eproj'))).toEqual(sourceBytes[1]);
 });
 
 test('clipboard icons and toolbar hover outlines remain sharp without changing button size', async ({ page }) => {

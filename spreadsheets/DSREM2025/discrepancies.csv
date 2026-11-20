@@ -1,67 +1,239 @@
 item,row,kind,code,description,text
-27.12.2,15143,line amount,1006,"Fitter, Grade 1",Book: 0.22 day @ ₹806 = ₹177.32; Appendix II 1004 rate ₹981
-27.12.3,15165,line amount,1006,"Fitter, Grade 1",Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981
-27.12.4,15187,line amount,1006,"Fitter, Grade 1",Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981
-27.12.5,15209,line amount,1006,"Fitter, Grade 1",Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981
-27.12.6,15231,line amount,1006,"Fitter, Grade 1",Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981
-27.13,15319,subtotal,,,The book's 'Total' (₹1047.64) adds 'Cartage @1%' (₹8.52) a second time
-27.18.1,15753,subtotal,,,The book's 'Total' (₹3631.66) adds 'Total' (₹1775.58) a second time
-27.18.2,15770,subtotal,,,The book's 'Total' (₹2482.28) adds 'Total' (₹1200.89) a second time
-27.29,16263,subtotal,,,The book's 'Total' (₹192.33) adds 'Cartage @1%' (₹0.8) a second time
-28.5.3.1,17150,subtotal,,,The book's 'Total' (₹2225.79) adds 'Cartage @1% of A' (₹13.06) a second time
-28.5.3.3,17189,subtotal,,,The book's 'Total' (₹4891.38) adds 'Cartage @1% of A' (₹39.2) a second time
-28.5.3.4,17208,subtotal,,,The book's 'Total' (₹6224.17) adds 'Cartage @1% of A' (₹52.26) a second time
-28.5.4,17229,subtotal,,,The book's 'Total' (₹2206) adds 'Wastage @ 2%' (₹25.25) a second time
-30.2.13,20694,line amount,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,Book: 1.2 per sq meter @ ₹669.66 = ₹803.59; Appendix II rate ₹370.68
-30.2.14,20737,line amount,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,Book: 0.9 per sq meter @ ₹669.66 = ₹602.69; Appendix II rate ₹370.68
-4.4.2,32293,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
-4.5.4,32762,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
-11.2.23,37360,line amount,2322,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 150 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹1326 = ₹1326; Appendix II rate ₹946
-11.2.24,37379,line amount,2323,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 185 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹946 = ₹946; Appendix II rate ₹1326
-11.4.29,38696,line amount,1002,Cable jointer,Book: amount ₹981 for 0.25 day @ ₹981 (coefficient × rate = ₹245.25)
-11.4.29,38697,line amount,1007,Khallasi,Book: amount ₹805 for 0.25 day @ ₹805 (coefficient × rate = ₹201.25)
-12.5,39009,line amount,9999,Sundries,"Book: 70 L.S., ₹0; Appendix II rate ₹2.7"
-8.9.3,40592,line amount,1001,Wireman,Book: 0.1 day @ ₹805 = ₹80.5; Appendix II rate ₹981
-8.9.3,40593,line amount,1007,Khallasi,Book: 0.1 day @ ₹783 = ₹78.3; Appendix II rate ₹805
-39.14,43976,line amount,5239,CAT6 Copper Information Outlet (IO) with face plate(105+42),Book: 1 Each @ ₹147 = ₹147; Appendix II rate ₹105
-39.18.2,44123,line amount,5247,Cat 6A UTP 4 Pair 32 AWG (For 2 Run of cable),Book: 51.5 Meter @ ₹70 = ₹3605; Appendix II rate ₹52.5
-39.18.3,44142,line amount,5248,Cat 6A UTP 4 Pair 32 AWG (For 3 Run of cable),Book: 51.5 Meter @ ₹105 = ₹5407.5; Appendix II rate ₹78.75
-39.18.4,44161,line amount,5249,Cat 6A UTP 4 Pair 32 AWG (For 4 Run of cable),Book: 51.5 Meter @ ₹140 = ₹7210; Appendix II rate ₹105
-15.14.4,45122,line amount,2948,Cement,Book: 0.01 tonne @ ₹63 = ₹0.63; Appendix II rate ₹7200
+27.12.2,14767,line amount,1006,"Fitter, Grade 1",Book: 0.22 day @ ₹806 = ₹177.32; Appendix II 1004 rate ₹981
+27.12.3,14789,line amount,1006,"Fitter, Grade 1",Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981
+27.12.4,14811,line amount,1006,"Fitter, Grade 1",Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981
+27.12.5,14833,line amount,1006,"Fitter, Grade 1",Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981
+27.12.6,14855,line amount,1006,"Fitter, Grade 1",Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981
+27.13,14943,subtotal,,,The book's 'Total' (₹1047.64) adds 'Cartage @1%' (₹8.52) a second time
+27.18.1,15377,subtotal,,,The book's 'Total' (₹3631.66) adds 'Total' (₹1775.58) a second time
+27.18.2,15394,subtotal,,,The book's 'Total' (₹2482.28) adds 'Total' (₹1200.89) a second time
+27.29,15887,subtotal,,,The book's 'Total' (₹192.33) adds 'Cartage @1%' (₹0.8) a second time
+28.5.3.1,16774,subtotal,,,The book's 'Total' (₹2225.79) adds 'Cartage @1% of A' (₹13.06) a second time
+28.5.3.3,16813,subtotal,,,The book's 'Total' (₹4891.38) adds 'Cartage @1% of A' (₹39.2) a second time
+28.5.3.4,16832,subtotal,,,The book's 'Total' (₹6224.17) adds 'Cartage @1% of A' (₹52.26) a second time
+28.5.4,16853,subtotal,,,The book's 'Total' (₹2206) adds 'Wastage @ 2%' (₹25.25) a second time
+30.2.13,20318,line amount,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,Book: 1.2 per sq meter @ ₹669.66 = ₹803.59; Appendix II rate ₹370.68
+30.2.14,20361,line amount,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,Book: 0.9 per sq meter @ ₹669.66 = ₹602.69; Appendix II rate ₹370.68
+4.4.2,31916,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
+4.5.4,32385,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
+11.2.23,36983,line amount,2322,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 150 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹1326 = ₹1326; Appendix II rate ₹946
+11.2.24,37002,line amount,2323,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 185 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹946 = ₹946; Appendix II rate ₹1326
+11.4.29,38319,line amount,1002,Cable jointer,Book: amount ₹981 for 0.25 day @ ₹981 (coefficient × rate = ₹245.25)
+11.4.29,38320,line amount,1007,Khallasi,Book: amount ₹805 for 0.25 day @ ₹805 (coefficient × rate = ₹201.25)
+12.5,38632,line amount,9999,Sundries,"Book: 70 L.S., ₹0; Appendix II rate ₹2.7"
+8.9.3,40215,line amount,1001,Wireman,Book: 0.1 day @ ₹805 = ₹80.5; Appendix II rate ₹981
+8.9.3,40216,line amount,1007,Khallasi,Book: 0.1 day @ ₹783 = ₹78.3; Appendix II rate ₹805
+39.14,43581,line amount,5239,CAT6 Copper Information Outlet (IO) with face plate(105+42),Book: 1 Each @ ₹147 = ₹147; Appendix II rate ₹105
+39.18.2,43728,line amount,5247,Cat 6A UTP 4 Pair 32 AWG (For 2 Run of cable),Book: 51.5 Meter @ ₹70 = ₹3605; Appendix II rate ₹52.5
+39.18.3,43747,line amount,5248,Cat 6A UTP 4 Pair 32 AWG (For 3 Run of cable),Book: 51.5 Meter @ ₹105 = ₹5407.5; Appendix II rate ₹78.75
+39.18.4,43766,line amount,5249,Cat 6A UTP 4 Pair 32 AWG (For 4 Run of cable),Book: 51.5 Meter @ ₹140 = ₹7210; Appendix II rate ₹105
+15.14.4,44727,line amount,2948,Cement,Book: 0.01 tonne @ ₹63 = ₹0.63; Appendix II rate ₹7200
 1.15.3,,rate,,Group C,"Analysis gives ₹1065, published rate ₹1064 (difference ₹1)"
 1.16,,rate,,Rewiring for twin control light point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single,"Analysis gives ₹1065, published rate ₹1064 (difference ₹1)"
 1.21.3,,rate,,32 mm,"Analysis gives ₹210, published rate ₹209 (difference ₹1)"
 1.50.2,,rate,,510 mm sweep,"Analysis gives ₹801, published rate ₹800 (difference ₹1)"
-4.2.8,,rate,,300 mm width X 62.5 mm depth X 2.0 mm thickness,"Analysis gives ₹1930, published rate ₹1930.03834252 (difference ₹-0.04)"
-4.2.13,,rate,,900 mm width X 62.5 mm depth X 2.0 mm thickness,"Analysis gives ₹4403, published rate ₹4403.03073168 (difference ₹-0.03)"
 4.6.16,,rate,,900 mm width X 75 mm depth X 2.0 mm thickness,"Analysis gives ₹2798, published rate ₹2799 (difference ₹-1)"
 4.8.15,,rate,,750 mm width X 75 mm depth X 2.0 mm thickness,"Analysis gives ₹6060, published rate ₹6061 (difference ₹-1)"
 8.10.3,,rate,,36 watt,"Analysis gives ₹761, published rate ₹760 (difference ₹1)"
 8.11.7,,rate,,36 watt,"Analysis gives ₹761, published rate ₹760 (difference ₹1)"
-21.1.1,,rate,,13 passenger (884kg),"Analysis gives ₹1684225.71, published rate ₹1684225.7236 (difference ₹-0.01)"
+21.1.1,,rate,,13 passenger (884kg),"Analysis gives ₹1684225.71, published rate ₹1684226 (difference ₹-0.29)"
+21.1.2,,rate,,16 passenger (1088kg),"Analysis gives ₹2348212.48, published rate ₹2348212 (difference ₹0.48)"
 22.3.1,,rate,,Upto 120 sq. mm,"Analysis gives ₹97.5, published rate ₹98 (difference ₹-0.5)"
 22.4.1,,rate,,Upto 120 sq. mm,"Analysis gives ₹79.5, published rate ₹80 (difference ₹-0.5)"
 24.1.5,,rate,,1600KVA,"Analysis gives ₹3213292, published rate ₹3213291 (difference ₹1)"
-24.14.1,,rate,,500 KVA,"Analysis gives ₹1771326.95, published rate ₹1771326.93766 (difference ₹0.01)"
-24.14.2,,rate,,630KVA,"Analysis gives ₹2231871.93, published rate ₹2231871.94146 (difference ₹-0.01)"
-24.15.4,,rate,,1250 KVA,"Analysis gives ₹3905041.76, published rate ₹3905041.7497 (difference ₹0.01)"
-24.25.13,,rate,,"1600 KVA (losses at 50% loading < 3970watt, losses at 100% loading < 11300watt)","Analysis gives ₹5262772.59, published rate ₹5262772.57888 (difference ₹0.01)"
-24.25.15,,rate,,"2500 KVA (losses at 50% loading < 5900watt, losses at 100% loading < 17500watt)","Analysis gives ₹8223082.17, published rate ₹8223082.15449 (difference ₹0.02)"
-24.26.7,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3828560.53, published rate ₹3828560.51727 (difference ₹0.01)"
+24.13.1,,rate,,500 KVA,"Analysis gives ₹1476105.79, published rate ₹1476106 (difference ₹-0.21)"
+24.13.2,,rate,,630KVA,"Analysis gives ₹1859893.29, published rate ₹1859893 (difference ₹0.29)"
+24.13.3,,rate,,1000KVA,"Analysis gives ₹2231452.43, published rate ₹2231452 (difference ₹0.43)"
+24.13.4,,rate,,1250 KVA,"Analysis gives ₹2789315.54, published rate ₹2789316 (difference ₹-0.46)"
+24.13.5,,rate,,1600KVA,"Analysis gives ₹3570323.89, published rate ₹3570324 (difference ₹-0.11)"
+24.13.6,,rate,,2000KVA,"Analysis gives ₹4462904.86, published rate ₹4462905 (difference ₹-0.14)"
+24.13.7,,rate,,2500KVA,"Analysis gives ₹5578631.07, published rate ₹5578631 (difference ₹0.07)"
+24.14.1,,rate,,500 KVA,"Analysis gives ₹1771326.95, published rate ₹1771327 (difference ₹-0.05)"
+24.14.2,,rate,,630KVA,"Analysis gives ₹2231871.93, published rate ₹2231872 (difference ₹-0.07)"
+24.14.3,,rate,,1000KVA,"Analysis gives ₹2677742.92, published rate ₹2677743 (difference ₹-0.08)"
+24.14.4,,rate,,1250 KVA,"Analysis gives ₹3347178.64, published rate ₹3347179 (difference ₹-0.36)"
+24.14.5,,rate,,1600KVA,"Analysis gives ₹4284388.66, published rate ₹4284389 (difference ₹-0.34)"
+24.14.6,,rate,,2000KVA,"Analysis gives ₹5355485.83, published rate ₹5355486 (difference ₹-0.17)"
+24.14.7,,rate,,2500KVA,"Analysis gives ₹6694357.29, published rate ₹6694357 (difference ₹0.29)"
+24.15.1,,rate,,500KVA,"Analysis gives ₹2066548.09, published rate ₹2066548 (difference ₹0.09)"
+24.15.2,,rate,,630KVA,"Analysis gives ₹2603850.59, published rate ₹2603851 (difference ₹-0.41)"
+24.15.3,,rate,,1000KVA,"Analysis gives ₹3124033.4, published rate ₹3124033 (difference ₹0.4)"
+24.15.4,,rate,,1250 KVA,"Analysis gives ₹3905041.76, published rate ₹3905042 (difference ₹-0.24)"
+24.15.5,,rate,,1600KVA,"Analysis gives ₹4998453.44, published rate ₹4998453 (difference ₹0.44)"
+24.15.6,,rate,,2000KVA,"Analysis gives ₹6248066.79, published rate ₹6248067 (difference ₹-0.21)"
+24.15.7,,rate,,2500 KVA,"Analysis gives ₹7810083.5, published rate ₹7810083 (difference ₹0.5)"
+24.16.1,,rate,,1000KVA,"Analysis gives ₹1943523.08, published rate ₹1943523 (difference ₹0.08)"
+24.16.2,,rate,,1250 KVA,"Analysis gives ₹2429403.86, published rate ₹2429404 (difference ₹-0.14)"
+24.16.3,,rate,,1600KVA,"Analysis gives ₹3109636.94, published rate ₹3109637 (difference ₹-0.06)"
+24.16.4,,rate,,2000KVA,"Analysis gives ₹3887046.17, published rate ₹3887046 (difference ₹0.17)"
+24.17.1,,rate,,1000KVA,"Analysis gives ₹2332227.7, published rate ₹2332228 (difference ₹-0.3)"
+24.17.2,,rate,,1250 KVA,"Analysis gives ₹2915284.62, published rate ₹2915285 (difference ₹-0.38)"
+24.17.3,,rate,,1600KVA,"Analysis gives ₹3731564.32, published rate ₹3731564 (difference ₹0.32)"
+24.17.4,,rate,,2000KVA,"Analysis gives ₹4664455.39, published rate ₹4664455 (difference ₹0.39)"
+24.18.1,,rate,,1000KVA,"Analysis gives ₹2720932.31, published rate ₹2720932 (difference ₹0.31)"
+24.18.2,,rate,,1250 KVA,"Analysis gives ₹3401165.4, published rate ₹3401165 (difference ₹0.4)"
+24.18.3,,rate,,1600KVA,"Analysis gives ₹4353491.71, published rate ₹4353492 (difference ₹-0.29)"
+24.18.4,,rate,,2000KVA,"Analysis gives ₹5441864.63, published rate ₹5441865 (difference ₹-0.37)"
+24.19.1,,rate,,200KVA,"Analysis gives ₹374308.15, published rate ₹374308 (difference ₹0.15)"
+24.19.2,,rate,,250KVA,"Analysis gives ₹467885.19, published rate ₹467885 (difference ₹0.19)"
+24.19.3,,rate,,315KVA,"Analysis gives ₹589535.34, published rate ₹589535 (difference ₹0.34)"
+24.19.4,,rate,,400KVA,"Analysis gives ₹748616.3, published rate ₹748616 (difference ₹0.3)"
+24.19.5,,rate,,500KVA,"Analysis gives ₹935770.37, published rate ₹935770 (difference ₹0.37)"
+24.19.6,,rate,,630KVA,"Analysis gives ₹1179070.67, published rate ₹1179071 (difference ₹-0.33)"
+24.20.1,,rate,,200KVA,"Analysis gives ₹419225.13, published rate ₹419225 (difference ₹0.13)"
+24.20.2,,rate,,250KVA,"Analysis gives ₹524031.4, published rate ₹524031 (difference ₹0.4)"
+24.20.3,,rate,,315KVA,"Analysis gives ₹660279.58, published rate ₹660280 (difference ₹-0.42)"
+24.20.4,,rate,,400KVA,"Analysis gives ₹838450.25, published rate ₹838450 (difference ₹0.25)"
+24.20.5,,rate,,500KVA,"Analysis gives ₹1048062.82, published rate ₹1048063 (difference ₹-0.18)"
+24.20.6,,rate,,630KVA,"Analysis gives ₹1320559.16, published rate ₹1320559 (difference ₹0.16)"
+24.21.1,,rate,,200KVA,"Analysis gives ₹524031.4, published rate ₹524031 (difference ₹0.4)"
+24.21.2,,rate,,250KVA,"Analysis gives ₹655039.26, published rate ₹655039 (difference ₹0.26)"
+24.21.3,,rate,,315KVA,"Analysis gives ₹825349.47, published rate ₹825349 (difference ₹0.47)"
+24.21.4,,rate,,400KVA,"Analysis gives ₹1048062.82, published rate ₹1048063 (difference ₹-0.18)"
+24.21.5,,rate,,500KVA,"Analysis gives ₹1310078.53, published rate ₹1310079 (difference ₹-0.47)"
+24.21.6,,rate,,630KVA,"Analysis gives ₹1650698.94, published rate ₹1650699 (difference ₹-0.06)"
+24.22.1,,rate,,63KVA,"Analysis gives ₹117907.06, published rate ₹117907 (difference ₹0.06)"
+24.22.2,,rate,,100KVA,"Analysis gives ₹187154.08, published rate ₹187154 (difference ₹0.08)"
+24.22.3,,rate,,160KVA,"Analysis gives ₹299446.52, published rate ₹299447 (difference ₹-0.48)"
+24.23.1,,rate,,63KVA,"Analysis gives ₹132055.91, published rate ₹132056 (difference ₹-0.09)"
+24.23.2,,rate,,100KVA,"Analysis gives ₹209612.57, published rate ₹209613 (difference ₹-0.43)"
+24.23.3,,rate,,160KVA,"Analysis gives ₹335380.1, published rate ₹335380 (difference ₹0.1)"
+24.24.1,,rate,,63KVA,"Analysis gives ₹165069.89, published rate ₹165070 (difference ₹-0.11)"
+24.24.2,,rate,,100KVA,"Analysis gives ₹262015.71, published rate ₹262016 (difference ₹-0.29)"
+24.24.3,,rate,,160KVA,"Analysis gives ₹419225.13, published rate ₹419225 (difference ₹0.13)"
+24.25.1,,rate,,"1000 KVA (losses at 50% loading < 3000watt, losses at 100% loading < 9000watt)","Analysis gives ₹2530179.13, published rate ₹2530179 (difference ₹0.13)"
+24.25.2,,rate,,"1250 KVA (losses at 50% loading < 3600watt, losses at 100% loading < 10750watt)","Analysis gives ₹3162723.91, published rate ₹3162724 (difference ₹-0.09)"
+24.25.3,,rate,,"1600 KVA (losses at 50% loading < 4500watt, losses at 100% loading < 13500watt)","Analysis gives ₹4048286.6, published rate ₹4048287 (difference ₹-0.4)"
+24.25.4,,rate,,"2000 KVA (losses at 50% loading < 5400watt, losses at 100% loading < 17000watt)","Analysis gives ₹5060358.24, published rate ₹5060358 (difference ₹0.24)"
+24.25.5,,rate,,"2500 KVA (losses at 50% loading < 6500watt, losses at 100% loading < 20000watt)","Analysis gives ₹6325447.81, published rate ₹6325448 (difference ₹-0.19)"
+24.25.7,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3637132.49, published rate ₹3637132 (difference ₹0.49)"
+24.25.8,,rate,,"1600 KVA (losses at 50% loading < 4200watt, losses at 100% loading < 11800watt)","Analysis gives ₹4655529.59, published rate ₹4655530 (difference ₹-0.41)"
+24.25.9,,rate,,"2000 KVA (losses at 50% loading < 5050watt, losses at 100% loading < 15000watt)","Analysis gives ₹5819411.98, published rate ₹5819412 (difference ₹-0.02)"
+24.25.11,,rate,,"Level 5
+1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Analysis gives ₹3289232.87, published rate ₹3289233 (difference ₹-0.13)"
+24.25.12,,rate,,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","Analysis gives ₹4111541.08, published rate ₹4111541 (difference ₹0.08)"
+24.25.13,,rate,,"1600 KVA (losses at 50% loading < 3970watt, losses at 100% loading < 11300watt)","Analysis gives ₹5262772.59, published rate ₹5262773 (difference ₹-0.41)"
+24.25.14,,rate,,"2000 KVA (losses at 50% loading < 4790watt, losses at 100% loading < 14100watt)","Analysis gives ₹6578465.72, published rate ₹6578466 (difference ₹-0.28)"
+24.25.15,,rate,,"2500 KVA (losses at 50% loading < 5900watt, losses at 100% loading < 17500watt)","Analysis gives ₹8223082.17, published rate ₹8223082 (difference ₹0.17)"
+24.26.1,,rate,,"1000 KVA (losses at 50% loading < 3000watt, losses at 100% loading < 9000watt)","Analysis gives ₹2663346.45, published rate ₹2663346 (difference ₹0.45)"
+24.26.2,,rate,,"1250 KVA (losses at 50% loading < 3600watt, losses at 100% loading < 10750watt)","Analysis gives ₹3329183.06, published rate ₹3329183 (difference ₹0.06)"
+24.26.3,,rate,,"1600 KVA (losses at 50% loading < 4500watt, losses at 100% loading < 13500watt)","Analysis gives ₹4261354.32, published rate ₹4261354 (difference ₹0.32)"
+24.26.4,,rate,,"2000 KVA (losses at 50% loading < 5400watt, losses at 100% loading < 17000watt)","Analysis gives ₹5326692.89, published rate ₹5326693 (difference ₹-0.11)"
+24.26.5,,rate,,"2500 KVA (losses at 50% loading < 6500watt, losses at 100% loading < 20000watt)","Analysis gives ₹6658366.12, published rate ₹6658366 (difference ₹0.12)"
+24.26.6,,rate,,"Level 4
+1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","Analysis gives ₹3062848.42, published rate ₹3062848 (difference ₹0.42)"
+24.26.7,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3828560.53, published rate ₹3828561 (difference ₹-0.47)"
+24.26.8,,rate,,"1600 KVA (losses at 50% loading < 4200watt, losses at 100% loading < 11800watt)","Analysis gives ₹4900557.46, published rate ₹4900557 (difference ₹0.46)"
+24.26.9,,rate,,"2000 KVA (losses at 50% loading < 5050watt, losses at 100% loading < 15000watt)","Analysis gives ₹6125696.83, published rate ₹6125697 (difference ₹-0.17)"
+24.26.10,,rate,,"2500 KVA (losses at 50% loading < 6150watt, losses at 100% loading < 18500watt)","Analysis gives ₹7657121.03, published rate ₹7657121 (difference ₹0.03)"
+24.26.11,,rate,,"Level 5
+1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Analysis gives ₹3462350.38, published rate ₹3462350 (difference ₹0.38)"
+24.26.12,,rate,,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","Analysis gives ₹4327937.98, published rate ₹4327938 (difference ₹-0.02)"
+24.26.13,,rate,,"1600 KVA (losses at 50% loading < 3970watt, losses at 100% loading < 11300watt)","Analysis gives ₹5539760.61, published rate ₹5539761 (difference ₹-0.39)"
+24.26.14,,rate,,"2000 KVA (losses at 50% loading < 4790watt, losses at 100% loading < 14100watt)","Analysis gives ₹6924700.77, published rate ₹6924701 (difference ₹-0.23)"
+24.26.15,,rate,,"2500 KVA (losses at 50% loading < 5900watt, losses at 100% loading < 17500watt)","Analysis gives ₹8655875.96, published rate ₹8655876 (difference ₹-0.04)"
+24.27.1,,rate,,"63 KVA (losses at 50% loading < 380watt, losses at 100% loading < 1250watt)","Analysis gives ₹146476.86, published rate ₹146477 (difference ₹-0.14)"
+24.27.2,,rate,,"100 KVA (losses at 50% loading < 520watt, losses at 100% loading < 1800watt)","Analysis gives ₹232502.95, published rate ₹232503 (difference ₹-0.05)"
+24.27.3,,rate,,"160 KVA (losses at 50% loading <770watt, losses at 100% loading < 2200watt)","Analysis gives ₹372004.71, published rate ₹372005 (difference ₹-0.29)"
+24.27.4,,rate,,"200 KVA (losses at 50% loading < 890watt, losses at 100% loading < 2700watt)","Analysis gives ₹465005.89, published rate ₹465006 (difference ₹-0.11)"
+24.27.5,,rate,,"250 KVA (losses at 50% loading < 1050watt, losses at 100% loading < 3150watt)","Analysis gives ₹581257.37, published rate ₹581257 (difference ₹0.37)"
+24.27.6,,rate,,"315 KVA (losses at 50% loading < 1100watt, losses at 100% loading < 3275watt)","Analysis gives ₹732384.28, published rate ₹732384 (difference ₹0.28)"
+24.27.7,,rate,,"400 KVA (losses at 50% loading < 1300watt, losses at 100% loading < 3875watt)","Analysis gives ₹930011.78, published rate ₹930012 (difference ₹-0.22)"
+24.27.8,,rate,,"500 KVA (losses at 50% loading < 1600watt, losses at 100% loading < 4750watt)","Analysis gives ₹1162514.74, published rate ₹1162515 (difference ₹-0.26)"
+24.27.9,,rate,,"630 KVA (losses at 50% loading < 2000watt, losses at 100% loading < 5855watt)","Analysis gives ₹1464768.56, published rate ₹1464769 (difference ₹-0.44)"
+24.27.10,,rate,,"1000 KVA (losses at 50% loading < 3000watt, losses at 100% loading < 9000watt)","Analysis gives ₹2325029.46, published rate ₹2325029 (difference ₹0.46)"
+24.27.11,,rate,,"1250 KVA (losses at 50% loading < 3600watt, losses at 100% loading < 10750watt)","Analysis gives ₹2906286.83, published rate ₹2906287 (difference ₹-0.17)"
+24.27.12,,rate,,"1600 KVA (losses at 50% loading < 4500watt, losses at 100% loading < 13500watt)","Analysis gives ₹3720047.15, published rate ₹3720047 (difference ₹0.15)"
+24.27.13,,rate,,"2000 KVA (losses at 50% loading < 5400watt, losses at 100% loading < 17000watt)","Analysis gives ₹4650058.93, published rate ₹4650059 (difference ₹-0.07)"
+24.27.14,,rate,,"2500 KVA (losses at 50% loading < 6500watt, losses at 100% loading < 20000watt)","Analysis gives ₹5812573.67, published rate ₹5812574 (difference ₹-0.33)"
 24.27.15,,rate,,"Level 4
-63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Analysis gives ₹168448.37, published rate ₹168448.384791 (difference ₹-0.01)"
-24.27.17,,rate,,"160 KVA (losses at 50% loading < 670watt, losses at 100% loading < 1950watt)","Analysis gives ₹427805.41, published rate ₹427805.421692 (difference ₹-0.01)"
-24.27.19,,rate,,"250 KVA (losses at 50% loading < 980watt, losses at 100% loading < 2930watt)","Analysis gives ₹668445.99, published rate ₹668445.971394 (difference ₹0.02)"
-24.27.21,,rate,,"400 KVA (losses at 50% loading < 1225watt, losses at 100% loading < 3450watt)","Analysis gives ₹1069513.54, published rate ₹1069513.55423 (difference ₹-0.01)"
-24.27.23,,rate,,"630 KVA (losses at 50% loading < 1860watt, losses at 100%","Analysis gives ₹1684483.87, published rate ₹1684483.84791 (difference ₹0.02)"
-24.27.25,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3342229.88, published rate ₹3342229.85697 (difference ₹0.02)"
+63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Analysis gives ₹168448.37, published rate ₹168448 (difference ₹0.37)"
+24.27.16,,rate,,"100 KVA (losses at 50% loading <475watt, losses at 100% loading <1650watt)","Analysis gives ₹267378.38, published rate ₹267378 (difference ₹0.38)"
+24.27.17,,rate,,"160 KVA (losses at 50% loading < 670watt, losses at 100% loading < 1950watt)","Analysis gives ₹427805.41, published rate ₹427805 (difference ₹0.41)"
+24.27.18,,rate,,"200 KVA (losses at 50% loading < 780watt, losses at 100% loading <2300watt)","Analysis gives ₹534756.78, published rate ₹534757 (difference ₹-0.22)"
+24.27.20,,rate,,"315 KVA (losses at 50% loading < 1025watt, losses at 100% loading < 3100watt)","Analysis gives ₹842241.92, published rate ₹842242 (difference ₹-0.08)"
+24.27.21,,rate,,"400 KVA (losses at 50% loading < 1225watt, losses at 100% loading < 3450watt)","Analysis gives ₹1069513.54, published rate ₹1069514 (difference ₹-0.46)"
+24.27.22,,rate,,"500 KVA (losses at 50% loading <1510watt, losses at 100% loading < 4300watt)","Analysis gives ₹1336891.95, published rate ₹1336892 (difference ₹-0.05)"
+24.27.23,,rate,,"630 KVA (losses at 50% loading < 1860watt, losses at 100% loading < 5300watt)","Analysis gives ₹1684483.87, published rate ₹1684484 (difference ₹-0.13)"
+24.27.24,,rate,,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","Analysis gives ₹2673783.89, published rate ₹2673784 (difference ₹-0.11)"
+24.27.25,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3342229.88, published rate ₹3342230 (difference ₹-0.12)"
+24.27.26,,rate,,"1600 KVA (losses at 50% loading < 4200watt, losses at 100% loading < 11800watt)","Analysis gives ₹4278054.22, published rate ₹4278054 (difference ₹0.22)"
+24.27.27,,rate,,"2000 KVA (losses at 50% loading < 5050watt, losses at 100% loading < 15000watt)","Analysis gives ₹5347567.77, published rate ₹5347568 (difference ₹-0.23)"
+24.27.28,,rate,,"2500 KVA (losses at 50% loading < 6150watt, losses at 100% loading < 18500watt)","Analysis gives ₹6684459.72, published rate ₹6684460 (difference ₹-0.28)"
 24.27.29,,rate,,"Level 5
-63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Analysis gives ₹190419.93, published rate ₹190419.913242 (difference ₹0.02)"
-24.27.31,,rate,,"160 KVA (losses at 50% loading < 570watt, losses at 100% loading <1700watt)","Analysis gives ₹483606.14, published rate ₹483606.12887 (difference ₹0.01)"
-24.27.32,,rate,,"200 KVA(losses at 50% loading <670watt, losses at 100% loading < 2100watt)","Analysis gives ₹604507.65, published rate ₹604507.661087 (difference ₹-0.01)"
-24.27.34,,rate,,"315 KVA (losses at 50% loading < 955watt, losses at 100% loading < 2750watt)","Analysis gives ₹952099.58, published rate ₹952099.566212 (difference ₹0.01)"
-24.28.1,,rate,,"63 KVA (losses at 50% loading < 380watt, losses at 100% loading < 1250watt)","Analysis gives ₹154186.18, published rate ₹154186.164569 (difference ₹0.02)"
-24.28.37,,rate,,"630 KVA (losses at 50% loading < 1745watt, losses at 100% loading < 4850watt)","Analysis gives ₹2004420.15, published rate ₹2004420.13939 (difference ₹0.01)"
+63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Analysis gives ₹190419.93, published rate ₹190420 (difference ₹-0.07)"
+24.27.30,,rate,,"100 KVA (losses at 50% loading < 435watt, losses at 100% loading < 1500watt)","Analysis gives ₹302253.83, published rate ₹302254 (difference ₹-0.17)"
+24.27.31,,rate,,"160 KVA (losses at 50% loading < 570watt, losses at 100% loading <1700watt)","Analysis gives ₹483606.14, published rate ₹483606 (difference ₹0.14)"
+24.27.32,,rate,,"200 KVA(losses at 50% loading <670watt, losses at 100% loading < 2100watt)","Analysis gives ₹604507.65, published rate ₹604508 (difference ₹-0.35)"
+24.27.33,,rate,,"250 KVA(losses at 50% loading < 920watt, losses at 100% loading < 2700watt)","Analysis gives ₹755634.58, published rate ₹755635 (difference ₹-0.42)"
+24.27.34,,rate,,"315 KVA (losses at 50% loading < 955watt, losses at 100% loading < 2750watt)","Analysis gives ₹952099.58, published rate ₹952100 (difference ₹-0.42)"
+24.27.35,,rate,,"400 KVA (losses at 50% loading < 1150watt, losses at 100% loading < 3330watt)","Analysis gives ₹1209015.33, published rate ₹1209015 (difference ₹0.33)"
+24.27.36,,rate,,"500 KVA (losses at 50% loading < 1430watt, losses at 100% loading < 4100watt)","Analysis gives ₹1511269.15, published rate ₹1511269 (difference ₹0.15)"
+24.27.37,,rate,,"630 KVA (losses at 50% loading < 1745watt, losses at 100% loading < 4850watt)","Analysis gives ₹1904199.13, published rate ₹1904199 (difference ₹0.13)"
+24.27.38,,rate,,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Analysis gives ₹3022538.31, published rate ₹3022538 (difference ₹0.31)"
+24.27.39,,rate,,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","Analysis gives ₹3778172.89, published rate ₹3778173 (difference ₹-0.11)"
+24.27.40,,rate,,"1600 KVA (losses at 50% loading < 3970watt, losses at 100% loading < 11300watt)","Analysis gives ₹4836061.28, published rate ₹4836061 (difference ₹0.28)"
+24.27.41,,rate,,"2000 KVA (losses at 50% loading < 4790watt, losses at 100% loading < 14100watt)","Analysis gives ₹6045076.61, published rate ₹6045077 (difference ₹-0.39)"
+24.27.42,,rate,,"2500 KVA (losses at 50% loading < 5900watt, losses at 100% loading < 17500watt)","Analysis gives ₹7556345.76, published rate ₹7556346 (difference ₹-0.24)"
+24.28.1,,rate,,"63 KVA (losses at 50% loading < 380watt, losses at 100% loading < 1250watt)","Analysis gives ₹154186.18, published rate ₹154186 (difference ₹0.18)"
+24.28.2,,rate,,"100 KVA (losses at 50% loading < 520watt, losses at 100% loading < 1800watt)","Analysis gives ₹244739.94, published rate ₹244740 (difference ₹-0.06)"
+24.28.3,,rate,,"160 KVA (losses at 50% loading <770watt, losses at 100% loading < 2200watt)","Analysis gives ₹391583.91, published rate ₹391584 (difference ₹-0.09)"
+24.28.4,,rate,,"200 KVA (losses at 50% loading < 890watt, losses at 100% loading < 2700watt)","Analysis gives ₹489479.88, published rate ₹489480 (difference ₹-0.12)"
+24.28.5,,rate,,"250 KVA (losses at 50% loading < 1050watt, losses at 100% loading < 3150watt)","Analysis gives ₹611849.86, published rate ₹611850 (difference ₹-0.14)"
+24.28.6,,rate,,"315 KVA (losses at 50% loading < 1100watt, losses at 100% loading < 3275watt)","Analysis gives ₹770930.83, published rate ₹770931 (difference ₹-0.17)"
+24.28.7,,rate,,"400 KVA (losses at 50% loading < 1300watt, losses at 100% loading < 3875watt)","Analysis gives ₹978959.78, published rate ₹978960 (difference ₹-0.22)"
+24.28.8,,rate,,"500 KVA (losses at 50% loading < 1600watt, losses at 100% loading < 4750watt)","Analysis gives ₹1223699.72, published rate ₹1223700 (difference ₹-0.28)"
+24.28.9,,rate,,"630 KVA (losses at 50% loading < 2000watt, losses at 100% loading < 5855watt)","Analysis gives ₹1541861.64, published rate ₹1541862 (difference ₹-0.36)"
+24.28.10,,rate,,"1000 KVA (losses at 50% loading < 3000watt, losses at 100% loading < 9000watt)","Analysis gives ₹2447399.44, published rate ₹2447399 (difference ₹0.44)"
+24.28.11,,rate,,"1250 KVA (losses at 50% loading < 3600watt, losses at 100% loading < 10750watt)","Analysis gives ₹3059249.3, published rate ₹3059249 (difference ₹0.3)"
+24.28.12,,rate,,"1600 KVA (losses at 50% loading < 4500watt, losses at 100% loading < 13500watt)","Analysis gives ₹3915839.1, published rate ₹3915839 (difference ₹0.1)"
+24.28.13,,rate,,"2000 KVA (losses at 50% loading < 5400watt, losses at 100% loading < 17000watt)","Analysis gives ₹4894798.88, published rate ₹4894799 (difference ₹-0.12)"
+24.28.14,,rate,,"2500 KVA (losses at 50% loading < 6500watt, losses at 100% loading < 20000watt)","Analysis gives ₹6118498.59, published rate ₹6118499 (difference ₹-0.41)"
+24.28.15,,rate,,"Level 4
+63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Analysis gives ₹177314.09, published rate ₹177314 (difference ₹0.09)"
+24.28.16,,rate,,"100 KVA (losses at 50% loading <475watt, losses at 100% loading <1650watt)","Analysis gives ₹281450.93, published rate ₹281451 (difference ₹-0.07)"
+24.28.17,,rate,,"160 KVA (losses at 50% loading < 670watt, losses at 100% loading < 1950watt)","Analysis gives ₹450321.5, published rate ₹450321 (difference ₹0.5)"
+24.28.18,,rate,,"200 KVA (losses at 50% loading < 780watt, losses at 100% loading <2300watt)","Analysis gives ₹562901.87, published rate ₹562902 (difference ₹-0.13)"
+24.28.19,,rate,,"250 KVA (losses at 50% loading < 980watt, losses at 100% loading < 2930watt)","Analysis gives ₹703627.33, published rate ₹703627 (difference ₹0.33)"
+24.28.20,,rate,,"315 KVA (losses at 50% loading < 1025watt, losses at 100% loading < 3100watt)","Analysis gives ₹886570.45, published rate ₹886570 (difference ₹0.45)"
+24.28.21,,rate,,"400 KVA (losses at 50% loading < 1225watt, losses at 100% loading < 3450watt)","Analysis gives ₹1125803.74, published rate ₹1125804 (difference ₹-0.26)"
+24.28.22,,rate,,"500 KVA (losses at 50% loading <1510watt, losses at 100% loading < 4300watt)","Analysis gives ₹1407254.68, published rate ₹1407255 (difference ₹-0.32)"
+24.28.23,,rate,,"630 KVA (losses at 50% loading < 1860watt, losses at 100% loading < 5300watt)","Analysis gives ₹1773140.89, published rate ₹1773141 (difference ₹-0.11)"
+24.28.24,,rate,,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","Analysis gives ₹2814509.36, published rate ₹2814509 (difference ₹0.36)"
+24.28.25,,rate,,"1250 KVA (losses at 50% loading < 3300watt, losses at 100% loading < 9200watt)","Analysis gives ₹3518136.69, published rate ₹3518137 (difference ₹-0.31)"
+24.28.26,,rate,,"1600 KVA (losses at 50% loading < 4200watt, losses at 100% loading < 11800watt)","Analysis gives ₹4503214.97, published rate ₹4503215 (difference ₹-0.03)"
+24.28.27,,rate,,"2000 KVA (losses at 50% loading < 5050watt, losses at 100% loading < 15000watt)","Analysis gives ₹5629018.71, published rate ₹5629019 (difference ₹-0.29)"
+24.28.28,,rate,,"2500 KVA (losses at 50% loading < 6150watt, losses at 100% loading < 18500watt)","Analysis gives ₹7036273.39, published rate ₹7036273 (difference ₹0.39)"
+24.28.30,,rate,,"100 KVA (losses at 50% loading < 435watt, losses at 100% loading < 1500watt)","Analysis gives ₹318161.93, published rate ₹318162 (difference ₹-0.07)"
+24.28.31,,rate,,"160 KVA (losses at 50% loading < 570watt, losses at 100% loading <1700watt)","Analysis gives ₹509059.09, published rate ₹509059 (difference ₹0.09)"
+24.28.32,,rate,,"200 KVA(losses at 50% loading <670watt, losses at 100% loading < 2100watt)","Analysis gives ₹636323.85, published rate ₹636324 (difference ₹-0.15)"
+24.28.33,,rate,,"250 KVA(losses at 50% loading < 920watt, losses at 100% loading < 2700watt)","Analysis gives ₹795404.82, published rate ₹795405 (difference ₹-0.18)"
+24.28.34,,rate,,"315 KVA (losses at 50% loading < 955watt, losses at 100% loading < 2750watt)","Analysis gives ₹1002210.06, published rate ₹1002210 (difference ₹0.06)"
+24.28.35,,rate,,"400 KVA (losses at 50% loading < 1150watt, losses at 100% loading < 3330watt)","Analysis gives ₹1272647.71, published rate ₹1272648 (difference ₹-0.29)"
+24.28.36,,rate,,"500 KVA (losses at 50% loading < 1430watt, losses at 100% loading < 4100watt)","Analysis gives ₹1590809.64, published rate ₹1590810 (difference ₹-0.36)"
+24.28.37,,rate,,"630 KVA (losses at 50% loading < 1745watt, losses at 100% loading < 4850watt)","Analysis gives ₹2004420.15, published rate ₹2004420 (difference ₹0.15)"
+24.28.38,,rate,,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Analysis gives ₹3181619.27, published rate ₹3181619 (difference ₹0.27)"
+24.28.39,,rate,,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","Analysis gives ₹3977024.09, published rate ₹3977024 (difference ₹0.09)"
+24.28.40,,rate,,"1600 KVA (losses at 50% loading < 3970watt, losses at 100% loading < 11300watt)","Analysis gives ₹5090590.84, published rate ₹5090591 (difference ₹-0.16)"
+24.28.41,,rate,,"2000 KVA (losses at 50% loading < 4790watt, losses at 100% loading < 14100watt)","Analysis gives ₹6363238.54, published rate ₹6363239 (difference ₹-0.46)"
+24.28.42,,rate,,"2500 KVA (losses at 50% loading < 5900watt, losses at 100% loading < 17500watt)","Analysis gives ₹7954048.17, published rate ₹7954048 (difference ₹0.17)"
+26.1.1,,rate,,2KVA,"Analysis gives ₹45894.22, published rate ₹45894 (difference ₹0.22)"
+26.1.2,,rate,,3KVA,"Analysis gives ₹55232.9, published rate ₹55233 (difference ₹-0.1)"
+26.1.3,,rate,,6KVA,"Analysis gives ₹109792.59, published rate ₹109793 (difference ₹-0.41)"
+26.1.4,,rate,,10KVA,"Analysis gives ₹168506.37, published rate ₹168506 (difference ₹0.37)"
+26.2.1,,rate,,10KVA (Each Power module shall be < 10 KVA),"Analysis gives ₹208892.75, published rate ₹208893 (difference ₹-0.25)"
+26.2.2,,rate,,20KVA (Each Power module shall be < 10 KVA),"Analysis gives ₹341772.13, published rate ₹341772 (difference ₹0.13)"
+26.2.3,,rate,,30KVA (Each Power module shall be < 10 KVA),"Analysis gives ₹505747.89, published rate ₹505748 (difference ₹-0.11)"
+26.2.4,,rate,,40KVA (Each Power module shall be < 10 KVA),"Analysis gives ₹599468.9, published rate ₹599469 (difference ₹-0.1)"
+26.2.5,,rate,,60KVA (Each Power module shall be < 10 KVA),"Analysis gives ₹913599.81, published rate ₹913600 (difference ₹-0.19)"
+26.2.6,,rate,,80KVA (Each Power module shall be < 25 KVA),"Analysis gives ₹1124076.17, published rate ₹1124076 (difference ₹0.17)"
+26.2.7,,rate,,100KVA (Each Power module shall be < 25 KVA),"Analysis gives ₹1276966.65, published rate ₹1276967 (difference ₹-0.35)"
+26.2.8,,rate,,120KVA (Each Power module shall be < 25 KVA),"Analysis gives ₹1464408.65, published rate ₹1464409 (difference ₹-0.35)"
+26.2.9,,rate,,160KVA (Each Power module shall be < 25 KVA),"Analysis gives ₹1958639.38, published rate ₹1958639 (difference ₹0.38)"
+26.2.10,,rate,,200KVA (Each Power module shall be < 50 KVA),"Analysis gives ₹2375417.1, published rate ₹2375417 (difference ₹0.1)"
+26.2.11,,rate,,300KVA (Each Power module shall be < 50 KVA),"Analysis gives ₹3963347.44, published rate ₹3963347 (difference ₹0.44)"
+26.2.12,,rate,,400KVA (Each Power module shall be < 50 KVA),"Analysis gives ₹5130900.93, published rate ₹5130901 (difference ₹-0.07)"
+26.2.13,,rate,,500KVA (Each Power module shall be < 50 KVA),"Analysis gives ₹6183282.69, published rate ₹6183283 (difference ₹-0.31)"
 27.29,,rate,,"Providing, installation, testing & commissioning of adjustable rosette plate for 15mm dia in white f","Analysis gives ₹263, published rate ₹264 (difference ₹-1)"
 28.1.5,,rate,,"Supplying, installation, testing & commissioning response indicator on surface/recess MS box having ","Analysis gives ₹223, published rate ₹222 (difference ₹1)"
 28.1.7,,rate,,"Supplying, installation, testing & commissioning fire alarm sounder with facility to make announceme","Analysis gives ₹531, published rate ₹530 (difference ₹1)"

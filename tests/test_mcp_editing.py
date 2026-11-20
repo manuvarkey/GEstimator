@@ -226,7 +226,7 @@ class MCPEditingTests(MCPFixture):
     def test_stored_import_rates_recalculate_preview_and_undo(self):
         self.writable()
         self.agent("project", action="new")
-        imported = self.agent("import_items", source="bundled:DSREM2022.eproj", kind="schedule", codes=["1.10.1"], rate_mode="stored")
+        imported = self.agent("import_items", source=str(Path("Other databases/DSREM2022.eproj").resolve()), kind="schedule", codes=["1.10.1"], rate_mode="stored")
         self.assertIn("1.10.1", [w["code"] for w in imported["warnings"]])
         def rate():
             return Decimal(self.agent("get_items", kind="schedule", codes=["1.10.1"])["data"]["items"][0]["rate"])

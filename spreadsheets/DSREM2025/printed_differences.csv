@@ -207,7 +207,7 @@ Supplying and installing following size of perforated Hot Dipped Galvanised Iron
 6.10,6.9,unit,Meter,Metre,printed
 6.10,6.9,rate,201,281,workbook
 6.12,6.10,code,6.10,6.12,printed
-6.12,6.10,rate,140,3614,printed
+6.12,6.10,rate,140,3614,workbook
 6.14,6.11,code,6.11,6.14,printed
 6.14,6.11,unit,Meter,Metre,printed
 6.15,6.12,code,6.12,6.15,printed
@@ -254,9 +254,6 @@ Supplying, installation, Testing & Commissioning of Flood Light, powder coated p
 8.21.3,8.21.3,description,"Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 35 watt, 6V Mono Passivated Emitter and Rear Contact (PER","Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 35 watt, 6V Mono Passivated Emitter and Rear Contact (PER",printed
 9.1,9.1,description,"Brush Less Direct Current (BLDC) Fan with Remote Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal(Alumin","Brush Less DIrect Current (BLDC) Motor Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Aluminum alloy)",printed
 9.2,9.2,description,"Brush Less Direct Current (BLDC) Fan without Remote Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Al","Brush Less DIrect Current (BLDC) Motor Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Aluminum alloy)",printed
-9.2.3,9.2.3,description,"1200mm, service value ≥ 6.0 CM/Min/Watt, air delivery 210 CM/Min (Minimum)","1200mm, service value ≥ 6.0 CM/Min/Watt, air delivery 210",printed
-9.2.4,9.2.4,description,"1400mm, service value ≥ 6.0 CM/Min/Watt, air delivery 245 CM/Min (Minimum)","CM/Min (Minimum)
-1400mm, service value ≥ 6.0 CM/Min/Watt, air delivery 245 CM/Min (Minimum)",printed
 10.1.1,10.1.1,unit,Meter,Metre,printed
 10.1.1,10.1.1,rate,453,484,workbook
 10.1.2,10.1.2,unit,Meter,Metre,printed
@@ -512,9 +509,6 @@ Supply, installation, testing and commissioning of following capacity (continuou
 Supply, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector g",printed
 24.27.15,24.27.15,description,"63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Level 4
 63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)",printed
-24.27.23,24.27.23,description,"630 KVA (losses at 50% loading < 1860watt, losses at 100% loading < 5300watt)","630 KVA (losses at 50% loading < 1860watt, losses at 100%",printed
-24.27.24,24.27.24,description,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","loading < 5300watt)
-1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)",printed
 24.27.29,24.27.29,description,"63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Level 5
 63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)",printed
 24.28,24.28,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector group, Cast Resin / VPI (vacuum pressure i","11/0.433 KV, 3 Phase, 50 Hz Outdoor mounting
@@ -523,9 +517,6 @@ Supply, installation, testing and commissioning of following capacity (continuou
 63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)",printed
 24.28.29,24.28.29,description,"63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Level 5
 63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)",printed
-24.28.38,24.28.38,description,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","1000 KVA (losses at 50% loading < 2620watt, losses at 100%",printed
-24.28.39,24.28.39,description,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","loading < 7000watt)
-1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)",printed
 25.1,25.1,description,Automatic Power Factor Correction (APFC) System,"Automatic Power Factor Correction (APFC) System
 Supply, Installation, testing and commissioning of Automatic Power Factor Correction (APFC) panel, indoor type floor mounted free standing totally enclo",printed
 25.2,25.2,description,HYBRID Power Factor Correction System,"HYBRID Power Factor Correction System Supply, Installation, testing and commissioning of HYBRID APFC Panel, 3 phase 4 wire, 415 V, 50 Hz AC System for Ambient temperature -5°C to +40°C of following ca",printed
@@ -906,8 +897,8 @@ Supply Installation Testing Commissioning of following Field Devices including c
 42.11.5,42.11.5,description,"Outside Temp & Humidity Sensor with radiation shield. Measuring Range: Temp:- -15 to 50 °C & RH 0-100%, Accuracy: +/- 1 °C +/- 3%","Outside Temp & Humidity Sensor with radiation shield. Measuring Range: Temp:- -15 to 50 Deg C & RH 0-100%, Accuracy: +/- 1 Degc +/- 3%",printed
 42.11.5,42.11.5,rate,9322,9876,workbook
 42.11.6,42.11.6,description,"Immersion Temp Sensor for CHW line. Measuring range: -30 to 110 °C, Accuracy: +/- 1.3 °C","Immersion Temp Sensor for CHW line. Measuring range: -30 to 110 Deg C, Accuracy: +/- 1.3 Deg C",printed
-42.11.6,42.11.6,rate,4585,9322,printed
-42.11.7,42.11.7,rate,8868,4585,printed
+42.11.6,42.11.6,rate,4585,9322,workbook
+42.11.7,42.11.7,rate,8868,4585,workbook
 42.11.8,42.11.8,description,"Duct type temperature sensor Measuring range: -30 to 110 °C, Accuracy: +/- 1.3 °C","Duct type temperature sensor Measuring range: -30 to 110 Deg C, Accuracy: +/- 1.3 Deg C",printed
 42.11.8,42.11.8,rate,3588,4656,workbook
 42.11.10,42.11.10,rate,6550,4283,workbook

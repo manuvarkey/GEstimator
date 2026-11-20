@@ -194,7 +194,7 @@ class DesktopRefreshTests(unittest.TestCase):
 
     def test_four_place_tax_in_legacy_project_preserves_schema_and_source(self):
         from decimal import Decimal
-        source = Path(__file__).resolve().parents[1] / "estimator/database/DSREM2022.eproj"
+        source = Path(__file__).resolve().parents[1] / "Other databases/DSREM2022.eproj"
         original = source.read_bytes()
         self.call("project.open", path=str(source), discard=True)
         schema = self.s.db.database.execute_sql("SELECT sql FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()

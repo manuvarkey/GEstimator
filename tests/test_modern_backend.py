@@ -13,7 +13,7 @@ from estimator.data.schedule import ScheduleDatabase
 from estimator.undo import Stack
 from modern.backend.service import Service
 
-FIXTURE = Path("estimator/database/DSREM2022.eproj")
+FIXTURE = Path("Other databases/DSREM2022.eproj")
 
 
 class BackendTests(unittest.TestCase):

@@ -2,7 +2,7 @@
   "schema": 1,
   "notes": "Curated keyword, specification, abbreviation and code queries. Expected sets contain relevant alternatives. Embeddings are not installed or evaluated.",
   "databases": {
-    "DSREM2022.eproj": [
+    "DSREM2025.eproj": [
       {"query":"modular switch light point PVC conduit","expected":["1.10.1","1.10.2","1.10.3"]},
       {"query":"twin control light point steel conduit","expected":["1.2","1.4"]},
       {"query":"power plug wiring 2X4 FRLS cable","expected":["1.5"]},
@@ -22,16 +22,16 @@
       {"query":"HT danger notice plate 250 200","expected":["2.22"]},
       {"query":"earthing GI pipe 4.5 metre masonry enclosure","expected":["5.1","5.2"]},
       {"query":"lightning conductor finial single prong 300 mm","expected":["6.2","6.3"]},
-      {"query":"cable laying up to 35 sqmm","expected":["7.1.1"]},
-      {"query":"HT cable laying 120 sq.mm","expected":["8.1.1"]},
-      {"query":"cable joint termination 2X6 sq.mm","expected":["9.1.1"]},
-      {"query":"HV cable termination 70 sq mm","expected":["10.1.1"]},
-      {"query":"pole erection above 4.5 upto 6.5 metre","expected":["11.1.1"]},
-      {"query":"excavation foundation soft soil 1.5","expected":["14.1"]},
-      {"query":"excavation cable trenches soft soil 1.2","expected":["14.2"]},
-      {"query":"PIR occupancy sensor non regulating","expected":["15.1"]},
-      {"query":"smoke detector LED mounting base","expected":["17.1.2"]},
-      {"query":"1200 mm BLDC ceiling fan BEE 5 star","expected":["19.1"]},
+      {"query":"cable laying up to 35 sqmm","expected":["10.1.1"]},
+      {"query":"HT cable laying 120 sq.mm","expected":["22.1.1"]},
+      {"query":"cable joint termination 2X6 sq.mm","expected":["11.1.1"]},
+      {"query":"HV cable termination 70 sq mm","expected":["23.1.1"]},
+      {"query":"pole erection above 4.5 upto 6.5 metre","expected":["12.1.1"]},
+      {"query":"excavation foundation soft soil 1.5","expected":["15.1"]},
+      {"query":"excavation cable trenches soft soil 1.2","expected":["15.2"]},
+      {"query":"PIR occupancy sensor non regulating","expected":["7.1"]},
+      {"query":"smoke detector LED mounting base","expected":["28.1.2"]},
+      {"query":"1200 mm BLDC ceiling fan BEE 5 star","expected":["9.1.3","9.2.3"]},
       {"query":"1.10.2","expected":["1.10.2"]}
     ],
     "DSR2021.eproj": [

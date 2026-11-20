@@ -180,7 +180,7 @@ def deduce_hierarchy(entries, mapped_category):
         parts = code.split(".")
         return len(parts) > 1 and parts[:-1] == codes[-1].split(".")
 
-    result, category, codes, descriptions, sources, parent = [], "", [], [], [], None
+    result, category, codes, descriptions, sources, parent, emitted = [], "", [], [], [], None, set()
     index = 0
     while index < len(entries):
         number, values, numbers = entries[index]
@@ -214,7 +214,8 @@ def deduce_hierarchy(entries, mapped_category):
                 values["category"] = category
             return values, dict(source_numbers)
 
-        if not is_child(codes, code) and codes:
+        while codes and not is_child(codes, code):
+            # Close every heading level the code is not under (30.8 after 30.7.2.1).
             codes.pop()
             descriptions.pop()
             sources.pop()
@@ -226,10 +227,18 @@ def deduce_hierarchy(entries, mapped_category):
             parent = None
         elif priced and is_child(codes, code):
             if parent is None and codes:
-                # The heading keeps its own row's mapped fields (category, remarks).
-                heading, heading_numbers = item(codes[-1], "\n".join(descriptions), "", sources[-1], {}, None)
-                heading.update(rate="0", qty="0")
-                result.append((final_number, heading, dict(rate=decimal("0"), qty=decimal("0"))))
+                # Every heading level is added once, before its first priced
+                # subitem: an upper heading whose children are all headings
+                # (30.7 over 30.7.1) is a row of its own; the schedule has one
+                # level of parents, so lower headings carry the joined text.
+                # A heading keeps its own row's mapped fields (category, remarks).
+                for level, heading_code in enumerate(codes):
+                    if heading_code in emitted:
+                        continue
+                    heading, heading_numbers = item(heading_code, "\n".join(descriptions[:level + 1]), "", sources[level], {}, None)
+                    heading.update(rate="0", qty="0")
+                    result.append((final_number, heading, dict(rate=decimal("0"), qty=decimal("0"))))
+                    emitted.add(heading_code)
                 parent = codes[-1]
             values, item_numbers = item(code, description, unit, final, final_numbers, parent)
             result.append((final_number, values, item_numbers))

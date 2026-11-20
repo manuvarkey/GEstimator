@@ -6,7 +6,7 @@ import unittest
 from modern.backend.service import Service
 from modern.backend.numbers import decimal
 
-FIXTURE = Path("estimator/database/DSREM2022.eproj")
+FIXTURE = Path("Other databases/DSREM2022.eproj")
 
 
 class AnalysisParity(unittest.TestCase):
