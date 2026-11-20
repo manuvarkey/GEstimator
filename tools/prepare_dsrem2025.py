@@ -22,6 +22,10 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dsrem2025_correction_slip1 as slip  # noqa: E402
+import dsrem2025_nomenclature as nomenclature  # noqa: E402
+
 FOLDER = Path(__file__).resolve().parent.parent / "spreadsheets" / "DSREM2025"
 SOURCE = FOLDER / "DSR EandM 2025 3 09 2025.xlsx"
 CODE = re.compile(r"^\d+(\.\d+)*[A-Za-z]?(\s*\([A-Za-z0-9]+\))?$")  # 1101, 1.1.1, 4143 (B)
@@ -122,6 +126,122 @@ def civil_rates(schedule_rows, analysis_rows):
     return len(used)
 
 
+def apply_edits(rows, blocks, edits, report):
+    """Text edits on the description lines of items; a new text already present counts as applied."""
+    for code, old, new in edits:
+        done = False
+        for index in blocks.get(code, []):
+            if old.startswith("re:"):
+                text, count = re.subn(old[3:], new, rows[index][1])
+                done = count > 0
+            else:
+                done = old in rows[index][1]
+                text = rows[index][1].replace(old, new, 1)
+            if done:
+                rows[index][1] = text
+                break
+        if done:
+            report["text"] += 1
+        elif any(new in rows[index][1] for index in blocks.get(code, [])):
+            report["already"] += 1
+        else:
+            report["unmatched"].append(f"{code}: {old[:50]}")
+
+
+def item_blocks(rows):
+    blocks, current = {}, None
+    for index, row in enumerate(rows):
+        if row[0]:
+            current = row[0]
+        if current:
+            blocks.setdefault(current, []).append(index)
+    return blocks
+
+
+def apply_slip_schedule(rows):
+    """Printed-book nomenclature, then Correction Slip No. 1: modified rates, deleted items
+    and description edits. Description lines that follow an item (rows without a code) belong to it."""
+    report = {"rates": 0, "text": 0, "deleted": 0, "already": 0, "unmatched": []}
+    for index, row in enumerate(rows):
+        if (row[0], str(row[3])) in nomenclature.RENUMBER:
+            row[0] = nomenclature.RENUMBER[(row[0], str(row[3]))]
+        if row[2] == "Metre":
+            row[2] = "Meter"
+    for row in rows:
+        try:
+            value = float(row[3])
+        except (TypeError, ValueError):
+            continue
+        if value != round(value) and not str(row[0]).startswith(nomenclature.KEEP_DECIMALS_PREFIX):
+            digits = nomenclature.KEEP_DECIMALS.get(row[0])
+            row[3] = round(value, digits) if digits else int(value + 0.5)
+    for row in rows:
+        if row[0].split('.')[0] in nomenclature.CHAPTER_CATEGORY:
+            row[4] = nomenclature.CHAPTER_CATEGORY[row[0].split('.')[0]]
+    blocks = item_blocks(rows)
+    apply_edits(rows, blocks, nomenclature.TEXT, report)
+    for code, rate in slip.RATES.items():
+        if code not in blocks:
+            report["unmatched"].append(f"{code}: item not found")
+            continue
+        rows[blocks[code][0]][3] = rate
+        report["rates"] += 1
+    apply_edits(rows, blocks, slip.TEXT, report)
+    deleted = slip.DELETED | nomenclature.DELETED
+    drop = {index for code in deleted for index in blocks.get(code, [])}
+    drop |= {index for code, text in nomenclature.DROP_ROWS for index in blocks.get(code, []) if rows[index][1] == text and not rows[index][0]}
+    report["deleted"] = len(deleted & set(blocks))
+    rows[:] = [row for index, row in enumerate(rows) if index not in drop]
+    return report
+
+
+def apply_slip_resources(rows):
+    """Correction Slip No. 1: Appendix I code 1020 becomes 1021 Technician; Appendix II cable rates."""
+    seen = set()
+    result = []
+    for row in rows:
+        code = row[0]
+        if code in slip.RESOURCE_RENAMED:
+            row[0], row[1] = slip.RESOURCE_RENAMED[code]
+        row[2] = nomenclature.RESOURCE_UNIT_BY_CODE.get(str(row[0]), nomenclature.RESOURCE_UNITS.get(str(row[2]).lower(), row[2]))
+        for old, new in nomenclature.RESOURCE_TEXT:
+            row[1] = row[1].replace(old, new)
+        if str(row[0]) in nomenclature.RESOURCE_RATES:
+            row[3] = nomenclature.RESOURCE_RATES[str(row[0])]
+        if row[0] in slip.RESOURCE_RATES:
+            row[3] = slip.RESOURCE_RATES[row[0]]
+        if row[0] in slip.RESOURCE_RENAMED.values() and row[0] in seen:
+            continue  # the book lists the technician once
+        seen.add(row[0])
+        result.append(row)
+    rows[:] = result
+
+
+def apply_slip_analysis(rows):
+    """Analysis codes follow the schedule; resource lines follow the corrected Appendix I and II."""
+    item = None
+    for row in rows:
+        code = str(row[0]).strip() if row[0] is not None else ""
+        if code and "." in code and row[1] and not row[2] and not isinstance(row[0], (int, float)):
+            if code in nomenclature.ANALYSIS_RENUMBER:
+                row[0] = nomenclature.ANALYSIS_RENUMBER[code]
+            else:
+                for old, new in nomenclature.ANALYSIS_RENUMBER_PREFIX:
+                    if code.startswith(old):
+                        row[0] = new + code[len(old):]
+                        break
+            item = row[0]
+            continue
+        if code in slip.RESOURCE_RENAMED and isinstance(row[0], (int, float)):
+            row[0], row[1] = int(slip.RESOURCE_RENAMED[code][0]), slip.RESOURCE_RENAMED[code][1]
+        elif code in slip.RESOURCE_RATES and isinstance(row[4], (int, float)):
+            row[4] = slip.RESOURCE_RATES[code]
+            row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) else row[5]
+        elif (item, code) in nomenclature.ANALYSIS_LINE_RATES and isinstance(row[4], (int, float)):
+            row[4] = nomenclature.ANALYSIS_LINE_RATES[(item, code)]
+            row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) else row[5]
+
+
 def resources(book):
 
     rows, category, context, coded_since_context = [], "LABOUR & HIRE CHARGES", [], False
@@ -193,11 +313,16 @@ def main():
     try:
         schedule_rows, analysis_rows = schedule(book), analysis(book)
         filled = civil_rates(schedule_rows, analysis_rows)
+        slip_report = apply_slip_schedule(schedule_rows)
+        resource_rows = resources(book)
+        apply_slip_resources(resource_rows)
+        apply_slip_analysis(analysis_rows)
         counts = dict(
             schedule=write(FOLDER / "schedule.xlsx", ["Code", "Description", "Unit", "Rate", "Category", "Remarks"], schedule_rows),
-            resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resources(book)),
+            resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resource_rows),
             analysis=write(FOLDER / "analysis.xlsx", None, analysis_rows),  # chapter sheets carry their own headers
             civil_rates_filled=filled,
+            correction_slip_1=slip_report,
         )
     finally:
         book.close()

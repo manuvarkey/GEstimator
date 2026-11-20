@@ -8,6 +8,10 @@ Source: CPWD Delhi Schedule of Rates (E&M) 2025 workbook `DSR EandM 2025 3 09 20
 | `resources.xlsx` | Code, Description, Unit, Rate, Category from "APPENDIX-II BASIC MATERIAL RATE" (labour and materials); section headings become categories; descriptive lines above short item rows are joined into the description. |
 | `analysis.xlsx` | The six analysis columns of every chapter sheet ("CH…"), one after another. |
 
+Correction Slip No. 1 (27-11-2025, `Correction slip 1.pdf`) is applied by `prepare_dsrem2025.py` from `tools/dsrem2025_correction_slip1.py`: modified rates (31 items), description edits, item 39.10 deleted, Appendix I code 1020 replaced by 1021 Technician and Appendix II cable rates 5246-5249. Per the slip, the DSR prevails over the DAR where they differ, so analyses of these items may not add up to the corrected rate; the published rate is kept.
+
+The printed book `DSR_EM_2025.pdf` is authoritative for text and rates (`tools/dsrem2025_nomenclature.py`, applied before the slip, which prevails over both). Numbering the book repeats or skips follows the analyses (DAR). Everything found while comparing the workbook, the book, the DAR and the slip is in `OBSERVATIONS.md`.
+
 Rebuild:
 
 ```sh
