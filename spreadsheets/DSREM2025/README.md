@@ -14,8 +14,7 @@ Source: the printed CPWD Delhi Schedule of Rates (E&M) 2025 (`reference/DSR E&M 
 | `corrections.csv` | Every change the build makes to an analysis line (link, back-calculated resource, unit item, multiplier) and every line note, with the book's figures. |
 | `discrepancies.csv` | The book's differences, documented and not reproduced: line amounts that are not coefficient × Appendix II rate, subtotals that add a row twice, and analyses whose rate differs from the published rate. |
 
-The PDFs in `reference/` are kept out of git (see `.gitignore`). `OBSERVATIONS.md`, `backcalculated_materials.csv`, `tools/dsrem2025_nomenclature.py` and `tools/dsrem2025_correction_slip1.py` come from an earlier, separate pass and are not used by the build; what they found that still applies is under Open issues and Other observations below.
-
+The PDFs in `reference/` are kept out of git (see `.gitignore`).
 Rebuild:
 
 ```sh
