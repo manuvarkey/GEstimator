@@ -36,6 +36,33 @@ class MCPSearchTests(unittest.TestCase):
             path.write_text(json.dumps([dict(term="CUSTOM", expand=["changed meaning"])]))
             self.assertNotEqual(dictionary.fingerprint(dictionary.entries("", {}, path)), before)
 
+    def test_child_items_are_found_with_heading_words_and_return_heading_text(self):
+        result = self.tool("search_items", source="bundled:DSREM2025.eproj", kind="schedule", query="group controlled light point steel conduit Group A", limit=5)
+        self.assertEqual(result["items"][0]["code"], "1.54.1")
+        self.assertIn("steel conduit", result["headings"]["1.54"])
+        # Children of a heading printed with a unit (1.14) belong to it.
+        wiring = self.tool("search_items", source="bundled:DSREM2025.eproj", kind="schedule", query="submain wiring PVC conduit 2 X 4 sq mm earth wire", limit=5)
+        child = next(item for item in wiring["items"] if item["code"] == "1.14.3")
+        self.assertEqual(child["parent_code"], "1.14")
+        self.assertIn("1.14", wiring["headings"])
+        # A title heading repeated in its children's heading text is not returned twice.
+        valves = self.tool("search_items", source="bundled:DSREM2025.eproj", kind="schedule", query="insulated non return valve 100 mm", limit=3)
+        self.assertEqual(valves["items"][0]["code"], "30.7.3.4")
+        self.assertIn("30.7.3", valves["headings"])
+        self.assertNotIn("30.7", valves["headings"])
+        self.assertTrue(all(len(text) <= 600 for text in valves["headings"].values()))
+
+    def test_title_headings_by_code_are_indexed_when_not_linked_as_parent(self):
+        from types import SimpleNamespace
+        from modern.backend.search import heading_texts
+        title = SimpleNamespace(code="30.7", description="INSULATED VALVES", rate=0, parent_id=None)
+        heading = SimpleNamespace(code="30.7.1", description="Butterfly valve", rate=0, parent_id=None)
+        child = SimpleNamespace(code="30.7.1.1", description="200 mm dia", rate=10, parent_id=2, parent=heading)
+        repeated = SimpleNamespace(code="30.7.1", description="INSULATED VALVES\nButterfly valve", rate=0, parent_id=None)
+        self.assertEqual(heading_texts([title, heading, child]), {"30.7.1": ["INSULATED VALVES"], "30.7.1.1": ["INSULATED VALVES"]})
+        child.parent = repeated
+        self.assertEqual(heading_texts([title, repeated, child]), {"30.7.1": ["INSULATED VALVES"]})
+
     def test_bundled_search_and_automatic_abbreviation_extraction_without_a_project(self):
         result = self.tool("search_items", source="bundled:DSREM2025.eproj", kind="schedule", query="modular switch light point PVC conduit", limit=5)
         self.assertIn("1.10.1", [row["code"] for row in result["items"]])

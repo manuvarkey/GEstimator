@@ -64,6 +64,28 @@ class Index:
         return sorted(results, key=lambda r: (-r["score"], r["code"]))[:limit]
 
 
+def heading_codes(code):
+    """Dotted code prefixes, nearest first: 30.7.3.4 -> 30.7.3, 30.7, 30."""
+    parts = code.split(".")
+    return [".".join(parts[:end]) for end in range(len(parts) - 1, 0, -1)]
+
+
+def heading_texts(rows):
+    """Descriptions of unpriced headings above each item by code prefix that are
+    not its parent (e.g. the title heading 30.7 over 30.7.3 and its children),
+    so a search for heading words finds the priced children."""
+    headings = {row.code: row.description or "" for row in rows if not row.rate}
+    result = {}
+    for row in rows:
+        parent = row.parent.code if row.parent_id else None
+        own = row.parent.description or "" if row.parent_id else ""
+        texts = [headings[code] for code in heading_codes(row.code)
+                 if code in headings and code != parent and headings[code] not in own]
+        if texts:
+            result[row.code] = texts
+    return result
+
+
 def search(service, db, kind, query, limit=20, category=None, user_path=None, use_dictionary=True):
     from .mcp_workspace import item_rows
     cache = getattr(service, "_mcp_search", {})
@@ -86,10 +108,11 @@ def search(service, db, kind, query, limit=20, category=None, user_path=None, us
         memo_key = (key, dictionary.fingerprint(entries), context)
         previous = memos.get(memo_key, {})
         memo = {}
+        above = heading_texts(rows) if kind == "schedule" else {}
         for row in rows:
             parent = row.parent.description if kind == "schedule" and row.parent_id else ""
             extra = enrichment.get("items", {}).get(row.code, {})
-            text = " ".join([row.code, row.category.description or "", parent or "", row.description or "", row.unit or "", metadata.short(row, enrichment), " ".join(extra.get("keywords", []))])
+            text = " ".join([row.code, row.category.description or "", *above.get(row.code, ()), parent or "", row.description or "", row.unit or "", metadata.short(row, enrichment), " ".join(extra.get("keywords", []))])
             if text not in memo:
                 memo[text] = previous.get(text) or (dictionary.normalize(text), dictionary.normalize(dictionary.expand(text, entries, context)))
             original, expanded = memo[text]

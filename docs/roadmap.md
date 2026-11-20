@@ -9,15 +9,17 @@ The project settings now hold **Database notes** (`project_metadata`, Markdown),
 Notes are written for AI agents choosing items for an estimate or analysis: basic metadata (issuer, edition, corrections, specifications, rate basis, codes, units) and, per category, what the items cover, how they are arranged and how to pick the right one. A level-2 heading `## Category: <name>` starts the notes of that category; `describe_source` returns the general part in its overview and each category's notes with `section=category:<name>`, and `get_state` and `search_items` point agents to them.
 
 - [x] DSR E&M 2025 (`spreadsheets/DSREM2025/database_notes.md`, loaded by the build).
-- [ ] Write notes for the other bundled and reference databases (DSR 2021 with the civil database update, DSR E&M 2022, DSR 2016, DSR E&M 2016, DSR BLDC 2019) in the same structure.
+- Older databases (DSR 2021, DSR E&M 2022, DSR 2016, DSR E&M 2016, DSR BLDC 2019) are kept for reference only and get no notes. New databases get notes when built.
 - [x] Decide the heading structure for notes (general part, then `## Category:` sections).
 - [x] Show notes in the database picker and the attach dialog (read-only, rendered Markdown, expanded on demand).
 
 ## Desktop verification
 
-- [ ] Exercise project tabs, tab and window close prompts, OS file opening into tabs, resource cut/paste and the import screens in an installed `tauri dev` / release build on each supported platform.
+- [x] Exercise project tabs, tab and window close prompts, OS file opening into tabs, resource cut/paste and the import screens in an installed `tauri dev` / release build (confirmed by the user, 2026-11-20).
 
 ## Databases
+
+- [ ] Build DSR 2023 (civil) as the bundled civil database, with notes (to be taken up by the user later).
 
 - [x] Resolve the DSR E&M 2025 book inconsistencies (duplicate codes, analyses numbered differently, resource rate/code mismatches, chapter 16 layout, book arithmetic): every analysis now reproduces its published rate within ₹1; changes are listed in `spreadsheets/DSREM2025/corrections.csv`.
 - [x] Apply DSR E&M 2025 Correction Slip No. 1 (27-11-2025) to schedule, Appendix II and analyses.

@@ -30,6 +30,34 @@ def item_rows(db, kind):
     return rows
 
 
+def heading_summaries(db, items):
+    """Heading text for child results: a child's own description holds only
+    the variant ("Group A", "18 watt"), so return its parent's text and any
+    title heading above it by code (30.7 over 30.7.3) whose text the parent
+    does not already repeat, keyed by code. Long specifications are cut at
+    600 characters (where similar headings usually differ); get_items returns
+    the full text."""
+    from .search import heading_codes
+    chains = {item["parent_code"]: [item["parent_code"], *heading_codes(item["parent_code"])]
+              for item in items if item.get("parent_code")}
+    codes = list(dict.fromkeys(code for chain in chains.values() for code in chain))
+    if not codes:
+        return {}
+    table = db.ScheduleTable
+    texts = {}
+    for start in range(0, len(codes), 500):
+        for row in table.select(table.code, table.description, table.rate).where(table.code.in_(codes[start:start + 500])):
+            if not row.rate:
+                texts[row.code] = " ".join((row.description or "").split())
+    result = {}
+    for parent, chain in chains.items():
+        for code in chain:
+            text = texts.get(code)
+            if text and (code == parent or text not in texts.get(parent, "")):
+                result[code] = text if len(text) <= 600 else text[:599].rstrip() + "…"
+    return result
+
+
 def page(items, args):
     offset, limit = args.get("offset", 0), args.get("limit", 100)
     return dict(items=items[offset:offset + limit], total=len(items), offset=offset, next_offset=offset + limit if offset + limit < len(items) else None)
@@ -177,6 +205,10 @@ class Workspace(Writes):
         from .search import search
         _, db = self.source(args.get("source", "project"))
         result = search(self.service, db, args["kind"], args["query"], args.get("limit", 20), args.get("category"), self.user_dictionary())
+        if args["kind"] == "schedule":
+            headings = heading_summaries(db, result["items"])
+            if headings:
+                result = dict(result, headings=headings)
         general, category_notes = metadata.notes(db)
         found = list(dict.fromkeys(row["category"] for row in result["items"] if row["category"] in category_notes))
         if general or found:

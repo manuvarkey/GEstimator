@@ -12,7 +12,7 @@ This is the breaking migration described in [MCP efficiency](mcp-efficiency.md).
 |---|---|
 | `get_state` | Project settings/path, dirty flags, counts, attached and available sources |
 | `describe_source` | Overview, category summaries, dictionary, documented SQL view columns |
-| `search_items` | Ranked keyword/abbreviation search, up to 50 matches |
+| `search_items` | Ranked keyword/abbreviation search, up to 50 matches. Children are indexed with their heading text (parent, and unpriced title headings above by code); `headings` gives the heading text of returned children (≤ 600 characters each) |
 | `browse` | Paged category or parent hierarchy |
 | `get_items` | Full definitions by code, with optional analysis/resources/relationships |
 | `get_measurements` | Paged items/records or templates with real column fields and editability |
