@@ -80,6 +80,9 @@ async function reset() {
         <p id="currency-code-help" class="field-hint">Three-letter currency code (for example INR, USD or EUR). Selects the symbol for displayed rates, amounts and monetary totals when enabled below. It does not convert prices or change calculations or workbook numeric values.</p>
         <label class="library-remember"><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label>
         <p class="field-hint">Preview: <output aria-label="Regional amount preview">{{ moneyPreview }}</output>. Leave the region blank to follow your system. Numeric editing uses the original values and arithmetic expressions.</p>
+        <h3>Search</h3>
+        <label class="library-remember"><input v-model="draft.live_search" type="checkbox" :disabled="busy" />Search as you type</label>
+        <p class="field-hint">Schedule, Resources and the database picker update their results shortly after you stop typing. When off, press Enter or Search.</p>
         <h3>Export options</h3>
         <label class="library-remember"><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across multiple rows in exported workbooks</label>
       </template>

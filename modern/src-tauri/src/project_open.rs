@@ -17,6 +17,8 @@ impl Queue {
         self.startup = paths.iter().map(|path| identity(path)).collect();
         self.paths.extend(paths);
     }
+    // Finder "open document" events only exist on Apple platforms.
+    #[cfg(any(target_os = "macos", target_os = "ios", test))]
     fn opened(&mut self, paths: Vec<String>) {
         for path in paths {
             if let Some(index) = self.startup.iter().position(|candidate| *candidate == identity(&path)) {

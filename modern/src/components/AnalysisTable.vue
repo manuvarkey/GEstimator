@@ -43,6 +43,11 @@ async function fitVisibleTable(force = false) {
     if (active && props.active && element.value?.clientWidth) {
       // Keep every column accessible at small sizes; normal desktop panes fit.
       scrollable.value = element.value.clientWidth < 500;
+      // Remarks need room beside the fixed numeric columns; hide them in a
+      // narrow pane that must fit, show them again when it scrolls or widens.
+      const remarks = table.getColumn("remarks");
+      const showRemarks = scrollable.value || element.value.clientWidth >= 720;
+      if (remarks && remarks.isVisible() !== showRemarks) showRemarks ? remarks.show() : remarks.hide();
       table.redraw(force && !element.value.querySelector('.tabulator-editing'));
     }
   });
@@ -161,6 +166,19 @@ onMounted(() => {
         formatter: "textarea",
         variableHeight: true,
         minWidth: 80,
+      },
+      {
+        // Notes on a resource line, e.g. what a substituted resource stands for.
+        title: "REMARKS",
+        field: "remarks",
+        editor: tableTextEditor,
+        editorParams: () => ({ grow: false }),
+        editable: cell => isResource(cell),
+        formatter: "textarea",
+        variableHeight: true,
+        // Shares the free width with the description, so narrow panes still fit.
+        widthGrow: 0.5,
+        minWidth: 60,
       },
       {
         title: "UNIT",

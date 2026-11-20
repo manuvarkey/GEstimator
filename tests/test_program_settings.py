@@ -21,6 +21,7 @@ class ProgramSettingsTests(unittest.TestCase):
         result = self.call("program.settings")
         settings = result["settings"]
         self.assertTrue(settings["export_break_items"])
+        self.assertFalse(settings["live_search"])
         self.assertTrue(Path(result["library_directory"]).is_absolute())
         self.assertEqual(settings["ana_copy_delete_rows"], 0)
         settings["sch_rate_mult_factor"] = "1 + 1/3"
@@ -28,7 +29,7 @@ class ProgramSettingsTests(unittest.TestCase):
         self.assertEqual(validated["sch_rate_mult_factor"], "1.33333")
         self.assertEqual(self.call("state"), before)
         self.assertFalse(self.service.history)
-        for change in [dict(ana_copy_delete_rows=True), dict(ana_copy_delete_rows=6), dict(sch_rate_mult_factor="__import__('os')"), dict(export_break_items="True"), dict(ana_default_rows=[dict(kind="Round", description="Round", value="2.01")])]:
+        for change in [dict(ana_copy_delete_rows=True), dict(ana_copy_delete_rows=6), dict(sch_rate_mult_factor="__import__('os')"), dict(export_break_items="True"), dict(live_search="yes"), dict(ana_default_rows=[dict(kind="Round", description="Round", value="2.01")])]:
             with self.assertRaises(ValueError):
                 self.call("program.settings.validate", settings=dict(settings, **change))
             self.assertEqual(self.call("state"), before)
@@ -39,6 +40,7 @@ class ProgramSettingsTests(unittest.TestCase):
         result = self.call("program.settings.validate", settings=old)
         self.assertEqual(result["number_locale"], "")
         self.assertFalse(result["show_currency_symbol"])
+        self.assertFalse(result["live_search"])
         regional = dict(old, number_locale="en-IN", currency_code="INR", show_currency_symbol=True)
         self.assertEqual(self.call("program.settings.validate", settings=regional)["number_locale"], "en-IN")
         for changes in [dict(number_locale="en_IN"), dict(number_locale=1), dict(currency_code="rupees"),

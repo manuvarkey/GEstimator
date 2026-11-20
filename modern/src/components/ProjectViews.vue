@@ -14,6 +14,7 @@ import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
+import { useLiveSearch } from "../liveSearch";
 import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
@@ -98,7 +99,9 @@ onBeforeUnmount(() => emit("busy", false));
 const error = ref("");
 const query = ref("");
 const categoryFilters = ref<string[]>([]);
-watch(categoryFilters, () => { page.value = 0; void load(); });
+watch(categoryFilters, () => { void search(); });
+let searchedQuery = "";
+const liveSearch = useLiveSearch(query, () => searchedQuery, () => isMeasurement.value ? Promise.resolve(true) : search());
 const source = ref("");
 watch([() => state.value?.revision, source, () => props.view], () => { discrepancy.value = undefined; });
 const libraries = ref<{ id: string; name: string }[]>([]);
@@ -390,7 +393,7 @@ async function run(work: () => Promise<void>) {
 }
 const rowActions = computed(() => source.value ? [] : [
   { label: "Add item after selection", action: "add" },
-  ...(props.view === "schedule" ? [{ label: "Add subitem", action: "child", itemOnly: true, single: true }, { label: "Open analysis", action: "activate", itemOnly: true, single: true }] : [{ label: isMeasurement.value ? "Measurement properties…" : "Edit resource…", action: "properties", single: true, itemOnly: !isMeasurement.value }]),
+  ...(props.view === "schedule" ? [{ label: "Add subitem", action: "child", itemOnly: true, single: true }, { label: "Open analysis", action: "activate", itemOnly: true, single: true, leafOnly: true }] : [{ label: isMeasurement.value ? "Measurement properties…" : "Edit resource…", action: "properties", single: true, itemOnly: !isMeasurement.value }]),
   ...(props.view === "resources" ? [{ label: "Cut selected resources", action: "cut", itemOnly: true }] : []),
   { label: "Copy selected rows", action: "copy" }, { label: "Paste rows here", action: "paste" },
   { label: "Duplicate selection", action: "duplicate", single: !isMeasurement.value, itemOnly: !isMeasurement.value }, { label: "Delete selection…", action: "delete" },
@@ -411,6 +414,7 @@ async function refresh(revealId?: string) {
   }
   if (!isMeasurement.value) libraries.value = await request("library.list");
   const detailOnly = isMeasurement.value && !!props.entryId && !!state.value;
+  searchedQuery = query.value;
   const next = await request<GridState>(
     isMeasurement.value ? detailOnly ? "measurement.detail" : "measurement.state" : props.view + ".editor.state",
     {
@@ -592,7 +596,17 @@ async function refreshChanges() {
 }
 watch(() => props.active, async active => { if (active) { await refreshChanges(); await focusTable(); } else cancelFocus?.(); });
 async function load() {
-  await run(refresh);
+  return run(refresh);
+}
+/** Load the first page of results for the current search and filters. */
+async function search() {
+  liveSearch.cancel();
+  return goToPage(0);
+}
+async function goToPage(index: number) {
+  page.value = index;
+  await mainTable.value?.scrollToTop();
+  return load();
 }
 function showRowColour() {
   rowColour.value = /^#[0-9a-f]{6}$/i.test(one.value?.colour ?? "")
@@ -760,8 +774,10 @@ function activateRow(row: GridRow) {
     }
     return;
   }
-  if (props.view === "schedule") emit("analysis", row.code);
-  else if (props.view === "resources") void showForm("edit");
+  if (props.view === "schedule") {
+    if (row.has_children) notify(`Item ${row.code} has subitems; open the analysis of a subitem instead.`);
+    else emit("analysis", row.code);
+  } else if (props.view === "resources") void showForm("edit");
   else if (row.type !== "Heading") emit("entry", row.id);
   else showProperties();
 }
@@ -820,7 +836,7 @@ function keyboard(event: KeyboardEvent) {
     if (key === "e" && props.view === "schedule" && one.value?.rowtype === "Schedule") {
       event.preventDefault();
       event.stopPropagation();
-      emit("analysis", one.value.code);
+      activateRow(one.value);
       return;
     }
     if (key === "e" && one.value && props.view !== "schedule") {
@@ -1078,8 +1094,8 @@ watch(
             <button
               class="ribbon-action"
               aria-label="Edit analysis"
-              title="Open the selected schedule item in the Analysis editor to inspect and edit its rate calculation."
-              :disabled="busy || !one || one.rowtype === 'Category'"
+              :title="one?.has_children ? 'Items with subitems are priced through their subitems; select a subitem to edit its analysis.' : 'Open the selected schedule item in the Analysis editor to inspect and edit its rate calculation.'"
+              :disabled="busy || !one || one.rowtype === 'Category' || one.has_children"
               @click="one && emit('analysis', one.code)"
             >
               <AppIcon name="edit" /><span class="ribbon-label">Edit analysis</span>
@@ -1235,10 +1251,7 @@ watch(
       <div v-if="!isMeasurement" class="project-filter-bar"><form
         v-if="!isMeasurement"
         class="search-field project-search"
-        @submit.prevent="
-          page = 0;
-          load();
-        "
+        @submit.prevent="search()"
       >
         <AppIcon name="search" :size="16" /><input
           v-model="query"
@@ -1282,20 +1295,14 @@ watch(
         <button
           class="text-button"
           :disabled="busy || page === 0"
-          @click="
-            page--;
-            load();
-          "
+          @click="goToPage(page - 1)"
         >
           Previous</button
         ><span>{{ state?.total || 0 }} items · Page {{ page + 1 }}</span
         ><button
           class="text-button"
           :disabled="busy || (page + 1) * 100 >= (state?.total || 0)"
-          @click="
-            page++;
-            load();
-          "
+          @click="goToPage(page + 1)"
         >
           Next
         </button>

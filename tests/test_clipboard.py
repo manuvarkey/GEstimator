@@ -41,6 +41,22 @@ class ClipboardTests(unittest.TestCase):
     def call(self, service, method, **params):
         return service.call(method, dict(revision=service.revision, **params))
 
+    def load_root(self):
+        """A keeps an editable analysis only while it has no subitems."""
+        child = self.a.db.ScheduleTable.get(code="A.1")
+        self.call(self.a, "schedule.editor.edit", id=str(child.id), field="parent", value="")
+        return self.call(self.a, "analysis.load", code="A")
+
+    def test_items_with_subitems_have_no_analysis_editor(self):
+        rows = self.call(self.a, "schedule.editor.state")["rows"][0]["_children"]
+        parent = rows[0]
+        self.assertEqual((parent["code"], parent["has_children"]), ("A", True))
+        self.assertFalse(parent["_children"][0]["has_children"])
+        with self.assertRaisesRegex(ValueError, "has subitems"):
+            self.call(self.a, "analysis.load", code="A")
+        self.assertEqual(self.call(self.a, "analysis.load", code="A.1")["code"], "A.1")
+        self.assertEqual(self.load_root()["code"], "A")
+
     def transfer(self, kind, **params):
         before = self.a.state()
         data = self.call(self.a, "clipboard.export", kind=kind, **params)
@@ -63,7 +79,7 @@ class ClipboardTests(unittest.TestCase):
         return heading, identity, record
 
     def test_analysis_cross_instance_uses_destination_definitions_and_atomic_undo(self):
-        source = self.call(self.a, "analysis.load", code="A")
+        source = self.load_root()
         ids = [row["id"] for row in source["rows"]] + [source["rows"][0]["_children"][0]["id"]]
         data = self.transfer("analysis", ids=ids)
         self.call(self.b, "resources.editor.add", data=dict(code="R", description="Destination", unit="kg", rate="20", category="Materials"))
@@ -164,7 +180,7 @@ class ClipboardTests(unittest.TestCase):
         self.assertEqual(self.b.state(), before)
 
     def test_invalid_documents_are_rejected_before_any_mutation(self):
-        self.call(self.a, "analysis.load", code="A")
+        self.load_root()
         row = self.a.state()["rows"][0]
         data = self.transfer("analysis", ids=[row["id"]])
         original = json.loads(data)
@@ -189,7 +205,7 @@ class ClipboardTests(unittest.TestCase):
         self.call(self.a, "resource.add", id=group, library=True, code="R", qty="3")
         self.call(self.a, "analysis.apply")
         self.call(self.a, "resources.editor.add", data=dict(code="SUB", description="Sub-analysis", unit="m", rate="30", category=misc.SUB_ANA_TITLE))
-        state = self.call(self.a, "analysis.load", code="A")
+        state = self.load_root()
         self.call(self.a, "edit", id=state["rows"][0]["_children"][0]["id"], field="code", value="SUB")
         self.call(self.a, "analysis.apply")
         identity = str(self.a.db.ScheduleTable.get(code="A").id)

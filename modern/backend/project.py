@@ -414,7 +414,12 @@ class ProjectEditor:
             cursor.executemany(f'UPDATE "{table._meta.table_name}" SET "{table.code.column_name}" = ? WHERE "id" = ?',
                                [(code, identity) for identity, code in codes.items()])
 
-    def serialize_row(self, row, resource):
+    @staticmethod
+    def parent_ids(table):
+        """Ids of schedule items that have subitems, in one query."""
+        return {parent for (parent,) in table.select(table.parent).where(table.parent.is_null(False)).distinct().tuples()}
+
+    def serialize_row(self, row, resource, parents=frozenset()):
         cat = row.category
         data = dict(
             id=str(row.id),
@@ -442,6 +447,8 @@ class ProjectEditor:
                     else ""
                 ),
                 parent=row.parent.code if row.parent else "",
+                # Items with subitems are priced through their subitems.
+                has_children=row.id in parents,
                 _children=[],
             )
         return data
@@ -486,8 +493,9 @@ class ProjectEditor:
             if changed is not None:
                 ids = changed.intersection(int(value) for value in visible if value.isdecimal())
                 updates = []
+                parents = frozenset() if resource else self.parent_ids(table)
                 for row in table.select().where(table.id.in_(ids)):
-                    data = self.serialize_row(row, resource)
+                    data = self.serialize_row(row, resource, parents)
                     data.pop("_children", None)
                     updates.append(data)
                 return dict(delta=True, updates=updates, view_seq=self.changes.sequence,
@@ -576,6 +584,7 @@ class ProjectEditor:
                         r.id,
                     )
                 )
+        parents = frozenset() if resource else self.parent_ids(table)
         for row in values:
             cat = row.category
             if cat.id not in categories:
@@ -587,7 +596,7 @@ class ProjectEditor:
                     _children=[],
                 )
                 categories[cat.id] = group
-            data = self.serialize_row(row, resource)
+            data = self.serialize_row(row, resource, parents)
             nodes[row.id] = data
         for row in values:
             data = nodes[row.id]

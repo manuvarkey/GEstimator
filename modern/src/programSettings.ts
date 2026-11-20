@@ -8,6 +8,7 @@ export interface ProgramSettings {
   currency_code: string;
   show_currency_symbol: boolean;
   export_break_items: boolean;
+  live_search: boolean;
   sch_rate_mult_factor: string;
   ana_copy_delete_rows: number;
   ana_default_rows: TemplateRow[];

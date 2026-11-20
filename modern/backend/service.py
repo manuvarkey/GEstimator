@@ -441,6 +441,9 @@ class Service:
             model = self.db.get_item(text(p["code"]), modify_res_code=False)
             if model is None:
                 raise ValueError("Unknown schedule code")
+            S = self.db.ScheduleTable
+            if S.select().where(S.parent.in_(S.select(S.id).where(S.code == model.code))).exists():
+                raise ValueError(f"Item {model.code} has subitems; edit the analysis of each subitem instead")
             if self.records_dirty and p.get("discard") is True:
                 self.project_editor.draft_command("discard", p)
             self.model = model
