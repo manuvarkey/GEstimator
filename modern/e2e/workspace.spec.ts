@@ -1968,6 +1968,52 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   expect(errors).toEqual([]);
 });
 
+test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by the selected row", async ({ page }) => {
+  const copy = resolve(directory, "large-schedule.eproj");
+  await copyFile(resolve("../estimator/database/DSREM2025.eproj"), copy);
+  await openFixture(page, copy);
+  await page.locator("#view-schedule").click();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const holder = grid.locator(".tabulator-tableholder");
+  await holder.locator(".tabulator-row").first().waitFor();
+  const frames = () => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  // Wheel steps of varied size and direction; taller-than-average rows near
+  // the top once left the viewport empty after a large upward step.
+  const box = (await holder.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const gaps: string[] = [];
+  for (let step = 0; step < 120; step++) {
+    await page.mouse.wheel(0, (step % 7 < 4 ? 1 : -1) * (300 + (step * 997) % 3000));
+    await frames();
+    const gap = await holder.evaluate((element: HTMLElement) => {
+      const view = element.getBoundingClientRect();
+      const rows = Array.from(element.querySelectorAll(".tabulator-row")).map(row => row.getBoundingClientRect()).filter(row => row.height);
+      const top = Math.min(...rows.map(row => row.top)), bottom = Math.max(...rows.map(row => row.bottom));
+      const atEnd = element.scrollTop + element.clientHeight >= element.scrollHeight - 2;
+      return !rows.length || top > view.top + 1 || (bottom < view.bottom - 1 && !atEnd) ? `scrollTop ${element.scrollTop}` : "";
+    });
+    if (gap) gaps.push(gap);
+  }
+  expect(gaps).toEqual([]);
+  await holder.evaluate((element: HTMLElement) => { element.scrollTop = 0; });
+  await frames();
+  await grid.locator('.tabulator-row [tabulator-field="code"]').nth(2).click();
+  let previous = 0;
+  for (let press = 0; press < 110; press++) {
+    await page.keyboard.press(press < 90 ? "ArrowDown" : "ArrowUp");
+    await frames();
+    const position = await holder.evaluate((element: HTMLElement) => {
+      const view = element.getBoundingClientRect();
+      const bounds = element.querySelector(".tabulator-row.tabulator-selected")!.getBoundingClientRect();
+      return { scrollTop: element.scrollTop, height: bounds.height, visible: bounds.top >= view.top - 1 && bounds.bottom <= view.top + element.clientHeight + 1 };
+    });
+    expect(position.visible, `selected row visible after key ${press + 1}`).toBe(true);
+    // The view follows the selection by at most the selected row's height.
+    expect(Math.abs(position.scrollTop - previous)).toBeLessThanOrEqual(position.height + 2);
+    previous = position.scrollTop;
+  }
+});
+
 test("real project navigation protects unsaved drafts and save-copy clears dirty state", async ({
   page,
 }) => {

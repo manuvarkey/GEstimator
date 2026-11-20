@@ -1,6 +1,7 @@
 import { nextTick } from "vue";
 import type { TabulatorFull as Tabulator, CellComponent, RowComponent } from "tabulator-tables";
 import { resetTablePosition } from "./tableSelection";
+import { revealRow } from "./virtualRows";
 
 /** Cell coordinates survive authoritative row replacement after a backend edit. */
 export function cellNavigation(table: Tabulator, host: HTMLElement, options: {
@@ -45,7 +46,7 @@ export function cellNavigation(table: Tabulator, host: HTMLElement, options: {
     element.classList.add("cell-focused");
   }
   async function focus(cell: CellComponent, edit = false, raw?: string) {
-    await cell.getRow().scrollTo("nearest", false).catch(() => {});
+    await revealRow(cell.getRow());
     if (!alive) return;
     const viewport = host.querySelector(".tabulator-tableholder")?.getBoundingClientRect();
     const bounds = cell.getElement().getBoundingClientRect();

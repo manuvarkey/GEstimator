@@ -1,5 +1,7 @@
 import type { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 
+import { revealRow } from "./virtualRows";
+
 const positions = new WeakMap<Tabulator, { anchor: string; focus: string }>();
 const id = (row: RowComponent) => String(row.getData().id);
 export function resetTablePosition(table: Tabulator, row?: RowComponent) {
@@ -49,6 +51,6 @@ export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boo
   table.deselectRow();
   table.selectRow(event.shiftKey && anchor >= 0 ? rows.slice(Math.min(anchor, next), Math.max(anchor, next) + 1) : [target]);
   positions.set(table, { anchor: anchorId, focus: id(target) });
-  void target.scrollTo("nearest", false).catch(() => {});
+  void revealRow(target);
   return true;
 }

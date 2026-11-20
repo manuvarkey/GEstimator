@@ -10,6 +10,7 @@ import {
 } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { tableSelection, resetTablePosition } from "../tableSelection";
+import { guardVirtualRenderer, revealRow } from "../virtualRows";
 import { isRowClipboard } from "../rowClipboard";
 import { formatMoney, moneyFormatKey } from "../numberFormatting";
 const props = defineProps<{
@@ -255,7 +256,7 @@ watch(
           if (props.tree) { let parent = row.getTreeParent(); while (parent) { if (!parent.isTreeExpanded()) parent.treeExpand(); parent = parent.getTreeParent(); } }
         }
         const selected = table.getSelectedRows();
-        if (selected.length) void selected[0]!.scrollTo("nearest", false).catch(() => {});
+        if (selected.length) void revealRow(selected[0]!);
       }
     } finally {
       replacingRows = false;
@@ -329,6 +330,7 @@ onMounted(() => {
   });
   ready = new Promise<void>((resolve) =>
     table.on("tableBuilt", () => {
+      guardVirtualRenderer(table);
       void table.replaceData(props.rows);
       resolve();
     }),
