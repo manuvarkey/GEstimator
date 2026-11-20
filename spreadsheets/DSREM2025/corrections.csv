@@ -1,0 +1,105 @@
+item,row,book_code,description,book_qty,book_rate,book_amount,resource,qty,remarks
+19.9.3,7127,5164,5 pin XLR Male/Female connectors,1,1360,1360,X,1360,5 pin XLR Male/Female connectors — 1 Nos. @ ₹1360 = ₹1360 in the book; no matching Appendix II resource (book code 5164 is 'Push button type keypad with 10 buttons. Each button is prog' in Appendix II)
+24.25.6,10345,,Khallasi,0,663,0,1007,0,"Book: Khallasi (no code), 0 day @ ₹663; linked to Appendix II 1007"
+26.1.1,13213,,Battery Rack i/c connections,1,500,500,X,500,Battery Rack i/c connections — 1 NO. @ ₹500 = ₹500 in the book; no matching Appendix II resource
+26.1.2,13233,,Battery Rack i/c connections,2,500,1000,X,1000,Battery Rack i/c connections — 2 NO. @ ₹500 = ₹1000 in the book; no matching Appendix II resource
+26.1.3,13252,,Battery Rack i/c connections,3,500,1500,X,1500,Battery Rack i/c connections — 3 NO. @ ₹500 = ₹1500 in the book; no matching Appendix II resource
+26.1.4,13271,,Battery Rack i/c connections,4,500,2000,X,2000,Battery Rack i/c connections — 4 NO. @ ₹500 = ₹2000 in the book; no matching Appendix II resource
+26.2.1,13292,,Battery Rack i/c connections,4,500,2000,X,2000,Battery Rack i/c connections — 4 NO. @ ₹500 = ₹2000 in the book; no matching Appendix II resource
+26.2.2,13311,,Battery Rack i/c connections,8,500,4000,X,4000,Battery Rack i/c connections — 8 NO. @ ₹500 = ₹4000 in the book; no matching Appendix II resource
+26.2.3,13330,,Battery Rack i/c connections,12,500,6000,X,6000,Battery Rack i/c connections — 12 NO. @ ₹500 = ₹6000 in the book; no matching Appendix II resource
+26.2.4,13349,,Battery Rack i/c connections,16,500,8000,X,8000,Battery Rack i/c connections — 16 NO. @ ₹500 = ₹8000 in the book; no matching Appendix II resource
+26.2.5,13368,,Battery Rack i/c connections,24,500,12000,X,12000,Battery Rack i/c connections — 24 NO. @ ₹500 = ₹12000 in the book; no matching Appendix II resource
+26.2.6,13387,,Battery Rack i/c connections,32,500,16000,X,16000,Battery Rack i/c connections — 32 NO. @ ₹500 = ₹16000 in the book; no matching Appendix II resource
+26.2.7,13406,,Battery Rack i/c connections,40,500,20000,X,20000,Battery Rack i/c connections — 40 NO. @ ₹500 = ₹20000 in the book; no matching Appendix II resource
+26.2.8,13425,,Battery Rack i/c connections,48,500,24000,X,24000,Battery Rack i/c connections — 48 NO. @ ₹500 = ₹24000 in the book; no matching Appendix II resource
+26.2.9,13444,,Battery Rack i/c connections,60,500,30000,X,30000,Battery Rack i/c connections — 60 NO. @ ₹500 = ₹30000 in the book; no matching Appendix II resource
+26.2.10,13463,,Battery Rack i/c connections,80,500,40000,X,40000,Battery Rack i/c connections — 80 NO. @ ₹500 = ₹40000 in the book; no matching Appendix II resource
+26.2.11,13482,,Battery Rack i/c connections,120,500,60000,X,60000,Battery Rack i/c connections — 120 NO. @ ₹500 = ₹60000 in the book; no matching Appendix II resource
+26.2.12,13501,,Battery Rack i/c connections,160,500,80000,X,80000,Battery Rack i/c connections — 160 NO. @ ₹500 = ₹80000 in the book; no matching Appendix II resource
+26.2.13,13520,,Battery Rack i/c connections,200,500,100000,X,100000,Battery Rack i/c connections — 200 NO. @ ₹500 = ₹100000 in the book; no matching Appendix II resource
+27.5.1,14155,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,175000,175000,X,175000,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation of main electric fire pump, diesel pump, Pressurization pump, Terrace pump in sequence as per specification consisting of relays, timers. Sensors, annunciation window for fault indication, complete as per specification — 1 Each @ ₹175000 = ₹175000 in the book; no matching Appendix II resource"
+27.5.2,14189,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,205000,205000,X,205000,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation of main electric fire pump, diesel pump, Pressurization pump, Terrace pump in sequence as per specification consisting of relays, timers. Sensors, annunciation window for fault indication, complete as per specifications. — 1 Each @ ₹205000 = ₹205000 in the book; no matching Appendix II resource"
+27.5.3,14223,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,230000,230000,X,230000,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation of main electric fire pump, diesel pump, Pressurization pump, Terrace pump in sequence as per specification consisting of relays, timers. Sensors, annunciation window for fault indication, complete as per specification — 1 Each @ ₹230000 = ₹230000 in the book; no matching Appendix II resource"
+27.5.4,14257,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,265000,265000,X,265000,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation of main electric fire pump, diesel pump, Pressurization pump, Terrace pump in sequence as per specification consisting of relays, timers. Sensors, annunciation window for fault indication, complete as per specification — 1 Each @ ₹265000 = ₹265000 in the book; no matching Appendix II resource"
+27.5.5,14291,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,320000,320000,X,320000,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation of main electric fire pump, diesel pump, Pressurization pump, Terrace pump in sequence as per specification consisting of relays, timers. Sensors, annunciation window for fault indication, complete as per specification — 1 Each @ ₹320000 = ₹320000 in the book; no matching Appendix II resource"
+27.5.6,14325,,"Battery charger suitbale for 12V/24 V DC with boost and trickle selector switch, 0-30 V DC volt mete",1,410000,410000,X,410000,"Battery charger suitbale for 12V/24 V DC with boost and trickle selector switch, 0-30 V DC volt meter, and 0-20 A DC Ammeter — 1 Each @ ₹410000 = ₹410000 in the book; no matching Appendix II resource"
+27.11.1,14958,4335,(d) Cost of weldign rod LS,0,60,60,4335,1,Book: amount ₹60 for 0 Each @ ₹60 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.2,14980,4335,(d) Cost of weldign rod LS,0,60,60,4335,1,Book: amount ₹60 for 0 Each @ ₹60 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.3,15002,4335,(d) Cost of weldign rod LS,0,60,60,4335,1,Book: amount ₹60 for 0 Each @ ₹60 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.4,15024,4342,(d) Cost of weldign rod LS,0,90,90,4342,1,Book: amount ₹90 for 0 Each @ ₹90 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.5,15046,4342,(d) Cost of weldign rod LS,0,90,90,4342,1,Book: amount ₹90 for 0 Each @ ₹90 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.5,15051,1006,"Fitter, Grade 1",0.5,981,490.5,1004,0.5,"Book: Fitter, Grade 1 (code 1006), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1004"
+27.11.6,15068,4342,(d) Cost of weldign rod LS,0,90,90,4342,1,Book: amount ₹90 for 0 Each @ ₹90 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.7,15090,4347,(d) Cost of weldign rod LS,0,120,120,4347,1,Book: amount ₹120 for 0 Each @ ₹120 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.8,15112,4347,(d) Cost of weldign rod LS,0,120,120,4347,1,Book: amount ₹120 for 0 Each @ ₹120 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.11.8,15117,1006,"Fitter, Grade 1",0.5,981,490.5,1004,0.5,"Book: Fitter, Grade 1 (code 1006), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1004"
+27.11.9,15139,1006,"Fitter, Grade 1",0.5,981,490.5,1004,0.5,"Book: Fitter, Grade 1 (code 1006), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1004"
+27.12.1,15162,1006,"Fitter, Grade 1",0.15,981,147.15,1004,0.15,"Book: Fitter, Grade 1 (code 1006), 0.15 day @ ₹981 = ₹147.15; linked to Appendix II 1004"
+27.12.2,15184,1006,"Fitter, Grade 1",0.22,806,177.32,1004,0.180754,"Book: Fitter, Grade 1 (code 1006), 0.22 day @ ₹806 = ₹177.32; linked to Appendix II 1004 at ₹981; quantity 0.22 → 0.180754 to keep the book amount"
+27.12.3,15206,1006,"Fitter, Grade 1",0.3,806,241.8,1004,0.246483,"Book: Fitter, Grade 1 (code 1006), 0.3 day @ ₹806 = ₹241.8; linked to Appendix II 1004 at ₹981; quantity 0.3 → 0.246483 to keep the book amount"
+27.12.4,15228,1006,"Fitter, Grade 1",0.3,806,241.8,1004,0.246483,"Book: Fitter, Grade 1 (code 1006), 0.3 day @ ₹806 = ₹241.8; linked to Appendix II 1004 at ₹981; quantity 0.3 → 0.246483 to keep the book amount"
+27.12.5,15250,1006,"Fitter, Grade 1",0.5,806,403,1004,0.410805,"Book: Fitter, Grade 1 (code 1006), 0.5 day @ ₹806 = ₹403; linked to Appendix II 1004 at ₹981; quantity 0.5 → 0.410805 to keep the book amount"
+27.12.6,15272,1006,"Fitter, Grade 1",0.5,806,403,1004,0.410805,"Book: Fitter, Grade 1 (code 1006), 0.5 day @ ₹806 = ₹403; linked to Appendix II 1004 at ₹981; quantity 0.5 → 0.410805 to keep the book amount"
+27.13,,,Book adjustment,,,8.52,X,8.52,The book's 'Total' (₹1047.64) adds 'Cartage @1%' (₹8.52) a second time; the difference is kept as a unit item so the analysis gives the published rate
+27.17.1,15768,4355,"(d) Cost of 25mm dia socket, union, nipples (Lumpsum)",0,210,210,4355,1,Book: amount ₹210 for 0 Each @ ₹210 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.17.2,15790,4255,"(c) Cost of 25mm dia socket, union, nipples (Lumpsum)",0,5026.5,5026.5,4255,1,Book: amount ₹5026.5 for 0 Each @ ₹5026.5 (quantity × rate = ₹0); quantity 0 → 1 to keep the book amount
+27.18.1,,,Book adjustment,,,1775.58,X,1775.58,The book's 'Total' (₹3631.66) adds 'Total' (₹1775.58) a second time; the difference is kept as a unit item so the analysis gives the published rate
+27.18.2,,,Book adjustment,,,1200.89,X,1200.89,The book's 'Total' (₹2482.28) adds 'Total' (₹1200.89) a second time; the difference is kept as a unit item so the analysis gives the published rate
+28.4.1,17158,,Cement sand and grit etc.,5.33,1.73,9.22,X,9.22,Cement sand and grit etc. — 5.33 LS @ ₹1.73 = ₹9.22 in the book; no matching Appendix II resource
+28.5.3.4,,,Book adjustment,,,52.26,X,52.26,The book's 'Total' (₹6224.17) adds 'Cartage @1% of A' (₹52.26) a second time; the difference is kept as a unit item so the analysis gives the published rate
+30.2.13,20785,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,1.2,669.6610169491527,803.59,4016,2.167889,Book: 1.2 per sq meter @ ₹669.66 = ₹803.59; Appendix II rate ₹370.68; quantity 1.2 → 2.167889 to keep the book amount
+30.2.14,20828,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,0.9,669.6610169491527,602.69,4016,1.6259,Book: 0.9 per sq meter @ ₹669.66 = ₹602.69; Appendix II rate ₹370.68; quantity 0.9 → 1.6259 to keep the book amount
+30.7.1.1,21768,,Add Valve Cladding,0.3,360,108,X,108,Add Valve Cladding — 0.3 sqm @ ₹360 = ₹108 in the book; no matching Appendix II resource
+30.7.4.6,22740,,Basic Price of Insulation - 25 mm,0.2,152.542372881356,30.51,X,30.51,Basic Price of Insulation - 25 mm — 0.2 m @ ₹152.54 = ₹30.51 in the book; no matching Appendix II resource
+30.15,,,Add for screws etc.,,,260,X,260,Add for screws etc. — LS ₹260 in the book (no quantity or rate); no matching Appendix II resource
+30.16,,,Add for screws etc.,,,260,X,260,Add for screws etc. — LS ₹260 in the book (no quantity or rate); no matching Appendix II resource
+30.17,,,Add for screws etc.,,,250,X,250,Add for screws etc. — LS ₹250 in the book (no quantity or rate); no matching Appendix II resource
+30.18,,,Add for screws etc.,,,250,X,250,Add for screws etc. — LS ₹250 in the book (no quantity or rate); no matching Appendix II resource
+30.21,,,Rate for 1 sqmeter,,,890.3,,0.1,The book works out 'Rate for 1 sqmeter' (₹890.3) after rounding the analysis; multiplier 0.1 added
+4.4.2,32384,2936,Painting with primer and finish paint,1,36,36,2936,5,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2; quantity 1 → 5 to keep the book amount
+4.5.4,32853,2936,Painting with primer and finish paint,1,36,36,2936,5,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2; quantity 1 → 5 to keep the book amount
+16.1.1,36115,,Cold water tank 100 ltr @ 11 per /ltr,100,0,1100,X,1100,"Cold water tank 100 ltr @ 11 per /ltr — 100 Each, ₹1100 in the book; no matching Appendix II resource"
+16.1.1,36116,,Tank Connections and water inlet valve,400,0,400,X,400,"Tank Connections and water inlet valve — 400 LS, ₹400 in the book; no matching Appendix II resource"
+16.1.2,36135,,Cold water tank 200 ltr @ 11 per /ltr,200,0,2200,X,2200,"Cold water tank 200 ltr @ 11 per /ltr — 200 Each, ₹2200 in the book; no matching Appendix II resource"
+16.1.2,36136,,Tank Connections and water inlet valve,400,0,400,X,400,"Tank Connections and water inlet valve — 400 LS, ₹400 in the book; no matching Appendix II resource"
+16.1.3,36155,,Cold water tank 300 ltr @ 11 per /ltr,300,0,3300,X,3300,"Cold water tank 300 ltr @ 11 per /ltr — 300 Each, ₹3300 in the book; no matching Appendix II resource"
+16.1.3,36156,,Tank Connections and water inlet valve,450,0,450,X,450,"Tank Connections and water inlet valve — 450 LS, ₹450 in the book; no matching Appendix II resource"
+16.1.4,36175,,Cold water tank 500 ltr @ 11 per /ltr,500,0,5500,X,5500,"Cold water tank 500 ltr @ 11 per /ltr — 500 Each, ₹5500 in the book; no matching Appendix II resource"
+16.1.4,36176,,Tank Connections and water inlet valve,450,0,450,X,450,"Tank Connections and water inlet valve — 450 LS, ₹450 in the book; no matching Appendix II resource"
+11.4.29,38787,1002,Cable jointer,0.25,981,981,1002,1,Book: amount ₹981 for 0.25 day @ ₹981 (quantity × rate = ₹245.25); quantity 0.25 → 1 to keep the book amount
+11.4.29,38788,1007,Khallasi,0.25,805,805,1007,1,Book: amount ₹805 for 0.25 day @ ₹805 (quantity × rate = ₹201.25); quantity 0.25 → 1 to keep the book amount
+12.5,39100,9999,Sundries,70,0,0,9999,0,Book: 70 L.S. @ ₹0 = ₹0; quantity 70 → 0 to keep the book amount
+8.9.3,40683,1001,Wireman,0.1,805,80.5,1001,0.082059,Book: 0.1 day @ ₹805 = ₹80.5; Appendix II rate ₹981; quantity 0.1 → 0.082059 to keep the book amount
+8.9.3,40684,1007,Khallasi,0.1,783,78.3,1007,0.097267,Book: 0.1 day @ ₹783 = ₹78.3; Appendix II rate ₹805; quantity 0.1 → 0.097267 to keep the book amount
+39.14,44067,5239,CAT6 Copper Information Outlet (IO) with face plate(105+42),1,147,147,5239,1.4,Book: 1 Each @ ₹147 = ₹147; Appendix II rate ₹105; quantity 1 → 1.4 to keep the book amount
+39.17.1,44121,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.17.1,44122,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.17.2,44140,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.17.2,44141,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.17.3,44159,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.17.3,44160,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.17.4,44177,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.17.4,44178,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.18.1,44197,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.18.1,44198,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.18.2,44217,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.18.2,44218,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.18.3,44236,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.18.3,44237,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.18.4,44255,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.18.4,44256,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.19.1,44274,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.19.1,44275,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.19.2,44293,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.19.2,44294,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.20.1,44313,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.20.1,44314,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+39.20.2,44333,,Wiremen,0.5,981,490.5,1001,0.5,"Book: Wiremen (no code), 0.5 day @ ₹981 = ₹490.5; linked to Appendix II 1001"
+39.20.2,44334,,Khallasi,0.5,805,402.5,1007,0.5,"Book: Khallasi (no code), 0.5 day @ ₹805 = ₹402.5; linked to Appendix II 1007"
+15.14.4,45213,2948,Cement,0.01,63,0.63,2948,0.000088,Book: 0.01 tonne @ ₹63 = ₹0.63; Appendix II rate ₹7200; quantity 0.01 → 0.000088 to keep the book amount
+15.16.1,45356,,Excavation i/c refilling etc. as required,9.19,830,7627.7,X,7627.7,Excavation i/c refilling etc. as required — 9.19 cu.m @ ₹830 = ₹7627.7 in the book; no matching Appendix II resource
+15.16.2,45379,,Excavation i/c refilling etc. as required,9.19,830,7627.7,X,7627.7,Excavation i/c refilling etc. as required — 9.19 cu.m @ ₹830 = ₹7627.7 in the book; no matching Appendix II resource
+15.16.3,45402,,Excavation i/c refilling etc. as required,9.19,830,7627.7,X,7627.7,Excavation i/c refilling etc. as required — 9.19 cu.m @ ₹830 = ₹7627.7 in the book; no matching Appendix II resource
+15.16.4,45425,,Excavation i/c refilling etc. as required,9.19,830,7627.7,X,7627.7,Excavation i/c refilling etc. as required — 9.19 cu.m @ ₹830 = ₹7627.7 in the book; no matching Appendix II resource
+15.16.5,45448,,Excavation i/c refilling etc. as required,9.19,830,7627.7,X,7627.7,Excavation i/c refilling etc. as required — 9.19 cu.m @ ₹830 = ₹7627.7 in the book; no matching Appendix II resource

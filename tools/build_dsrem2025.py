@@ -2,6 +2,8 @@
 
 Runs the same backend operations as the desktop import screens, in order:
 schedule (code hierarchy), resources, then analyses from all chapter sheets.
+Resource lines are then reconciled with the book's line amounts
+(tools/dsrem2025_reconcile.py, listed in spreadsheets/DSREM2025/corrections.csv).
 Published schedule rates are restored afterwards, because the analysis import
 recalculates rates and the book keeps unrounded intermediate amounts.
 
@@ -18,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 warnings.filterwarnings("ignore")
 
 from modern.backend.service import Service  # noqa: E402
+from tools.dsrem2025_reconcile import published_rates, reconcile  # noqa: E402
 
 FOLDER = ROOT / "spreadsheets" / "DSREM2025"
 OUTPUT = ROOT / "Other databases" / "DSREM2025.eproj"
@@ -43,6 +46,8 @@ def main():
         analyses = dict(path=str(FOLDER / "analysis.xlsx"), first_row=1, first_column=1)
         report["analysis_preview"] = call("project.import_analysis_preview", **analyses)
         report["analysis"] = call("project.import_analysis_apply", **analyses)
+        report["reconciled"] = reconcile(call, service.db, FOLDER / "analysis.xlsx",
+                                       published_rates(FOLDER / "schedule.xlsx"), FOLDER / "corrections.csv")
         # Keep the published rates; analyses stay attached to the items.
         report["published_rates"] = call("project.import_apply", duplicates="update", **schedule)
         call("project.save_copy", path=str(output))

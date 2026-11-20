@@ -18,6 +18,7 @@ Usage: python tools/prepare_dsrem2025.py [source.xlsx]
 
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
@@ -101,14 +102,95 @@ def schedule(book):
             # nothing and keep the chapter category instead.
             continue
         rows.append([code, description, unit, rate, category, ""])
+    return fix_duplicate_codes(rows)
+
+
+def normal(description):
+    return " ".join(re.sub(r"[^a-z0-9.½]+", " ", description.lower()).split())
+
+
+def fix_duplicate_codes(rows):
+    """Give repeated schedule codes the number the analyses use.
+
+    - A coded sub-heading followed by an item with the same code ("31.12.1 High
+      Static Ductable units", "31.12.1 5.5 TR") keeps only its text.
+    - A repeated code under another heading becomes that heading's next number
+      (23.4 lists 23.3, 23.3.1… → 23.4.1, 23.4.2…; 24.8.6 under 24.9 → 24.9.6).
+    - A repeated code among its siblings takes the next free number, and later
+      siblings move up (11.1.34 twice, 11.1.35 → 11.1.34, 11.1.35, 11.1.36).
+    """
+    for row, following in zip(rows, rows[1:]):
+        if row[0] and row[0] == following[0] and not row[2] and following[2]:
+            row[0] = ""
+    assigned, heading, renumbered = set(), "", []
+    for row in rows:
+        code = row[0]
+        if not code or not CODE.match(code):
+            continue
+        if not row[2]:
+            heading = code
+        if code in assigned:
+            if heading and code != heading and not code.startswith(heading + "."):
+                parent = heading
+            else:
+                parent = code.rpartition(".")[0]
+            # After the last sibling: withdrawn numbers are not reused.
+            used = [int(other.rpartition(".")[2]) for other in assigned
+                    if other.rpartition(".")[0] == parent and other.rpartition(".")[2].isdigit()]
+            row[0] = f"{parent}.{max(used, default=0) + 1}"
+            row[5] = f"Numbered {code} in the book"
+            renumbered.append((code, row[0], row[1]))
+        assigned.add(row[0])
+    for old, new, description in renumbered:
+        print(f"schedule {old} -> {new} ({description[:40]})")
     return rows
+
+
+def analysis_codes(schedule_rows):
+    """lookup(code, description, result, analysed) -> schedule code, for
+    analyses numbered differently from the schedule:
+
+    - the schedule item with that code has another description and exactly one
+      sibling has the analysis description and the analysis result as its rate
+      (31.12.2 "6.6 TR", ₹78065, is 31.12.3 in the schedule);
+    - the code is not in the schedule and exactly one item without an analysis
+      has the analysis result as its rate and the same code ending or
+      description (18.19.1 is 8.19.1, 30.10.1.1 is 30.10.1, 5.1.4 is 26.1.4).
+    """
+    by_code = {row[0]: normal(row[1]) for row in schedule_rows if row[0]}
+    rates = {row[0]: float(row[3]) for row in schedule_rows if row[0] and re.fullmatch(r"-?\d+(\.\d+)?", str(row[3]))}
+    siblings = {}
+    for row in schedule_rows:
+        if row[0] and row[2]:
+            siblings.setdefault(row[0].rpartition(".")[0], []).append((row[0], normal(row[1])))
+
+    def same_ending(code, other):
+        ours, theirs = code.split("."), other.split(".")
+        # 18.19.1 ~ 8.19.1, 5.1.4 ~ 26.1.4, 30.10.1.2 ~ 30.10.2 (and 30.10.1.1 ~ 30.10.1)
+        return len(ours) > 1 and len(theirs) > 1 and (
+            ours[-2:] == theirs[-2:] or ours[:-1] == theirs or ours[:-2] + ours[-1:] == theirs)
+
+    def lookup(code, description, final, analysed, unknown):
+        """`unknown` selects the second rule (codes missing from the schedule)."""
+        wanted = normal(description or "")
+        if by_code.get(code) == wanted or final is None or abs(rates.get(code, -1e9) - final) < 1:
+            return code
+        if code in by_code and not unknown:
+            matches = [other for other, text in siblings.get(code.rpartition(".")[0], [])
+                       if text == wanted and abs(rates.get(other, -1e9) - final) < 1]
+        elif code not in by_code and unknown:
+            matches = [other for other, rate in rates.items() if abs(rate - final) < 1 and not analysed[other]
+                       and (same_ending(code, other) or by_code.get(other) == wanted)]
+        else:
+            return code
+        return matches[0] if len(matches) == 1 else code
+    return lookup
 
 
 def civil_rates(schedule_rows, analysis_rows):
     """Items marked "Rate to be taken from Civil DSR" have no rate in the
     schedule, but the analyses use them as sub-analyses at a definite rate.
     Fill that rate (the most common one) and say where it came from."""
-    from collections import Counter
     pending = {row[0]: row for row in schedule_rows if row[3] and not re.match(r"^-?[\d.]+$", str(row[3]))}
     used = {}
     for code, description, unit, qty, rate, amount in analysis_rows:
@@ -170,20 +252,48 @@ def resources(book):
     return rows
 
 
-def analysis(book):
-    rows = []
+def analysis(book, lookup):
+    rows, blocks = [], []
     for name in book.sheetnames:
         if not name.upper().startswith("CH"):
             continue
         sequence = CodeSequence()
-        for values in book[name].iter_rows(min_row=1, max_col=6, values_only=True):
-            values = (tuple(values) + (None,) * 6)[:6]
+        columns = (0, 1, 2, 3, 4, 5)
+        sheet_codes = []
+        for values in book[name].iter_rows(min_row=1, max_col=7, values_only=True):
+            values = tuple(values) + (None,) * 7
+            labels = [text(v).lower() for v in values[:7]]
+            if labels[1].startswith("descr"):
+                # CH-16 has an extra unit column ("LPD", "Liter") between Qty
+                # and Rate: Code, Description, Unit, Qty, -, Rate, Amount.
+                extra = not labels[4] and labels[5].startswith("rate") and labels[6].startswith("amount")
+                columns = (0, 1, 2, 3, 5, 6) if extra else (0, 1, 2, 3, 4, 5)
+            values = tuple(values[index] for index in columns)
             row = [v if isinstance(v, (int, float)) else (text(v) or None) for v in values]
             # Item code rows: a dotted code with a description and no unit.
             if values[0] is not None and "." in text(values[0]) and CODE.match(text(values[0])) and values[1] and not values[2]:
                 row[0] = sequence.fix(values[0], text(values[0]))
+                sheet_codes.append(len(rows))
             rows.append(row)
+            if (len(rows) > 1 and labels[1].startswith("descr") and rows[-2][0] is not None and rows[-2][1]
+                    and not rows[-2][2] and len(rows) - 2 not in sheet_codes and CODE.match(text(rows[-2][0]))):
+                # An undotted item code just above the analysis header ("5190" for 20.15).
+                rows[-2][0] = text(rows[-2][0])
+                sheet_codes.append(len(rows) - 2)
+        blocks += zip(sheet_codes, sheet_codes[1:] + [len(rows)])
         rows.extend([[None] * 6] * 3)
+    # The analysis result: the last amount without a unit ("Say 78065").
+    results = [(index, next((row[5] for row in reversed(rows[index + 1:end])
+                             if isinstance(row[5], (int, float)) and not row[2]), None)) for index, end in blocks]
+    analysed = Counter(rows[index][0] for index, final in results if final is not None)
+    for unknown in (False, True):
+        for index, final in results:
+            code = rows[index][0]
+            rows[index][0] = lookup(code, rows[index][1], final, analysed, unknown)
+            if rows[index][0] != code:
+                analysed[code] -= 1
+                analysed[rows[index][0]] += 1
+                print(f"analysis {code} -> {rows[index][0]} ({rows[index][1][:40]}, {final})")
     return rows
 
 
@@ -191,7 +301,8 @@ def main():
     source = Path(sys.argv[1]) if len(sys.argv) > 1 else SOURCE
     book = load_workbook(source, read_only=True, data_only=True)
     try:
-        schedule_rows, analysis_rows = schedule(book), analysis(book)
+        schedule_rows = schedule(book)
+        analysis_rows = analysis(book, analysis_codes(schedule_rows))
         filled = civil_rates(schedule_rows, analysis_rows)
         counts = dict(
             schedule=write(FOLDER / "schedule.xlsx", ["Code", "Description", "Unit", "Rate", "Category", "Remarks"], schedule_rows),

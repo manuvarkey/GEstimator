@@ -411,6 +411,8 @@ class _Block:
                 self.close_group(amount)
                 return
             self.close_group()
+        if not label and (_close(amount, self.section) or self.matches_total(amount)):
+            plain_total = True  # an unlabelled total row (a section or running total, not a percentage)
         # The last figure of an analysis may be rounded without saying so ("Total 1328495").
         rounded_last = last and following is None and abs(amount - self.total) < 1 and amount != _round(self.total, 2) and amount == amount.to_integral()
         if (_has(description, ROUND_KEYS) or rounded_last) and (abs(amount - self.total) < 1 or abs(amount - self.sheet_total) < 1):
