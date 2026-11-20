@@ -185,14 +185,13 @@ fn main() {
                 // Must run before the window is first shown (it starts hidden).
                 if let Some(window) = app.get_webview_window("main") {
                     if let Ok(gtk_window) = window.gtk_window() {
+                        // A hidden titlebar widget still turns on client-side decorations
+                        // and takes no space. A shown one gets at least 1 px (GTK 3 turns
+                        // a 0 height request into 1 px), which stays above the webview when
+                        // maximised and catches clicks on the top row of the window buttons.
+                        // Tao does the same on Wayland (platform_impl/linux/window.rs).
                         let titlebar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-                        // Themes give the `.titlebar` slot headerbar height and padding,
-                        // which leaves a transparent strip above the web titlebar.
-                        let css = gtk::CssProvider::new();
-                        let _ = css.load_from_data(b"* { min-height: 0; padding: 0; margin: 0; border: none; background: none; box-shadow: none; }");
-                        titlebar.style_context().add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
-                        titlebar.set_size_request(-1, 0);
-                        titlebar.show();
+                        titlebar.set_no_show_all(true);
                         gtk_window.set_titlebar(Some(&titlebar));
                         gtk_window.set_decorated(true);
                     }
