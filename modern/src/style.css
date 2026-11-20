@@ -1160,12 +1160,12 @@ textarea::placeholder {
   background: var(--workspace);
 }
 /* Line remarks are notes, set apart from the resource description. */
-.analysis-table .tabulator-row .tabulator-cell.analysis-remarks {
+.analysis-table .tabulator-row .tabulator-cell.analysis-line-remarks {
   font-style: italic;
   color: var(--muted);
 }
-.analysis-table .tabulator-row.tabulator-selected .tabulator-cell.analysis-remarks,
-.analysis-table .tabulator-row .tabulator-cell.analysis-remarks.tabulator-editing {
+.analysis-table .tabulator-row.tabulator-selected .tabulator-cell.analysis-line-remarks,
+.analysis-table .tabulator-row .tabulator-cell.analysis-line-remarks.tabulator-editing {
   color: inherit;
 }
 .analysis-table .tabulator-row .tabulator-cell {
@@ -2329,6 +2329,9 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .notes-tabs button:focus-visible { outline: var(--focus-width) solid var(--accent); outline-offset: -2px; }
 .notes-editor { min-height: 240px; resize: vertical; font-family: var(--table-font-family); }
 .notes-preview { min-height: 240px; max-height: 50vh; overflow: auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--well); }
+.database-notes { margin-block: 8px; }
+.database-notes summary { cursor: pointer; color: var(--accent); }
+.database-notes .notes-preview { min-height: 0; max-height: 40vh; margin-top: 6px; }
 .markdown h1, .markdown h2, .markdown h3 { margin: .6em 0 .3em; line-height: 1.25; }
 .markdown h1 { font-size: 1.35em; } .markdown h2 { font-size: 1.2em; } .markdown h3 { font-size: 1.05em; }
 .markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown pre { margin: .4em 0; }
