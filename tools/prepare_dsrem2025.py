@@ -201,6 +201,8 @@ def apply_slip_resources(rows):
     result = []
     for row in rows:
         code = row[0]
+        if "." in str(code) and row[3] in (None, ""):
+            continue  # sub-heading of the book that carries a schedule item number
         if code in slip.RESOURCE_RENAMED:
             row[0], row[1] = slip.RESOURCE_RENAMED[code]
         row[2] = nomenclature.RESOURCE_UNIT_BY_CODE.get(str(row[0]), nomenclature.RESOURCE_UNITS.get(str(row[2]).lower(), row[2]))
@@ -219,10 +221,19 @@ def apply_slip_resources(rows):
 
 def apply_slip_analysis(rows):
     """Analysis codes follow the schedule; resource lines follow the corrected Appendix I and II."""
-    item = None
+    item, section, previous_header, seen_say, renamed, result = None, None, None, False, set(), []
     for row in rows:
+        row = list(row)
         code = str(row[0]).strip() if row[0] is not None else ""
-        if code and "." in code and row[1] and not row[2] and not isinstance(row[0], (int, float)):
+        if isinstance(row[0], (int, float)) and not row[2] and row[3] is None:
+            row[0] = code = str(int(row[0]))
+        if row[1] == "Details of cost for 1 No" and seen_say and item in nomenclature.ANALYSIS_INSERT_HEADERS:
+            result.append(list(nomenclature.ANALYSIS_INSERT_HEADERS[item]) + [None] * 4)
+            item, seen_say = nomenclature.ANALYSIS_INSERT_HEADERS[item][0], False
+        if row[1] == "Say":
+            seen_say = True
+        if (code and "." in code or code in {old for old, _ in nomenclature.ANALYSIS_HEADER_CODES}) and row[1] and not row[2] and row[3] is None:
+            seen_say = False
             if code in nomenclature.ANALYSIS_RENUMBER:
                 row[0] = nomenclature.ANALYSIS_RENUMBER[code]
             else:
@@ -230,8 +241,30 @@ def apply_slip_analysis(rows):
                     if code.startswith(old):
                         row[0] = new + code[len(old):]
                         break
-            item = row[0]
+            for (old, start), new in nomenclature.ANALYSIS_HEADER_CODES.items():
+                if code == old and str(row[1]).startswith(start) and old not in renamed:
+                    row[0] = new
+                    renamed.add(old)
+            if section in nomenclature.ANALYSIS_CHILD_PREFIX:
+                old, new = nomenclature.ANALYSIS_CHILD_PREFIX[section]
+                if str(row[0]).startswith(old):
+                    row[0] = new + str(row[0])[len(old):]
+            if (previous_header, str(row[0])) in nomenclature.ANALYSIS_BLANK_AFTER:
+                row[0], previous_header = None, None
+            elif row[0] is not None:
+                previous_header = str(row[0])
+                if row[0].count(".") == 1:
+                    section = row[0]
+                item = row[0]
+            result.append(row)
             continue
+        if code and not isinstance(row[0], (int, float)) and "." in code and row[1] and row[2] is None:
+            previous_header = None
+        if row[0] is None and row[2] == "day" and str(row[1]).strip().lower() in nomenclature.ANALYSIS_LABOUR:
+            labour = nomenclature.ANALYSIS_LABOUR[str(row[1]).strip().lower()]
+            if row[4] == labour[2]:
+                row[0], row[1] = labour[0], labour[1]
+                code = str(row[0])
         if code in slip.RESOURCE_RENAMED and isinstance(row[0], (int, float)):
             row[0], row[1] = int(slip.RESOURCE_RENAMED[code][0]), slip.RESOURCE_RENAMED[code][1]
         elif code in slip.RESOURCE_RATES and isinstance(row[4], (int, float)):
@@ -240,6 +273,8 @@ def apply_slip_analysis(rows):
         elif (item, code) in nomenclature.ANALYSIS_LINE_RATES and isinstance(row[4], (int, float)):
             row[4] = nomenclature.ANALYSIS_LINE_RATES[(item, code)]
             row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) else row[5]
+        result.append(row)
+    rows[:] = result
 
 
 def resources(book):

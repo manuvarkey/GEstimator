@@ -134,3 +134,23 @@ ANALYSIS_LINE_RATES = {("11.2.23", "2322"): 946, ("11.2.24", "2323"): 1326}
 
 # The workbook has no title row for chapter 19, so its items fall under chapter 18.
 CHAPTER_CATEGORY = {"19": "FACADE LIGHTING"}
+
+# Analyses the workbook labels wrongly or runs together (the DAR has the same defects for 4.2.9 and 4.2.14).
+# A header missing between two analyses: after the analysis of the key, the next one is this item.
+ANALYSIS_INSERT_HEADERS = {
+    "4.2.8": ("4.2.9", "375 mm width X 62.5 mm depth X 2.0 mm thickness"),
+    "4.2.13": ("4.2.14", "600 mm width X 75 mm depth X 2.0 mm thickness"),
+}
+# First header (code, description start) that gets another code: its lines belong to that item.
+ANALYSIS_HEADER_CODES = {
+    ("19.3", "LED Linear Profile"): "19.3.1",   # the 100 W line sits under the group heading
+    ("20.20", "Supplying, Installation"): "20.20.1",  # the 80 mm dia line likewise
+    ("5190", "Supplying, Installation"): "20.15",  # analysis of 20.15 carries the resource code
+}
+# Children numbered 31.2.n under the heading 31.1 are 31.1.n.
+ANALYSIS_CHILD_PREFIX = {"31.1": ("31.2.", "31.1.")}
+# A header that repeats the code of the next one right after another header is a mislabel of the item before.
+ANALYSIS_BLANK_AFTER = {("42.11.6", "42.11.7")}
+
+# Labour lines of chapter 39 without a resource code, at the Appendix I rate: description -> (code, name, rate).
+ANALYSIS_LABOUR = {"wiremen": (1001, "Wireman", 981), "khallasi": (1007, "Khallasi", 805)}

@@ -43,6 +43,14 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 | DAR 30.10.1.x (group 30.10.1) | 30.10.x (30.10) | |
 | DAR 5.1.4 | 26.1.4 | |
 
+### Analyses (workbook defects corrected on import)
+- 4.2.9 and 4.2.14: the book and DAR have no headings; headers inserted between the two analyses that are run together.
+- 19.3.1 (100 W) and 20.20.1 (80 mm dia): their lines sat under the group heading; 20.15: its analysis carried the resource code 5190 as item code.
+- 31.1.1-31.1.3: numbered 31.2.1-31.2.3 under heading 31.1.
+- 42.11.6 (immersion temperature sensor): its lines sat under a second, wrongly numbered 42.11.7 header.
+- Chapter 39 labour lines without a code ("Wiremen", "Khallasi") at the Appendix I rates mapped to 1001 and 1007.
+- Four sub-heading rows of Appendix II that carry schedule item numbers (35.1, 19.2, 19.3, 40.2) dropped from the resources.
+
 ## 3. Observations in the sources (not all changed)
 
 ### Book
@@ -72,8 +80,8 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 | | Book | Database |
 |---|---|---|
 | Schedule rows | 2,439 coded rows, 2,118 priced, 13 DELETED | 2,428 rows, 2,128 priced, 300 headings |
-| Resources | 2,193 | 2,214 (15 auto-created `R…` codes) |
-| Items with an analysis | | 2,119 of 2,128 priced |
+| Resources | 2,193 | 2,209 (14 `R…` codes, 3 civil codes 15.4/15.7/15.9) |
+| Items with an analysis | | 2,126 of 2,128 priced (15.7 and 15.9 are civil items) |
 
 - Schedule rates: 2,069 equal; 31 differ through the slip; 3 other (11.1.35, 31.12.3 after renumbering; 42.11.18 parse noise).
 - Schedule units: 2,101 compared, all equal.
@@ -81,14 +89,15 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 - Only in the database: 11.1.36, 23.4.1-4, 31.12.2, 30.11.4.1-10 (missed by the reading), 1.1, 1.1.1.
 - Only in the book: the 13 DELETED items and 39.10.
 - Appendix rates: 2,156 equal; 6 differ (5246-5249 slip; 1528 and 3059 reading noise).
+- Analyses matched on import: 2,126; 26 blocks stay unmatched (`#REF!` blocks of chapter 25, deleted 6.1, 6.11 and 39.10).
 - Chapters with different priced counts: 1 (175/176), 6 (10/7, deleted items), 15 (20/22), 19 (32/30), 30 (168/177, 30.11.4.x), 35 (27/26), 39 (41/45).
 
 ## 5. Gaps
 
-- Priced items without an analysis: 4.2.9, 4.2.14, 19.3.1, 20.15, 20.20.1, 31.1.1-31.1.3, 42.11.6, and 15.7/15.9 (rates from the Civil DSR).
-- Analyses of slip items (list in section 3) need new amounts if the analysis is to agree with the rate.
-- 27 analysis blocks stay unmatched: `#REF!` blocks of chapter 25, deleted items 6.1, 6.11 and 39.10, and the resource analysis 5190.
-- 15 auto-created resources (`R…` codes, such as Khallasi and Battery Rack lines) and 112 unused resources need review or mapping to Appendix II.
-- Chapter 15 rates come from the Civil DSR, which this database does not hold.
-- Analyses are verified against the DAR for part of the items only; the rest rely on the workbook.
-- The slip was read by eye; a second reading of the 40.x lines is advisable.
+- 15.7 and 15.9 are priced from the Civil DSR (no analysis); other chapter 15 items have the three civil rates filled from the analyses only.
+- Analyses of slip items (list in section 3) keep the old DAR amounts: the slip gives no corrected analysis and no Appendix II change that would explain the new rates. The published rate is kept.
+- 26 analysis blocks stay unmatched: `#REF!` blocks of chapter 25, deleted 6.1, 6.11 and 39.10.
+- 14 resources with `R…` codes come from DAR lines that have no ICD number (battery rack, valve cladding, cold water tanks, insulation, excavation, a Khallasi line at Rs 663). They keep their DAR rates; mapping them to Appendix II needs a decision on the rates.
+- 105 Appendix II resources are not used by any analysis; they are kept as published.
+- Analyses are verified against the DAR for part of the items only (1,188 with a readable rate); the rest rely on the workbook.
+- The slip was read by eye; item texts of 39.x and 40.x were re-checked against the database after the build.
