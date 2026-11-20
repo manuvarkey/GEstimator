@@ -35,7 +35,7 @@ def library_catalog():
 
 
 def defaults():
-    return dict(export_break_items=True, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
+    return dict(export_break_items=True, live_search=False, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
                 number_locale="", currency_code="INR", show_currency_symbol=False,
                 ana_default_rows=template_rows(misc.ana_default_add_items), ana_copy_rows=[])
 
@@ -73,6 +73,8 @@ def validate(settings):
     base.update({key: settings[key] for key in base if key in settings})
     if type(base["export_break_items"]) is not bool:
         raise ValueError("Choose whether exported descriptions should be split")
+    if type(base["live_search"]) is not bool:
+        raise ValueError("Choose whether to search as you type")
     locale = base["number_locale"]
     if not isinstance(locale, str) or (locale and not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,4}", locale)):
         raise ValueError("Choose a valid regional locale, such as en-IN")

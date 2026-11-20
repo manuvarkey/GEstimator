@@ -141,6 +141,26 @@ class WorksheetLayoutTests(AnalysisImportResilienceTests):
                          [Decimal("0.01"), Decimal("0.04"), Decimal("0.15"), Decimal("0.1")])
         self.assertEqual(item.get_ana_rate(), Decimal("33252.12"))
 
+    def test_unlabelled_section_total_is_not_a_percentage(self):
+        # DSR (E&M) 2025 30.3.10: the insulation section total has no label.
+        drafts, warnings = self.parse([
+            ["30.3.10", "Chilled water piping"],
+            ["ICD No.", "Descripion", "Unit", "Qty.", "Rate", "Amount"],
+            ["4248", "Pipe", "per meter", 10, 768.6, 7686],
+            ["", "add for wastage@5%", None, None, None, 384.3],
+            ["", "Total of (AI)", None, None, None, 8070.3],
+            ["4026", "Insulation", "per meter", 10, 152.542, 1525.42],
+            ["", "add for wastage@10%", None, None, None, 152.542],
+            ["", None, None, None, None, 1677.962],
+            ["3023", "Cladding", "per sq meter", 5.1843, 360, 1866.35],
+            ["", "Total of (A(1)+A(2)+A(3))", None, None, None, 11614.6],
+        ])
+        item = drafts["30.3.10"]
+        self.assertEqual([row.get("value") for row in item.ana_items if row["itemtype"] == 2],
+                         [Decimal("0.05"), Decimal("0.1")])
+        # Resource rates are kept to the paisa (152.54), hence .59 rather than .61.
+        self.assertEqual(item.get_ana_rate(), Decimal("11614.59"))
+
     def test_running_total_after_group_and_deductions(self):
         drafts, warnings = self.parse([
             ["27.13", "Orifice plate"],

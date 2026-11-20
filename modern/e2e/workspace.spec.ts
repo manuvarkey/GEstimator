@@ -1256,7 +1256,14 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(colour).toBeVisible();
   await colour.getByRole("button", { name: "Close", exact: true }).click();
   await expect(colour).not.toBeVisible();
+  // An item with subitems is priced through them: no analysis editor for it.
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await expect(page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true })).toBeDisabled();
+  await page.keyboard.press("ControlOrMeta+e");
+  await expect(page.locator(".statusbar .status-notice")).toContainText("has subitems");
+  await expect(page.locator("#view-schedule")).toHaveAttribute("aria-selected", "true");
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Child work" }).click();
+  await expect(page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true })).toBeEnabled();
   await page.keyboard.press("ControlOrMeta+e");
   await applyRecordsIfDirty(page);
   await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
@@ -1274,6 +1281,8 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await expect(custom).not.toBeVisible();
   await applyRecordsIfDirty(page);
   await page.locator("#view-resources").click();
+  // The new subitem's analysis started from the default template rows.
+  await page.getByRole("dialog", { name: "Keep your analysis changes?" }).getByRole("button", { name: "Apply and continue" }).click();
   await main.locator('[tabulator-field="description"]').filter({ hasText: /^Materials$/ }).click();
   // GTK accelerators also work while focus is in the active ribbon.
   await page.locator(".ribbon").getByRole("button", { name: "Add item", exact: true }).focus();
@@ -2860,6 +2869,54 @@ test("feedback: scroll position, zero formatting, palette and native save/export
   await expect(page.getByRole("dialog", { name: "Export project workbook" })).toHaveCount(0);
 });
 
+test("search shows the first rows, can search as you type and analysis lines take remarks", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const path = resolve(directory, "search.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
+  execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);[d.insert_item_atomic(ScheduleItemModel(str(i),'Item '+str(i),'m',rate=0,qty=0,category='Work')) for i in range(80)];d.close_database()", path], { cwd: resolve("..") });
+  await openFixture(page, path);
+  await applyRecordsIfDirty(page);
+  await page.locator("#view-schedule").click();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const holder = grid.locator(".tabulator-tableholder");
+  const search = page.locator(".project-view:visible").getByLabel("Search project table");
+  const description = (text: RegExp) => grid.locator('[tabulator-field="description"]').filter({ hasText: text });
+  await holder.evaluate(element => element.scrollTop = 700);
+  await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(700);
+  await search.fill("Item");
+  await search.press("Enter");
+  await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBe(0);
+  await expect(description(/^Foundation$/)).toHaveCount(0);
+  // Typing alone does not search until "Search as you type" is on.
+  await search.fill("Foundation");
+  await page.waitForTimeout(600);
+  await expect(description(/^Item 1$/)).toHaveCount(1);
+  const settings = page.getByRole("dialog", { name: "Program settings", exact: true });
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Program settings…", exact: true }).click();
+  await settings.getByRole("checkbox", { name: "Search as you type", exact: true }).check();
+  await settings.getByRole("button", { name: "Save program settings" }).click();
+  await expect(settings).not.toBeVisible();
+  await search.fill("Foundatio");
+  await expect(description(/^Foundation$/)).toHaveCount(1);
+  await expect(description(/^Item 1$/)).toHaveCount(0);
+  await search.fill("");
+  await expect(description(/^Item 1$/)).toHaveCount(1);
+  // Resource lines in an analysis carry their own remarks.
+  await description(/^Foundation$/).click();
+  await page.keyboard.press("ControlOrMeta+e");
+  await applyRecordsIfDirty(page);
+  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  const analysis = page.getByRole("grid", { name: "Rate analysis table" });
+  await expect(analysis.locator('.tabulator-col[tabulator-field="remarks"]')).toContainText("REMARKS");
+  const remark = analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="remarks"]').first();
+  await remark.dblclick();
+  await page.keyboard.type("Rate as in the book");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await call("state")).result.rows[0]._children[0].remarks).toBe("Rate as in the book");
+  await expect(remark).toContainText("Rate as in the book");
+});
+
 test("feedback: analysis and measurement records share cell-range dragging", async ({ page }) => {
   await refinementFixture(page);
   await page.locator('.project-view:visible [tabulator-field="description"]').filter({ hasText: /^Foundation$/ }).click();
@@ -2876,7 +2933,8 @@ test("feedback: analysis and measurement records share cell-range dragging", asy
   };
   await drag(first, last);
   await expect(analysis.locator('.tabulator-row.tabulator-selected')).toHaveCount(2);
-  await expect(analysis.locator('.cell-range-selected')).toHaveCount(6);
+  // Description, remarks, unit and quantity on both rows.
+  await expect(analysis.locator('.cell-range-selected')).toHaveCount(8);
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("");
   await page.screenshot({ path: "test-results/analysis-cell-selection.png", animations: "disabled" });
   await analysis.focus();

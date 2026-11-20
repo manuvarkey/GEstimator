@@ -7,6 +7,7 @@ import AppIcon from "./AppIcon.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import type { ColumnDefinition } from "tabulator-tables";
 import { request } from "../backend";
+import { useLiveSearch } from "../liveSearch";
 const visible = defineModel<boolean>({ required: true });
 const props = defineProps<{
   analysis?: boolean;
@@ -47,8 +48,21 @@ const columns: ColumnDefinition[] = [
   { title: "UNIT", field: "unit", width: 64, minWidth: 45, widthShrink: 1, tooltip: true },
   { title: "RATE", field: "rate", width: 104, minWidth: 72, widthShrink: 1, hozAlign: "right", tooltip: true },
 ];
+let searchedQuery = "";
+const liveSearch = useLiveSearch(query, () => searchedQuery, () => search());
+/** Load the first page of results for the current search and filters. */
+async function search() {
+  liveSearch.cancel();
+  return goToPage(0);
+}
+async function goToPage(index: number) {
+  page.value = index;
+  await pickerTable.value?.scrollToTop();
+  return load();
+}
 async function load() {
   const token = ++loadRequest;
+  searchedQuery = query.value;
   preview.value = undefined;
   selected.value = [];
   if (!source.value || props.mode === "rates") return;
@@ -67,7 +81,7 @@ function changeSource() {
   categoryFilters.value = []; categories.value = []; rows.value = []; total.value = 0; page.value = 0;
   void load();
 }
-function filterCategories(values: string[]) { categoryFilters.value = values; page.value = 0; void load(); }
+function filterCategories(values: string[]) { categoryFilters.value = values; void search(); }
 async function initialize() {
   error.value = ""; preview.value = undefined;
   try {
@@ -114,9 +128,9 @@ async function applyRules(params: Record<string, unknown>) {
     <p v-if="!libraries.length">Attach databases in the Databases tab, then return here.</p>
     <template v-if="mode === 'add' && libraries.length">
       <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>
-      <div class="project-filter-bar"><form class="search-field" @submit.prevent="page = 0; load()"><AppIcon name="search" :size="16" /><input data-primary-input autofocus v-model="query" aria-label="Find database items" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
+      <div class="project-filter-bar"><form class="search-field" @submit.prevent="search()"><AppIcon name="search" :size="16" /><input data-primary-input autofocus v-model="query" aria-label="Find database items" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
       <div class="database-picker-grid"><DataTable class="fit-table" :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="(row, keys) => activate(row, keys?.ctrl ?? false)" /></div>
-      <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="page--; load()">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="page++; load()">Next</button></div>
+      <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="goToPage(page - 1)">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="goToPage(page + 1)">Next</button></div>
     </template>
     <template v-if="mode === 'rates'">
       <p class="field-hint">{{ kind === 'schedule' ? 'Loads the stored schedule rate; descriptions and analysis rows stay intact.' : 'Loads base rates, tax, discount and reference, then recalculates affected analyses.' }} The database file remains unchanged; Undo restores the update.</p>

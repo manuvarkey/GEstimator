@@ -646,3 +646,35 @@ The importer was checked against the source analysis sheets of the 2016 database
 ## 2026-11-20 — DSR (E&M) 2025 database
 
 `Other databases/DSREM2025.eproj` built from `spreadsheets/DSREM2025` with `tools/prepare_dsrem2025.py` and `tools/build_dsrem2025.py` (see the folder README): 2,425 schedule items in 41 chapter categories (code hierarchy), 2,196 resources in 71 categories, 2,099 analyses attached (47 analyses have no matching schedule item). Settings: name "DSR E&M 2025", item code prefix DSREM25, resource code prefix DE25 (distinct from 2022's DE). Published rates are kept; 1,937 analyses reproduce them exactly, 113 within ₹2, and 49 differ because of inconsistencies in the book. Importer fixes found while building: headings in the code hierarchy keep their own Category column; priced rows without a unit are items; a repeated analysis code attaches the block closest to the item's rate. Database notes are not written yet (roadmap).
+
+## 2026-11-20 — DSR (E&M) 2025 reconciliation, search and analysis editing
+
+- DSR (E&M) 2025 rebuilt (`spreadsheets/DSREM2025/README.md`). Prepare: CH-16's seven-column layout (an extra unit column before Rate) no longer drops the amounts; repeated schedule codes are renumbered as the analyses number them (11.1.34–36, 23.4.1–4, 24.9.6); analyses numbered differently from the schedule move to the item with the same description and published rate (31.12.x, 8.19.x, 30.10.x, 26.1.4, 20.15). Build: `tools/dsrem2025_reconcile.py` keeps every book line amount — codeless or mis-coded lines are relinked to the matching Appendix II resource or become the "X – Unit item" resource (rate 1, quantity = amount) with the book's description in the line remarks; other differences back-calculate the quantity; book subtotals that count a row twice get a unit item adjustment, kept only when it reaches the published rate. Result: analyses matched 2,099 → 2,123; analysis rates differing from the published rate by more than ₹1: 60 → 0 (84 within ₹0.10 and 19 within ₹1 from unrounded intermediate amounts); priced items without an analysis 39 → 20 (none in the book). All 104 line changes are in `corrections.csv`.
+- Analysis import: an unlabelled amount equal to the section or running total is a total, not a percentage (30.3.10 imported a ×1.10002 weight).
+- Schedule rows report `has_children`; items with subitems cannot be opened in the Analysis editor (ribbon, context menu, Ctrl+E, double-click; `analysis.load` refuses them). Bundled databases have no parent item with an analysis.
+- Analysis resource lines show an editable Remarks column. It shares the free width with the description and is hidden in a fitted pane narrower than 720 px (the fixed numeric columns leave no room); it shows again when the pane widens or scrolls (< 500 px).
+- Searching (and paging) Schedule, Resources and the database picker shows the first rows. Program setting "Search as you type" (off by default) searches 300 ms after typing stops; a search typed while the view is busy runs when it is free.
+- Tauri: `Queue::opened` is compiled only for macOS/iOS and tests (dead-code warning on other platforms).
+
+Validation: 178 Python tests; `vue-tsc`, production build; browser suite 82 passed (new search/live search/remarks scenario; insertion scenario checks the subitem rule; perf scenario skipped by default).
+
+## 2026-11-20 — DSR (E&M) 2025: coefficients kept, Correction Slip No. 1, book remarks
+
+- Policy: analysis coefficients are the book's and are never changed. Line amounts that differ from coefficient × Appendix II rate, and subtotals that add a row twice, are documented (line remarks, analysis remarks, `spreadsheets/DSREM2025/discrepancies.csv`). Lines with a coefficient but no Appendix II resource get a resource with a rate back-calculated from the book (17 resources, category RESOURCES FROM ANALYSES); only rows without a coefficient use the "X – Unit item" resource (30.15–30.18).
+- Correction Slip No. 1 (27-11-2025) transcribed (`correction_slip_1.csv`, `correction_slip_1_analysis.csv`) and applied by the prepare step: 31 schedule rates (4 already in the workbook), 39.10 deleted, two descriptions, specification notes, Appendix II 5246–5249, resource 1021 Technician; corrected analyses 19.1.6, 19.10.1, 27.17.2, 28.1.10. All analyses but 11.2.23/11.2.24 (Appendix II kit rates inverted; documented) reproduce the published rates within ₹1.
+- Book remarks under resource lines are imported: the prepare step wrote notes starting with "=" as formulas, which the importer could not evaluate. Lines with remarks 132 → 707.
+- Analysis Remarks column shown in italics with the muted text colour.
+
+Validation: 178 Python tests; `vue-tsc`, production build; browser tests for search/remarks, compact widths and cell ranges pass.
+
+## 2026-11-20 — DSR (E&M) 2025: slip specifications merged, kit rates 2322/2323
+
+- Correction Slip No. 1 specification changes are merged into the schedule descriptions as exact phrase replacements (46 phrases in 22 items, each verified present); chapter 40 camera/NVR specifications are not in the schedule workbook and stay as remarks.
+- Appendix II 2322/2323 (3½ × 150 / 185 sq. mm outdoor kits) swapped to ₹946/₹1326, derived from the slip's swap of 11.2.23/11.2.24. All analyses now reproduce the published rates within ₹1 (0 larger differences).
+
+## 2026-11-20 — DSR (E&M) 2025 schedule from the printed book
+
+- `tools/printed_dsrem2025.py` reads the printed `DSR E&M 2025.pdf` (poppler `pdftohtml -xml`: positions and font sizes) and the prepare step takes the schedule's numbering, descriptions (with full specification lists and group subheadings), units and rates from it. All 2,434 printed items pair with workbook rows (order-preserving alignment per chapter); chapter 6 takes the printed numbering (6.2–6.15) and its analyses follow; 703 workbook continuation rows are replaced by the printed text.
+- Rates: printed unless the item's analysis contradicts it while the workbook agrees (194 of 199 differences, e.g. 1.14.3 printed ₹4508 against ₹373 in the printed analysis); 5 printed rates used. `printed_differences.csv` lists every difference.
+- All Correction Slip No. 1 phrase changes now apply to the printed text, chapter 40 included (55 phrases). Every analysis still reproduces its published rate within ₹1.
+

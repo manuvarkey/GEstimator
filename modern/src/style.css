@@ -1159,6 +1159,15 @@ textarea::placeholder {
 .analysis-table .tabulator-row.tabulator-row-even {
   background: var(--workspace);
 }
+/* Line remarks are notes, set apart from the resource description. */
+.analysis-table .tabulator-row .tabulator-cell.analysis-remarks {
+  font-style: italic;
+  color: var(--muted);
+}
+.analysis-table .tabulator-row.tabulator-selected .tabulator-cell.analysis-remarks,
+.analysis-table .tabulator-row .tabulator-cell.analysis-remarks.tabulator-editing {
+  color: inherit;
+}
 .analysis-table .tabulator-row .tabulator-cell {
   padding: 13px 9px;
   border-right: 1px solid var(--line-soft);

@@ -16,5 +16,9 @@ The project settings now hold **Database notes** (`project_metadata`, Markdown),
 
 ## Databases
 
-- [ ] Bring DSR E&M 2025 to full shape: apply the latest amendments/correction slips, resolve the book inconsistencies listed in `spreadsheets/DSREM2025/README.md` (duplicate codes, analyses without schedule items, resource rate/code mismatches, chapter 16 totals) and write its database notes.
+- [x] Resolve the DSR E&M 2025 book inconsistencies (duplicate codes, analyses numbered differently, resource rate/code mismatches, chapter 16 layout, book arithmetic): every analysis now reproduces its published rate within ₹1; changes are listed in `spreadsheets/DSREM2025/corrections.csv`.
+- [x] Apply DSR E&M 2025 Correction Slip No. 1 (27-11-2025) to schedule, Appendix II and analyses.
+- [x] Take the DSR E&M 2025 schedule text, numbering and rates from the printed book (rates checked against the analyses).
+- [ ] Decide the 194 DSR E&M 2025 items whose printed schedule rate disagrees with the printed analysis, and whether the printed Appendix I/II should replace the workbook's (63 rate differences).
+- [ ] Finish DSR E&M 2025: fix Appendix II descriptions that carry the previous section's heading, import the two-level headings 30.7/30.11, and write its database notes (remaining gaps in `spreadsheets/DSREM2025/README.md`).
 - [ ] Then make DSR E&M 2025 the bundled E&M database: move `Other databases/DSREM2025.eproj` to `estimator/database/`, move `estimator/database/DSREM2022.eproj` to `Other databases/`, and update bundled-source references (MCP tests use `bundled:DSREM2022.eproj`, packaging, documentation).

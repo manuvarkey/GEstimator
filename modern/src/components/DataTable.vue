@@ -24,7 +24,7 @@ const props = defineProps<{
   label?: string;
   selectIds?: string[];
   saveCell?: (row: any, field: string, value: string) => Promise<boolean>;
-  actions?: { label: string; action: string; itemOnly?: boolean; single?: boolean }[];
+  actions?: { label: string; action: string; itemOnly?: boolean; single?: boolean; leafOnly?: boolean }[];
 }>();
 const emit = defineEmits<{
   selection: [rows: { id: string; [key: string]: any }[]];
@@ -102,6 +102,13 @@ defineExpose({
     }
   },
   redraw,
+  /** Show the first rows, e.g. before loading new search results. */
+  scrollToTop: async () => {
+    await ready;
+    const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+    if (viewport) viewport.scrollTop = 0;
+    savedPosition = { ...savedPosition, top: 0 };
+  },
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
 });
 function editorColumns(columns: ColumnDefinition[]) {
@@ -277,7 +284,7 @@ onMounted(() => {
       if (props.busy || !props.actions?.length) return [];
       if (!row.isSelected()) { table.deselectRow(); row.select(); }
       const selected = table.getSelectedData();
-      return props.actions.filter(item => (!item.single || selected.length === 1) && (!item.itemOnly || selected.every(row => row.rowtype !== "Category")))
+      return props.actions.filter(item => (!item.single || selected.length === 1) && (!item.itemOnly || selected.every(row => row.rowtype !== "Category")) && (!item.leafOnly || selected.every(row => !row.has_children)))
         .map(item => ({ label: item.label, action: () => emit("action", item.action) }));
     },
     columnDefaults: {
