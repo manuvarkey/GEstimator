@@ -13,6 +13,11 @@ from .numbers import decimal
 from .mcp_writes import Writes
 
 
+READ_NOTES = ("This source has database notes. Read describe_source (overview) and describe_source "
+              "section=category:<name> for each category you take items from before choosing items: "
+              "they explain what the items include and how to pick the right one.")
+
+
 def item_rows(db, kind):
     table = db.ResourceTable if kind == "resource" else db.ScheduleTable
     category = db.ResourceCategoryTable if kind == "resource" else db.ScheduleCategoryTable
@@ -118,10 +123,10 @@ class Workspace(Writes):
         for identity, (name, db) in self.editor.libraries.items():
             counts = dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count())
             enrichment = metadata.presentation(db)
-            notes = db.get_project_settings().get("project_metadata") or ""
+            notes, category_notes = metadata.notes(db)
             sources.append(dict(id=identity, name=name, counts=counts,
                 summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources",
-                **({"metadata": notes[:600] + ("…" if len(notes) > 600 else "")} if notes else {})))
+                **({"metadata": notes[:600] + ("…" if len(notes) > 600 else ""), "read_first": READ_NOTES} if notes or category_notes else {})))
         state = dict(project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
         if service.db:
             db = service.db
@@ -140,17 +145,26 @@ class Workspace(Writes):
             from .dictionary import entries
             return dict(entries=entries("\n".join(row.description or "" for kind in ("schedule", "resource") for row in item_rows(db, kind)), enrichment, self.user_dictionary()))
         groups = {kind: metadata.categories(db, kind, enrichment) for kind in ("schedule", "resource")}
+        general, category_notes = metadata.notes(db)
         if section == "categories":
+            for rows in groups.values():
+                for row in rows:
+                    row["notes"] = row["name"] in category_notes
             return groups
         if section.startswith("category:"):
             name = section.partition(":")[2]
-            return {kind: [row for row in rows if row["name"] == name] for kind, rows in groups.items()}
+            result = {kind: [row for row in rows if row["name"] == name] for kind, rows in groups.items()}
+            if name in category_notes:
+                result["notes"] = category_notes[name]
+            return result
         if section != "overview":
             raise ToolError("invalid_arguments", "Unknown source section", "section", ["overview", "categories", "category:<name>", "dictionary", "schema"])
         settings = db.get_project_settings()
         # Author-maintained notes (Markdown): scope, rate basis, revision, conventions.
         result = dict(settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
-                      metadata=settings.get("project_metadata") or "", categories={kind: [dict(name=c["name"], count=c["count"]) for c in rows] for kind, rows in groups.items()})
+                      metadata=general, categories={kind: [dict(name=c["name"], count=c["count"], **({"notes": True} if c["name"] in category_notes else {})) for c in rows] for kind, rows in groups.items()})
+        if category_notes:
+            result["category_notes"] = "Each category marked notes=true has its own notes: read describe_source section=category:<name> before choosing items from it."
         if enrichment:
             result.update(enrichment=enrichment.get("database", {}), provenance=enrichment.get("provenance", {}), ai_generated=True)
         return result
@@ -162,7 +176,12 @@ class Workspace(Writes):
     def search_items(self, args, warnings):
         from .search import search
         _, db = self.source(args.get("source", "project"))
-        return search(self.service, db, args["kind"], args["query"], args.get("limit", 20), args.get("category"), self.user_dictionary())
+        result = search(self.service, db, args["kind"], args["query"], args.get("limit", 20), args.get("category"), self.user_dictionary())
+        general, category_notes = metadata.notes(db)
+        found = list(dict.fromkeys(row["category"] for row in result["items"] if row["category"] in category_notes))
+        if general or found:
+            result = dict(result, notes=dict(read_first=READ_NOTES, categories=found))
+        return result
 
     def browse(self, args, warnings):
         _, db = self.source(args.get("source", "project"))

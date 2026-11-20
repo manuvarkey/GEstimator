@@ -2,6 +2,7 @@
 
 Runs the same backend operations as the desktop import screens, in order:
 schedule (code hierarchy), resources, then analyses from all chapter sheets.
+The database notes come from spreadsheets/DSREM2025/database_notes.md.
 Resource lines are then reconciled with the book (tools/dsrem2025_reconcile.py:
 changes in spreadsheets/DSREM2025/corrections.csv, the book's differences in
 discrepancies.csv).
@@ -39,7 +40,9 @@ def main():
     try:
         call("project.new")
         call("project.settings.edit", settings=dict(
-            project_name="DSR E&M 2025", project_item_code="DSREM25", project_resource_code="DE25"))
+            project_name="DSR E&M 2025", project_item_code="DSREM25", project_resource_code="DE25",
+            # Database notes for AI clients (MCP describe_source); "## Category:" sections per chapter.
+            project_metadata=(FOLDER / "database_notes.md").read_text(encoding="utf-8")))
         schedule = dict(kind="schedule", path=str(FOLDER / "schedule.xlsx"), header_row=1, mapping=SCHEDULE_MAPPING, hierarchy=True)
         report["schedule"] = call("project.import_apply", duplicates="skip", **schedule)
         report["resources"] = call("project.import_apply", kind="resources", path=str(FOLDER / "resources.xlsx"),

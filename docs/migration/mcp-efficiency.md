@@ -120,7 +120,7 @@ Keep these under about 300 tokens, sent once in the `initialize` response:
 ```
 GEstimator estimate workspace. Items are addressed by code within a source
 ("project", an attached id, "bundled:<file>" or a .eproj path; naming a source attaches it).
-1. Start with get_state. Use describe_source to understand an unfamiliar database.
+1. Start with get_state. Before choosing items, read the source notes: describe_source, then section=category:<name> per category used. They explain what items include and which to pick.
 2. Find items with search_items; use browse only to explore one category or parent.
 3. Import with import_items (parents are included); create or edit with upsert_items.
 4. Measurements: get_measurements section=templates for real columns, then edit_measurements

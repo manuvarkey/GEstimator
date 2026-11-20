@@ -16,7 +16,7 @@ VERSION = "2025-11-25"
 log = logging.getLogger("gestimator.actions")
 VERSIONS = (VERSION, "2025-06-18", "2025-03-26")
 INSTRUCTIONS = """GEstimator estimate workspace. Items use codes within a source (project, an attached id, bundled:<file>, or an .eproj path; naming a source attaches a snapshot).
-1. Start with get_state; use describe_source for unfamiliar databases.
+1. Start with get_state. Before choosing items, read the source notes: describe_source, then section=category:<name> per category used. They explain what items include and which to pick.
 2. Find with search_items; browse explores a category or parent.
 3. import_items includes ancestors; upsert_items creates/edits items. Placement defaults to natural code order.
 4. get_measurements section=templates exposes real columns; edit_measurements accepts records keyed by title. recalculate what=quantities pushes totals.

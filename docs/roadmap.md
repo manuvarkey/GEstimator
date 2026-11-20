@@ -6,8 +6,11 @@ Planned work that is designed but not yet done. Completed work is recorded in `d
 
 The project settings now hold **Database notes** (`project_metadata`, Markdown), edited in Project settings with a preview and returned to MCP clients by `describe_source` (`metadata`) and `get_state` (an excerpt per attached source).
 
-- [ ] Write notes for each bundled and reference database (DSR 2021, DSR E&M 2022, DSR E&M 2025 — include the book inconsistencies listed in `spreadsheets/DSREM2025/README.md`, DSR 2016, DSR E&M 2016, DSR BLDC 2019): issuing authority and edition, effective date, rate basis (taxes, cess, overheads and profit included or not), cartage and wastage conventions, code systems (ICD / material codes, item numbering), units, known corrections and errata, and links to the published volumes.
-- [ ] Decide a short heading structure for notes (Scope, Rate basis, Codes, Conventions, Errata) so MCP clients can rely on it.
+Notes are written for AI agents choosing items for an estimate or analysis: basic metadata (issuer, edition, corrections, specifications, rate basis, codes, units) and, per category, what the items cover, how they are arranged and how to pick the right one. A level-2 heading `## Category: <name>` starts the notes of that category; `describe_source` returns the general part in its overview and each category's notes with `section=category:<name>`, and `get_state` and `search_items` point agents to them.
+
+- [x] DSR E&M 2025 (`spreadsheets/DSREM2025/database_notes.md`, loaded by the build).
+- [ ] Write notes for the other bundled and reference databases (DSR 2021 with the civil database update, DSR E&M 2022, DSR 2016, DSR E&M 2016, DSR BLDC 2019) in the same structure.
+- [x] Decide the heading structure for notes (general part, then `## Category:` sections).
 - [ ] Optionally show notes in the database picker and the Databases tab (read-only, rendered Markdown).
 
 ## Desktop verification

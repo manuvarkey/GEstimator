@@ -58,7 +58,7 @@ def operation(name, description, properties=None, required=(), write=False):
 
 
 operation("get_state", "Project state/sources.")
-operation("describe_source", "Source docs (author notes), schema.", dict(source=S, section=S))
+operation("describe_source", "Source notes; read first. Schema.", dict(source=S, section=S))
 operation("search_items", "Ranked item search.", dict(source=S, query=dict(type="string", maxLength=500), kind=KINDS, category=S, limit=dict(type="integer", minimum=1, maximum=50)), ("query", "kind"))
 operation("browse", "Paged category/parent hierarchy.", dict(source=S, kind=KINDS, under=S, depth=dict(type="integer", minimum=1, maximum=10), offset=N, limit=dict(type="integer", minimum=1, maximum=200), fields=FIELDS), ("kind",))
 operation("get_items", "Definitions/relations by code.", dict(source=S, kind=KINDS, codes=CODES, include=array(enum("analysis", "resources", "children", "parent", "usage", "dependents"), 6)), ("kind", "codes"))

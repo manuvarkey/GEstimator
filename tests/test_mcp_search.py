@@ -44,6 +44,31 @@ class MCPSearchTests(unittest.TestCase):
         self.assertTrue(any(e["term"] == "RCCB" and any("residual" in x.casefold() for x in e["expand"]) for e in entries))
         self.assertTrue(any(e["term"] == "MCB" and any("miniature" in x.casefold() for x in e["expand"]) for e in entries))
 
+    def test_database_notes_are_offered_before_choosing_items(self):
+        self.tool("project", action="new")
+        notes = "# Notes\n\nGeneral rules.\n\n## Category: WIRING\nGroups follow the building type.\n\n## Codes\nChapter.item."
+        self.tool("project", action="set_settings", settings=dict(project_metadata=notes))
+        self.tool("upsert_items", kind="schedule", items=[dict(code="1.1", description="Light point wiring", category="WIRING", unit="Point", rate="1"),
+                                                          dict(code="2.1", description="Light point MCB", category="MCB", unit="Each", rate="1")])
+        overview = self.tool("describe_source")
+        self.assertEqual(overview["metadata"], "# Notes\n\nGeneral rules.\n\n## Codes\nChapter.item.")
+        self.assertEqual({c["name"]: c.get("notes", False) for c in overview["categories"]["schedule"]}, {"WIRING": True, "MCB": False})
+        self.assertIn("category:<name>", overview["category_notes"])
+        self.assertEqual(self.tool("describe_source", section="category:WIRING")["notes"], "Groups follow the building type.")
+        self.assertNotIn("notes", self.tool("describe_source", section="category:MCB"))
+        found = self.tool("search_items", kind="schedule", query="light point")
+        self.assertEqual(found["notes"]["categories"], ["WIRING"])
+        self.assertIn("describe_source", found["notes"]["read_first"])
+
+    def test_bundled_em_database_carries_category_notes(self):
+        overview = self.tool("describe_source", source="bundled:DSREM2025.eproj")
+        self.assertIn("Correction Slip No. 1", overview["metadata"])
+        schedule = overview["categories"]["schedule"]
+        self.assertTrue(schedule and all(c.get("notes") for c in schedule))
+        self.assertIn("Group A", self.tool("describe_source", source="bundled:DSREM2025.eproj", section="category:WIRING")["notes"])
+        state = self.tool("get_state")
+        self.assertTrue(any("read_first" in source for source in state["sources"]))
+
     def test_custom_source_without_metadata_search_cache_undo_and_clear_enrichment(self):
         self.tool("project", action="new")
         self.tool("upsert_items", kind="schedule", items=[dict(code="A", description="Copper wire", category="Electrical", rate="1")])

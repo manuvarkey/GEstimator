@@ -6,6 +6,25 @@ from collections import Counter
 from peewee import DatabaseError
 
 
+CATEGORY_NOTE = re.compile(r"^## Category: *(.+?) *$", re.MULTILINE)
+
+
+def notes(db):
+    """Database notes (Markdown in project settings) split for AI clients:
+    (general text, {category name: text}). A level-2 heading "## Category: NAME"
+    starts the notes of that category and runs to the next level-2 heading."""
+    text = db.get_project_settings().get("project_metadata") or ""
+    general, categories, position = [], {}, 0
+    for match in CATEGORY_NOTE.finditer(text):
+        general.append(text[position:match.start()])
+        following = re.compile(r"^## ", re.MULTILINE).search(text, match.end())
+        end = following.start() if following else len(text)
+        categories[match.group(1)] = text[match.end():end].strip()
+        position = end
+    general.append(text[position:])
+    return "".join(general).strip(), categories
+
+
 def read(db):
     if "meta_enrichment" not in db.database.get_tables():
         return {}
