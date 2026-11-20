@@ -17,6 +17,15 @@ Notes are written for AI agents choosing items for an estimate or analysis: basi
 
 - [x] Exercise project tabs, tab and window close prompts, OS file opening into tabs, resource cut/paste and the import screens in an installed `tauri dev` / release build (confirmed by the user, 2026-11-20).
 
+## Release 3.0.0
+
+The desktop application replaces the GTK application on `master`; GTK is kept on the `archive/gtk` branch. Packages: Windows NSIS, Linux `.deb`/`.AppImage`, Flatpak (`packaging/flatpak`) and Snap (`snapcraft.yaml`), built by `.github/workflows/release.yml` on a `v*` tag.
+
+- [ ] Run the Release workflow once (manual dispatch) and install each package on a clean machine: Windows installer, `.deb` on Ubuntu 22.04, AppImage, Flatpak, Snap (file association, file dialogs, MCP server, recovery folder).
+- [ ] Replace the GTK screenshots in `screenshots/` (README, metainfo) with screenshots of the new interface.
+- [ ] Submit the Flatpak manifest update to Flathub and publish the snap (`snapcraft upload`) under the existing `gestimator` name.
+- [ ] Decide whether `Other databases/` and the GitHub Pages site need updates for 3.0.0.
+
 ## Databases
 
 - [ ] Build DSR 2023 (civil) as the bundled civil database, with notes (to be taken up by the user later).

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name={{name}}
+GenericName=Cost Estimator
+Comment={{comment}}
+Exec={{exec}} %F
+StartupNotify=true
+StartupWMClass={{exec}}
+Icon={{icon}}
+MimeType=application/x-gestimator-project;
+Categories=Office;Finance;
+Keywords=estimate;rate analysis;DSR;civil;electrical;
+Terminal=false

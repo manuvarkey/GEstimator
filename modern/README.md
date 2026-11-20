@@ -1,6 +1,6 @@
-# GEstimator desktop migration workspace
+# GEstimator desktop application
 
-See the [migration handoff](../docs/migration/handoff.md), [architecture and audit](../docs/migration/architecture.md), [feature parity ledger](../docs/migration/parity.md), [validation record](../docs/migration/validation.md), [development guidelines](../docs/development-guidelines.md), [UI guidelines](../docs/ui-guidelines.md) and [roadmap](../docs/roadmap.md). GTK remains available via `gestimator.py`.
+See the [migration handoff](../docs/migration/handoff.md), [architecture and audit](../docs/migration/architecture.md), [feature parity ledger](../docs/migration/parity.md), [validation record](../docs/migration/validation.md), [development guidelines](../docs/development-guidelines.md), [UI guidelines](../docs/ui-guidelines.md) and [roadmap](../docs/roadmap.md). The earlier GTK application is kept on the `archive/gtk` branch.
 
 From the repository root:
 
@@ -14,7 +14,11 @@ cd modern
 npm run tauri dev
 ```
 
-Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/). To build an installer, build the native backend first and then run `npm run tauri build` from `modern`. Cross-compiling Python sidecars is not supported. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
+Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/). To build an installer, build the native backend first and then run `npm run tauri build` from `modern`. Cross-compiling Python sidecars is not supported.
+
+## Linux packages
+
+`npm run tauri -- build --bundles deb,appimage` writes the `.deb` and `.AppImage` under `src-tauri/target/release/bundle/`. Build them on Ubuntu 22.04 for releases: the binaries need a glibc at least as old as the target systems. `packaging/flatpak/build.sh` repackages the `.deb` as a Flatpak (GNOME 51 runtime). `snapcraft.yaml` repackages it as a core22 snap, so its `.deb` must come from Ubuntu 22.04. The [Release workflow](../.github/workflows/release.yml) builds all packages on a version tag. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
 
 ## Windows development and builds
 
@@ -100,7 +104,7 @@ In Schedule, select item rows and use **Row colour…** to apply or clear their 
 
 **Application menu → Project settings…** edits the existing project name/code metadata. Linux typography reads the actual GTK control font family and size and follows font changes; other platforms use native CSS menu typography until platform validation is complete. No external font is downloaded.
 
-The modern workspace is not yet a complete GTK replacement. Consult the parity ledger before relying on a workflow that has not been exercised. Library snapshots preserve their source files.
+Consult the parity ledger for the status of each workflow compared with the GTK application. Library snapshots preserve their source files.
 
 Editor previews: [Schedule](../docs/migration/screenshots/schedule-desktop.png) · [Resources](../docs/migration/screenshots/resources-desktop.png) · [Measurements](../docs/migration/screenshots/measurements-desktop.png).
 

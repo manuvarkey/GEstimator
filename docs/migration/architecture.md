@@ -6,7 +6,7 @@ The initial vertical slice opened version 2 projects in an isolated workspace an
 
 ## Source audit
 
-* `estimator/__init__.py` originally housed MainWindow/MainApp, project lifecycle, imports/exports, settings, worker threads and GTK orchestration. Its implementation now lives unchanged in `gtk_app.py`; lazy public entry points preserve `from estimator import MainApp`. `gestimator.py` remains the GTK executable.
+* `estimator/__init__.py` originally housed MainWindow/MainApp, project lifecycle, imports/exports, settings, worker threads and GTK orchestration. Its implementation lived unchanged in `gtk_app.py` until the GTK interface was removed from `master` (version 3.0.0); it remains on the `archive/gtk` branch.
 * `view/schedule.py` is a GTK TreeStore schedule/category/child editor, with resource-selection dialogs, hierarchical search, multi-selection, copy/paste, quantity/rate updates, colouring and Tab traversal. `view/analysis.py` edits deep copies of `ScheduleItemModel`; calls into the database for existing resource definitions and owns a temporary undo stack. It supports group/resource insertion, resource duplication under a new code, subtotal/weight/times/round, resource remarks, analysis remarks, spreadsheet analysis import and pickle/base64 clipboard payloads. Ctrl+C/V, Tab/Shift+Tab and Escape are explicit view handlers. Main-window actions supply other shortcuts. The modern input accepts bounded arithmetic rather than arbitrary Python expression evaluation.
 * `view/measurement.py` orchestrates headings/custom measurement dialogs, properties, copy/paste and selection. `data/measurement.py` stores serializable headings and custom items, string cell records, schedule references, remarks and user data. Custom templates in `meas_templates` dynamically provide dimensions, column types and calculation callbacks. RecordCustom currently evaluates numeric expressions and uses template arithmetic; it is not a Decimal-only measurement engine. An unused GTK import was removed; no calculation was changed.
 * `data/schedule.py` owns Peewee schemas, CRUD, transactions, analysis parsing and evaluation, dependencies, libraries and openpyxl export. `misc.py` combined constants, path helpers, spreadsheet formatting, command execution and GTK widgets. Widgets/dialogs were extracted to lazy `gtk_misc.py`; Spreadsheet remains headless. Calculation methods remain unchanged. The legacy v1 migration target/connection cleanup was corrected after a failing regression fixture.
@@ -36,7 +36,7 @@ Existing Spreadsheet/openpyxl helpers and all export methods remain authoritativ
 
 The current editor coverage and unfinished parity work are maintained in [the feature parity ledger](parity.md). Schedule, resource and measurement editors, project settings, external-library snapshots, v1 migration and workbook import/export are now implemented. The remaining work includes settings and clipboard workflows, save and recovery stress testing, native-platform validation and workbook equivalence.
 
-The [handoff plan](handoff.md#next-milestones) gives the order for the remaining work. Launch `gestimator.py` for the GTK reference.
+The [handoff plan](handoff.md#next-milestones) gives the order for the remaining work. Check out the `archive/gtk` branch and launch `gestimator.py` for the GTK reference.
 
 References: [Tauri sidecars](https://v2.tauri.app/develop/sidecar/), [Tabulator tree data](https://www.tabulator.info/docs/6.x/tree/), [Tabulator editing](https://www.tabulator.info/docs/6.x/edit/).
 

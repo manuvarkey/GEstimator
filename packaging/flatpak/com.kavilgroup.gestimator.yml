@@ -1,0 +1,35 @@
+# Flatpak of the Tauri desktop application, repackaged from its .deb bundle.
+# Build with packaging/flatpak/build.sh, which copies the .deb here first.
+id: com.kavilgroup.gestimator
+runtime: org.gnome.Platform
+# Provides WebKitGTK 4.1 (Tauri) and a glibc at least as new as the build host.
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: gestimator
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # Local MCP server for AI assistants on the same machine.
+  - --share=network
+  # Projects and databases are opened by path (recent projects, attached databases).
+  - --filesystem=home
+modules:
+  - name: gestimator
+    buildsystem: simple
+    sources:
+      - type: file
+        path: gestimator.deb
+      - type: dir
+        path: ../linux
+        dest: linux
+    build-commands:
+      - ar -x gestimator.deb
+      - tar -xf data.tar.*
+      - install -Dm755 usr/bin/gestimator /app/bin/gestimator
+      - install -Dm755 usr/bin/gestimator-backend /app/bin/gestimator-backend
+      - install -Dm644 linux/applications/com.kavilgroup.gestimator.desktop /app/share/applications/com.kavilgroup.gestimator.desktop
+      - install -Dm644 linux/metainfo/com.kavilgroup.gestimator.metainfo.xml /app/share/metainfo/com.kavilgroup.gestimator.metainfo.xml
+      - install -Dm644 linux/icons/hicolor/scalable/apps/com.kavilgroup.gestimator.svg /app/share/icons/hicolor/scalable/apps/com.kavilgroup.gestimator.svg
+      - install -Dm644 linux/mime/com.kavilgroup.gestimator.xml /app/share/mime/packages/com.kavilgroup.gestimator.xml

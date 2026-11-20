@@ -119,44 +119,8 @@ global_vars_captions = ['Name of Work',
                         'Issuing Authority',
                         'Issuing Authority Office']
 
-# Main menu
-MENU_XML="""
-<?xml version="1.0" encoding="UTF-8"?>
-<interface>
-  <menu id="app-menu">
-    <section>
-      <item>
-        <attribute name="action">app.new</attribute>
-        <attribute name="label" translatable="yes">_New</attribute>
-      </item>
-    </section>
-    <section>
-      <item>
-        <attribute name="action">app.help</attribute>
-        <attribute name="label" translatable="yes">_Help</attribute>
-        <attribute name="accel">F1</attribute>
-      </item>
-      <item>
-        <attribute name="action">app.about</attribute>
-        <attribute name="label" translatable="yes">_About</attribute>
-      </item>
-      <item>
-        <attribute name="action">app.quit</attribute>
-        <attribute name="label" translatable="yes">_Quit</attribute>
-        <attribute name="accel">&lt;Primary&gt;q</attribute>
-    </item>
-    </section>
-  </menu>
-</interface>
-"""
 
 ## GLOBAL VARIABLES
-
-
-
-## Custom Gtk Widgets
-
-
 
 
 
@@ -638,10 +602,3 @@ def hex2rgb(hexcode):
         b = int(hexcode[5:7],16)/255
         a = int(hexcode[7:9],16)/255
     return (r, g, b, a)
-
-
-def __getattr__(name):
-    if name in {'CellRendererMultilineText', 'ProgressWindow', 'CellTextView', 'get_user_input_text', 'SplashScreen', 'SpreadsheetDialog', 'UserEntryDialog'}:
-        from . import gtk_misc
-        return getattr(gtk_misc, name)
-    raise AttributeError(name)

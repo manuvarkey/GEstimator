@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=GEstimator
+GenericName=Cost Estimator
+Comment=Prepare cost and quantity estimates of civil and electrical works with rate analysis
+Exec=gestimator %F
+StartupNotify=true
+StartupWMClass=gestimator
+Icon=com.kavilgroup.gestimator
+MimeType=application/x-gestimator-project;
+Categories=Office;Finance;
+Keywords=estimate;rate analysis;DSR;civil;electrical;

@@ -20,7 +20,7 @@ These rules keep the modern desktop application (`modern/`) maintainable as feat
 
 - **Exact numbers.** Use `Decimal`/`Currency`; never floats for money or quantities. Parse user and worksheet numbers with `numbers.decimal` or `importing.loose_number`.
 - **Undo.** Every mutation runs through `ProjectEditor.mutate` (or `compound` for multi-step operations) so it is one undo step and rolls back completely on error.
-- **Shared engine changes.** `estimator/` is shared with the GTK application. Behaviour changes there must keep GTK results identical unless the change is a deliberate fix; performance changes must be verified to produce identical output (see the `get_item` and rate-engine checks in `docs/migration/validation.md`).
+- **Shared engine changes.** `estimator/` is the calculation engine of the GTK application (kept on the `archive/gtk` branch). Behaviour changes there must keep its results identical unless the change is a deliberate fix; performance changes must be verified to produce identical output (see the `get_item` and rate-engine checks in `docs/migration/validation.md`).
 - **Bulk over per-row.** Load related rows with one query (joins, `IN` chunks of ≤ 500, raw SQL for integer graphs) instead of a query per row; batch writes with `insert_many`/`executemany`. Profile with real databases (DSR 2021, DSR E&M 2022) before and after.
 - **Resilient imports.** Worksheets are user data: accept common variations, report what could not be used as row-numbered warnings, and never fail the whole import for one bad row unless the result would be wrong.
 - **Limits.** Validate request sizes and types at the backend boundary (lists ≤ 1000 rows, text lengths, ranges); keep MCP tool discovery within its size budget (tests enforce it).

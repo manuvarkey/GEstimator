@@ -169,7 +169,7 @@ Resume on `migration/vue-tauri-desktop`. The ribbon/MCP checkpoint is `fe9cd45`,
 | `c28a449` | Database item/rate dialogs, themed menus and original measurement expression/Breakup display |
 | `fe9cd45` | Ribbon-only application tabs, aligned full-action icons and initial local MCP controls/read tools |
 
-GTK remains available through `gestimator.py`. Keep the legacy calculation engine and workbook exporters as the comparison reference.
+The GTK application is kept on the `archive/gtk` branch (launch `gestimator.py` there). Keep the legacy calculation engine and workbook exporters as the comparison reference.
 
 ## Start and verify on Windows
 

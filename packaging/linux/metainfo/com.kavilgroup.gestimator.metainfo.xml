@@ -2,17 +2,28 @@
 <component type="desktop">
   <id>com.kavilgroup.gestimator</id>
   <launchable type="desktop-id">com.kavilgroup.gestimator.desktop</launchable>
+  <provides>
+    <binary>gestimator</binary>
+    <mediatype>application/x-gestimator-project</mediatype>
+  </provides>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>GPL-3.0</project_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <name>GEstimator</name>
   <developer id="com.kavilgroup">
     <name>Manu Varkey</name>
   </developer>
-  <summary>Civil Estimation Software</summary>
+  <summary>Cost estimates with rate analysis for civil and electrical works</summary>
   <description>
     <p>
-      GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with DSR 2021 (Civil) and DSR 2022 (E and M). Final estimate including the schedule of rates, schedule of resources, details of measurements, resource usage and analysis of rates for various items of work can be exported to a spreadsheet for further manipulation.
+      GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2021 (Civil) and DSR (E and M) 2025 and can use other databases of items.
     </p>
+    <ul>
+      <li>Schedule of items, resources and details of measurements in tables with keyboard navigation</li>
+      <li>Rate analysis editor with undo, bulk editing of analyses and rate updates from databases</li>
+      <li>Several projects open in tabs, with recovery of unsaved work</li>
+      <li>Import from and export to Excel workbooks</li>
+      <li>Optional local MCP server for AI assistants to read and prepare estimates</li>
+    </ul>
   </description>
   <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
   <screenshots>
@@ -36,6 +47,16 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2026-11-20" version="3.0.0">
+      <description>
+        <p>New desktop application with a redesigned interface.</p>
+        <ul>
+          <li>Ribbon commands, light and dark themes, project tabs</li>
+          <li>DSR (E and M) 2025 with Correction Slip No. 1 and database notes</li>
+          <li>Bulk analysis editing, mapped imports and local MCP server</li>
+        </ul>
+      </description>
+    </release>
 	<release date="2025-01-23" version="2.7.0">
       <description>
         <p>Changelog:</p>
