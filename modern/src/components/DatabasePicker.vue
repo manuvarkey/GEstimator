@@ -5,6 +5,7 @@ import DataTable from "./DataTable.vue";
 import AnalysisRulesDialog from "./AnalysisRulesDialog.vue";
 import AppIcon from "./AppIcon.vue";
 import CategoryFilter from "./CategoryFilter.vue";
+import DatabaseNotes from "./DatabaseNotes.vue";
 import type { ColumnDefinition } from "tabulator-tables";
 import { request } from "../backend";
 import { useLiveSearch } from "../liveSearch";
@@ -19,7 +20,8 @@ const props = defineProps<{
   parentError: string;
 }>();
 const emit = defineEmits<{ manage: [] }>();
-const libraries = ref<{ id: string; name: string }[]>([]);
+const libraries = ref<{ id: string; name: string; notes?: boolean }[]>([]);
+const current = computed(() => libraries.value.find(item => item.id === source.value));
 const source = ref("");
 const query = ref("");
 const categories = ref<string[]>([]);
@@ -125,6 +127,7 @@ async function applyRules(params: Record<string, unknown>) {
   <PersistentDialog v-model:visible="pickerVisible" :header="title" class="database-picker-dialog" :busy="busy" @show="initialize">
     <p class="dialog-intro">{{ mode === 'add' ? 'Select items from an attached database. Add inserts them at the selection in your working project.' : `Match ${targetIds.length} selected project rows by code and preview the database rates before applying.` }}</p>
     <label class="field">Database<select v-model="source" aria-label="Database" :disabled="busy" @change="changeSource"><option v-if="!libraries.length" value="">No attached databases</option><option v-for="library in libraries" :key="library.id" :value="library.id">{{ library.name }}</option></select></label>
+    <DatabaseNotes v-if="current?.notes" :source="current.id" :name="current.name" />
     <p v-if="!libraries.length">Attach databases in the Databases tab, then return here.</p>
     <template v-if="mode === 'add' && libraries.length">
       <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>

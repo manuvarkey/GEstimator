@@ -676,7 +676,15 @@ class ProjectEditor:
         return [dict(item, attached=item["id"] == identity) for item in self.sources()]
 
     def sources(self):
-        return [dict(id=key, name=value[0]) for key, value in self.libraries.items()]
+        return [dict(id=key, name=value[0], notes=bool((value[1].get_project_settings().get("project_metadata") or "").strip()))
+                for key, value in self.libraries.items()]
+
+    def library_notes(self, identity):
+        """Database notes (Markdown) of an attached library, read-only."""
+        if not isinstance(identity, str) or identity not in self.libraries:
+            raise ValueError("Choose an attached library")
+        name, source = self.libraries[identity]
+        return dict(id=identity, name=name, notes=source.get_project_settings().get("project_metadata") or "")
 
     def refresh_resource_prices(self, params, apply):
         identity = params.get("library")
@@ -1191,6 +1199,8 @@ class ProjectEditor:
             return self.attach_library(p["path"])
         if method == "library.list":
             return self.sources()
+        if method == "library.notes":
+            return self.library_notes(p.get("id"))
         if method == "project.import_analysis_preview":
             from .analysis_import import workbook_analyses
             return workbook_analyses(self, p)

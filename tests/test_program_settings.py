@@ -85,6 +85,14 @@ class ProgramSettingsTests(unittest.TestCase):
         self.assertEqual(repeated[0]["id"], sources[0]["id"])
         state = self.call("schedule.editor.state", source=sources[0]["id"], query="1.1.1")
         self.assertGreater(state["total"], 0)
+        self.assertTrue(sources[0]["notes"])
+        before = self.call("state")
+        notes = self.call("library.notes", id=sources[0]["id"])
+        self.assertEqual(notes["name"], sources[0]["name"])
+        self.assertIn("## Category:", notes["notes"])
+        self.assertEqual(self.call("state"), before)
+        with self.assertRaises(ValueError):
+            self.call("library.notes", id="missing")
         for path in ("bundled:../DSREM2025.eproj", "bundled:folder\\DSREM2025.eproj", "bundled:/DSREM2025.eproj", "bundled:script.py"):
             with self.assertRaises(ValueError):
                 self.call("library.attach", path=path)

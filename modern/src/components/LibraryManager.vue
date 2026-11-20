@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
+import DatabaseNotes from "./DatabaseNotes.vue";
 import { open } from "@tauri-apps/plugin-dialog";
 import { attachLibrary, forgetLibrary, savedLibraries, libraryStorageError } from "../libraryPreferences";
 import { request } from "../backend";
@@ -17,7 +18,7 @@ const error = ref("");
 const available = ref<{ name: string; path: string; bundled: boolean }[]>([]);
 const availablePath = ref("");
 const catalogWarnings = ref<string[]>([]);
-const attached = ref<{ id: string; name: string }[]>([]);
+const attached = ref<{ id: string; name: string; notes?: boolean }[]>([]);
 const message = ref("");
 async function refresh() {
   await discover();
@@ -67,7 +68,7 @@ async function browse() {
     </label>
     <label class="library-remember"><input v-model="remember" type="checkbox" :disabled="busy" />Remember for future projects</label>
     <p v-if="message" role="status">{{ message }}</p>
-    <div v-if="attached.length" class="attached-databases" aria-label="Attached databases"><h3>Attached databases</h3><div v-for="database in attached" :key="database.id" class="attached-database"><AppIcon name="database" /><span>{{ database.name }}</span><small>Ready for selection and rate updates</small></div></div>
+    <div v-if="attached.length" class="attached-databases" aria-label="Attached databases"><h3>Attached databases</h3><template v-for="database in attached" :key="database.id"><div class="attached-database"><AppIcon name="database" /><span>{{ database.name }}</span><small>Ready for selection and rate updates</small></div><DatabaseNotes v-if="database.notes" :source="database.id" :name="database.name" /></template></div>
     <p v-if="!projectOpen" class="field-hint">Open or create a project to attach libraries. Saved entries can be managed here at any time.</p>
     <div v-if="savedLibraries.length" class="saved-libraries" aria-label="Saved libraries">
       <h3>Saved libraries</h3>

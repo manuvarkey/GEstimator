@@ -11,7 +11,7 @@ Notes are written for AI agents choosing items for an estimate or analysis: basi
 - [x] DSR E&M 2025 (`spreadsheets/DSREM2025/database_notes.md`, loaded by the build).
 - [ ] Write notes for the other bundled and reference databases (DSR 2021 with the civil database update, DSR E&M 2022, DSR 2016, DSR E&M 2016, DSR BLDC 2019) in the same structure.
 - [x] Decide the heading structure for notes (general part, then `## Category:` sections).
-- [ ] Optionally show notes in the database picker and the Databases tab (read-only, rendered Markdown).
+- [x] Show notes in the database picker and the attach dialog (read-only, rendered Markdown, expanded on demand).
 
 ## Desktop verification
 

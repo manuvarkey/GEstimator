@@ -609,6 +609,41 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
   expect(await readFile(path)).toEqual(original);
 });
 
+test("database notes show read-only in the attach dialog and the item picker", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const plain = resolve(directory, "notes-plain.eproj");
+  const noted = resolve(directory, "notes-written.eproj");
+  for (const file of [plain, noted]) execFileSync(python, ["-m", "modern.e2e.create_fixture", file], { cwd: resolve("..") });
+  execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);s=d.get_project_settings();s['project_metadata']='# Rate basis\\n\\nRates **include** GST.\\n\\n## Category: Earthwork\\n\\n- Pick by depth';d.set_project_settings(s);d.close_database()", noted], { cwd: resolve("..") });
+  const original = await readFile(noted);
+  await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
+  const manager = await openDatabaseManager(page);
+  for (const [index, path] of [plain, noted].entries()) {
+    await manager.getByLabel("Library project", { exact: true }).fill(path);
+    await manager.getByRole("button", { name: "Attach library", exact: true }).click();
+    await expect(manager.locator(".attached-database")).toHaveCount(index + 1);
+  }
+  const notes = manager.locator(".database-notes");
+  await expect(notes).toHaveCount(1);
+  await notes.locator("summary").click();
+  const rendered = notes.getByLabel("Notes for notes-written");
+  await expect(rendered.locator("h1")).toHaveText("Rate basis");
+  await expect(rendered.locator("strong")).toHaveText("include");
+  await expect(rendered.locator("li")).toHaveText("Pick by depth");
+  await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
+  await applyRecordsIfDirty(page);
+  await page.locator("#view-schedule").click();
+  await page.locator(".ribbon").getByRole("button", { name: "Add item from database", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Add item from database", exact: true });
+  await picker.getByLabel("Database", { exact: true }).selectOption({ label: "notes-plain" });
+  await expect(picker.locator(".database-notes")).toHaveCount(0);
+  await picker.getByLabel("Database", { exact: true }).selectOption({ label: "notes-written" });
+  await picker.locator(".database-notes summary").click();
+  await expect(picker.getByLabel("Notes for notes-written")).toContainText("Rates include GST.");
+  await picker.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(await readFile(noted)).toEqual(original);
+});
+
 test("database tab attaches multiple sources and editor dialogs add items and refresh selected rates", async ({ page }) => {
   const { execFileSync } = await import("node:child_process");
   const first = resolve(directory, "picker-first.eproj");
