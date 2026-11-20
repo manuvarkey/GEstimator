@@ -16,6 +16,8 @@ item,row,kind,code,description,text
 30.2.14,20737,line amount,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,Book: 0.9 per sq meter @ ₹669.66 = ₹602.69; Appendix II rate ₹370.68
 4.4.2,32293,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
 4.5.4,32762,line amount,2936,Painting with primer and finish paint,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
+11.2.23,37360,line amount,2322,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 150 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹1326 = ₹1326; Appendix II rate ₹946
+11.2.24,37379,line amount,2323,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 185 sq. mm 1.1 KV grade cable,Book: 1 set @ ₹946 = ₹946; Appendix II rate ₹1326
 11.4.29,38696,line amount,1002,Cable jointer,Book: amount ₹981 for 0.25 day @ ₹981 (coefficient × rate = ₹245.25)
 11.4.29,38697,line amount,1007,Khallasi,Book: amount ₹805 for 0.25 day @ ₹805 (coefficient × rate = ₹201.25)
 12.5,39009,line amount,9999,Sundries,"Book: 70 L.S., ₹0; Appendix II rate ₹2.7"
@@ -36,8 +38,6 @@ item,row,kind,code,description,text
 4.8.15,,rate,,750 mm width X 75 mm depth X 2.0 mm thickness,"Analysis gives ₹6060, published rate ₹6061 (difference ₹-1)"
 8.10.3,,rate,,36 watt,"Analysis gives ₹761, published rate ₹760 (difference ₹1)"
 8.11.7,,rate,,36 watt,"Analysis gives ₹761, published rate ₹760 (difference ₹1)"
-11.2.23,,rate,,3½ X 150 sq. mm,"Analysis gives ₹2643, published rate ₹2117 (difference ₹526)"
-11.2.24,,rate,,3½ X 185 sq. mm,"Analysis gives ₹2117, published rate ₹2643 (difference ₹-526)"
 21.1.1,,rate,,13 passenger (884kg),"Analysis gives ₹1684225.71, published rate ₹1684225.7236 (difference ₹-0.01)"
 24.1.5,,rate,,1600KVA,"Analysis gives ₹3213292, published rate ₹3213291 (difference ₹1)"
 24.14.1,,rate,,500 KVA,"Analysis gives ₹1771326.95, published rate ₹1771326.93766 (difference ₹0.01)"

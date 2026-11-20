@@ -667,3 +667,8 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser suite 82 pass
 
 Validation: 178 Python tests; `vue-tsc`, production build; browser tests for search/remarks, compact widths and cell ranges pass.
 
+## 2026-11-20 — DSR (E&M) 2025: slip specifications merged, kit rates 2322/2323
+
+- Correction Slip No. 1 specification changes are merged into the schedule descriptions as exact phrase replacements (46 phrases in 22 items, each verified present); chapter 40 camera/NVR specifications are not in the schedule workbook and stay as remarks.
+- Appendix II 2322/2323 (3½ × 150 / 185 sq. mm outdoor kits) swapped to ₹946/₹1326, derived from the slip's swap of 11.2.23/11.2.24. All analyses now reproduce the published rates within ₹1 (0 larger differences).
+

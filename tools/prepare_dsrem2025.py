@@ -388,6 +388,18 @@ def apply_slips(schedule_rows, resource_rows, analysis_rows):
                     row[1] = new
                     note("description modified")
                     applied.append(f"{code} description replaced")
+                elif field == "replace":
+                    # The slip quotes only the changed phrase of a description.
+                    old = change["existing"]
+                    if old in row[1]:
+                        row[1] = row[1].replace(old, new)
+                        if f"{title}: description amended" not in (row[5] or ""):
+                            note("description amended")
+                        applied.append(f"{code} description: '{old[:40]}' -> '{new[:40]}'")
+                    elif new in row[1]:
+                        applied.append(f"{code} description: '{new[:40]}' already in the workbook")
+                    else:
+                        applied.append(f"{code} description: '{old[:40]}' NOT FOUND")
                 elif field == "specification":
                     note(f"specification modified ({change['note']})")
                     applied.append(f"{code} specification noted")

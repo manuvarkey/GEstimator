@@ -53,6 +53,8 @@ item,row,book_code,description,book_qty,book_rate,book_amount,resource,change,re
 16.1.3,36065,,Tank Connections and water inlet valve,450,0,450,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (450 LS = ₹450)
 16.1.4,36084,,Cold water tank 500 ltr @ 11 per /ltr,500,0,5500,R6E41EE,derive,Book: Cold water tank 500 ltr @ 11 per /ltr (no code); not in Appendix II: rate ₹11 back-calculated from the book (500 Each = ₹5500)
 16.1.4,36085,,Tank Connections and water inlet valve,450,0,450,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (450 LS = ₹450)
+11.2.23,37360,2322,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 150 sq. mm 1.1 KV grade cable,1,1326,1326,2322,note,Book: 1 set @ ₹1326 = ₹1326; Appendix II rate ₹946
+11.2.24,37379,2323,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 185 sq. mm 1.1 KV grade cable,1,946,946,2323,note,Book: 1 set @ ₹946 = ₹946; Appendix II rate ₹1326
 11.4.29,38696,1002,Cable jointer,0.25,981,981,1002,note,Book: amount ₹981 for 0.25 day @ ₹981 (coefficient × rate = ₹245.25)
 11.4.29,38697,1007,Khallasi,0.25,805,805,1007,note,Book: amount ₹805 for 0.25 day @ ₹805 (coefficient × rate = ₹201.25)
 12.5,39009,9999,Sundries,70,0,0,9999,note,"Book: 70 L.S., ₹0; Appendix II rate ₹2.7"

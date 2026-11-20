@@ -33,35 +33,63 @@ schedule,39.18.4,rate,224,174,
 schedule,39.10,delete,,,Indoor Wireless Controller deleted
 schedule,39.14,description,,"Supplying, Installation, Testing and commissioning of CAT6 Copper Information Outlet (IO) with face plate of colour as per site requirement, should have ETL/UL verification program certificate for compliance with ANSI/TIA-568.2-D.",
 schedule,40.9.3,description,,"5MP IP IR motorized PTZ @25/30fps or better camera, Triple streaming, configurable on resolution:- Main stream: 5MP@25/30 fps Sub streams: 1080p@25 / 30 fps, varifocal lens 3.95 mm (±5mm) ~ 177.75mm (±5mm) or better with Automatic & manual Focus Adjustment provisions, 32x Optical zoom and 12x Digital zoom with angle of view H: 65.7°–1.9°V: 39.4°–1.1°D: 73.1°–2.1, PAN Travel: Pan: 0° ~ 360° endless, Manual Pan: 260° /s, Preset : 300° /s, Tilt Travel: Tilt: -20° ~ 90°, auto flip 180°, Manual Tilt: 120° /s, Preset : 200° /s",
-schedule,4.4,specification,,,"fastener (spelling)"
-schedule,4.5,specification,,,"fastener (spelling)"
-schedule,8.3,specification,,,"System lumen efficacy ≥135 lm/Watt; operating temperature range -5°C to 40°C"
-schedule,8.8,specification,,,"System lumen efficacy ≥135 lm/Watt"
-schedule,8.9,specification,,,"System lumen efficacy ≥105 <120 lm/Watt"
-schedule,8.18,specification,,,"Operating temperature range -5 °C to 50 °C"
-schedule,26.1,specification,,,"Static Bypass switch along with manual bypass, suitable isolation transformer for additional protection against neutral faults"
-schedule,26.2,specification,,,"Static Bypass switch along with manual bypass, suitable isolation transformer for additional protection against neutral faults"
-schedule,30.2,specification,,,"Nitrile rubber of minimum 55 Kg/cu m density, thermal conductivity 0.034 W/m.K or better at 10°C mean temperature"
-schedule,32.3,specification,,,"Blower motor supply 230/415 ± 10% volts, 50 Hz"
-schedule,32.5,specification,,,"Working between 415 ± 10% Volt with low & high voltage cutoff and 50 Hz, 3 phase AC supply"
-schedule,39.1,specification,,,"Jumbo frame 9KB or higher; Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable"
-schedule,39.2,specification,,,"Additional 2 X 1G SFP/RJ45 Combo Ports; packet forwarding rate 14Mpps or higher; -5° to 70° C; 6 KV Lighting protection; certifications revised (IEC-62443-4-1:2018/CERT-IN)"
-schedule,39.3,specification,,,"Switching capacity min. 128Gbps; packet forwarding rate 95Mpps or higher; stacking support min. 4 units per stack; certifications revised"
-schedule,39.4,specification,,,"Dual AC Power supply; 32K Mac address; IPv6 Neighbour Discovery (ND), BGP/ISIS/MPLS/VRRP v2/OSPFv2/v3; certifications revised"
-schedule,39.5,specification,,,"4x 100GbE QSFP28; switching capacity not less than 1.76 Tbps; certifications revised"
-schedule,39.7,specification,,,"1G LAN POE Port with console management function; WDS with AP/ Wireless Client/MESH; certifications revised"
-schedule,39.8,specification,,,"WIFI 6 Certified/Wi-Fi Alliance; MG 2.5G LAN POE Port having console management function; WDS with AP/ Wireless Client/MESH; certifications revised"
-schedule,39.9,specification,,,"WIFI 6 Certified/Wi-Fi alliance; MG 1G LAN POE Port having console management function; IP67; certifications revised; complete with required hardware/software controller etc. to make AP functional"
-schedule,39.22,specification,,,"Apex Offset ≤50 µm, Fiber Height ± 100 nm, Repeatability ≤ 0.2 dB"
-schedule,40.1,specification,,,"WDR (120dB or more); Power Requirement: 12V DC /24V DC/PoE (802.3af)/ePoE"
-schedule,40.2,specification,,,"WDR (120dB or more); Power Requirement: 12V DC/24V DC/PoE (802.3af)/ePoE"
-schedule,40.8,specification,,,"Video Compression (Minimum): H.265 or better (H.264 removed)"
-schedule,40.9,specification,,,"IR LEDs cover distance 150 meter or above"
-schedule,40.10,specification,,,"Storage: minimum 2 SATA Slots with 16TB capacity/ Slot"
-schedule,40.11,specification,,,"Storage: minimum 8 SATA Slots with 16 TB capacity/ Slot and RAID support of RAID 0/1/5/6/10 (4 SATA (32 Channel) & 8 SATA Slot for 64 Channel)"
-resource,1021,add,day|981|LABOUR & HIRE CHARGES,Technician,"Appendix I lists 1021 Technician; Appendix II repeats 1020 Electronic Technician instead"
-analysis,1020,code,Technician,1021,"Analysis lines for Technician use 1021"
+schedule,4.4,replace,fastner etc,fastener etc,
+schedule,4.5,replace,fastner etc,fastener etc,
+schedule,8.3,replace,(System lumen efficacy >135lm/Watt),(System lumen efficacy ≥135lm/Watt),
+schedule,8.3,replace,System lumen efficacy >135 lm/Watt output,System lumen efficacy ≥135 lm/Watt output,
+schedule,8.3,replace,50/60 hz,50/60 Hz,
+schedule,8.8,replace,(System lumen efficacy >135 lm/Watt),(System lumen efficacy ≥135 lm/Watt),
+schedule,8.8,replace,System lumen efficacy >135 lm/Watt output,System lumen efficacy ≥135 lm/Watt output,
+schedule,8.8,replace,50/60 hz,50/60 Hz,
+schedule,8.9,replace,50/60 hz,50/60 Hz,
+schedule,8.18,replace,50/60 hz,50/60 Hz,
+schedule,8.18,replace,Operating temp range -15 °C to 50 °C,Operating temp range -5 °C to 50 °C,
+schedule,26.1,replace,Static Bypass switch along with provision for manual bypass,Static Bypass switch along with manual bypass,
+schedule,26.2,replace,Static Bypass switch along with provision for manual bypass,Static Bypass switch along with manual bypass,
+schedule,30.2,replace,"minimum 45 Kg / cu m density, thermal conductivity 0.037 W/MK or better at 20 deg mean temperature","minimum 55 Kg / cu m density, thermal conductivity 0.034 W/m.K or better at 10°C mean temperature",
+schedule,32.3,replace,operation on 230/415 + 10% volts,operation on 230/415 ± 10% volts,
+schedule,32.5,replace,"suitable for working between 380V-415V 50 hz ,3 phase AC supply with low & high voltage cutoff","suitable for working between 415 ± 10% Volt with low & high voltage cutoff and 50 Hz, 3 phase AC supply",
+schedule,39.1,replace,Jumbo frame: 10KB or higher,Jumbo frame: 9KB or higher,
+schedule,39.1,replace,"Certifications: UL, CE, FCC, RoHS, MTCTE, OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable, etc. complete as required.",
+schedule,39.2,replace,additional 4 X 1G SFP Ports,additional 2 X 1G SFP/RJ45 Combo Ports,
+schedule,39.2,replace,packet forwarding rate of 17Mpps,packet forwarding rate of 14Mpps,
+schedule,39.2,replace,"-5° to 70° C operating temperature. Certificate: UL, CE, FCC, NEMA-TS2, IEC/MIL-STD for Shock , Vibration & Drop Certificate. OEM Should have Certificate for Industrial Cyber Security Capability IEC-62443-4-1:2018, ISO 45001, ISO 27001 and ISO 14001 Certified or Equivelent Indian Certificate. OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","-5° to 70° C operating temperature 6 KV Lighting protection. Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable, NEMA-TS2, IEC/MIL-STD for Shock, Vibration & Drop Certificate, Industrial Cyber Security Capability IEC-62443-4-1:2018/CERT-IN, ISO 45001, ISO 27001, and ISO 14001 Certified or Equivalent Indian Certificate, etc. complete as required.",
+schedule,39.3,replace,Switching capacity of min. 168Gbps and packet forwarding rate of 125Mpps,Switching capacity of min. 128Gbps and packet forwarding rate of 95Mpps,
+schedule,39.3,replace,Stacking support of min. 8 units per stack,Stacking support of min. 4 units per stack,
+schedule,39.3,replace,"Certifications: UL, CE, FCC, RoHS, MTCTE, OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable, etc. complete as required.",
+schedule,39.4,replace,Internal AC Power supply,Dual AC Power supply,
+schedule,39.4,replace,48K Mac address,32K Mac address,
+schedule,39.4,replace,"IPv6 Neighbor Discovery (ND), BGP, ISIS, MPLS, VRRP v2, OSPFv2/v3","IPv6 Neighbour Discovery (ND), BGP/ISIS/MPLS/VRRP v2/OSPFv2/v3",
+schedule,39.4,replace,"Certifications: UL, CE, FCC, RoHS, MTCTE, OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable, etc. complete as required.",
+schedule,39.5,replace,6x 100GbE QSFP28,4x 100GbE QSFP28,
+schedule,39.5,replace,no less than 2.16 Tbps,no less than 1.76 Tbps,
+schedule,39.5,replace,"Certifications: CE, FCC, MTCTE, OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable etc. complete as required.",
+schedule,39.7,replace,"1G LAN POE Port, factory reset",1G LAN POE Port with console management function factory reset,
+schedule,39.7,replace,"Works as Access Point, WDS, WDS with AP, Wireless Client, Web (HTTP)","Works as Access Point, WDS with AP/ Wireless Client/MESH Web (HTTP)",
+schedule,39.7,replace,"Certifications: MTCTE, CE, FCC. Should also work","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable, Should also work",
+schedule,39.7,replace,"Captive Portal Authentication.OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Captive Portal Authentication, etc. complete as required.",
+schedule,39.8,replace,"WIFI 6 Certified, 1 x RJ45 console port, MG 2.5G LAN POE Port, factory reset","WIFI 6 Certified/Wi-Fi Alliance, MG 2.5G LAN POE Port, having console management function, factory reset",
+schedule,39.8,replace,"Works as Access Point, WDS, WDS with AP, Wireless Client ., Web (HTTP)","Works as Access Point, WDS with AP/ Wireless Client/MESH, Web (HTTP)",
+schedule,39.8,replace,"Certifications: MTCTE, CE, FCC. Works as Standalone","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable. Works as Standalone",
+schedule,39.8,replace,"Captive Portal Authentication.OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. complete as required.","Captive Portal Authentication, etc. complete as required.",
+schedule,39.9,replace,"WIFI 6 Certified, 1 x RJ45 console port, MG 2.5G LAN POE Port, factory reset","WIFI 6 Certified/Wi-Fi alliance, MG 1G LAN POE Port, having console management function. factory reset",
+schedule,39.9,replace,"Works as Access Point, WDS, WDS with AP, Wireless Client, Web (HTTP)","Works as Access Point, WDS with AP/ Wireless Client/MESH/ Web (HTTP)",
+schedule,39.9,replace,IP68 water/dustproof standard,IP67 water/dustproof standard,
+schedule,39.9,replace,"Certifications: MTCTE, CE, FCC. Works as Standalone","Certifications: FCC, CE marked, UL/EN, RoHS and relevant MTCTE(TEC)/BIS compliance/certification as applicable. Works as Standalone",
+schedule,39.9,replace,"Captive Portal Authentication.OEM/Product must be on Trusted Telecom Portal of Department of Telecommunication, Government of India etc. completed as required.","Captive Portal Authentication, etc. complete with required hardware/software controller etc. to make AP functional as required.",
+schedule,39.22,replace,"Apex Offset < 50 µm, Fiber Height + 100 nm","Apex Offset ≤50 µm, Fiber Height ± 100 nm",
+schedule,39.22,replace,Repeatability < 0.2 db,Repeatability ≤ 0.2 dB,
+schedule,40.1,specification,,,WDR (120dB or more); Power Requirement: 12V DC /24V DC/PoE (802.3af)/ePoE (specification text is not in the schedule workbook)
+schedule,40.2,specification,,,WDR (120dB or more); Power Requirement: 12V DC/24V DC/PoE (802.3af)/ePoE (specification text is not in the schedule workbook)
+schedule,40.8,specification,,,Video Compression (Minimum): H.265 or better (H.264 removed) (specification text is not in the schedule workbook)
+schedule,40.9,specification,,,IR LEDs cover distance 150 meter or above (specification text is not in the schedule workbook)
+schedule,40.10,specification,,,Storage: minimum 2 SATA Slots with 16TB capacity/ Slot (specification text is not in the schedule workbook)
+schedule,40.11,specification,,,Storage: minimum 8 SATA Slots with 16 TB capacity/ Slot and RAID support of RAID 0/1/5/6/10 (4 SATA (32 Channel) & 8 SATA Slot for 64 Channel) (specification text is not in the schedule workbook)
+resource,1021,add,day|981|LABOUR & HIRE CHARGES,Technician,Appendix I lists 1021 Technician; Appendix II repeats 1020 Electronic Technician instead
+analysis,1020,code,Technician,1021,Analysis lines for Technician use 1021
 resource,5246,rate,35,26.25,
 resource,5247,rate,70,52.50,
 resource,5248,rate,105,78.75,
 resource,5249,rate,140,105.00,
+resource,2322,rate,1326,946,"Derived: the slip swaps 11.2.23/11.2.24 (3½ X 150 → 2117, 185 → 2643) but leaves Appendix II; its kit rates are swapped to match"
+resource,2323,rate,946,1326,Derived: see 2322
