@@ -51,6 +51,7 @@ The "DSR 2025" sheet repeats codes; the chapter sheets number the same items dif
   - 42.11.6 (immersion sensor 5335) sits under a second 42.11.7 heading, in the analysis book as well;
   - 6.10 of the workbook (printed 6.12, testing joint) is stored as the number 6.1, so it reads as a second 6.1.
 - Analyses without a schedule item are removed: the items printed DELETED (1.37, 1.46, 1.53, 2.6–2.9, 3.10, 6.5, 6.13), the empty #REF! tables 25.1.8–25.1.23 and 25.2.17–25.2.23, 39.10 (deleted by the slip) and the DAR group heading 18.19 (its items are 8.19.x).
+- Heading 1.14 (circuit/submain wiring) is printed with the unit "Meter" and no rate; the schedule import treats a row without a rate that is followed by its own subitem code as a heading, so 1.14.1–1.14.11 are its children and the heading has no unit.
 - Chapter 19 has no title row in the workbook, so its items took chapter 18's category; they are FAÇADE LIGHTING, as the book's contents name the chapter.
 - Appendix II: the sub-headings that carry schedule item numbers (19.2, 19.3, 35.1, 40.2) are not resources; "Hot Dipped Galvanized CABLE TRAYS" is a section heading, not the first line of the descriptions below it; 3201 (insulation after the AHU capacities) does not take the AHU text.
 

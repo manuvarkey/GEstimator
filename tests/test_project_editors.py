@@ -1213,3 +1213,28 @@ class StructuredImportNestedHeadingTests(unittest.TestCase):
         self.assertIsNone(db.get_item("30.7").parent)
         self.assertEqual(db.get_item("30.7.1").description, "INSULATED VALVES\nof following valves\nButterfly valve")
         self.assertEqual([db.get_item(code).parent for code in ("30.7.1", "30.7.1.1", "30.7.2.1", "30.8.1")], [None, "30.7.1", "30.7.2", "30.8"])
+
+    def test_heading_with_a_unit_but_no_rate_takes_its_subitems(self):
+        import tempfile
+        from pathlib import Path
+        from openpyxl import Workbook
+        from modern.backend.service import Service
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / "unit-heading.xlsx"
+        book = Workbook()
+        for row in [["Code", "Description", "Unit", "Rate"], ["1.13", "Wiring 4X4", "Metre", 587],
+                    ["1.14", "Circuit wiring of the following sizes", "Metre", None],
+                    ["1.14.1", "2 X 1.5 sq. mm", "Metre", 267], ["1.14.2", "2 X 2.5 sq. mm", "Metre", 311],
+                    ["1.16", "Unpriced item with a unit", "Each", None], ["1.17", "Next item", "Each", 10]]:
+            book.active.append(row)
+        book.save(path)
+        service = Service()
+        self.addCleanup(service.close)
+        call = lambda method, **params: service.call(method, dict(revision=service.revision, **params))
+        call("project.new")
+        call("project.import_apply", kind="schedule", path=str(path), mapping=dict(code=0, description=1, unit=2, rate=3), hierarchy=True)
+        db = service.db
+        self.assertEqual([db.get_item(code).parent for code in ("1.13", "1.14", "1.14.1", "1.14.2", "1.16", "1.17")],
+                         [None, None, "1.14", "1.14", None, None])
+        self.assertEqual(db.get_item("1.16").unit, "Each")

@@ -167,7 +167,8 @@ def preview(params):
 
 def deduce_hierarchy(entries, mapped_category):
     """GTK structured schedule import: uppercase description-only rows set the
-    category; code rows without a unit or rate are headings (following description-only
+    category; code rows without a unit or rate, or without a rate and followed
+    by their own subitem code, are headings (following description-only
     rows continue them); a priced item whose code extends the heading's code
     (1.1.1 under 1.1) becomes its subitem. Headings are added with their first
     priced subitem, using the joined heading descriptions."""
@@ -206,7 +207,11 @@ def deduce_hierarchy(entries, mapped_category):
         final_number, final, final_numbers = entries[last]
         unit = text(final, "unit")
         # A priced row is an item even when the sheet leaves its unit blank.
-        priced = bool(unit) or bool(final_numbers.get("rate"))
+        # A row with a unit but no rate followed by its own subitem code is a
+        # heading (printed books sometimes put the unit on the heading: 1.14).
+        following = next((text(entry[1], "code") for entry in entries[last + 1:] if text(entry[1], "code")), "")
+        heads = following.split(".")[:-1] == code.split(".")
+        priced = bool(final_numbers.get("rate")) or (bool(unit) and not heads)
 
         def item(item_code, item_description, item_unit, source, source_numbers, item_parent):
             values = dict(source, code=item_code, description=item_description, unit=item_unit, parent=item_parent or "")
