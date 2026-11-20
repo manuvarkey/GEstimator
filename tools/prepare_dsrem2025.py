@@ -16,6 +16,7 @@ writes three plain workbooks next to it:
 Usage: python tools/prepare_dsrem2025.py [source.xlsx]
 """
 
+import os
 import re
 import sys
 from collections import Counter
@@ -114,7 +115,7 @@ def normal(description):
     return " ".join(re.sub(r"[^a-z0-9.½]+", " ", description.lower()).split())
 
 
-def fix_duplicate_codes(rows):
+def fix_duplicate_codes(rows, quiet=False):
     """Give repeated schedule codes the number the analyses use.
 
     - A coded sub-heading followed by an item with the same code ("31.12.1 High
@@ -147,7 +148,8 @@ def fix_duplicate_codes(rows):
             renumbered.append((code, row[0], row[1]))
         assigned.add(row[0])
     for old, new, description in renumbered:
-        print(f"schedule {old} -> {new} ({description[:40]})")
+        if not quiet:
+            print(f"schedule {old} -> {new} ({description[:40]})")
     return rows
 
 
@@ -307,8 +309,10 @@ SLIP_ANALYSES = ["correction_slip_1_analysis.csv"]  # corrected DAR (E&M) 2025 a
 
 
 def item_code_row(row):
+    """An item code row: a dotted code without unit, quantity or rate (the
+    description may be missing, as for 30.7.4.7)."""
     code = text(row[0])
-    return "." in code and CODE.match(code) and row[1] and not row[2]
+    return "." in code and CODE.match(code) and not row[2] and row[3] is None and row[4] is None
 
 
 def apply_slip_analyses(analysis_rows):
@@ -419,12 +423,173 @@ def apply_slips(schedule_rows, resource_rows, analysis_rows):
     return len(applied)
 
 
+# The printed book (not committed; see the folder README). DSREM2025_PRINTED overrides the path.
+PRINTED = Path(os.environ.get("DSREM2025_PRINTED", FOLDER / "reference" / "DSR E&M 2025.pdf"))
+
+
+def ratio(first, second):
+    from difflib import SequenceMatcher
+    # autojunk would discard common characters of long texts and collapse the score
+    return SequenceMatcher(None, normal(first)[:300], normal(second)[:300], autojunk=False).ratio()
+
+
+def numeric(value):
+    try:
+        return float(str(value).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def block_results(analysis_rows):
+    """{item code: [analysis results]}: the last amount without a unit in each block."""
+    results, starts = {}, [index for index, row in enumerate(analysis_rows) if item_code_row(row)]
+    for index, end in zip(starts, starts[1:] + [len(analysis_rows)]):
+        final = next((row[5] for row in reversed(analysis_rows[index + 1:end])
+                      if isinstance(row[5], (int, float)) and not row[2]), None)
+        if final is not None:
+            results.setdefault(text(analysis_rows[index][0]), []).append(final)
+    return results
+
+
+def align(left, right):
+    """Order-preserving pairs of workbook and printed items (both in book
+    order): the largest total text similarity, a small bonus for the same
+    code; pairs below 0.45 similarity are not made."""
+    score = {}
+    for i, row in enumerate(left):
+        for j, other in enumerate(right):
+            mine, theirs = normal(row[1]), normal(other[1])
+            if mine == theirs:
+                value = 1.0
+            elif len(mine) >= 3 and len(theirs) >= 3 and (mine in theirs or theirs in mine):
+                value = 0.85  # one keeps only the heading or variant ("LED floodlight", "200KVA")
+            else:
+                value = ratio(row[1], other[1])
+                if row[0] == other[0] and value >= 0.3:
+                    value = max(value, 0.5)  # same item reworded ("Supplying" / "Supply …")
+            if value >= 0.45:
+                score[i, j] = value + (0.15 if row[0] == other[0] else 0)
+    best = [[0.0] * (len(right) + 1) for _ in range(len(left) + 1)]
+    for i in range(len(left) - 1, -1, -1):
+        for j in range(len(right) - 1, -1, -1):
+            best[i][j] = max(best[i + 1][j], best[i][j + 1], best[i + 1][j + 1] + score[i, j] if (i, j) in score else 0)
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if (i, j) in score and best[i][j] == best[i + 1][j + 1] + score[i, j]:
+            yield i, j
+            i, j = i + 1, j + 1
+        elif best[i][j] == best[i + 1][j]:
+            i += 1
+        else:
+            j += 1
+
+
+def overlay_printed(schedule_rows, analysis_rows):
+    """Take numbering, descriptions, units and rates from the printed book.
+
+    Printed items are matched to workbook rows by code and description within
+    each chapter (chapter 6 is numbered differently in the printed book). A
+    printed rate is used unless the item's analysis contradicts it while the
+    workbook rate agrees (a misprint, e.g. 1.14.3 printed ₹4508/m, analysis
+    ₹373); analyses follow renumbered items. Returns the differences."""
+    if not PRINTED.exists():
+        raise SystemExit(f"The printed book is required: {PRINTED} (or set DSREM2025_PRINTED)")
+    try:
+        from printed_dsrem2025 import printed_schedule
+    except ImportError:
+        from tools.printed_dsrem2025 import printed_schedule
+    printed = fix_duplicate_codes([[code, (subheading + "\n" + description) if subheading else description, unit, rate, "", "", book]
+                                   for code, description, unit, rate, subheading, book in printed_schedule(PRINTED)], quiet=True)
+    items = [row for row in schedule_rows if row[0] and CODE.match(row[0])]
+    chapter = lambda code: code.split(".")[0]  # noqa: E731
+    pairs, used = {}, set()
+    for group in sorted({chapter(row[0]) for row in items}, key=lambda value: int(value) if value.isdigit() else 0):
+        left = [row for row in items if chapter(row[0]) == group]
+        right = [row for row in printed if row[0] and chapter(row[0]) == group]
+        for index, other_index in align(left, right):
+            pairs[id(left[index])] = right[other_index]
+            used.add(id(right[other_index]))
+    results = block_results(analysis_rows)
+    differences, renamed = [], {}
+    note = lambda row, message: row.__setitem__(5, "; ".join(filter(None, [row[5], message])))  # noqa: E731
+    for row in items:
+        other = pairs.get(id(row))
+        if other is None:
+            note(row, "Not in the printed book")
+            differences.append(dict(code=row[0], workbook_code=row[0], field="item", workbook=row[1][:80], printed="", used="workbook"))
+            continue
+        code = other[0]
+        if code != row[0]:
+            renamed[row[0]] = code
+            differences.append(dict(code=code, workbook_code=row[0], field="code", workbook=row[0], printed=code, used="printed"))
+            note(row, f"Numbered {row[0]} in the workbook")
+        if normal(row[1]) != normal(other[1]):
+            differences.append(dict(code=code, workbook_code=row[0], field="description", workbook=row[1][:200],
+                                    printed=other[1][:200], used="printed"))
+        if other[2] and normal(row[2]) != normal(other[2]):
+            differences.append(dict(code=code, workbook_code=row[0], field="unit", workbook=row[2], printed=other[2], used="printed"))
+        old, new = numeric(row[3]), numeric(other[3])
+        rate = row[3]
+        if new is not None and old is not None and abs(old - new) >= 0.5:
+            found = results.get(row[0], [])
+            if any(abs(value - new) < 1 for value in found) or not any(abs(value - old) < 1 for value in found):
+                rate, used_rate = other[3], "printed"
+                note(row, f"Printed rate {other[3]} (workbook {row[3]})")
+            else:
+                used_rate = "workbook"
+                note(row, f"Printed rate {other[3]} disagrees with the analysis ({found[0]:g}); workbook rate {row[3]} kept")
+            differences.append(dict(code=code, workbook_code=row[0], field="rate", workbook=row[3], printed=other[3], used=used_rate))
+        elif new is not None and old is None and not str(row[3]).strip():
+            rate = other[3]
+        row[0], row[1], row[2], row[3] = code, other[1], other[2] or row[2], rate
+    # The workbook continues long specifications in uncoded rows, which the
+    # import appends to the heading; the printed description already has them.
+    keep, dropped, after_printed = [], 0, False
+    for row in schedule_rows:
+        if row[0]:
+            after_printed = id(row) in pairs
+        elif after_printed and not row[2] and not str(row[3] or "").strip():
+            dropped += 1
+            continue
+        keep.append(row)
+    schedule_rows[:] = keep
+    # Printed items the workbook lacks go after the previous printed item.
+    position = {id(pairs[id(row)]): index for index, row in enumerate(schedule_rows) if id(row) in pairs}
+    added, last = 0, None
+    for other in printed:
+        if id(other) in position:
+            last = position[id(other)]
+            continue
+        if not other[0] or id(other) in used or last is None:
+            continue
+        category = schedule_rows[last + added][4]
+        schedule_rows.insert(last + added + 1, [other[0], other[1], other[2], other[3], category, "Not in the workbook"])
+        differences.append(dict(code=other[0], workbook_code="", field="item", workbook="", printed=other[1][:80], used="printed"))
+        added += 1
+    # Analyses follow renumbered items (all at once: codes may swap).
+    for line in analysis_rows:
+        if item_code_row(line) and text(line[0]) in renamed:
+            line[0] = renamed[text(line[0])]
+    print(f"printed book: {len(pairs)} items matched, {len(renamed)} renumbered, {added} added, {dropped} workbook continuation rows replaced, "
+          f"{sum(d['field'] == 'description' for d in differences)} descriptions, "
+          f"{sum(d['field'] == 'rate' for d in differences)} rates differ "
+          f"({sum(d['field'] == 'rate' and d['used'] == 'workbook' for d in differences)} printed misprints kept from the workbook)")
+    return differences
+
+
 def main():
     source = Path(sys.argv[1]) if len(sys.argv) > 1 else SOURCE
     book = load_workbook(source, read_only=True, data_only=True)
     try:
         schedule_rows = schedule(book)
         analysis_rows = analysis(book, analysis_codes(schedule_rows))
+        differences = overlay_printed(schedule_rows, analysis_rows)
+        if differences:
+            import csv
+            with open(FOLDER / "printed_differences.csv", "w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["code", "workbook_code", "field", "workbook", "printed", "used"])
+                writer.writeheader()
+                writer.writerows(differences)
         filled = civil_rates(schedule_rows, analysis_rows)
         resource_rows = resources(book)
         slip_changes = apply_slips(schedule_rows, resource_rows, analysis_rows)

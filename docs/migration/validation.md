@@ -672,3 +672,9 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - Correction Slip No. 1 specification changes are merged into the schedule descriptions as exact phrase replacements (46 phrases in 22 items, each verified present); chapter 40 camera/NVR specifications are not in the schedule workbook and stay as remarks.
 - Appendix II 2322/2323 (3½ × 150 / 185 sq. mm outdoor kits) swapped to ₹946/₹1326, derived from the slip's swap of 11.2.23/11.2.24. All analyses now reproduce the published rates within ₹1 (0 larger differences).
 
+## 2026-11-20 — DSR (E&M) 2025 schedule from the printed book
+
+- `tools/printed_dsrem2025.py` reads the printed `DSR E&M 2025.pdf` (poppler `pdftohtml -xml`: positions and font sizes) and the prepare step takes the schedule's numbering, descriptions (with full specification lists and group subheadings), units and rates from it. All 2,434 printed items pair with workbook rows (order-preserving alignment per chapter); chapter 6 takes the printed numbering (6.2–6.15) and its analyses follow; 703 workbook continuation rows are replaced by the printed text.
+- Rates: printed unless the item's analysis contradicts it while the workbook agrees (194 of 199 differences, e.g. 1.14.3 printed ₹4508 against ₹373 in the printed analysis); 5 printed rates used. `printed_differences.csv` lists every difference.
+- All Correction Slip No. 1 phrase changes now apply to the printed text, chapter 40 included (55 phrases). Every analysis still reproduces its published rate within ₹1.
+

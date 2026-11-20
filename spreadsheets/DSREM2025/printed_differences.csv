@@ -1,0 +1,915 @@
+code,workbook_code,field,workbook,printed,used
+1.1.1,1.1.1,rate,1417,1406,workbook
+1.2,1.2,description,"Wiring for twin control light point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface / recessed steel conduit, 2 way piano type switch, phenolic laminated sheet, su","Wiring for twin control light point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface / recessed steel conduit, 2way piano type switch, phenolic laminated sheet, sui",printed
+1.3,1.3,description,"Wiring for light point/ fan point/ exhaust fan point/ call bell point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit, with modular switch,","Wiring for light point/ fan point/ exhaust fan point/ call bell point with 1.5 sq.mmFRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit, with modular switch, ",printed
+1.3.1,1.3.1,rate,1440,1429,workbook
+1.5,1.5,description,Wiring for light/ power plug with 2X4 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit along with 1 No. 4 sq. mm FRLS PVC insulated copper conductor ,Wiring for light/ power plug with 2X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit alongwith 1 No. 4 sq. mm FRLS PVC insulated copper conductor ,printed
+1.6,1.6,description,Wiring for light/ power plug with 4X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit along with 2 Nos. 4 sq.mm FRLS/HFFR PVC insulated copper cond,Wiring for light/ power plug with 4X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed steel conduit alongwith 2 Nos. 4 sq. mm FRLS/HFFR PVC insulated copper cond,printed
+1.7,1.7,description,"Wiring for circuit/ submain wiring along with earth wire with the following sizes of FRLS/HFFR PVC insulated copper conductor, single core cable in surface/ recessed steel conduit as required.","Wiring for circuit/ submain wiring alongwith earth wire with the following sizes of FRLS/HFFR PVC insulated copper conductor, single core cable in surface/ recessed steel conduit as required.",printed
+1.7.1,1.7.1,unit,Meter,Metre,printed
+1.7.2,1.7.2,unit,Meter,Metre,printed
+1.7.3,1.7.3,unit,Meter,Metre,printed
+1.7.4,1.7.4,unit,Meter,Metre,printed
+1.11,1.11,description,"Wiring for twin control light point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface / recessed medium class PVC conduit, 2way modular switch, modular plate, suitab","Wiring for twin control light point with 1.5 sq.mm FRLS/HFFR PVC insulated copper conductor single core cable in surface / recessed medium class PVC conduit, 2 way modular switch, modular plate, suita",printed
+1.12,1.12,description,Wiring for light/ power plug with 2X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed medium class PVC conduit along with 1 No. 4 sq. mm FRLS/HFFR PVC insulated ,Wiring for light/ power plug with 2X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed medium class PVC conduit alongwith 1 No. 4 sq. mm FRLS/HFFR PVC insulated c,printed
+1.12,1.12,unit,Meter,Metre,printed
+1.13,1.13,description,Wiring for light/ power plug with 4X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed medium class PVC conduit along with 2 Nos. 4 sq. mm FRLS/HFFR PVC insulated,Wiring for light/ power plug with 4X4 sq. mm FRLS/HFFR PVC insulated copper conductor single core cable in surface/ recessed medium class PVC conduit alongwith 2 Nos. 4 sq. mm FRLS/HFFR PVC insulated ,printed
+1.13,1.13,unit,Meter,Metre,printed
+1.14,1.14,description,"Wiring for circuit/ submain wiring along with earth wire with the following sizes of FRLS/HFFR PVC insulated copper conductor, single core cable in surface/ recessed medium class PVC conduit as requir","Wiring for circuit/ submain wiring alongwith earth wire with the following sizes of FRLS/HFFR PVC insulated copper conductor, single core cable in surface/ recessed medium class PVC conduit as require",printed
+1.14.1,1.14.1,unit,Meter,Metre,printed
+1.14.2,1.14.2,unit,Meter,Metre,printed
+1.14.3,1.14.3,unit,Meter,Metre,printed
+1.14.3,1.14.3,rate,373,4508,workbook
+1.14.4,1.14.4,unit,Meter,Metre,printed
+1.14.4,1.14.4,rate,482,4525,workbook
+1.14.5,1.14.5,unit,Meter,Metre,printed
+1.14.5,1.14.5,rate,621,4279,workbook
+1.14.6,1.14.6,unit,Meter,Metre,printed
+1.14.7,1.14.7,unit,Meter,Metre,printed
+1.14.8,1.14.8,unit,Meter,Metre,printed
+1.14.9,1.14.9,unit,Meter,Metre,printed
+1.14.10,1.14.10,unit,Meter,Metre,printed
+1.14.11,1.14.11,unit,Meter,Metre,printed
+1.17.1,1.17.1,unit,Meter,Metre,printed
+1.17.2,1.17.2,unit,Meter,Metre,printed
+1.17.3,1.17.3,unit,Meter,Metre,printed
+1.17.4,1.17.4,unit,Meter,Metre,printed
+1.17.5,1.17.5,unit,Meter,Metre,printed
+1.17.6,1.17.6,unit,Meter,Metre,printed
+1.17.7,1.17.7,unit,Meter,Metre,printed
+1.17.8,1.17.8,unit,Meter,Metre,printed
+1.17.9,1.17.9,unit,Meter,Metre,printed
+1.17.10,1.17.10,unit,Meter,Metre,printed
+1.17.11,1.17.11,unit,Meter,Metre,printed
+1.17.12,1.17.12,unit,Meter,Metre,printed
+1.17.13,1.17.13,unit,Meter,Metre,printed
+1.17.14,1.17.14,unit,Meter,Metre,printed
+1.17.15,1.17.15,unit,Meter,Metre,printed
+1.17.16,1.17.16,unit,Meter,Metre,printed
+1.17.17,1.17.17,unit,Meter,Metre,printed
+1.17.18,1.17.18,unit,Meter,Metre,printed
+1.17.19,1.17.19,unit,Meter,Metre,printed
+1.17.20,1.17.20,unit,Meter,Metre,printed
+1.17.21,1.17.21,unit,Meter,Metre,printed
+1.17.21,1.17.21,rate,222,4357,workbook
+1.17.22,1.17.22,unit,Meter,Metre,printed
+1.17.23,1.17.23,unit,Meter,Metre,printed
+1.17.24,1.17.24,unit,Meter,Metre,printed
+1.17.25,1.17.25,unit,Meter,Metre,printed
+1.17.26,1.17.26,unit,Meter,Metre,printed
+1.17.27,1.17.27,unit,Meter,Metre,printed
+1.17.28,1.17.28,unit,Meter,Metre,printed
+1.17.29,1.17.29,unit,Meter,Metre,printed
+1.17.30,1.17.30,unit,Meter,Metre,printed
+1.17.31,1.17.31,unit,Meter,Metre,printed
+1.17.32,1.17.32,unit,Meter,Metre,printed
+1.17.33,1.17.33,unit,Meter,Metre,printed
+1.17.34,1.17.34,unit,Meter,Metre,printed
+1.17.35,1.17.35,unit,Meter,Metre,printed
+1.17.36,1.17.36,unit,Meter,Metre,printed
+1.17.37,1.17.37,unit,Meter,Metre,printed
+1.18.1,1.18.1,unit,Meter,Metre,printed
+1.18.2,1.18.2,unit,Meter,Metre,printed
+1.18.3,1.18.3,unit,Meter,Metre,printed
+1.19,1.19,unit,Meter,Metre,printed
+1.20.1,1.20.1,unit,Meter,Metre,printed
+1.20.2,1.20.2,unit,Meter,Metre,printed
+1.20.3,1.20.3,unit,Meter,Metre,printed
+1.20.3,1.20.3,rate,360,379,workbook
+1.20.4,1.20.4,unit,Meter,Metre,printed
+1.20.5,1.20.5,unit,Meter,Metre,printed
+1.21.1,1.21.1,unit,Meter,Metre,printed
+1.21.2,1.21.2,unit,Meter,Metre,printed
+1.21.3,1.21.3,unit,Meter,Metre,printed
+1.21.4,1.21.4,unit,Meter,Metre,printed
+1.21.5,1.21.5,unit,Meter,Metre,printed
+1.21.5,1.21.5,rate,316,329,workbook
+1.22.1,1.22.1,rate,213,229,workbook
+1.27,1.27,description,"Supplying and fixing following size/ modules, GI box along with modular base & cover plate for modular switches in recess etc. as required.","Supplying and fixing following size/ modules, GI box alongwith modular base & cover plate for modular switches in recess etc. as required.",printed
+1.36,1.36,rate,353,347,workbook
+1.43,1.43,description,"Supplying and fixing extra conduit down rod of 20 mm dia, 2 X 10 cm length, wiring with 2 X 1.5 sq. mm FRLS/HFFR PVC insulated, copper conductor, single core cable including painting etc. as required.","Providing and fixing extra conduit down rod of 20 mm dia, 2 X 10 cm length, wiring with 2 X 1.5 sq. mm FRLS/HFFR PVC insulated, copper conductor, single core cable including painting etc. as required.",printed
+1.50,1.50,description,"Installation, testing and commissioning following sizes of exhaust fan in the existing opening including making good the damages, connections, etc. as required.","Installation of exhaust fan in the existing opening, including making good the damage, connection, testing, commissioning etc. as required.",printed
+1.56,1.56,rate,757,874,workbook
+2.3.3,2.3.3,rate,2871,2503,workbook
+2.4.3,2.4.3,rate,6337,19477,workbook
+2.10.2,2.10.2,rate,643,285,workbook
+2.15.1,2.15.1,rate,3137,2737,workbook
+2.15.2,2.15.2,rate,3452,3366,workbook
+2.15.3,2.15.3,rate,3597,3036,workbook
+2.17,2.17,rate,1707,2352,workbook
+3.1,3.1,description,"Supplying, Installation on wall, Testing and Commissioning of following capacity rising mains made of 1.6mm thick IP 42 sheet steel enclosure duly painted with powder coating, wall straps, fully PVC i","Supplying, installing on wall, testing and commissioning of following capacity rising mains made of 1.6mm thick IP 42 sheet steel enclosure duly painted with powder coating, wall straps, fully PVC ins",printed
+3.1.1,3.1.1,unit,Meter,Metre,printed
+3.1.2,3.1.2,unit,Meter,Metre,printed
+3.1.3,3.1.3,unit,Meter,Metre,printed
+3.1.4,3.1.4,unit,Meter,Metre,printed
+3.1.5,3.1.5,unit,Meter,Metre,printed
+3.2,3.2,description,"Supplying Installation, Testing and Commissioning of following capacity TPN tap off box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing rising mains complete wit","Supplying, installing, testing and commissioning of following capacity TPN tap off box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing rising mains complete with",printed
+3.3,3.3,description,"Supplying Installation, Testing and Commissioning of following capacity TPN distribution tap off box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing rising mains","Supplying, installing, testing and commissioning of following capacity TPN distribution tap off box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing rising mains ",printed
+3.3.3,3.3.3,rate,32727,40364,workbook
+3.3.6,3.3.6,rate,30315,32134,workbook
+3.3.7,3.3.7,rate,40364,42181,workbook
+3.3.8,3.3.8,rate,56230,58592,workbook
+3.3.10,3.3.10,rate,32134,30315,workbook
+3.3.11,3.3.11,rate,42181,32727,workbook
+3.3.12,3.3.12,rate,58592,56230,workbook
+3.4,3.4,description,"Supplying Installation, Testing and Commissioning of following capacity End Feed Unit made of 1.6mm thick sheet steel enclosure duly painted with powder coating to existing rising mains complete with ","Supplying, installing, testing and commissioning of following capacity End Feed Unit made of 1.6mm thick sheet steel enclosure duly painted with powder coating to existing rising mains complete with T",printed
+3.5,3.5,description,"Supplying, installation including suspension, testing and commissioning of following capacity bus trunking with aluminium bus bars having current density of 130 A/ sq.cm at nominal current rating in 1","Supplying, installation, including suspension, testing and commissioning of following capacity bus trunking with aluminium bus bars having current density of 130 A/ sq cm at nominal current rating in ",printed
+3.5.1,3.5.1,unit,Meter,Metre,printed
+3.5.2,3.5.2,unit,Meter,Metre,printed
+3.5.3,3.5.3,unit,Meter,Metre,printed
+3.5.4,3.5.4,unit,Meter,Metre,printed
+3.5.5,3.5.5,unit,Meter,Metre,printed
+3.6,3.6,description,"Supplying, installation, testing and commissioning of following capacity overhead distribution bus trunking with aluminium bus bars having current density of 130 A/ sq.cm at nominal current rating in ","Supplying, installation, testing and commissioning of following capacity overhead distribution bus trunking with aluminium bus bars having current density of 130 A/ sq cm at nominal current rating in ",printed
+3.6.1,3.6.1,unit,Meter,Metre,printed
+3.6.2,3.6.2,unit,Meter,Metre,printed
+3.7,3.7,description,"Supplying, installation, testing and commissioning of following capacity TPN tap off box / plug-in box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing overhead b","Supplying, installing, testing and commissioning of following capacity TPN tap off box / plug-in box made of 1.6mm thick sheet steel enclosure duly painted with powder coating on existing overhead bus",printed
+3.8,3.8,description,"Supplying, installation on wall, testing and commissioning of following capacity Air Insulated Compact Type Rising Mains for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply with enclosure having IP-","Supplying, installing on wall, testing and commissioning of following capacity Air Insulated Compact Type Rising Mains for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply with enclosure having IP-54",printed
+3.8.1,3.8.1,unit,Meter,Metre,printed
+3.8.2,3.8.2,unit,Meter,Metre,printed
+3.8.3,3.8.3,unit,Meter,Metre,printed
+3.8.4,3.8.4,unit,Meter,Metre,printed
+3.8.5,3.8.5,unit,Meter,Metre,printed
+3.8.6,3.8.6,unit,Meter,Metre,printed
+3.8.7,3.8.7,unit,Meter,Metre,printed
+3.8.8,3.8.8,unit,Meter,Metre,printed
+3.9,3.9,description,"Supplying, installation on wall or suspension on ceiling, testing and commissioning of following capacity Air Insulated Compact Type Bus Trunking for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply ","Supplying, installing on wall or suspension on ceiling, testing and commissioning of following capacity Air Insulated Compact Type Bus Trunking for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply wi",printed
+3.9.1,3.9.1,unit,Meter,Metre,printed
+3.9.2,3.9.2,unit,Meter,Metre,printed
+3.9.3,3.9.3,unit,Meter,Metre,printed
+3.9.4,3.9.4,unit,Meter,Metre,printed
+3.9.5,3.9.5,unit,Meter,Metre,printed
+3.9.6,3.9.6,unit,Meter,Metre,printed
+3.9.7,3.9.7,unit,Meter,Metre,printed
+3.9.8,3.9.8,unit,Meter,Metre,printed
+3.11,3.11,description,"Supplying, installation, testing & commissioning of following capacity End Feed Unit for the existing Air Insulated Compact Type bus trunking/ rising mains for use on 3 phase 4 wire 415 volts, 50Hz A.","Supplying, installation, testing & commisioning of following capacity End Feed Unit for the existing Air Insulated Compact Type bus trunking/ rising mains for use on 3 phase 4 wire 415 volts, 50Hz A.C",printed
+3.12,3.12,description,"Supplying, installation, testing & commissioning of following capacity Plug In/ tap off box on the existing Air Insulated Compact Type bus trunking/ rising mains for use on 3 phase 4 wire 415 volts, 5","Supplying, installation, testing & commisioning of following capacity Plug In/ tap off box on the existing Air Insulated Compact Type bus trunking/ rising mains for use on 3 phase 4 wire 415 volts, 50",printed
+3.13,3.13,description,"Supplying, installation by suspension on ceiling, testing and commissioning of following capacity Sandwich Type Rising Mains for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply with metal clad enclo","Supplying, installing by suspension on ceiling, testing and commissioning of following capacity Sandwich Type Rising Mains for use on 3 phase 4 wire 415 volts, 50Hz A.C. supply with metal clad enclosu",printed
+4.1,4.1,description,"Supplying and installaton following size of perforated painted with powder coating M.S. cable trays with perforation not more than 17.5%, in convenient sections, joined with connectors, suspended from","Supplying and installing following size of perforated painted with powder coating M.S. cable trays with perforation not more than 17.5%, in convenient sections, joined with connectors, suspended from ",printed
+4.1.3,4.1.3,rate,775,819,workbook
+4.1.7,4.1.7,rate,1482,1526,workbook
+4.2,4.2,description,"Supplying and installation following size of perforated painted with powder coating M.S. cable trays bends with perforation not more than 17.5%, joined with connectors, suspended from the ceiling with","Supplying and installing following size of perforated painted with powder coating M.S. cable trays bends with perforation not more than 17.5%,, joined with connectors, suspended from the ceiling with ",printed
+4.2.15,4.2.15,rate,3895,813,workbook
+4.3,4.3,description,"Supplying and installation following size of perforated painted with powder coating M.S. cable trays Tee with perforation not more than 17.5%, joined with connectors, suspended from the ceiling with t","Supplying and installing following size of perforated painted with powder coating M.S. cable trays Tee with perforation not more than 17.5%, joined with connectors, suspended from the ceiling with two",printed
+4.5.12,4.5.12,rate,4578,3880,workbook
+4.6,4.6,description,"Supplying and installing following size of perforated Hot Dipped Galvanised Iron cable tray (Galvanisation thickness not less than 50 microns) with perforation not more than 17.5%, in convenient secti","Hot Dipped Galvanized Iron Cable Tray
+Supplying and installing following size of perforated Hot Dipped Galvanised Iron cable tray (Galvanisation thickness not less than 50 microns) with perforation no",printed
+4.6.1,4.6.1,unit,Meter,Metre,printed
+4.6.2,4.6.2,unit,Meter,Metre,printed
+4.6.3,4.6.3,unit,Meter,Metre,printed
+4.6.4,4.6.4,unit,Meter,Metre,printed
+4.6.5,4.6.5,unit,Meter,Metre,printed
+4.6.6,4.6.6,unit,Meter,Metre,printed
+4.6.7,4.6.7,unit,Meter,Metre,printed
+4.6.8,4.6.8,unit,Meter,Metre,printed
+4.6.9,4.6.9,unit,Meter,Metre,printed
+4.6.10,4.6.10,unit,Meter,Metre,printed
+4.6.11,4.6.11,unit,Meter,Metre,printed
+4.6.12,4.6.12,unit,Meter,Metre,printed
+4.6.13,4.6.13,unit,Meter,Metre,printed
+4.6.14,4.6.14,unit,Meter,Metre,printed
+4.6.15,4.6.15,unit,Meter,Metre,printed
+4.6.16,4.6.16,unit,Meter,Metre,printed
+4.9.12,4.9.12,rate,4505,6014,workbook
+4.9.13,4.9.13,rate,5196,6984,workbook
+4.9.15,4.9.15,rate,6014,4505,workbook
+4.9.16,4.9.16,rate,6984,5197,workbook
+4.10.11,4.10.11,rate,5567,6291,workbook
+4.10.14,4.10.14,rate,6291,5567,workbook
+5.1,5.1,description,"Earthing with G.I. earth pipe 4.5 Meter long, 40 mm dia including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe etc. (but without charcoal/","Earthing with G.I. earth pipe 4.5 metre long, 40 mm dia including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe etc. (but without charcoal/",printed
+5.2,5.2,description,"Earthing with G.I. earth pipe 4.5 Meter long, 40 mm dia including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe etc. with charcoal/ coke an","Earthing with G.I. earth pipe 4.5 metre long, 40 mm dia including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe etc. with charcoal/ coke an",printed
+5.2,5.2,unit,Set,Each,printed
+5.3,5.3,description,"Earthing with G.I. earth plate 600 mm X 600 mm X 6 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 Meter long etc. ","Earthing with G.I. earth plate 600 mm X 600 mm X 6 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 metre long etc. ",printed
+5.4,5.4,description,"Earthing with G.I. earth plate 600 mm X 600 mm X 6 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 Meter long etc. ","Earthing with G.I. earth plate 600 mm X 600 mm X 6 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 metre long etc. ",printed
+5.6,5.6,description,"Earthing with copper earth plate 600 mm X 600 mm X 3 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 Meter long etc","Earthing with copper earth plate 600 mm X 600 mm X 3 mm thick including accessories, and providing masonry enclosure with cover plate having locking arrangement and watering pipe of 2.7 metre long etc",printed
+5.7,5.7,description,"Supplying and laying 6 SWG G.I. wire at 0.50 Meter below ground level for conductor earth electrode, including connection/ termination with GI thimble etc. as required.","Supplying and laying 6 SWG G.I. wire at 0.50 metre below ground level for conductor earth electrode, including connection/ termination with GI thimble etc. as required.",printed
+5.7,5.7,unit,Meter,Metre,printed
+5.8,5.8,unit,Meter,Metre,printed
+5.9,5.9,unit,Meter,Metre,printed
+5.12,5.12,unit,Meter,Metre,printed
+5.13,5.13,unit,Meter,Metre,printed
+5.14,5.14,unit,Meter,Metre,printed
+5.15,5.15,unit,Meter,Metre,printed
+5.16,5.16,unit,Meter,Metre,printed
+5.17,5.17,unit,Meter,Metre,printed
+5.18,5.18,unit,Meter,Metre,printed
+5.19,5.19,unit,Meter,Metre,printed
+5.20,5.20,unit,Meter,Metre,printed
+6.2,6.1,code,6.1,6.2,printed
+6.3,6.2,code,6.2,6.3,printed
+6.4,6.3,code,6.3,6.4,printed
+6.7,6.6,code,6.6,6.7,printed
+6.7,6.6,unit,Meter,Metre,printed
+6.8,6.7,code,6.7,6.8,printed
+6.8,6.7,unit,Meter,Metre,printed
+6.9,6.8,code,6.8,6.9,printed
+6.9,6.8,unit,Meter,Metre,printed
+6.10,6.9,code,6.9,6.10,printed
+6.10,6.9,unit,Meter,Metre,printed
+6.10,6.9,rate,201,281,workbook
+6.12,6.10,code,6.10,6.12,printed
+6.12,6.10,rate,140,3614,printed
+6.14,6.11,code,6.11,6.14,printed
+6.14,6.11,unit,Meter,Metre,printed
+6.15,6.12,code,6.12,6.15,printed
+6.15,6.12,unit,Meter,Metre,printed
+7.1,7.1,description,"Supplying, Installation, Testing and commissioning of Passive Infrared (PIR) technology based occupancy sensor having high performance, non regulating programmable type, suitable for connected load up","Supplying,installation,testing and commissioning of Passive Infrared(PIR) technology based occupancy sensor having high preformance, non regulating programmable type, suitable for connected load upto ",printed
+7.2,7.2,description,"Supplying, Installation, Testing and commissioning of Passive Infrared(PIR) technology based occupancy sensor with day light dimming(lighting level shall be regulated as per availability of natural da","Supplying,installation,testing and commissioning of Passive Infrared(PIR) technology based occupancy sensor with day light dimming(lighting level shall be regulated as per availability of natural day ",printed
+7.3,7.3,description,"Supplying, Installation, Testing and commissioning of Microwave technology based occupancy sensor having high performance, non regulating programmable type, suitable for connected load upto 10Amp , fo","Supplying,installation,testing and commissioning of Microwave technology based occupancy sensor having high preformance, non regulating programmable type, suitable for connected load upto 10Amp , for ",printed
+8.1,8.1,description,"LED Down lighter (SMD Type) (System lumen efficacy ≥ 105 < 120 lm/Watt ) Supplying, Installation, Testing & Commissioning of LED Recessed/ surface Down lighter (Round/ square/ Rectangular) SMD type of","LED Down lighter (SMD Type) (System lumen efficacy ≥ 105 < 120lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed / surface Down lighter (Round/ square/ Rectangular) SMD type of ",printed
+8.2,8.2,description,"LED Down lighter (SMD Type) (System lumen efficacy ≥120<135lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed/surface Down lighter (Round/ square/ Rectangular) SMD type of follo","LED Down lighter (SMD Type) (System lumen efficacy ≥120 <135lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed /surface Down lighter (Round / square/ Rectangular) SMD type of fo",printed
+8.3,8.3,description,"LED Down lighter (SMD Type) (System lumen efficacy >135lm/Watt) Supplying, Installation, Testing & Commissioning of LED Recessed/surface Down lighter (Round /square/Rectangular) SMD type of following ","LED Down lighter (SMD Type) (System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed/surface Down lighter (Round /square/Rectangular) SMD type of following",printed
+8.4,8.4,description,"LED Down lighter (COB Type) (System lumen efficacy ≥105 < 120 lm/Watt ). Supplying, installation, Testing & Commissioning of LED Recessed/ surface Down lighter (Round/ square/ Rectangular) COB Type of","LED Down lighter (COB Type) (System lumen efficacy ≥ 105 < 120lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed/ surface Down lighter (Round/ square/ Rectangular) COB Type of f",printed
+8.5,8.5,description,"LED Down lighter (COB Type) (System lumen efficacy ≥120 lm/Watt )Supplying, Installation, Testing & Commissioning of LED Recessed/surface Down lighter (Round / square/ Rectangular) COB Type of followi","LED Down lighter (COB Type) (System lumen efficacy ≥120 lm/Watt) Supplying, installation, Testing & Commissioning of LED Recessed/surface Down lighter (Round / square/ Rectangular) COB Type of followi",printed
+8.6,8.6,description,"LED Panel light 2x2 ft. (System lumen efficacy ≥105 <120 lm/Watt)Supplying, installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322 ","LED Panel light 2x2 ft. (System lumen efficacy ≥105 <120 lm/Watt) Supplying, installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322",printed
+8.6.7,8.6.7,description,15 watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+15 watt",printed
+8.6.8,8.6.8,rate,1712,1920,workbook
+8.7,8.7,description,"LED Panel light 2x2 ft. (System lumen efficacy ≥120 <135 lm/Watt) Supplying, Installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322","LED Panel light 2x2 ft. (System lumen efficacy ≥120 <135 lm/Watt) Supplying, installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322",printed
+8.7.7,8.7.7,description,15 watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+15 watt",printed
+8.8,8.8,description,"LED Panel light 2x2 ft., (System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322 wit","LED Panel light 2x2 ft., (System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of Panel light 2x2 ft., of following body material and construction as per IS : 10322 wit",printed
+8.8.7,8.8.7,description,15 watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+15 watt",printed
+8.9,8.9,description,"LED Batten light (System lumen efficacy ≥105 <120 lm/Watt).Supplying, Installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : ","LED Batten light (System lumen efficacy ≥105 <120 lm/Watt) Supplying, installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : ",printed
+8.9.5,8.9.5,description,18- 22 Watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+18- 22 Watt",printed
+8.10,8.10,description,"LED Batten light (System lumen efficacy ≥120 <135 lm/Watt)Supplying, installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : 1","LED Batten light (System lumen efficacy ≥120 <135 lm/Watt) Supplying, installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : ",printed
+8.10.5,8.10.5,description,18- 22 Watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+18- 22 Watt",printed
+8.11,8.11,description,"LED Batten light (System lumen efficacy >135 lm/Watt)Supplying, installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : 10322 ","LED Batten light (System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of LED surface mounted Batten light of following body material and construction as per IS : 10322",printed
+8.11.5,8.11.5,description,18- 22 Watt,"Powder Coated CRCA Sheet Body (Thickness > 0.50 mm)
+18- 22 Watt",printed
+8.12,8.12,description,"LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy ≥105 <120 lm/Watt)Supplying, installation, Testing & Commissioning of Street light LED fixture powder co","LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy ≥105 <120 lm/Watt) Supplying, installation, Testing & Commissioning of Street light LED fixture powder c",printed
+8.13,8.13,description,"LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy ≥120 <135 lm/Watt) Supplying, installation, Testing & Commissioning of Street light LED fixture powder c","LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy ≥120 <135 lm/Watt) Supplying, installation, Testing & Commissioning of Street light LED fixture powder c",printed
+8.14,8.14,description,"LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy >135 lm/Watt). Supplying, Installation, Testing & Commissioning of Street light LED fixture, powder coat","LED Street light fixture, powder coated pressure die cast aluminium body (System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of Street light LED fixture, powder coate",printed
+8.15,8.15,description,"LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy ≥105 <120 lm/Watt). Supplying, Installation, Testing & Commissioning of Flood Light, powder coated pressure die cast a","LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy 105 <120 lm/Watt) Supplying, installation, Testing & Commissioning of Flood Light, powder coated pressure die cast alu",printed
+8.16,8.16,description,"LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy ≥120 and <135 lm/Watt).Supplying, Installation, Testing & Commissioning of Flood Light, powder coated pressure die cas","LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy ≥120 and <135 lm/Watt) Supplying, installation, Testing & Commissioning of Flood Light, powder coated pressure die cas",printed
+8.17,8.17,description,"LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy >135 lm/Watt)Supplying, Installation, Testing & Commissioning of Flood Light, powder coated pressure die cast aluminiu","LED Flood Light, powder coated pressure die cast aluminium (System lumen efficacy >135 lm/Watt)
+Supplying, installation, Testing & Commissioning of Flood Light, powder coated pressure die cast alumini",printed
+8.18,8.18,description,"LED Smart Street light fixture, powder coated pressure die cast aluminium (System. System lumen efficacy ≥105 and <120 lm/Watt) Supplying, installation, Testing & Commissioning of Smart Street light L","LED Smart Street light fixture, powder coated pressure die cast aluminium (System. System lumen efficacy ≥105 and <120 lm/Watt) Supplying, installation, Testing & Commissioning of Smart Street light L",printed
+8.19,8.19,description,"LED Smart Street light fixture, powder coated pressure die cast aluminium (System lumen efficacy ≥120 and <135 lm/Watt) Supplying, installation, Testing & Commissioning of Smart Street light LED fixtu","LED Smart Street light fixture, powder coated pressure die cast aluminium (System. System lumen efficacy ≥120 and <135 lm/Watt) Supplying, installation, Testing & Commissioning of Smart Street light L",printed
+8.20,8.20,description,"LED Smart Street light fixture, powder coated pressure die cast aluminium (System. System lumen efficacy >135 lm/Watt). Supplying, installation, Testing & Commissioning of Smart Street light LED fixtu","LED Smart Street light fixture, powder coated pressure die cast aluminium (System. System lumen efficacy >135 lm/Watt) Supplying, installation, Testing & Commissioning of Smart Street light LED fixtur",printed
+8.21.1,8.21.1,description,"Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 20 watt, 6V Mono Passivated Emitter and Rear Contact (PER","Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 20 watt, 6V Mono Passivated Emitter and Rear Contact (PER",printed
+8.21.2,8.21.2,description,"Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 30 watt, 6V Mono Passivated Emitter and Rear Contact (PER","Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 30 watt, 6V Mono Passivated Emitter and Rear Contact (PER",printed
+8.21.3,8.21.3,description,"Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 35 watt, 6V Mono Passivated Emitter and Rear Contact (PER","Supplying, installation, Testing & Commissioning of the integrated type solar PV lighting system on the existing pole structure, comprising of 35 watt, 6V Mono Passivated Emitter and Rear Contact (PER",printed
+9.1,9.1,description,"Brush Less Direct Current (BLDC) Fan with Remote Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal(Alumin","Brush Less DIrect Current (BLDC) Motor Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Aluminum alloy)",printed
+9.2,9.2,description,"Brush Less Direct Current (BLDC) Fan without Remote Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Al","Brush Less DIrect Current (BLDC) Motor Supply, Installation, Testing and Commissioning of ceiling fan with Brush Less Direct Current (BLDC) Motor, class of insulation: B, 3 nos. metal( Aluminum alloy)",printed
+9.2.3,9.2.3,description,"1200mm, service value ≥ 6.0 CM/Min/Watt, air delivery 210 CM/Min (Minimum)","1200mm, service value ≥ 6.0 CM/Min/Watt, air delivery 210",printed
+9.2.4,9.2.4,description,"1400mm, service value ≥ 6.0 CM/Min/Watt, air delivery 245 CM/Min (Minimum)","CM/Min (Minimum)
+1400mm, service value ≥ 6.0 CM/Min/Watt, air delivery 245 CM/Min (Minimum)",printed
+10.1.1,10.1.1,unit,Meter,Metre,printed
+10.1.1,10.1.1,rate,453,484,workbook
+10.1.2,10.1.2,unit,Meter,Metre,printed
+10.1.3,10.1.3,unit,Meter,Metre,printed
+10.1.4,10.1.4,unit,Meter,Metre,printed
+10.2.1,10.2.1,unit,Meter,Metre,printed
+10.2.2,10.2.2,unit,Meter,Metre,printed
+10.2.3,10.2.3,unit,Meter,Metre,printed
+10.2.4,10.2.4,unit,Meter,Metre,printed
+10.3.1,10.3.1,unit,Meter,Metre,printed
+10.3.2,10.3.2,unit,Meter,Metre,printed
+10.3.3,10.3.3,unit,Meter,Metre,printed
+10.3.4,10.3.4,unit,Meter,Metre,printed
+10.4.1,10.4.1,unit,Meter,Metre,printed
+10.4.2,10.4.2,unit,Meter,Metre,printed
+10.4.3,10.4.3,unit,Meter,Metre,printed
+10.4.4,10.4.4,unit,Meter,Metre,printed
+10.5.1,10.5.1,unit,Meter,Metre,printed
+10.5.2,10.5.2,unit,Meter,Metre,printed
+10.5.3,10.5.3,unit,Meter,Metre,printed
+10.5.4,10.5.4,unit,Meter,Metre,printed
+10.6.1,10.6.1,unit,Meter,Metre,printed
+10.6.2,10.6.2,unit,Meter,Metre,printed
+10.6.3,10.6.3,unit,Meter,Metre,printed
+10.6.4,10.6.4,unit,Meter,Metre,printed
+10.7.1,10.7.1,unit,Meter,Metre,printed
+10.7.2,10.7.2,unit,Meter,Metre,printed
+10.7.3,10.7.3,unit,Meter,Metre,printed
+10.7.4,10.7.4,unit,Meter,Metre,printed
+10.8.1,10.8.1,unit,Meter,Metre,printed
+10.8.2,10.8.2,unit,Meter,Metre,printed
+10.8.3,10.8.3,unit,Meter,Metre,printed
+10.8.4,10.8.4,unit,Meter,Metre,printed
+10.9,10.9,description,"Supplying, Installation, Testing and Commissioning of making cable route marker with cement concrete 1:2:4 (1 cement : 2 coarse sand : 4 graded stone aggregate 20 mm nominal size ) of size 60 cm X 60 ",Supplying and making cable route marker with cement concrete 1:2:4 (1 cement : 2 coarse sand : 4 graded stone aggregate 20 mm nominal size ) of size 60 cm X 60 cm at the bottom and 50 cm X 50 cm at th,printed
+10.10,10.10,description,"Supplying, Installation, Testing and Commissioning of cable route marker with 10 cm X 10 cm X 5 mm thick G.I. plate with inscription there on, bolted /welded to 35 mm X 35 mm X 6 mm angle iron, 60 cm ","Supplying and fixing cable route marker with 10 cm X 10 cm X 5 mm thick G.I. plate with inscription there on, bolted /welded to 35 mm X 35 mm X 6 mm angle iron, 60 cm long and fixing the same in groun",printed
+11.1.2,11.1.2,rate,295,294,workbook
+11.1.3,11.1.3,rate,311,298,workbook
+11.1.5,11.1.5,rate,376,366,workbook
+11.1.6,11.1.6,rate,419,383,workbook
+11.1.7,11.1.7,rate,312,358,workbook
+11.1.8,11.1.8,rate,326,315,workbook
+11.1.10,11.1.10,rate,419,383,workbook
+12.6.1,12.6.1,unit,Meter,Metre,printed
+12.6.2,12.6.2,unit,Meter,Metre,printed
+13.6,13.6,rate,6351,6260,workbook
+13.15,13.15,description,"Supplying, Installation, Testing and Commissioning of Erection of galvanised 'D' iron clamps and insulator on pole as required.",Erection of galvanised 'D' iron clamps and insulator on pole as required.,printed
+13.16,13.16,description,"Supplying, Installation, Testing and Commissioning of erection of 75 mm X 90 mm shackle insulator with G. I. Bolt, nuts and straps etc. as required .","Supplying and erection of 75 mm X 90 mm shackle insulator with G. I. Bolt, nuts and straps etc. as required .",printed
+13.17,13.17,description,"Supplying, Installation, Testing and Commissioning of erection of 100 mm X 110 mm shackle insulator with G. I. Bolt, nuts and straps etc. as required .","Supplying and erection of 100 mm X 110 mm shackle insulator with G. I. Bolt, nuts and straps etc. as required .",printed
+13.18,13.18,description,"Supplying, Installation, Testing and Commissioning of erection of 100 mm X 65 mm pin insulator complete with G. I. Spindle and nuts etc. as required .",Supplying and erection of 100 mm X 65 mm pin insulator complete with G. I. Spindle and nuts etc. as required .,printed
+13.19,13.19,description,"Supplying, Installation, Testing and Commissioning of erection of 100 mm X 80 mm pin insulator complete with G. I. Spindle and nuts etc. as required .",Supplying and erection of 100 mm X 80 mm pin insulator complete with G. I. Spindle and nuts etc. as required .,printed
+13.20,13.20,description,"Supplying, Installation, Testing and Commissioning of Erection of LV/MV shackle/pin insulator etc. as required.",Erection of LV/MV shackle/pin insulator etc. as required.,printed
+13.21,13.21,description,"Supplying, Installation, Testing and Commissioning of Erection of ACSR conductor of 7/2.11 mm to 7/3.00 mm diameter including binding etc. as required.",Erection of ACSR conductor of 7/2.11 mm to 7/3.00 mm diameter including binding etc. as required.,printed
+13.22,13.22,description,"Supplying, Installation, Testing and Commissioning of Erection of ACSR conductor of 7/3.35 mm to 7/4.00 diameter and above including binding etc. as required.",Erection of ACSR conductor of 7/3.35 mm to 7/4.00 diameter and above including binding etc. as required.,printed
+13.23,13.23,description,"Supplying, Installation, Testing and Commissioning of Erection of all aluminium conductor of 7/1.96 mm to 7/3.10 mm diameter including binding etc. as required.",Erection of all aluminium conductor of 7/1.96 mm to 7/3.10 mm diameter including binding etc. as required.,printed
+13.29,13.29,description,Supplying and erection of 15 A aerial fuse complete as required.,Supplying and erection of 15 A aerial fuse complete as required. Each,printed
+13.30,13.30,description,Supplying and erection of 30 A aerial fuse complete as required.,Supplying and erection of 30 A aerial fuse complete as required. Each,printed
+14.2,14.2,description,"Supplying and erection of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) pole top bracket/ cross arm for single 11 KV over head line conductor complete with 50 mm X 6mm flat iron clamp, bolts, ","Supplying of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) pole top bracket/ cross arm for single 11 KV over head line conductor complete with 50 mm X 6mm flat iron clamp, bolts, nuts and wash",printed
+14.3,14.3,description,"Supplying and erection of 50 mm X 8 mm M.S. flat iron pole top bracket/ cross arm for single 11/22/33 KV over head line conductor complete with fixing clamps, bolts, nuts and washers drilling holes fo","Supplying of 50 mm X 8 mm M.S. flat iron pole top bracket/ cross arm for single 11/22/33 KV over head line conductor complete with fixing clamps, bolts, nuts and washers drilling holes for insulator p",printed
+14.3,14.3,rate,716,756,workbook
+14.4,14.4,description,Supplying and erection of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) cross arm for two 11 KV over head line conductors complete with 50 mm X 50 mm X 6 mm (angle iron bracket welded to the c,Supplying of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) cross arm for two 11 KV over head line conductors complete with 50 mm X 50 mm X 6 mm (angle iron bracket welded to the channel iron a,printed
+14.5,14.5,description,"Supplying and erection of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) V shape cross arm for two 11 KV over head line conductors complete with 50 mm X 6mm M.S. flat iron clamps, bolts and nut","Supplying of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) V shape cross arm for two 11 KV over head line conductors complete with 50 mm X 6mm M.S. flat iron clamps, bolts and nuts including d",printed
+14.7,14.7,description,Supplying and erection of two lengths of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) double pole cross arm for three wire 11KV over head line conductors complete with through bolts and nuts ,Supplying of two lengths of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) double pole cross arm for three wire 11KV over head line conductors complete with through bolts and nuts for clamping ,printed
+14.8,14.8,description,Supplying and erection of a set of cross bracing frame work for 11 KV over head line double pole structure having four members fabricated out of 50 mm X 50 mm X 6 mm angle iron to form a rectangle of ,Supplying and erection of a set of cross bracing FRLSame work for 11 KV over head line double pole structure having four members fabricated out of 50 mm X 50 mm X 6 mm angle iron to form a rectangle o,printed
+14.15,14.15,description,"Supplying and erection of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) pole top bracket/ cross arm for single 33 KV over head line conductor complete with 50 mm X 6mm flat iron clamps, bolts ","Supplying of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) pole top bracket/ cross arm for single 33 KV over head line conductor complete with 50 mm X 6mm flat iron clamps, bolts and nuts incl",printed
+14.16,14.16,description,Supplying and erection of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) cross arm for two 33 KV over head line conductors complete with 50 mm X 50 mm X 6 mm angle iron bracket welded to the ch,Supplying of channel iron 75 mm X 40 mm X 6 mm (7.14 kg per metre) cross arm for two 33 KV over head line conductors complete with 50 mm X 50 mm X 6 mm angle iron bracket welded to the channel iron an,printed
+14.16,14.16,rate,3155,3195,workbook
+14.18,14.18,description,"Supplying and erection of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre), pole top bracket/ cross arm for single 33 KV over head line conductor complete with 50 mm X 6 mm M.S. flat iron clamps","Supplying of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre), pole top bracket/ cross arm for single 33 KV over head line conductor complete with 50 mm X 6 mm M.S. flat iron clamps, bolts and n",printed
+14.18,14.18,rate,886,926,workbook
+14.19,14.19,description,Supplying and erection of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) cross arm for two wire 33 KV over head line conductors complete with 50 mm X 50 mm X 6 mm angle iron bracket welded to ,Supplying of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) cross arm for two wire 33 KV over head line conductors complete with 50 mm X 50 mm X 6 mm angle iron bracket welded to the channel i,printed
+14.20,14.20,description,"Supplying and erection of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) V shape cross arm for two 33 KV over head line conductors complete with 50 mm X 6mm M.S. flat iron clamps, bolts and nu","Supplying of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) V shape cross arm for two 33 KV over head line conductors complete with 50 mm X 6mm M.S. flat iron clamps, bolts and nuts including ",printed
+14.21,14.21,description,Supplying and erection of two lengths of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) double pole cross arm for three wire 33 KV over head line conductors complete with through bolts and nut,Supplying of two lengths of channel iron 100 mm X 50 mm X 6 mm (9.56 kg per metre) double pole cross arm for three wire 33 KV over head line conductors complete with through bolts and nuts for clampin,printed
+14.22,14.22,description,Supplying and erection of a set of cross bracing frame work for 33 KV over head line double pole structure having four members fabricated out of 65 mm X 65 mm X 6 mm angle iron to form a rectangle of ,Supplying and erection of a set of cross bracing FRLSame work for 33 KV over head line double pole structure having four members fabricated out of 65 mm X 65 mm X 6 mm angle iron to form a rectangle o,printed
+15.3,15.3,description,"Filling available excavated earth (excluding rock) in trenches, sides of foundations etc. in layers not exceeding 2°Cm in depth, consolidating each deposited layer by ramming and watering, lead up to ","Filling available excavated earth (excluding rock) in trenches, sides of foundations etc. in layers not exceeding 20cm in depth, consolidating each deposited layer by ramming and watering, lead up to ",printed
+15.12,15.12,unit,sqm,Sq.m Rate to be,printed
+15.13.1,15.13.1,unit,Meter,Metre Rate to be,printed
+15.13.2,15.13.2,unit,Meter,Metre Rate to be,printed
+15.13.3,15.13.3,unit,Meter,Metre,printed
+15.13.4,15.13.4,unit,Meter,Metre,printed
+15.14.1,15.14.1,unit,Meter,Metre,printed
+15.14.2,15.14.2,unit,Meter,Metre,printed
+15.14.3,15.14.3,unit,Meter,Metre,printed
+15.14.3,15.14.3,rate,1120,1110,workbook
+15.14.4,15.14.4,unit,Meter,Metre,printed
+15.15.1,15.15.1,unit,Meter,Metre,printed
+15.15.2,15.15.2,unit,Meter,Metre,printed
+15.15.2,15.15.2,rate,183,181,workbook
+15.15.3,15.15.3,unit,Meter,Metre,printed
+15.15.4,15.15.4,unit,Meter,Metre,printed
+15.15.5,15.15.5,unit,Meter,Metre,printed
+15.16.1,15.16.1,unit,Meter,Metre,printed
+15.16.2,15.16.2,unit,Meter,Metre,printed
+15.16.2,15.16.2,rate,336,334,workbook
+15.16.3,15.16.3,unit,Meter,Metre,printed
+15.16.4,15.16.4,unit,Meter,Metre,printed
+15.16.5,15.16.5,description,200 mm dia (OD-200 mm & ID-175 mm nominal),"200 mm dia (OD-200 mm & ID-175 mm nominal)
+There are few items which are contained in Civil DSR which are required",printed
+15.16.5,15.16.5,unit,Meter,Metre,printed
+16.1,16.1,description,"Supplying, Installation, Testing, Commissioning of following capacity Evacuated Tube Collector (ETC) Solar Water Heating System comprising of all glass ETC tube absorber. The inner layer of absorber s","SOLAR WATER HEATING SYSTEM (Evacuated
+Tube Collector)
+Supplying, installation, Testing, Commissioning of following capacity Evacuated Tube Collector (ETC) Solar Water Heating System comprising of all ",printed
+16.1.1,16.1.1,unit,Set,Each,printed
+16.1.1,16.1.1,rate,22674,16477,workbook
+16.1.2,16.1.2,unit,Set,Each,printed
+16.1.2,16.1.2,rate,44773,32378,workbook
+16.1.3,16.1.3,unit,Set,Each,printed
+16.1.3,16.1.3,rate,66944,48351,workbook
+16.1.4,16.1.4,unit,Set,Each,printed
+16.1.4,16.1.4,rate,90626,65835,workbook
+16.2,16.2,description,"Supply, Installation, Testing & Commissioning of Flat Plate collector (FPC) Solar Water Heating System comprising of solar flat plate collector ISI Marked made of copper sheet/copper tube, absorber to","SOLAR WATER HEATER (FLAT PLATE TYPE COLLECTOR)
+Supply, Installation, Testing & Commissioning of Flat Plate collector (FPC) Solar Water Heating System comprising of solar flat plate collector ISI Marke",printed
+16.2.1,16.2.1,unit,Set,Each,printed
+16.2.1,16.2.1,rate,30528,20879,workbook
+16.2.2,16.2.2,unit,Set,Each,printed
+16.2.2,16.2.2,rate,61057,41759,workbook
+16.2.3,16.2.3,unit,Set,Each,printed
+16.2.3,16.2.3,rate,71119,48641,workbook
+16.2.4,16.2.4,unit,Set,Each,printed
+16.2.4,16.2.4,rate,91584,62638,workbook
+16.2.5,16.2.5,unit,Set,Each,printed
+16.2.5,16.2.5,rate,152641,104397,workbook
+17.1,17.1,description,"Supplying Installation, Testing and Commissioning of on-grid Solar Photovoltaic Power Plant conforming to various applicable standards BIS, IEC, MNRE guidelines, the Central Electricity Authority Regu","Supply, Installation, Testing and Commissioning of on-grid Solar Photovoltaic Power Plant conforming to various applicable standards BIS, IEC, MNRE guidelines, the Central Electricity Authority Regula",printed
+18.1,18.1,description,"Supplying Installation, Testing and Commissioning of EV charging station As per specifications and in Compliance to relevant IS codes etc.","Supply, Installation, Testing and commissioning of EV charging station As per specifications and in Compliance to relevant IS codes etc.",printed
+18.1.1,18.1.1,description,"Light EV AC Charger (Mode-3) Power : 7 kW, Input power supply: 1phase 230 +10% Volt, output supply: 230 Volt AC, Frequency:50 Hz +/-3%, Operational temperature range : -25 to 55 °C (outdoor), -5 to 55","Light EV AC Charger (Mode-3) Power : 7 kW, Input power supply: 1phase 230 +10% Volt, output supply: 230 Volt AC, Frequency:50 Hz +/-3%, Operational temprature range : -25 to 55 degree C (outdoor), -5 ",printed
+18.1.2,18.1.2,description,"Light EV DC Charger (Mode 4) Power Level 1: Up to 7 kW, Input power supply: 1phase 230 +10% Volt/3phase 415 Volt, Frequency: 50 Hz +/-5%, output supply: 12/24 Volt DC. Operational temperature range : ","Light EV DC Charger (Mode 4) Power Level 1: Up to 7 kW, Input power supply: 1phase 230 +10% Volt/3phase 415 Volt, Frequency: 50 Hz +/-5%, output supply: 12/24 Volt DC. Operational temprature range : -",printed
+18.1.3,18.1.3,description,"Parkbay AC Charger (Mode -3) Power Level 2: Normal Power ~11kW/ 22 kW, 3 phase 415VAC(-40% to +20%), Frequency:50 Hz +/-5%, output supply: 240 Volt AC, Operational temperature range : -25 to 55 °C (ou","Parkbay AC Charger (Mode -3) Power Level 2: Normal Power ~11kW/ 22 kW, 3 phase 415VAC(-40% to +20%), Frequency:50 Hz +/-5%, output supply: 240 Volt AC, Operational temprature range : -25 to 55 degree ",printed
+18.1.4,18.1.4,description,"Parkbay DC Charger (Mode-3) Power Level 2: Normal Power ~24KW and above, 3 phase 415VAC(-40% to +20%), Frequency:50 Hz +/-5%, output supply: DC 12/24 Volt, Operational temperature range : -25 to 55 °C","Parkbay DC Charger (Mode-3) Power Level 2: Normal Power ~24KW and above, 3 phase 415VAC(-40% to +20%), Frequency:50 Hz +/-5%, output supply: DC 12/24 Volt, Operational temprature range : -25 to 55 deg",printed
+19.1,19.1,description,LED floodlight,"LED floodlight Supply, Installation, Testing and Commissioning of Cicular/ Rectangular/square LED RGB/RGBWW/RGBNW/RGBA/RGBW (as per site requirement) Facade Floodlight/ Projector luminaire for facade ",printed
+19.2,19.2,description,LED Linear Profile (AC),"LED Linear Profile (AC) Supply, Installation, Testing and Commissioning of LED RGB/RGBWW/RGBNW/ RGBA/ RGBW (as per site requirement) Linear Profile / Wall Washer luminaire for Facade lighting with alu",printed
+19.3,19.3,description,LED Linear Profile (DC),"LED Linear Profile (DC) Supply, Installation, Testing and Commissioning of LED RGB/RGBWW/RG BNW/ RGBA/ RGBW (as per site requirement) Linear Profile / Wall Washer luminaire for Facade lighting with al",printed
+19.4,19.4,description,RGB LED Strip,"RGB LED Strip Supply, installation, testing and commissioning of LED RGB/RGBWW/ RGBNW/ RGBA/RGBW suitable for exterior use having IP68 rating (as per site requirement). Flexible light strip of 5 mtr s",printed
+19.4,19.4,unit,,Each,printed
+19.5.1,19.5.1,description,"Supplying Installation, Testing and Commissioning of DMX Controller for the system including address writer and programming the DMX controller with the suitable designs as decided by the Engineer-in-c","Supply, installation, testing and commissioning of DMX Controller for the system including address writer and programming the DMX controller with the suitable designs as decided by the Engineer-in-cha",printed
+19.6.1,19.6.1,description,"Supplying Installation, Testing and Commissioning of DMX Splitter with Input Voltage range : 190-240V AC, Power Consumption 5W max. Housing is made of CRCA with powder coated finish Mounting, 19 inch ","Supply, installation testing and commissioning of DMX Splitter with Input Voltage range : 190-240V AC, Power Consumption 5W max. Housing is made of CRCA with powder coated finish Mounting, 19 inch rac",printed
+19.6.1,19.6.1,unit,,Each,printed
+19.6.2,19.6.2,description,"Supplying Installation, Testing and Commissioning of RDM-6Wall Splitter, should be able to provide 6- output DMX/RDM splitter with DMX/RDM pass- through supporting bi-directional communications for di","Supply, Installation, Testing and Commissioning of RDM-6Wall Splitter, should be able to provide 6- output DMX/RDM splitter with DMX/RDM pass- through supporting bi-directional communications for disc",printed
+19.6.2,19.6.2,unit,,Each,printed
+19.7.1,19.7.1,description,"Supplying Installation, Testing and Commissioning of Signal Amplifier to boost the Signal, IP 65 rated module to enhance the depleting DMX Signals, should have IP 66/67 rates inbuilt connectors compat","Supply, installation testing and commissioning of Signal Amplifier to boost the Signal, IP 65 rated module to enhance the depleting DMX Signals, should have IP 66/67 rates inbuilt connectors compatibl",printed
+19.9.3,19.9.3,description,"Supplying and Fixing of 5 pin XLR Male/Female connectors having 5 pole cable connector, Male/Female connector with improved latch, cage type contacts, ""solder stop"" for easy soldering, and additional ","Supplying and Fixing of 5 pin XLR Male/Female connectors having 5 pole cable connector, Male/Female connector with improved latch, cage type contacts, ""solder stop"" for easy soldering, and additional ",printed
+19.10.1,19.10.1,description,Supplying Installation Testing and Commissioning of push button type keypad with 10 buttons. Each button is programmable up to 16 scenarios. Also has got two dry-contact input to trigger any preset sc,"SITC of push button type keypad with 10 buttons. Each button is programmable up to 16 scenerios. Also has got two dry-contact input to trigger any preset scene, etc as required",printed
+20.1,20.1,description,"Supplying, Installation, Testing and Commissioning of Nozzle made with gunmetal Grade Geyser jet 100mmı with adjustable nozzle for height adjustment of the fountain etc. Complete as required.","Supply of Installation Testing Commissioning of Nozzle made with gunmetal Grade Geyser jet 100mmı with adjustable nozzle for height adjustment of the fountain etc., Complete as required.",printed
+20.2,20.2,description,"Supplying, Installation Testing Commissioning of Fixing of 40 mm dia Bubbler Jet Nozzles in SS 304 Gr to produce water effect etc. complete as required.",Supply of Installation Testing Commissioning of Fixing of 40 mm dia Bubbler Jet Nozzles in SS 304 Gr to produce water effect complete as required.,printed
+20.3,20.3,description,"Supplying, Installation, Testing and Commissioning of 40 mm dia SS Difuser Nozzles in SS 304 Gr to produce water effect etc. complete as required.",Supply of Installation Testing and Commissioning of fixing of 40 mm dia SS Difuser Nozzles in SS 304 Gr to produce water effect complete as required.,printed
+20.4,20.4,description,"Supplying, Installation, Testing and Commissioning of Stainless steel 304 gr. Comet effect nozzle with compatible Digitally controlled pump to produce desirable effects with 40 mm dia and 20 mm orific",Supply of Installation Testing and Commissioning of Stainless steel 304 gr. Comet effect nozzle with compatible Digitally controlled pump to produce desirable effects with 40 mm dia and 20 mm orifice ,printed
+20.5,20.5,description,"Supplying, Installation, Testing and Commissioning of Single Jet Crown Nozzles Complete with ball joint for 15 Degree pivoting made of brass with Nickle plating,flow straightner in following size . He","SITC of Single Jet Crown Nozzles Complete with ball joint for 15 Degree pivoting made of brass with Nickle plating,flow straightner in following size . Height of water stream upto 10 mtrs.",printed
+20.5.6,20.5.6,rate,7397,3078,workbook
+20.6,20.6,description,"Supplying, Installation, Testing and Commissioning of Eco Cluster Nozzle made of stainless steel with inlet dia 40 mm and 21 nos Single jets to create 38 mm dia full jet for height 10 mtr water level ",SITC of Eco Cluster Nozzle made of stainless steel with inlet dia 40 mm and 21 nos Single jets to create 38 mm dia full jet for height 10 mtr water level independed.,printed
+20.7,20.7,description,"Supplying Installation, Testing and Commissioning of Eco Cluster Nozzle made of stainless steel with inlet dia 80 mm and 64 nos Single jets to Create 67 mm dia full jet for fountain height 10 mtr wate",SITC of Eco Cluster Nozzle made of stainless steel with inlet dia 80 mm and 64 nos Single jets to Create 67 mm dia full jet for fountain height 10 mtr water level independed.,printed
+20.8,20.8,description,"Supplying, Installation, Testing and Commissioning of Central hollow jet65 mm dia for achieving maximum height of 20 mtrs to produce clear full jet stable in wind water level independent etc. complete",SITC of Central hollow jet65 mm dia for achieving maximum height of 20 mtrs to produce clear full jet stable in wind water level independent,printed
+20.9,20.9,description,"Supplying, Installation, Testing and Commissioning of Lava bell nozzle for producing transparent water pattern with adjustable ball dia made out of SS 304 Gr./Brass of following Size etc. complete as ",SITC of Lava bell nozzle for produving transparent water pattern with adjustable ball dia made out of SS 304 Gr./Brass of following Size.,printed
+20.10,20.10,description,"Supplying, Installation, Testing and Commissioning of Foam jet High contrast for producing high contrast/foam effect to extensively wind stable, water level independent moc Brass /SS 316L of following","SITC of Foam jet High contrast for producing high contrast/foam effect to extensively wind stable, water level independent moc Brass /SS 316L of following size.",printed
+20.11,20.11,description,"Supplying, Installation, Testing and Commissioning of 20 mm nylon rope all the accessories Floater Grit Clamping both sides etc. complete as required.","Supply of Installation Testing Commissioning of Providing of 20 mm nylon rope all the accessories Floater Grit Clamping both sides etc., Complete as required.",printed
+20.11,20.11,unit,Meter,Mtrs.,printed
+20.12,20.12,description,"Supplying, Installation, Testing and Commissioning of fixing of Suction Screen stainer made of ABS to be fitted in suction to protect the pump from enrty of external materials etc. complete as require",Supply of Installation Testing Commissioning of fixing of Suction Screen stainer made of ABS to be fitted in suction to protect the pump from enrty of external materials.,printed
+20.13,20.13,description,"Supplying, Installation, Testing and Commissioning of 100 mm Dia Debris Collection Strainer in Stainless steel 304 gr etc. complete as reqd.",Supply Installation Testing and Commissioning of 100 mm Dia Debris Collection Strainer in Stainless steel 304 gr Complete as reqd. All fixing to be done as per direction instruction and entire satisfa,printed
+20.14,20.14,description,"Supplying, Installation, Testing and Commissioning of 400 mm Dia wide SS Overflow Skimmer in Stainless steel 304 gr with front openable fitted debris trapping mesh with outlet size of 65mm Dia for fix",Supply Installation Testing and Commissioning of 400 mm Dia wide SS Overflow Skimmer in Stainless steel 304 gr with front openable fitted debris trapping mesh with outlet size of 65mm Dia for fixing i,printed
+20.15,20.15,description,"Supplying, Installation, Testing and Commissioning of 300x300 mm Dia Main Drain in SS 304 Gr with perforations to disallow foreign material with top openable for maintenance etc. complete as required.",Supply and Fixing of 300x300 mm Dia Main Drain in SS 304 Gr with perforations to disallow foreign material with top openable for maintenance.,printed
+20.16,20.16,description,"Supplying, Installation, Testing and Commissioning of ISI Marked openwell submersible pump set contain with stainless steel shaft and cast iron/SS body, the pump shall be designed to prevent over load","Supply, installation, testing and commissioning of ISI Marked openwell submersible pump set contain with stainless steel shaft and cast iron/SS body, the pump shall be designed to prevent over loading",printed
+20.17,20.17,description,"Supplying, Installation, Testing and Commissioning of ISI Marked vertical Multi Stage submersible pump set contain with stainless steel shaft and cast iron/SS body, the pump shall be designed to preve","Supply, installation, testing and commissioning of ISI Marked vertical Multi Stage submersible pump set contain with stainless steel shaft and cast iron/SS body, the pump shall be designed to prevent ",printed
+20.18,20.18,description,"Supplying, Installation, Testing and Commissioning of three phase open well ISI Marked submersible pumpset of 1.5H.P. capacity suitable for operation on 415V(+-10%), 3- phase AC supply compatible for ","Supply of Installation Testing and Commissioning of three phase openwell ISI Marked submersible pumpset of 1.5H.P. capacity suitable for operation on 415V(+-10%), 3- phase AC supply compaitable for op",printed
+20.19,20.19,description,"Supplying, Installation, Testing and Commissioning of three phase openwell ISI Marked submersible pump set of 7.5 H.P. capacity suitable for operation on 415V(+-10%), 3- phase AC supply compatible for","Supply of Installation Testing and Commissioning of three phase openwell ISI Marked submersible pumpset of 7.5 H.P. capacity suitable for operation on 415V(+-10%), 3- phase AC supply compaitable for o",printed
+20.20,20.20,description,"Supplying, Installation, Testing and Commissioning of fixing of following dia. Gun metal gate valve (Screwed type) on the existing pipeline, including testing & Commissioning etc. complete as required","Supply of Installation Testing and Commissioning of fixing of following dia. Gun metal gate valve ( Screwed type ) on the existing pipeline, including testing & Commissioning etc. as required.",printed
+20.21,20.21,description,"Supplying, Installation, Testing and Commissioning of fixing of following dia. Gun metal Horizontal Non Return valve ( screwed type ) on the existing pipeline, including testing & Commissioning etc. c","Supply of Installation Testing and Commissioning of fixing of following dia. Gun metal Horizontal Non Return valve ( screwed type ) on the existing pipeline, including testing & Commissioning etc. As ",printed
+20.21.2,20.21.2,rate,8693,7881,workbook
+20.22,20.22,description,"Supplying, Installation, Testing and Commissioning of underwater Luminaries surface mounted RGB LED spot light 6 x 3W with IP 68 protection, SS/ aluminum dia casting body with power coated paint, soft","Supplying, Installation, Testing and Commissioning of underwater Luminaries surface mounted RGB LED spot light 6 x 3W with IP 68 protection, SS/ aluminium dia casting body with power coated paint, sof",printed
+20.23,20.23,description,"Supplying, Installation, Testing and Commissioning of underwater Luminaries surface mounted RGB LED spot light 3 x 3W with IP 68 protection, SS/ aluminum dia casting body with power coated paint, soft","Supplying, Installation, Testing and Commissioning of underwater Luminaries surface mounted RGB LED spot light 3 x 3W with IP 68 protection, SS/ aluminium dia casting body with power coated paint, sof",printed
+20.27,20.27,description,"Supplying, Installation Testing and Commissioning of fixing of Power Supply/SMPS for suitable to run LED Lights, Body-Metal input Power-220 V AC/ Output Power-12 V DC, complete as per the Direction & ","Supply of Installation Testing and Commissioning of fixing of Power Supply/SMPS for suitable to run LED Lights, Body- Metal input Power-220 V AC/ Output Power-12 V DC, complete as per the Direction & ",printed
+20.28,20.28,description,"Supplying, Installation, Testing and Commissioning of PVC insulated PVC sheathed copper conductor submersible flat cable ISI Marked in existing metal/ HDPE / PVC/ pipe/ in bore well/ in sump including",Supplying & fixing PVC insulated PVC sheathed copper conductor submersible flat cable ISI Marked in existing metal/ HDPE / PVC/ pipe/ in bore well/ in sump including fixing the cable to GI/HDPE pipe w,printed
+21.1,21.1,description,"Supplying, Installation, Testing & Commissioning of following capacity passenger Machine room less (MRL) lift with regenerative drive as per CPWD General Specification for Electrical Works (Part-III L","Supplying, Installation, Testing & Commissioning of following capacity passenger Machine room less (MRL) lift with regenerative drive as per CPWD General Specification for Electrical Works (Part-III L",printed
+21.2,21.2,description,"Supplying, Installation, Testing & Commissioning of 2000kg Machine room less (MRL) goods lift with regenerative drive as per CPWD General Specification for Electrical Works (Part-III Lift & Escalator)","Goods Lifts
+Supplying, Installation, Testing & Commissioning of 2000kg Machine room less (MRL) goods lift with regenrative drive as per CPWD General Specification for Electrical Works (Part-III LIft &",printed
+21.3,21.3,description,"Supplying, Installation, Testing & Commissioning of following capacity passenger cum bed lift Machine room less (MRL) Bed lift with regenerative drive as per CPWD General Specification for Electrical ","Hospital Lifts (20 passenger (1360 kg))
+Supplying, Installation, Testing & Commissioning of following capacity passenger cum bed lift Machine room less (MRL) Bed lift with regenrative drive as per CPW",printed
+22.1.1,22.1.1,unit,Meter,Metre,printed
+22.1.2,22.1.2,unit,Meter,Metre,printed
+22.2.1,22.2.1,unit,Meter,Metre,printed
+22.2.2,22.2.2,unit,Meter,Metre,printed
+22.3.1,22.3.1,unit,Meter,Metre,printed
+22.3.1,22.3.1,rate,97.5,98,printed
+22.3.2,22.3.2,unit,Meter,Metre,printed
+22.4.1,22.4.1,unit,Meter,Metre,printed
+22.4.1,22.4.1,rate,79.5,80,printed
+22.4.2,22.4.2,unit,Meter,Metre,printed
+22.5.1,22.5.1,unit,Meter,Metre,printed
+22.5.2,22.5.2,unit,Meter,Metre,printed
+22.6.1,22.6.1,unit,Meter,Metre,printed
+22.6.2,22.6.2,unit,Meter,Metre,printed
+22.7.1,22.7.1,unit,Meter,Metre,printed
+22.7.2,22.7.2,unit,Meter,Metre,printed
+22.8.1,22.8.1,unit,Meter,Metre,printed
+22.8.2,22.8.2,unit,Meter,Metre,printed
+23.1,23.1,description,"Supplying, Installation, Testing and Commissioning of making indoor cable end jointing with cast resin compound, including lugs and other jointing materials, for following size of 3 core, XLPE alumini","Supplying and making indoor cable end jointing with cast resin compound, including lugs and other jointing materials, for following size of 3 core, XLPE aluminium conductor cable of 11 KV grade as req",printed
+23.2,23.2,description,"Supplying, Installation, Testing and Commissioning of making outdoor cable end jointing with cast resin compound, including lugs and other jointing materials, for following size of 3 core, XLPE alumin","Supplying and making outdoor cable end jointing with cast resin compound, including lugs and other jointing materials, for following size of 3 core, XLPE aluminium conductor cable of 11 KV grade as re",printed
+23.3,23.3,description,"Supplying, Installation, Testing and Commissioning of making straight through cable jointing with cast resin compound, including ferrule and other jointing materials, for following size of 3 core, XLP","Supplying and making straight through cable jointing with cast resin compound, including ferrule and other jointing materials, for following size of 3 core, XLPE aluminium conductor cable of 11 KV gra",printed
+23.4,23.4,description,"Supplying, Installation, Testing and Commissioning of making indoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of ","supplying and making indoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of 3 core, XLPE aluminium conductor cable o",printed
+23.5,23.5,description,"Supplying, Installation, Testing and Commissioning of making outdoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of","Supplying and making outdoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of 3 core, XLPE aluminium conductor cable ",printed
+23.7,23.7,description,"Supplying, Installation, Testing and Commissioning of making indoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of ","Supplying and making indoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of 3 core, XLPE aluminium conductor cable o",printed
+23.8,23.8,description,"Supplying, Installation, Testing and Commissioning of making outdoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of","Supplying and making outdoor cable end termination with heat shrinkable jointing kit complete with all accessories including lugs suitable for following size of 3 core, XLPE aluminium conductor cable ",printed
+23.9,23.9,description,"Supplying, Installation, Testing and Commissioning of making straight through cable jointing with heat shrinkable jointing kit complete with all accessories including ferrules suitable for following s","Supplying and making straight through cable jointing with heat shrinkable jointing kit complete with all accessories including ferrules suitable for following size of 3 core, XLPE aluminium conductor ",printed
+24.1,24.1,description,"Supplying installation testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step ","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d",printed
+24.2,24.2,description,"Supplying installation testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step ","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d",printed
+24.3,24.3,description,"Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d",printed
+24.4,24.4,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","11/0.433 KV, 3 Phase, 50 Hz outdoor/ indoor mounting
+(Mineral oil filled)
+Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Lev",printed
+24.5,24.5,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.6,24.6,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.7,24.7,description,"Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.7.1,24.7.1,description,200KVA (Offload Tap Changer),200KVA,printed
+24.7.2,24.7.2,description,250KVA (Offload Tap Changer),250KVA,printed
+24.7.3,24.7.3,description,315KVA (Offload Tap Changer),315KVA,printed
+24.7.4,24.7.4,description,400KVA (Offload Tap Changer),400KVA,printed
+24.8,24.8,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.9,24.9,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.10,24.10,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.11,24.11,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.12,24.12,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.13,24.13,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV ste","33/0.433 KV, 3 Phase, 50 Hz outdoor/ indoor mounting
+(Synthetic organic Ester oil filled)
+Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (C",printed
+24.14,24.14,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d",printed
+24.15,24.15,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 33/0.433 KV step d",printed
+24.16,24.16,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","11/0.433 KV, 3 Phase, 50 Hz outdoor/ indoor mounting (
+Synthetic organic Ester oil filled)
+Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (",printed
+24.17,24.17,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.18,24.18,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.19,24.19,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.20,24.20,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.21,24.21,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.22,24.22,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 3 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.22.1,24.22.1,unit,Each,Nos,printed
+24.22.2,24.22.2,unit,Each,Nos,printed
+24.22.3,24.22.3,unit,Each,Nos,printed
+24.23,24.23,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 4 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.24,24.24,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV ste","Supply, installation, testing and commissioning of following capacity (continuous loading) BEE 5 Star rated (Corresponding Level as per BIS amended upto date of receipt of tender) , 11/0.433 KV step d",printed
+24.24.1,24.24.1,unit,Each,Nos,printed
+24.24.2,24.24.2,unit,Each,Nos,printed
+24.24.3,24.24.3,unit,Each,Nos,printed
+24.25,24.25,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) 33/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector group, Cast Resin / VPI (vacuum pressure i","DRY Type
+33/0.433 KV, 3 Phase, 50 Hz Indoor mounting
+Supply, installation, testing and commissioning of following capacity (continuous loading) 33/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11",printed
+24.25.6,24.25.6,description,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","Level 4
+1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)",printed
+24.25.11,24.25.11,description,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Level 5
+1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)",printed
+24.26,24.26,description,"Supply, installation, testing and commissioning of following capacity (continuous loading) 33/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector group, Cast Resin / VPI (vacuum pressure impr","33/0.433 KV, 3 Phase, 50 Hz Outdoor mounting
+Supply, installation, testing and commissioning of following capacity (continuous loading) 33/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector ",printed
+24.26.6,24.26.6,description,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","Level 4
+1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)",printed
+24.26.11,24.26.11,description,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","Level 5
+1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)",printed
+24.27,24.27,description,"Supply, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector group, Cast Resin / VPI (vacuum pressure impr","11/0.433 KV, 3 Phase, 50 Hz Indoor mounting
+Supply, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector g",printed
+24.27.15,24.27.15,description,"63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Level 4
+63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)",printed
+24.27.23,24.27.23,description,"630 KVA (losses at 50% loading < 1860watt, losses at 100% loading < 5300watt)","630 KVA (losses at 50% loading < 1860watt, losses at 100%",printed
+24.27.24,24.27.24,description,"1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)","loading < 5300watt)
+1000 KVA (losses at 50% loading < 2790watt, losses at 100% loading < 7700watt)",printed
+24.27.29,24.27.29,description,"63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Level 5
+63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)",printed
+24.28,24.28,description,"Supplying, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector group, Cast Resin / VPI (vacuum pressure i","11/0.433 KV, 3 Phase, 50 Hz Outdoor mounting
+Supply, installation, testing and commissioning of following capacity (continuous loading) 11/0.433 KV Delta/Star,step down, 3 Phase, 50 Hz, Dyn 11 vector ",printed
+24.28.15,24.28.15,description,"63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)","Level 4
+63 KVA (losses at 50% loading < 340watt, losses at 100% loading < 1140watt)",printed
+24.28.29,24.28.29,description,"63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)","Level 5
+63 KVA (losses at 50% loading < 300watt, losses at 100% loading <1050watt)",printed
+24.28.38,24.28.38,description,"1000 KVA (losses at 50% loading < 2620watt, losses at 100% loading < 7000watt)","1000 KVA (losses at 50% loading < 2620watt, losses at 100%",printed
+24.28.39,24.28.39,description,"1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)","loading < 7000watt)
+1250 KVA (losses at 50% loading < 3220watt, losses at 100% loading < 8400watt)",printed
+25.1,25.1,description,Automatic Power Factor Correction (APFC) System,"Automatic Power Factor Correction (APFC) System
+Supply, Installation, testing and commissioning of Automatic Power Factor Correction (APFC) panel, indoor type floor mounted free standing totally enclo",printed
+25.2,25.2,description,HYBRID Power Factor Correction System,"HYBRID Power Factor Correction System Supply, Installation, testing and commissioning of HYBRID APFC Panel, 3 phase 4 wire, 415 V, 50 Hz AC System for Ambient temperature -5°C to +40°C of following ca",printed
+26.1,26.1,description,"Online UPS - Input supply: Single Phase, Output Supply: Single Phase. Supplying, installation, Testing & Commissioning of following capacity at full load (Unity Power Factor) ON LINE Uninterrupted Pow","Online UPS - Input supply: Single Phase, Output Supply : Single Phase Supplying, installation, Testing & Commissioning of following capacity at full load (Unity Power Factor) ON LINE Uninterrupted Pow",printed
+26.2,26.2,description,"Online UPS- Input supply: Three Phase, Output supply: Three Phase. Supplying, installation, Testing & Commissioning of following capacity at full load (Unity Power Factor) at operating temperature 0 t","Online UPS- Input supply: Three Phase, Output supply: Three Phase Supplying, installation, Testing & Commissioning of of following capacity at full load (Unity Power Factor) at operating temperature 0",printed
+27.1,27.1,description,"(a) Supplying, installation, testing and commissioning of Electric driven Main Fire Pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all resp","(a) Supplying, installation, testing and commissioning of Electric driven Main Fire Pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all resp",printed
+27.2,27.2,description,"(a) Supplying, installation, testing and commissioning of diesel engine driven main fire pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all","Note: *The head of the pump is selected in a manner so as to
+give a minimum 3.5kgf/cm2 pressure at the highest/farthest
+point.
+(a) Supplying, installation, testing and commissioning of diesel engine d",printed
+27.3,27.3,description,"(a) Supplying, installation, testing and commissioning of electric driven pressurisation pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all","Note: * The head of the pump is selected in a manner so as to
+give a minimum 3.5kgf/cm2 pressure at the highest/farthest
+point.
+(a) Supplying, installation, testing and commissioning of electric drive",printed
+27.4,27.4,description,"(a) Supplying, installation, testing and commissioning of electric driven terrace pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all respec","(a) Supplying, installation, testing and commissioning of electric driven terrace pump conforming to IS 12469: 2019 suitable for automatic operation and consisting of following, complete in all respec",printed
+27.5,27.5,description,"Fabrication, supplying, Installation testing & commissioning of Electrical control panel of cubical construction, floor mounted type, fabricated out of 2mm thick CRCA sheet, compartmentalised with hin","CONTROL PANELS
+Fabrication, supply, Insallation testing & commissioning of Electrical control panel of cubical construction, floor mounted type, fabricated out of 2mm thick CRCA sheet, compartmentalis",printed
+27.5.1,27.5.1,description,INCOMING,"INCOMING 250A, 50kA 4 Pole MCCB, Ics=100% Icu rating Digital Voltmeter 0-500V with selector switch Digital Ammeter (0-250 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OF",printed
+27.5.2,27.5.2,description,Incomings,"Incomings 400A, 50kA 4 Pole MCCB, Ics=100% Icu rating Digital Voltmeter 0-500V with selector switch Ammeter (0-400 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OFF, trip",printed
+27.5.3,27.5.3,description,Incomings,"Incomings 630A, 50kA 4 Pole MCCB, Ics=100% Icu rating Digital Voltmeter 0-500V with selector switch Ammeter (0-630 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OFF, trip",printed
+27.5.4,27.5.4,description,Incomings,"Incomings 400A, 50kA 4 Pole MCCB, Ics=100% Icu Rating Digital Voltmeter 0-500V with selector switch Ammeter (0-400 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OFF, trip",printed
+27.5.5,27.5.5,description,Incomings,"Incomings 630A, 50kA 4 Pole MCCB, Ics=100% Icu Rating
+Digital Voltmeter 0-500V with selector switch Ammeter (0-630 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OFF, trip",printed
+27.5.6,27.5.6,description,Incomings,"Incomings 800A, 50kA 4 Pole MCCB, Ics=100% Icu Rating Digital Voltmeter 0-500V with selector switch Ammeter (0-800 A) with selector swtich & CTs etc. LED type RYB phase indicating lamps, ON, OFF, trip",printed
+27.6,27.6,description,"Providing laying, testing & commissioning of 'C' class heavy duty MS Pipe conforming to IS 1239/Class -II of IS: 3589 i/c fittings like elbows, tees, flanges, tapers, nuts bolts, gaskets etc. in groun","PIPES & ACCESSORIES
+Providing laying, testing & commissioning of 'C' class heavy duty MS Pipe conforming to IS 1239/3589 i/c fittings like elbows, tees, flanges, tapers, nuts bolts, gaskets etc. in gr",printed
+27.6.1,27.6.1,rate,7251,5940,workbook
+27.6.2,27.6.2,rate,5104,4104,workbook
+27.7,27.7,description,"Providing, laying, testing & commissioning of 'C' class heavy duty MS pipe conforming to IS 1239/Class -II of IS: 3589 including Welding, fittings like elbows, tees, flanges, tapers, nuts bolts, gaske","Providing, laying, testing & commissioning of 'C' class heavy duty MS pipe conforming to IS 3589/IS 1239 including Welding, fittings like elbows, tees, flanges, tapers, nuts bolts, gaskets etc. and fi",printed
+27.7.1,27.7.1,rate,920,852,workbook
+27.7.2,27.7.2,rate,1039,965,workbook
+27.7.3,27.7.3,rate,1259,1177,workbook
+27.7.4,27.7.4,rate,1557,1436,workbook
+27.7.5,27.7.5,rate,1955,1805,workbook
+27.7.6,27.7.6,rate,2277,2088,workbook
+27.7.7,27.7.7,rate,3077,2800,workbook
+27.7.8,27.7.8,rate,4299,3886,workbook
+27.7.9,27.7.9,rate,6620,5882,workbook
+27.7.10,27.7.10,rate,8023,7131,workbook
+27.7.11,27.7.11,description,300 mm dia (wall thickness 7 mm),300 mm dia (wall thickness 7.1 mm),printed
+27.7.11,27.7.11,rate,9556,4674,workbook
+27.12.5,27.12.5,rate,15483,15816,workbook
+27.14.3,27.14.3,rate,6913,6955,workbook
+27.17,27.17,description,"Supplying and fixing first-aid Hose Reel with MS construction spray painted in post office red, conforming to IS 884 complete with the following as required.","Supplying and fixing first-aid Hose Reel with MS construction spray painted in post office red, conforming to IS 884 complete with the following as required.
+(a) 20 mm nominal internal dia water hose ",printed
+27.17.2,27.17.2,rate,17034,12991,workbook
+27.20,27.20,description,"Supplying and fixing air vessel made of 250 mm dia, 8 mm thick MS sheet, 1200 mm in height with air release valve on top and flanged connection to riser, drain arrangement with 25 mm dia gun metal whe","Supplying and fixing air vessel made of 250 mm dia, 8 mm thick MS sheet, 1200 mm in height with air release valve on top and flanged connection to riser, drain arrangement with 25 mm dia gun metal whe",printed
+27.21,27.21,description,"Providing, fixing, testing & commissioning of 15mm dia quartzoid bulb type sprinklers of rating 68 °C with required accessories :","Providing, fixing, testing & commissioning of 15mm dia quartzoid bulb type sprinklers of rating 68 degree centigrade with required accessories :",printed
+27.22,27.22,description,"Supplying, Installation, Testing and Commissioning of pressure switch in M.S. pipe line including connection etc. as required.",Providing & fixing of pressure switch in M.S. pipe line including connection etc. as required.,printed
+27.29,27.29,description,"Providing, installation, testing & commissioning of adjustable rosette plate for 15mm dia in white finish UL Listed or FM approved complete as required.","Providing, installation, testing & commissioning of adjustable rosette plate for 15mm dia in white finish UL Listed or FM approved complete as required.
+For Cabling, earthing and cable trays please re",printed
+28.1.1,28.1.1,description,"Supplying, installation, testing & commissioning of heat detector operating at 54ºC/57ºC with rate of rise cum fixed temperature (dual thermistor) type with mounting base complete with all connection ","Supplying, installation, testing & commissioning of heat detector operating at 54ºC/57ºC with rate of rise cum fixed tempreature (dual thermistor) type with mounting base complete with all connection ",printed
+28.1.10,28.1.10,description,"Supplying, installation, testing & commissioning of main control and indicating panel made out of 16 SWG MS sheet to accommodate the following items duly powder coated in approved colour with louvers ","Supplying, installation, testing & commissioning of main control and indicating panel made out of 16 SWG MS sheet to accommodate the following items duly powder coated in approved colour with louvers ",printed
+28.1.11,28.1.11,description,"Supplying, installation, testing & commissioning of main control and indicating panel made out of 16 SWG MS sheet to accommodate the following items duly powder coated in approved colour with louvers ","Supplying, installation, testing & commissioning of main control and indicating panel made out of 16 SWG MS sheet to accommodate the following items duly powder coated in approved colour with louvers ",printed
+28.2.3,28.2.3,description,"Supplying, installation, testing & commissioning of repeater panel with 320 character/ Touch screen LCD display with inbuilt reset, acknowledge and silence switches complete as required.","Supplying, installation, testing & commissioning of repeater panel wih 320 character/ Touch screen LCD display with inbuilt reset, acknowledge and silence switches complete as required.",printed
+28.2.6,28.2.6,description,"Supplying, installation, testing & commissioning of intelligent addressable programmable sounder complete as required.","Supplying, installation, testing & commisssioning of intelligent addressable programmable sounder complete as required.",printed
+28.2.9,28.2.9,description,"Supplying, installation, testing & commissioning of intelligent addressable thermal detector with rate of rise cum fixed temperature thermistor complete with base as required.","Supplying, installation, testing & commissioning of intelligent addressable thermal detector with rate of rise cum fixed tempreature thermistor complete with base as required.",printed
+28.2.12,28.2.12,description,"Supplying, installation, testing & commissioning of addressable beam detector with short circuit isolator (inbuilt or separate) complete with emitter and receiver including connections with remote tes","Supplying, installation, testing & commissioning of addressable beam detector with short circuit isolator (inbuilt or seperate) complete with emitter and receiver including connections with remote tes",printed
+28.3.1,28.3.1,description,"Supplying, installation, testing & commissioning of 6 zone, voice alarm controller with USB, MP4 player (including 6 zone button paging station) with seamless integration facility with main fire alarm","Supplying, installation, testing & commissioning of 6 zone, voice alarm controller with USB, MP3 player (including 6 zone button paging station) with seamless integration facility with main fire alarm",printed
+29.1,29.1,description,"Supplying, Installation, Testing & Commissioning of ‘Silent Type Diesel Generating set as per CPCB IV + or better norms along with having Prime Power Rating of KVA as below, 415 volts at 1500 RPM, 0.8","Supply, installation, Testing & Commissioning of ‘Silent Type Diesel Generating set as per CPCB IV + or better norms along with having Prime Power Rating of KVA as below, 415 volts at 1500 RPM, 0.8 la",printed
+30.1,30.1,description,"Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping inside the building (with necessary clamps, vibration isolators and fittings but excluding valve","Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping inside the building (with necessary clamps, vibration isolators and fittings but excluding valve",printed
+30.1.1,30.1.1,rate,23635,22662,workbook
+30.1.2,30.1.2,rate,14466,13512,workbook
+30.1.3,30.1.3,rate,12973,11875,workbook
+30.1.4,30.1.4,rate,10919,10027,workbook
+30.1.5,30.1.5,rate,9154,8415,workbook
+30.1.6,30.1.6,rate,5991,5578,workbook
+30.1.7,30.1.7,rate,5093,4742,workbook
+30.1.8,30.1.8,rate,4154,3877,workbook
+30.1.9,30.1.9,rate,3372,3183,workbook
+30.1.10,30.1.10,rate,2854,2704,workbook
+30.1.11,30.1.11,rate,2373,2251,workbook
+30.1.12,30.1.12,rate,2018,1936,workbook
+30.1.13,30.1.13,rate,1763,1695,workbook
+30.1.14,30.1.14,rate,1602,1534,workbook
+30.2,30.2,description,"Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping inside the building (with necessary clamps, vibration isolators and fittings but excluding valve","INSULATED CHILLED WATER PIPING (Nitrile rubber
+insulation)
+Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping inside the building (with necessary c",printed
+30.2.1,30.2.1,rate,20819,19846,workbook
+30.2.2,30.2.2,rate,11874,10921,workbook
+30.2.3,30.2.3,rate,10762,9663,workbook
+30.2.4,30.2.4,rate,9167,8276,workbook
+30.2.5,30.2.5,rate,7467,6728,workbook
+30.2.6,30.2.6,rate,5089,4676,workbook
+30.2.7,30.2.7,rate,4456,4105,workbook
+30.2.8,30.2.8,rate,3556,3279,workbook
+30.2.9,30.2.9,rate,2656,2467,workbook
+30.2.10,30.2.10,rate,2139,1989,workbook
+30.2.11,30.2.11,rate,1859,1738,workbook
+30.2.12,30.2.12,rate,1510,1428,workbook
+30.2.13,30.2.13,rate,1320.60881296,1252,workbook
+30.2.14,30.2.14,rate,1109.97744411,1042,workbook
+30.3,30.3,description,"Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping plumbing inside the building (with necessary clamps, vibration isolators and fittings but exclud","INSULATED CHILLED WATER PIPING (expanded polystrene
+insulation)
+Supplying, laying/ fixing, testing and commissioning of following nominal sizes of chilled water piping plumbing inside the building (wi",printed
+30.3.1,30.3.1,rate,22447,21473,workbook
+30.3.2,30.3.2,rate,13344,12391,workbook
+30.3.3,30.3.3,rate,12118,11020,workbook
+30.3.4,30.3.4,rate,10182,9291,workbook
+30.3.5,30.3.5,rate,8549,7810,workbook
+30.3.6,30.3.6,rate,5702,5289,workbook
+30.3.7,30.3.7,rate,4796,4445,workbook
+30.3.8,30.3.8,rate,4096,3819,workbook
+30.3.9,30.3.9,rate,3208,3020,workbook
+30.3.10,30.3.10,rate,2716,2566,workbook
+30.3.11,30.3.11,rate,2265,2143,workbook
+30.3.12,30.3.12,rate,1928,1845,workbook
+30.3.13,30.3.13,rate,1682,1613,workbook
+30.3.14,30.3.14,rate,1537,1469,workbook
+30.4,30.4,description,"Supplying, laying/ fixing, testing and commissioning of following thickness resin bonded fiber glass pipe section insulation having density 80 kg/cum or mineral wool (non combustible) having density o","INSULATION ON EXISTING PIPE
+Supplying, laying/ fixing, testing and commissioning of following thickness resin bonded fiber glass pipe section insulation having density 80 kg/cum or mineral wool (non c",printed
+30.4.1,30.4.1,unit,sq.m,per sqm,printed
+30.4.2,30.4.2,unit,sq.m,per sqm,printed
+30.4.3,30.4.3,unit,sq.m,per sqm,printed
+30.4.4,30.4.4,unit,sq.m,per sqm,printed
+30.4.5,30.4.5,unit,sq.m,per sqm,printed
+30.5,30.5,description,"Supplying, laying, fixing, testing and commissioning of following thickness closed cell elastrometric nitrile rubber of class 'O' applied by suitable adhesive , as per specifications and as required c","Supplying, laying,fixing, testing and commissioning of following thickness closed cell elastrometric nitrile rubber of class 'O' applied by suiatable adhesive , as per specifications and as required c",printed
+30.5.1,30.5.1,unit,sq.m,per sqm,printed
+30.5.2,30.5.2,unit,sq.m,per sqm,printed
+30.6.1,30.6.1,unit,sq.m,per sqm,printed
+30.6.2,30.6.2,unit,sq.m,per sqm,printed
+30.6.2,30.6.2,rate,1388,1367,workbook
+30.7,30.7,description,"Supplying, fixing, testing and commissioning of following valves, strainers, gauges in the chilled water plumbing duly insulated to the same specifications as the connected piping and adequately suppo","INSULATED VALVES
+Supplying, fixing, testing and commissioning of following valves, strainers, gauges in the chilled water plumbing duly insulated to the same specifications as the connected piping and",printed
+30.7.2.3,30.7.2.3,rate,28121,28132,workbook
+30.7.2.4,30.7.2.4,rate,21226,21241,workbook
+30.7.2.6,30.7.2.6,rate,13202,13214,workbook
+30.7.4.2,30.7.4.2,rate,29234,29286,workbook
+30.7.4.3,30.7.4.3,rate,23384,23397,workbook
+30.7.4.4,30.7.4.4,rate,15798,15834,workbook
+30.7.4.5,30.7.4.5,rate,10661,10666,workbook
+30.7.4.6,30.7.4.6,rate,8644,8661,workbook
+30.7.4.7,30.7.4.7,rate,6459,6461,workbook
+30.7.4.8,30.7.4.8,rate,4836,4837,workbook
+30.8,30.8,description,Providing and fixing in position industrial type pressure gauges with gun metal / brass valves complete etc. as required,Providing and fixing in position the industrial type pressure gauges with gun metal / brass valves complete as required,printed
+30.8,30.8,rate,1491,1251,workbook
+30.9,30.9,description,Providing & fixing in position industrial type mercury thermometers complete etc. as required.,Providing & fixing in position the mercury in glass industrial type thermometers.,printed
+30.9,30.9,rate,1132,1134,workbook
+30.10,30.10,description,"Supplying, fixing, testing and commissioning of condenser water pipes of following sizes of MS 'C' class along with necessary clamps, vibration isolators and fittings such as bends,tees etc. but exclu","CONDENSER WATER PIPE
+Supplying, fixing, testing and commissioning of condenser water pipes of following sizes of MS 'C' class along with necessary clamps, vibration isolators and fittings such as bend",printed
+30.10.1,30.10.1,rate,9543,8445,workbook
+30.10.2,30.10.2,rate,8015,7124,workbook
+30.10.3,30.10.3,rate,6701,5962,workbook
+30.10.4,30.10.4,rate,4458,4045,workbook
+30.10.5,30.10.5,rate,3858,3506,workbook
+30.10.6,30.10.6,rate,3250,2973,workbook
+30.11,30.11,description,"Supplying, fixing, testing and commissioning of following valves, gauges and strainers for condenser water circulation as per specifications.","VALVES WITHOUT INSULATION
+Supplying, fixing, testing and commissioning of following valves, gauges and strainers for condenser water circulation as per specifications.",printed
+30.11.1.1,30.11.1.1,rate,15248,15064,workbook
+30.11.1.2,30.11.1.2,rate,7651,7648,workbook
+30.11.1.3,30.11.1.3,rate,6993,6976,workbook
+30.11.1.4,30.11.1.4,rate,5950,5962,workbook
+30.11.1.5,30.11.1.5,rate,4431,4438,workbook
+30.11.1.6,30.11.1.6,rate,4240,4210,workbook
+30.11.1.7,30.11.1.7,rate,3701,3708,workbook
+30.11.1.8,30.11.1.8,rate,3103,3113,workbook
+30.11.2.1,30.11.2.1,rate,13845,13833,workbook
+30.11.2.2,30.11.2.2,rate,8521,8546,workbook
+30.11.2.3,30.11.2.3,rate,7329,7334,workbook
+30.11.2.4,30.11.2.4,rate,5614,5631,workbook
+30.11.2.5,30.11.2.5,rate,3839,3837,workbook
+30.11.2.6,30.11.2.6,rate,3364,3384,workbook
+30.11.4,30.11.4,description,"Supplying, Installation, Testing and Commissioning of following sizes electronic, self-balancing, pressure independent type dynamic balancing valve with integrated 2 way modulating control valve in a ","Supply, Installation, Testing and Commissioning of following sizes electronic, self-balancing, pressure independent type dynamic balancing valve with integrated 2 way modualating control valve in a si",printed
+30.12.1,30.12.1,description,"Supplying, installation, balancing and commissioning of factory fabricated GSS sheet metal rectangular/ round ducting complete with neoprene rubber gaskets, elbows, splitter dampers, vanes, hangers, s","Supply, installation, balancing and commissioning of factory fabricated GSS sheet metal rectangular/round ducting complete with neoprene rubber gaskets, elbows, splitter dampers, vanes, hangers, suppo",printed
+30.12.2,30.12.2,description,"Supplying, installation, balancing and commissioning of fabricated at site GSS sheet metal rectangular/ round ducting complete with neoprene rubber gaskets, elbows, splitter dampers, vanes, hangers, s","Supply, installation, balancing and commissioning of fabricated at site GSS sheet metal rectangular/round ducting complete with neoprene rubber gaskets, elbows, splitter dampers, vanes, hangers, suppo",printed
+30.12.2.2,30.12.2.2,rate,1415,1387,workbook
+30.12.2.4,30.12.2.4,rate,2063,2014,workbook
+30.13,30.13,description,"Supplying, installation, testing and commissioning of GI volume control duct damper complete with neoprene rubber gaskets, nuts, bolts, screws linkages, flanges etc in confirmation to SMACNA/IS and as","Supply, installation, testing and commissioning of GI volume control duct damper complete with neoprene rubber gaskets, nuts, bolts, screws linkages, flanges etc in confirmation to SMACNA/IS and as pe",printed
+30.14.1,30.14.1,rate,18377,9788,workbook
+30.14.2,30.14.2,rate,9793,9798,workbook
+30.15,30.15,description,"Supplying, Fixing, installation, testing and commissioning of powder coated extruded aluminium Supply Air Grills with aluminium volume control dampers in confirmation to SMACNA/IS and as per specifica","Supply and Fixing installation, testing and commissioning of powder coated extruded aluminium Supply Air Grills with aluminium volume control dampers in confirmation to SMACNA/IS and as per specificat",printed
+30.17,30.17,description,"Supplying, Fixing, installation, testing and commissioning of supply air diffusers of powder coated aluminium with aluminium volume control dampers with anti smudge ring & removable core in confirmati","Supply and Fixing installation, testing and commissioning of supply air diffusers of powder coated aluminium with aluminium volume control dampers with anti smudge ring & removable core in confirmatio",printed
+30.18,30.18,description,"Supplying, Fixing, installation, testing and commissioning of Return air diffusers of powder coated aluminium without volume control dampers with anti smudge ring & removable core in confirmation to S","Supply and Fixing installation, testing and commissioning of Return air diffusers of powder coated aluminium without volume control dampers with anti smudge ring & removable core in confirmation to SM",printed
+30.19,30.19,description,"Supplying, Fixing, installation, testing and commissioning of thermal insulated flexible duct of following sizes duly supported at regular interval as per site requirement etc. in confirmation to SMAC","Supply and Fixing installation, testing and commissioning of thermal insulated flexible duct of following sizes duly supported at regular interval as per site requirement etc. complete in confirmation",printed
+30.20,30.20,description,"Supplying, Fixing, testing and commissioning of fire dampers of minimum 90 minutes fire rated in supply air duct/main branch and return air path as and where required of required sizes i/c control wir","Supplying, Fixing,testing and commissioning of UL 555S certified fire dampers of minimum 90 minutes fire rated in supply air duct/main branch and return air path as and where required of required size",printed
+30.20.2,30.20.2,rate,10645,10627,workbook
+30.21,30.21,description,"Supplying and fixing of acoustic lining of supply air duct and plenum with 25 mm thick resin bonded glass wool having density of 32 kg/m³, with 25 mm X 25 mm GI section of 1.25 mm thick, at 600 mm cen","Supply and fixing of acoustic lining of supply air duct and plenum with 25 mm thick resin bonded glass wool having density of 32 kg/m³, with 25 mm X 25 mm GI section of 1.25 mm thick, at 600 mm centre",printed
+30.22,30.22,rate,1057,1294,workbook
+30.23,30.23,description,"Supplying and fixing of following thickness duly laminated aluminium foil of mat finish closed cell Nitrile rubber (Class ""O"") insulation on existing duct after applying suitable adhesive for Nitrile ","Supplying and fixing of following thickness duly laminated aluminum foil of mat finish closed cell Nitrile rubber (Class ""O"") insulation on existing duct after applying suitable adhesive for Nitrile r",printed
+30.26,30.26,description,"Supplying, Installation, Testing and commissioning of factory built floor mounted chilled water double skin type horizontal/vertical air handling units in confirmation to IS 18794 : 2024 made of 25mm ","AIR HANDLING UNITS
+Supply, Installation, Testing and commissioning of factory built floor mounted chilled water double skin type horizontal/vertical air handling units in confirmation to IS 18794 : 20",printed
+30.27,30.27,description,"Supplying, Installation, Testing and commissioning of factory built in confirmation to IS 18794 : 2024 floor mounted chilled water double skin type horizontal/vertical air handling units made of 25mm ","Supply, Installation, Testing and commissioning of factory built in confirmation to IS 18794 : 2024 floor mounted chilled water double skin type horizontal/vertical air handling units made of 25mm thi",printed
+30.27.11,30.27.11,rate,301047,316621,workbook
+30.27.12,30.27.12,rate,316621,301047,workbook
+31.1,31.1,description,OUTDOOR UNIT,"OUTDOOR UNIT Supply, Installation,Testing & Commissioning of Modular type Variable Refrigerant Flow/Variable Refrigerant Volume air cooled Outdoor units suitable for cooling/heating having 100% hermet",printed
+31.2,31.2,description,"Supplying, Installation, Testing & Commissioning of Modular type Variable Refrigerant Flow/Variable Refrigerant Volume air cooled Outdoor units suitable for cooling/heating having 100% hermetically se","Supply, Installation,Testing & Commissioning of Modular type Variable Refrigerant Flow/Variable Refrigerant Volume air cooled Outdoor units suitable for cooling/heating having 100% hermetically sealed",printed
+31.3,31.3,description,"Supplying, Installation, Testing & Commissioning of Modular type Variable Refrigerant Flow/Variable Refrigerant Volume air cooled Outdoor units suitable for cooling/heating having 100% hermetically se","Supply, Installation,Testing & Commissioning of Modular type Variable Refrigerant Flow/Variable Refrigerant Volume air cooled Outdoor units suitable for cooling/heating having 100% hermetically sealed",printed
+31.4,31.4,description,INDOOR UNIT,"INDOOR UNIT
+Supply, Installation,Testing and Commissioning of following minimum capacity 4 way Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre- filter, fan section",printed
+31.5,31.5,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity 4-way compact VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-filter, fan ","Supply, Installation, Testing and Commissioning of following minimum capacity 4-way compact VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-filter, fan sec",printed
+31.6,31.6,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity Single way wall/corner VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-fil","Supply, Installation, Testing and Commissioning of following minimum capacity Single way wall/corner VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-filter",printed
+31.7,31.7,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity Double way VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-filter, fan sec","Supply, Installation, Testing and Commissioning of following minimum capacity Double way VRV/VRF Cassette Type Indoor ceiling mounted unit equipped with synthetic washable media pre-filter, fan sectio",printed
+31.8,31.8,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity High wall type Indoor unit equipped with and comfort washable synthetic media pre-filter, fan section with low noise fa","Supply, Installation, Testing and Commissioning of following minimum capacity High wall type Indoor unit equipped with and comfort washable synthetic media pre-filter, fan section with low noise fan/d",printed
+31.9,31.9,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted low static ductable type Indoor unit equipped with washable synthe","Supply, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted low static ductable type Indoor unit equipped with washable synthetic",printed
+31.10,31.10,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted mid static ductable type Indoor unit equipped with washable synthe","Supply, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted mid static ductable type Indoor unit equipped with washable synthetic",printed
+31.11,31.11,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted mid high static ductable type Indoor unit equipped with washable s","Supply, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted mid high static ductable type Indoor unit equipped with washable synt",printed
+31.12,31.12,description,"Supplying, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted high ductable type Indoor unit equipped with washable synthetic me","Supply, Installation, Testing and Commissioning of following minimum capacity and external static pressure VRF/VRV ceiling mounted high ductable type Indoor unit equipped with washable synthetic media",printed
+31.14,31.14,description,"Supplying, Installation, testing and commissioning including vaccumiazation and Nitrogen testing of following nominal sizes of soft/hard drawn copper refrigerant piping for VRV/VRF system, complete wi","COPPER REFRIGERANT PIPING
+Supply, Installation, testing and commissioning including vaccumiazation and Nitrogen testing of following nominal sizes of soft/hard drawn copper refrigerant piping for VRV/",printed
+32.1,32.1,description,"Supplying , Installation, Testing and Commissioning of Window type Air conditioners complete with copper power cable upto 3 Mtr, wireless Remote, suitable for working between 180- 260V with low & high","Supply , Installation, Testing and Comissioning of Window type Air conditioners complete with copper power cable upto 3 Mtr, wireless Remote, suitable for working between 180- 260V with low & high vol",printed
+32.1.3,32.1.3,description,1.0 TR with Inverter 5 Star BEE rating,"Inverter Type
+1.0 TR with Inverter 5 Star BEE rating",printed
+32.2,32.2,description,"Supplying , Installation, Testing and Commissioning of Air Cooled Hi Wall split type Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), surface / concealed copper Refrigerant piping","HI - WALL SPLIT SYSTEMS
+Supply , Installation, Testing and Comissioning of Air Cooled Hi Wall split type Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), surface / concealed coppe",printed
+32.2.5,32.2.5,description,1.0 TR with 3 Star BEE Rating,"Inverter Type - Hot & Cold
+1.0 TR with 3 Star BEE Rating",printed
+32.3,32.3,description,"Supplying, Installation, Testing and Commissioning of air cooled ducted split type air conditioning machine with each having a capacity and details as mentioned below suitable for operation on R 32/R-","DUCTABLE TYPE SPLIT UNITS
+Supply, Installtion, Testing and Commissioning of air cooled ducted split type air conditioning machine with each having a capacity and details as mentioned below suitable fo",printed
+32.3.6,32.3.6,description,1.0 TR (BEE 4 Star Rated),"Non Inverter
+1.0 TR (BEE 4 Star Rated)",printed
+32.4,32.4,description,"Supplying, Installation, Testing and Commissioning of Air Cooled Cassette type Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), R-32/R410A/R-407 Green Refrigerant, wireless Remote","CASSETTE TYPE SPLIT UNITS
+Supply, Installation, Testing and Comissioning of Air Cooled Cassette type Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), R-32/R410A/R-407 Green Refrig",printed
+32.4.7,32.4.7,description,1.5 TR with 3 Star BEE Rating,"Heating & Cooling
+1.5 TR with 3 Star BEE Rating",printed
+32.5,32.5,description,"Supplying, Installation, Testing and Commissioning of Air Cooled Floor standing Tower type split Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), surface / concealed copper Refrig","TOWER TYPE SPLIT UNITS
+Supply, Installation, Testing and Comissioning of Air Cooled Floor standing Tower type split Air conditioners complete with Indoor unit(IDU), Out door unit (ODU), surface / conc",printed
+32.5.1,32.5.1,rate,131188,126142,workbook
+32.5.2,32.5.2,rate,138746,133410,workbook
+32.5.3,32.5.3,rate,146304,140677,workbook
+32.5.4,32.5.4,description,2.4 TR BEE 5 Star Rating,"Cooling Only
+2.4 TR BEE 5 Star Rating",printed
+32.6,32.6,description,"Supplying, installation , testing and commissioning of Air cooled ductable type Packaged air-conditioning units complete with Hermetically sealed Scroll compressors fitted inside the indoor unit & fir","AIR COOLED PACKAGE UNITS
+Supplying, installation , testing and commissioning of Air cooled ductable type Packaged air-conditioning units complete with Hermetically sealed Scroll compressors fitted ins",printed
+33.1,33.1,description,"Supplying, installation, testing and commissioning of following capacity Air-Cooled (suitable for out door installation) Screw Chiller package complete with VFD (Variable Frequency Drive), hermetic/se","Supply, installation, testing and commissioning of following capacity Air-Cooled (suitable for out door installation) Screw Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi ",printed
+33.2,33.2,description,"Supplying, installation, testing and commissioning of following capacity Air-Cooled Screw Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermetic, Mono/multiple screw type","Supply, installation, testing and commissioning of following capacity Air-Cooled Screw Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermetic, multiple screw type compres",printed
+33.3,33.3,description,"Supplying, installation, testing and commissioning of following capacity Air-Cooled , Scroll Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermetic, multiple scroll type ","AIR COOLED SCROLL CHILLERS
+Supply, installation, testing and commissioning of following capacity Air-Cooled , Scroll Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermeti",printed
+33.4,33.4,description,"Supplying, installation, testing and commissioning of following capacity Air-Cooled Scroll Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermetic, multiple scroll type co","Supply, installation, testing and commissioning of following capacity Air-Cooled Scroll Chiller package complete with VFD (Variable Frequency Drive), hermetic/semi hermetic, multiple scroll type compr",printed
+33.5,33.5,description,"Supplying, installation, testing and commissioning of following capacity floor-mounted water cooled screw-type chiller machine complete with VFD (Variable Frequency Drive), single/multi semi-hermatic ","WATER COOLED CHILLERS
+WATER COOLED SCREW CHILLERS
+Supply, installation, testing and commissioning of following capacity floor-mounted AHRI (Air-Conditioning, Heating, and Refrigeration Institute) Cert",printed
+33.6,33.6,description,"Supplying, Installation, Testing and Commissioning of following capacity floor-mounted VFD (Variable Frequancy Drive) Operated water cooled screw-type chiller machine complete with single/multi semi-h","Supply, Installation, Testing and Commissioning of following capacity floor-mounted AHRI (Air-Conditioning, Heating, and Refrigeration Institute) Certified VFD (Variable Frequancy Drive) Operated wate",printed
+33.7,33.7,description,"Supplying, installation, testing and commissioning of following capacity floor-mounted Variable Frequency Drive (VFD) water cooled scroll-type chiller machine complete with hermatic scroll type single","Supply, installation, testing and commissioning of following capacity floor-mounted Variable Frequency Drive (VFD) water cooled scroll-type chiller machine complete with hermatic scroll type single/ m",printed
+33.8,33.8,description,"Supplying, Installation, Testing & Commissioning of following capacity Centrifugal Water Cooled Chilling Machine complete with factory fitted (unit mounted/ free standing) (Variable Frequency Drive (V","WATER COOLED CENTRIFUGAL CHILLERS
+Supplying, Installation, Testing & Commissioning of following capacity Centrifugal Water Cooled Chilling Machine complete with factory fitted (unit mounted/ free stan",printed
+33.9,33.9,description,"Supplying, installation, testing & commissioning of following capacity water cooled Magnetic centrifugal type chiller machine complete with hermatic single/ multi compressors with independent circuits","WATER COOLED MAGNETIC CENTRIFUGAL CHILLERS
+Supply, installation, testing & commissioning of following capacity water cooled Magnetic centrifugal type chiller machine complete with hermatic single/ mul",printed
+33.10,33.10,description,"Supplying, installation, testing & commissioning of following capacity water cooled Magnetic centrifugal type chiller machine complete with hermatic single/ multi compressors with independent circuits","Supply, installation, testing & commissioning of following capacity water cooled Magnetic centrifugal type chiller machine complete with hermatic single/ multi compressors with independent circuits, T",printed
+34.1,34.1,description,COOLING TOWER,"COOLING TOWER Supply, Installation, testing and commissioning of Induced Draft counterflow cooling Towers(CTI approved). The Cooling Tower shall be of Fiber Reinforced Plastic (FRP) Construction. The ",printed
+35.1,35.1,description,CEILING SUSPENDED AHU,"CEILING SUSPENDED AHU Supply, Installation, testing and commissioning of Factory built ceiling suspended chilled water double skin type horizontal/vertical air handling units of following capacity, ma",printed
+35.2,35.2,description,FCU ( FAN COIL UNIT),"FCU ( FAN COIL UNIT) DUCTABLE FAN COIL UNIT Supply, installation ,testing and commisioning of Ceiling Concealed Fan Coil Unit comprising of 3 rows deep chilled water cooling coil, centrifugal blowers,",printed
+35.3,35.3,description,CASSETTE FAN COIL UNIT,"CASSETTE FAN COIL UNIT Supply, installation, testing and commisioning of Chilled Water Ceiling Suspended Hydronic Cassette type fan coil unit, four(4) way directional flow, low noise, each complete wi",printed
+35.4,35.4,description,HIGH WALL FAN COIL UNIT,"HIGH WALL FAN COIL UNIT Supply, installation ,testing and commisioning of High wall Fan Coil Unit comprising of two 2 rows deep chilled water cooling coil, centrifugal blowers, fractional horsepower (",printed
+36.1,36.1,description,EVAPORATIVE COOLING,"EVAPORATIVE COOLING Supply, Installation, Testing and Comissioning of factory assembled double skin central evaporative cooling plant having specifications as per A, B, C, D, E, F,G A. Air washer sect",printed
+37.1,37.1,description,"Supplying, installation , testing & commissioning of Heat pumps system for hot water using heat energy source from ambient air to Hot water, of High efficiency and energy saving operation, capable of ","AIR COOLED HEAT PUMP ( FOR HOT WATER )
+Supply, installation, testing & commissioning of Heat pumps system for hot water using heat energy source from ambient air to Hot water, of High efficiency and e",printed
+37.1.1,37.1.1,description,200 L,200 LPH,printed
+37.1.2,37.1.2,description,300 L,300 LPH,printed
+37.1.3,37.1.3,description,500 L,500 LPH,printed
+38.1,38.1,description,"Supplying, installation, testing and Commissioning of IP based voice communication system with 04 Port Voicemail, 04 Port FXS, 04 Port FXO, 1 PRI Trunk lines (30 Channels) Circuit with CLIP Facility, ","Supply, installation, testing and Commissioning of IP based voice communication system with 04 Port Voicemail, 04 Port FXS, 04 Port FXO, 1 PRI Trunk lines (30 Channels) Circuit with CLIP Facility, min",printed
+38.1,38.1,rate,1578920,1532182,workbook
+38.2,38.2,description,"Supplyiing, installation, testing and Commissioning of IP at its core with IP switching technology and 100% non blocking communication system with 04 Port Voicemail, 04 Port FXS, 04 Port FXO, 1 PRI Tr","Supply, installation, testing and Commissioning of IP at its core with IP switching technology and 100% non blocking communication system with 04 Port Voicemail, 04 Port FXS, 04 Port FXO, 1 PRI Trunk ",printed
+38.2,38.2,rate,1246949,1210038,workbook
+38.3,38.3,description,"Supplying, Installation, Testing & Commissioning of Type 1 IP Phone having 2 VoIP account, 120 x40 DOT matrix screen with backlight, Full HD duplex speaker phone, IPV6, Gigabit Etherent, PoE etc. comp","Supply, Installation, Testing & Commissioning of Type 1 IP Phone having 2 VoIP account, 120 x40 DOT matrix screen with backlight, Full HD duplex speaker phone, IPV6, Gigabit Etherent, PoE etc. complet",printed
+38.3,38.3,rate,11698,11582.00,workbook
+38.4,38.4,description,"Supplying, Installation, Testing & Commissioning of Analog phones having standard feautres like 16 digit LCD display, 2 way speaker, caller ID and number storage facility etc. complete as required.","Supply, Installation, Testing & Commissioning of Analog phones having standard feautres like 16 digit LCD display, 2 way speaker, caller ID and number storage facility etc. complete as required.",printed
+38.4,38.4,rate,1544,1529.00,workbook
+38.5,38.5,rate,344,340.00,workbook
+39.1,39.1,description,"Supplying, installation, Testing and commissioning of following capacity 8 port Layer 2 indoor Network Switch having features and specifications etc. as mentioned here under: Minimum 8 X RJ-45 Gigabit","Supplying, installation, Testing and commissioning of following capacity 8 port Layer 2 indoor Network Switch having features and specifications etc. as mentioned here under: Minimum 8 X RJ-45 Gigabit",printed
+39.2,39.2,description,"Supplying, installation, Testing and commissioning of following capacity 8 port PoE Layer 2 Industrial Grade outdoor Network Switch having features and specifications etc. as mentioned here under: At ","Supplying, installation, Testing and commissioning of following capacity 8 port PoE Layer 2 Industrial Grade outdoor Network Switch having features and specifications etc. as mentioned here under: At ",printed
+39.3,39.3,description,"Supplying, installation, Testing and commissioning of following capacity 24 port Layer 2 indoor Network Switch having features and specifications etc. as mentioned here under: At least 24 X RJ-45 Giga","Supplying, installation, Testing and commissioning of following capacity 24 port Layer 2 indoor Network Switch having features and specifications etc. as mentioned here under: At least 24 X RJ-45 Giga",printed
+39.4,39.4,description,"Supplying, installation, Testing and commissioning of following capacity 24 port Layer 3 Network Switch having features and specifications etc. as mentioned here under: At least 20 X RJ-45 Gigabit Eth","Supplying, installation, Testing and commissioning of following capacity 24 port Layer 3 Network Switch having features and specifications etc. as mentioned here under: At least 20 X RJ- 45 Gigabit Et",printed
+39.5,39.5,description,"Supplying, installation, Testing and commissioning of 10 Giga Bandwidth Data Centre Network Switch of 48 port Layer 3 having features and specifications etc. as mentioned here under: - ToR/EOR/Core Ne","Supplying, installation, Testing and commissioning of 10 Giga Bandwidth Data Centre Network Switch of 48 port Layer 3 having features and specifications etc. as mentioned here under: - ToR/EOR/Core Ne",printed
+39.7,39.7,description,"Supplying, Installation, Testing and commissioning of indoor Wireless Access Point for Low Density use having features and specifications etc. as mentioned here under - Dual-band Wi-Fi6 (802.11ax) 574","Supplying, Installation, Testing and commissioning of indoor Wireless Access Point for Low Density use having features and specifications etc. as mentioned here under - Dual-band Wi-Fi6 (802.11ax) 574",printed
+39.8,39.8,description,"Supplying, Installation, Testing and commissioning of indoor Wireless Access Point for High density use having features and specifications etc. as mentioned here under- WiFi6 802.11ax 574Mbps (2.4GHz)","Supplying, Installation, Testing and commissioning of indoor Wireless Access Point for High density use having features and specifications etc. as mentioned here under- WiFi6 802.11ax 574Mbps (2.4GHz)",printed
+39.9,39.9,description,"Supplying, Installation, Testing and commissioning of Outdoor Wireless Access Point having features and specifications etc. as mentioned here under - WIFI 6 Certified, 1 x RJ45 console port, MG 2.5G L","Supplying, Installation, Testing and commissioning of Outdoor Wireless Access Point having features and specifications etc. as mentioned here under - WIFI 6 Certified, 1 x RJ45 console port, MG 2.5G L",printed
+39.10,39.10,description,"Supplying, Installation, Testing and commissioning of indoor Wireless Controller having features and specifications etc. as mentioned here under- The network controller shall be a dedicated hardware a","Supplying, Installation, Testing and commissioning of indoor Wireless Controller having features and specifications etc. as mentioned here under- The network controller shall be a dedicated hardware a",printed
+39.11,39.11,description,Supplying Installation Testing and Commissioning of 24 port Cat6 Patch Panel loaded. Must be of 1U height with clear label holders and white label with the panel. 24 Ports Cat-6 Patch Panel should hav,Supply of 24 port Cat6 Patch Panel loaded. Must be of 1U height with clear label holders and white label with the panel. 24 Ports Cat-6 Patch Panel should have ETL/UL verification program certificate ,printed
+39.15,39.15,rate,302,363,workbook
+39.17,39.17,description,"Supplying, drawing, Installation, Testing and commissioning of CAT6 UTP LSZH 23AWG Twisted Pair Cable in existing conduit/ on surface, Category 6 Unshielded Twisted Pair, 4 pair should be complied as ","Supplying, drawing, Installation, Testing and commissioning of CAT6 UTP LSZH 23AWG Twisted Pair Cable in existing conduit/ on surface, Category 6 Unshielded Twisted Pair, 4 pair should be complied as ",printed
+39.18,39.18,description,"Supplying, drawing, Testing and commissioning of Cat6A UTP 4 pair, 23 AWG solid copper cable in existing conduit/ on surface, U/FTP, LSZH, Non-Plenum, Horizontal (solid) Cable suitable for high speed ","Supplying, drawing, Installation, Testing and commissioning of Cat6A UTP 4 pair, 23 AWG solid copper cable in existing conduit/ on surface, U/FTP, LSZH, Non-Plenum, Horizontal (solid) Cable suitable f",printed
+39.18.1,39.18.1,rate,62,74,workbook
+39.19,39.19,description,"Supplying and drawing following core Fiber Optic Cable having corrugated steel armoring. The Fiber should be SM Fiber Central -loose tube filled with Thixotropic jelly, duly following Standards: ISO 1","Supplying and drawing following core Fiber Optic Cable having corrugated steel armoring. The Fiber should be SM Fiber Central -loose tube filled with Thixotropic jelly, duly following Standards: ISO 1",printed
+39.20,39.20,description,"Supplying and drawing following core Multi mode Fiber Optic Cable having corrugated steel armoring, leser optimize 50/125 µm with HDPE jacket, LSZH (Low smoke Zero Halogen), Tight-buffered or loose tu","Supplying and drawing following core Multi mode Fiber Optic Cable having corrugated steel armoring, leser optimize 50/125 µm with HDPE jacket, LSZH (Low smoke Zero Halogen), Tight- buffered or loose t",printed
+39.21.2,39.21.2,rate,7040,6970,workbook
+39.21.3,39.21.3,rate,10049,9949,workbook
+39.22,39.22,description,"Supplying and fixing Patch Cord of Optical Fiber Multi Mode or Single Mode LC to LC Fiber Duplex having high precision ceramic ferrule with good concentricity, Fiber corning single mode G652D, Cable T","Supply and fixing Patch Cord of Optical Fiber Multi Mode or Single Mode LC to LC Fiber Duplex having high precision ceramic ferrule with good concentricity, Fiber corning single mode G652D, Cable Type",printed
+39.22,39.22,rate,705,698,workbook
+39.23,39.23,description,"Supplying and fixing of following size Wall Mount Rack having Fixed Structure with 0.8mm CRCA Sheet, completely knocked-down condition (CKD) Shape, Vertical Mounting Rail 1.6 mm with 'U'Marking, Minim","Supply and fixing of following size Wall Mount Rack having Fixed Structure with 0.8mm CRCA Sheet, completely knocked-down condition (CKD) Shape, Vertical Mounting Rail 1.6 mm with 'U'Marking, Minimum ",printed
+39.23.1,39.23.1,rate,6939,6870,workbook
+39.23.2,39.23.2,rate,8960,8872,workbook
+39.23.3,39.23.3,rate,13330,13198,workbook
+39.24,39.24,description,"Supplying and fixing 24U Rack with 4 inch Castor wheels and front brake Floor Standing Rack with Main Frame Pillar of 1.25mm Powder Coated CRCA Sheet with removable side panels, L- Shape adjustable Ve","Supply and fixing 24U Rack with 4 inch Castor wheels and front brake Floor Standing Rack with Main Frame Pillar of 1.25mm CRCA Sheet with removable side panels, L- Shape adjustable Vertical Mounting R",printed
+39.24,39.24,rate,21201,20991,workbook
+39.25,39.25,description,"Supplying and fixing 42U Rack with 6 inch Castor wheels and front brake Floor Standing Rack with Main Frame Pillar of 1.6mm CRCA Sheet with removable side panels, L- Shape adjustable Vertical Mounting","Supply and fixing 42U Rack with 6 inch Castor wheels and front brake Floor Standing Rack with Main Frame Pillar of 1.6mm CRCA Sheet with removable side panels, L- Shape adjustable Vertical Mounting Ra",printed
+39.25,39.25,rate,32954,32628,workbook
+39.26,39.26,description,"Supplying and fixing Outdoor Pole/ Wall mount 6U Rack, IP55, Front Door with Filter, Louver & Unique key Lock. 3 Socket PDU 5Amp - 1 No. Self adhesive thermal foam from inside. Hood For Air Inlet at f","Supply and fixing Outdoor Pole/ Wall mount 6U Rack, IP55, Front Door with Filter, Louver & Unique key Lock. 3 Socket PDU 5Amp - 1 No. Self adhesive thermal foam from inside. Hood For Air Inlet at fron",printed
+39.26,39.26,rate,22228,22008,workbook
+40.1,40.1,description,"Supplying Installation Testing and Commissioning of 2 MP IP IR Dome Camera having following specifications, type of lens and features etc :-","2 MP IP IR Dome Camera
+Supply Installation Testing and Commissioning of 2 MP IP IR Dome Camera having following spcifications and features etc :-
+1) Signal System: PAL/NTSC, Signal to Noise Ratio: >50",printed
+40.1.2,40.1.2,description,2MP @ 25/30fps@1080P (1920×1080) Dome Camera with 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens.,"2MP @ 25/30fps@1080P (1920×1080) Dome Camera with 2.7mm ~13.5mm Motorized lens, Vari Focal (view Angle for H: 104°–29°; V: 54°–16°; D: 125°–34°)",printed
+40.2,40.2,description,Supplying Installation Testing and Commissioning of 2MP Fixed Lens IP IR Outdoor Bullet Camera having following specifications and features etc :-,"2 MP IP IR Outdoor Bullet Camera
+Supplying Installation Testing and Commissioning of 2MP Fixed Lens IP IR Outdoor Bullet Camera having following spcifications and features etc :-
+1) Signal System: PAL",printed
+40.2.2,40.2.2,description,2MP @ 25/30fps@1080P (1920×1080) Outdoor Bullet Camera with 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens.,"2MP @ 25/30fps@1080P (1920×1080) Outdoor Bullet Camera with 2.7mm ~13.5mm Motorized lens, Vari Focal (view Angle for H: 97°–28°; V: 52°–16°; D: 117°–32°)",printed
+40.3,40.3,description,Supplying Installation Testing and Commissioning of 4MP IP IR Dome Camera having following specifications and features etc :-,"4MP IP IR Dome Camera
+Supplying Installation Testing and Commissioning of 4MP IP IR Dome Camera having following spcifications and features etc :-
+1) Signal System: PAL/NTSC, Signal to Noise Ratio: > ",printed
+40.3.2,40.3.2,description,4MP @ 25/30fps@1440P (2560x1440) Dome Camera with 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens.,"4MP @ 25/30fps@1440P (2560x1440) Dome Camera with 2.7mm ~13.5mm Motorized lens, Vari Focal (view Angle for H: 104°–29°; V: 54°–16°; D: 125°–34°)",printed
+40.4,40.4,description,Supplying Installation Testing and Commissioning of 4MP IP IR Outdoor Bullet Camera having following specifications and features etc :-,"4MP IP IR Outdoor Bullet Camera
+Supplying Installation Testing and Commissioning of 4MP IP IR Outdoor Bullet Camera having following spcifications and features etc :-
+1) Signal System: PAL/NTSC, Signa",printed
+40.4.2,40.4.2,description,4MP @ 25/30fps@1440P (2560x1440) Outdoor Bullet Camera with 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens.,"4MP @ 25/30fps@1440P (2560x1440) Outdoor Bullet Camera with 2.7mm ~13.5mm Motorized lens, Vari Focal (view Angle for H: 97°–28°; V: 52°–16°; D: 117°–32°)",printed
+40.5,40.5,description,Supplying Installation Testing and Commissioning of 5MP/6MP IP IR Dome Camera having following specifications and features etc :-,"5/6MP IP IR Dome Camera
+Supplying Installation Testing and Commissioning of 5/6MP IP IR Dome Camera having following spcifications and features etc :-
+1)Type of Camera: Dome Camera
+2) Image Sensor: 1/",printed
+40.5.1,40.5.1,description,5MP/6MP IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) Dome Camera.,5/6MP ((3200 × 1800)@20 fps or better) IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) Dome Camera.,printed
+40.5.2,40.5.2,description,5MP/6MP IP IR 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens Dome Camera.,"5/6MP ((3200 × 1800)@20 fps or better) IP IR 2.7mm ~13.5mm Motorized lens, Vari Focal Dome Camera,Angle of View: H: 104°–32°, V: 54°–18°, D: 125°–36° or better",printed
+40.6,40.6,description,"Supplying Installation Testing and Commissioning of 5MP/6 MP IP IR Bullet Camera having following specifications, type of lens and features etc :-","5/6MP IP IR Bullet Camera
+Supplying Installation Testing and Commissioning of 5/6 MP IP IR Bullet Camera having following spcifications and features etc :-
+1) Type of Camera: Bullet Camera
+2) Image Se",printed
+40.6.1,40.6.1,description,5MP/6MP IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) outdoor bullet Camera,5/6MP ((3200 × 1800)@20 fps or better) IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) outdoor bullet Camera,printed
+40.6.2,40.6.2,description,5MP/6MP IP IR 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens outdoor Bullet Camera.,"5/6MP ((3200 × 1800)@20 fps or better) IP IR 2.7mm ~13.5mm Motorized lens, Vari Focal outdoor Bullet Camera,Angle of View: H: 104°–32°, V: 54°–18°, D: 125°–36° or better",printed
+40.7,40.7,description,Supplying Installation Testing and Commissioning of 8 MP IP IR Dome Camera having following spcifications and features etc :-,"8 MP IP IR Dome Camera
+Supplying Installation Testing and Commissioning of 8 MP IP IR Dome Camera having following spcifications and features etc :-
+1) Type of Camera: Dome Camera
+2) Image Sensor: 1/2",printed
+40.7.1,40.7.1,description,"8 MP (3840 × 2160) or better IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) Dome Camera,","8 MP (3840 × 2160)@20 fps or better IP IR 2.8/ 3.6/6/8/12 mm fixed lens (as per site requirement) Dome Camera,",printed
+40.7.2,40.7.2,description,8 MP (3840 × 2160) or better IP IR 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens Dome Camera.,"8 MP (3840 × 2160)@20 fps or better IP IR 2.7mm ~13.5mm Motorized lens, Vari Focal Dome Camera,Angle of View: H: 104°–32°, V: 54°–18°, D: 125°–36° or better",printed
+40.8,40.8,description,8 MP IP IR Outdoor Bullet Camera,"8 MP IP IR Outdoor Bullet Camera Supplying Installation Testing and Commissioning of 8 MP IP IR Outdoor Bullet Camera having following spcifications and features etc :-
+1) Type of Camera: Outdoor Bull",printed
+40.8.1,40.8.1,description,8 MP (3840 × 2160) or better IP IR 2.8/ 3.6/6/8/12 mm fixed lens,8 MP (3840 × 2160)@20 fps or better IP IR 2.8/ 3.6/6/8/12 mm fixed lens,printed
+40.8.2,40.8.2,description,8 MP (3840 × 2160) or better IP IR 2.7 to 4 mm ~12 to 13.5mm or better Varifocal Motorized lens outdoor Bullet Camera.,"8 MP (3840 × 2160)@20 fps or better IP IR 2.7mm ~13.5mm Motorized lens, Vari Focal outdoor Bullet Camera,Angle of View: H: 104°–32°, V: 54°–18°, D: 125°–36° or better",printed
+40.9,40.9,description,"Supplying Installation Testing and Commissioning of PTZ (Pan,Tilt and Zoom) IP IR Camera having following spcifications and features etc :-","PTZ (Pan. Tilt and Zoom) IP IR Camera
+Supplying Installation Testing and Commissioning of PTZ (Pan,Tilt and Zoom) IP IR Camera having following spcifications and features etc :- PTZ (Pan,Tilt and Zoom",printed
+40.9.1,40.9.1,description,"2 MP IP IR motorized PTZ @ 25/30fps or better camera, Triple streaming , configurable on resolution Main stream: 1080p@25/30 fps Sub streams :1080p@25/30 fps & D1@25/30 fps or better, varifocal lens 4","2 MP IP IR motorized PTZ (1920 × 1080 @ 25/30fps or better) camera, Triple streaming , configurable on resolution Main stream: 1080p@25/30 fps Sub streams :1080p@25/30 fps & D1@25/30 fps or better, va",printed
+40.9.3,40.9.3,description,"5MP IP IR motorized PTZ @25/30fps or better camera, Triple streaming , configurable on resolution:- Main stream: 5MP@25/30 fps Sub streams:1080p@25/30 fps, varifocal lens 3.95mm (±5mm) ~ 177.75mm (±5m","5MP IP IR motorized PTZ (2960 x 1668@25/30fps or better) camera, Triple streaming , configurable on resolution:- Main stream: 5MP@25/30 fps Sub streams:1080p@25/30 fps, varifocal lens 3.95mm (±5mm) ~ ",printed
+40.10,40.10,description,Supplying Installation Testing and Commissioning of following Channel Network Video Recorder (NVR) with camera licenses to record for all channels having spcifications and features etc as mentioned be,"Network Video Recorder (NVR)
+Supplying Installation Testing and Commissioning of following Channel Network Video Recorder (NVR) with camera licenses to record for all channels having spcifications and",printed
+40.11,40.11,description,Supplying Installation Testing and Commissioning of following Channel Network Video Recorder (NVR) with camera licenses to record for all channels having spcifications and features etc as mentioned be,Supplying Installation Testing and Commissioning of following Channel Network Video Recorder (NVR) with camera licenses to record for all channels having spcifications and features etc as mentioned be,printed
+40.12,40.12,description,"Supplying, Installation, Testing and Commissioning following capacity Serveillance grade Hard Disk with upto 256MB/s Transfer Rate, 256 MB Cache, 7200 RPM Disk Speed, 3.5 inch form factor, SATA Interf","Hard Disk Drive
+Supplying, Installation, Testing and Commissioning following capacity Serveillance grade Hard Disk with upto 256MB/s Transfer Rate, 256 MB Cache, 7200 RPM Disk Speed, 3.5 inch form fac",printed
+40.12.1,40.12.1,rate,13943,16088,workbook
+40.12.2,40.12.2,rate,16376,18895,workbook
+40.12.3,40.12.3,rate,20119,23214,workbook
+40.12.4,40.12.4,rate,24798,28613,workbook
+41.1,41.1,description,Access Control System withFace recognition,"Access Control System withFace recognition
+Supplying, Installation, Testing and Commissioning of Access Control System comprising of Face and fingerprint Recognition, Smart Card, QR Code, NFC & PIN Co",printed
+41.2,41.2,description,Access Control System (without Finger Print),"Access Control System (without Finger Print) Supplying, Installation, Testing and Commissioning of Access Control System comprising of Face Recognition, Smart Card, QR Code, NFC & PIN Code based Reade",printed
+41.2,41.2,unit,,Each,printed
+41.3,41.3,description,"Access Control System with 2.8"" display (without Face Recognition Readers)","Access Control System with 2.8"" display (without Face Recognition Readers) Supplying, Installation, Testing and Commissioning of This system is a compact solution with fingerprint, card, and password ",printed
+41.3,41.3,unit,,Each,printed
+41.4,41.4,description,"Access Control System with 1.77"" display (without Face Recognition Readers)","Access Control System with 1.77"" display (without Face Recognition Readers) Supplying, Installation, Testing and Commissioning of Access Control System comprising of Fingerprint & Card based Reader wi",printed
+41.4,41.4,unit,,Each,printed
+41.5,41.5,description,Software for Web based Access Control System,"Software for Web based Access Control System Supplying, Installation, Testing and Commissioning of Web based Access Control Enrolment and Device Configuration Software, Should be independent of OS (Wi",printed
+41.5,41.5,unit,,Each,printed
+41.6,41.6,description,Electromagnetic locks,"Electromagnetic locks Supplying, Installation, Testing and Commissioning of Electromagnetic locks (fail safe type) for following type of Doors suitable for operation on 12 V DC having holding force 60",printed
+41.7,41.7,description,Exit Push Button,"Exit Push Button Supplying, Installation, Testing and Commissioning of Heavy Duty SS Finish Exit Push Button for releasing access doors with all necessary installation accessories i/c connection compl",printed
+41.7,41.7,unit,,Each,printed
+41.8,41.8,description,Door Position Sensor,"Door Position Sensor Supplying, Installation Insta, Testing and Commissioning of Door Position Sensor i/e connection complete etc. as required.",printed
+41.8,41.8,unit,,Each,printed
+42.1,42.1,description,CENTRAL CONTROL SERVER,"CENTRAL CONTROL SERVER Supply Installation Testing Commissioning of Central Control Server System comprising of Intel® Xeon® CPU E5-2640 x64 (or better) compatible with dual and quad core processors, ",printed
+42.1,42.1,unit,,Each,printed
+42.2,42.2,description,PC System,"PC System Supply Installation Testing Commissioning of Client PC System comprising of PC Hardware with minimum11th Gen Intel® I7 processor CPU E5-2640 x64 (or better), compatible with dual and quad co",printed
+42.2,42.2,unit,,Each,printed
+42.3,42.3,description,LaserJet printer,"LaserJet printer Supply Installation Testing Commissioning of LaserJet printer having printing resolution 1200 x 1200 dpi, (dot/inch) or better, 21 to 30 ppm printing speed (LaserJet) complete etc. as",printed
+42.3,42.3,unit,,Each,printed
+42.4,42.4,description,LED Display,"LED Display Supplying, Installation, Testing and Commissioning of following size LED display (LED monitor) industrial grade with 3840x2160 resolution or better, USB playback, bluetooth and miracast co",printed
+42.5,42.5,description,Software for Building Management System :,"Software for Building Management System : Supply Installation Testing Commissioning of Nesssary Software (UL listed) Packages containing Building Management with Capability of Collection, Storage, Pro",printed
+42.6,42.6,description,Touchscreen Color portable operator terminal,Touchscreen Color portable operator terminal Supply Installation Testing Commissioning of following sizes Touchscreen Color portable operator terminal capable of connecting to one of the controllers o,printed
+42.7,42.7,description,DDC CONTROLLERS,"DDC CONTROLLERS
+Supply Installation Testing Commissioning of IP Based DDC controller capable of fully “stand- alone” operation i.e. In the event of loss of communication with other DDC’s or Control St",printed
+42.8,42.8,description,EXPNSION IO MODULE,"EXPNSION IO MODULE
+Supply Installation Testing Commissioning of following type of input output (IO) expension module complete etc. as required.",printed
+42.9,42.9,description,Enclosure for DDC,"Enclosure for DDC
+Supply Installation Testing Commissioning of following sizes Powder coated wall mounted lockable and secure enclosure for DDC panel made of 16 SWG sheet steel IP -55 rated with prope",printed
+42.10,42.10,description,Integration Unit,"Integration Unit
+Supply Installation Testing Commissioning following type 3rd party Integration unit to provide the interface between Ethernet LAN and the 3rd party field control devices or any other ",printed
+42.11,42.11,description,Field Devices,"Field Devices
+Supply Installation Testing Commissioning of following Field Devices including connection etc. as required",printed
+42.11.1,42.11.1,rate,9690,21299,workbook
+42.11.2,42.11.2,rate,7904,5782,workbook
+42.11.3,42.11.3,rate,2928,2141,workbook
+42.11.4,42.11.4,rate,9876,2570,workbook
+42.11.5,42.11.5,description,"Outside Temp & Humidity Sensor with radiation shield. Measuring Range: Temp:- -15 to 50 °C & RH 0-100%, Accuracy: +/- 1 °C +/- 3%","Outside Temp & Humidity Sensor with radiation shield. Measuring Range: Temp:- -15 to 50 Deg C & RH 0-100%, Accuracy: +/- 1 Degc +/- 3%",printed
+42.11.5,42.11.5,rate,9322,9876,workbook
+42.11.6,42.11.6,description,"Immersion Temp Sensor for CHW line. Measuring range: -30 to 110 °C, Accuracy: +/- 1.3 °C","Immersion Temp Sensor for CHW line. Measuring range: -30 to 110 Deg C, Accuracy: +/- 1.3 Deg C",printed
+42.11.6,42.11.6,rate,4585,9322,printed
+42.11.7,42.11.7,rate,8868,4585,printed
+42.11.8,42.11.8,description,"Duct type temperature sensor Measuring range: -30 to 110 °C, Accuracy: +/- 1.3 °C","Duct type temperature sensor Measuring range: -30 to 110 Deg C, Accuracy: +/- 1.3 Deg C",printed
+42.11.8,42.11.8,rate,3588,4656,workbook
+42.11.10,42.11.10,rate,6550,4283,workbook
+42.11.11,42.11.11,rate,8314,6550,workbook
+42.11.12,42.11.12,rate,2570,3411,workbook
