@@ -14,7 +14,7 @@ Source: the printed CPWD Delhi Schedule of Rates (E&M) 2025 (`reference/DSR E&M 
 | `corrections.csv` | Every change the build makes to an analysis line (link, back-calculated resource, unit item, multiplier) and every line note, with the book's figures. |
 | `discrepancies.csv` | The book's differences, documented and not reproduced: line amounts that are not coefficient × Appendix II rate, subtotals that add a row twice, and analyses whose rate differs from the published rate. |
 
-Reference notes from an earlier, separate pass over the same sources (not used by the build): `OBSERVATIONS.md` (what was found comparing the workbook, the book, the DAR and the slip), `backcalculated_materials.csv`, and the edit tables `tools/dsrem2025_nomenclature.py` and `tools/dsrem2025_correction_slip1.py`. The PDFs in this folder (`DSR_EM_2025.pdf`, `DAR(E&M) 2025 DAR.pdf`, `Correction slip 1.pdf`) are the sources; point `DSREM2025_PRINTED` at `DSR_EM_2025.pdf` to rebuild without a `reference/` copy.
+The PDFs in `reference/` are kept out of git (see `.gitignore`). `OBSERVATIONS.md`, `backcalculated_materials.csv`, `tools/dsrem2025_nomenclature.py` and `tools/dsrem2025_correction_slip1.py` come from an earlier, separate pass and are not used by the build; what they found that still applies is under Open issues and Other observations below.
 
 Rebuild:
 
@@ -31,7 +31,7 @@ The build imports the schedule (code hierarchy), then resources, then all analys
 
 Printed items are matched to the workbook rows chapter by chapter with an order-preserving alignment on text similarity (a small bonus for the same code), so every item is paired: 2,434 of 2,434. The printed numbering is used: chapter 6 keeps its withdrawn numbers in print (6.1, 6.5, 6.6, 6.11, 6.13 DELETED), so the workbook's 6.1–6.12 become 6.2–6.15 and their analyses follow; chapter 38 is printed as 36.1–36.5 and keeps 38.x. The workbook's uncoded rows that continue long specifications are dropped, as the printed descriptions contain them (chapter 40's camera and NVR specifications, for example, are only in print).
 
-Rates: the printed rate is used unless the item's analysis contradicts it while the workbook rate agrees. The printed schedule differs from the workbook in 199 rates; in 194 of them the printed analysis book (and the workbook) gives the workbook rate — e.g. 1.14.3 is printed ₹4508/m while its printed analysis gives ₹373, 1.1.1 is printed ₹1406 against ₹1417 in its analysis — so the workbook rate is kept and the item remarks say so. Printed rates used: 6.12 testing joint ₹3614 (workbook ₹140), 42.11.6 ₹9322 and 42.11.7 ₹4585 (the workbook had them shifted), 22.3.1 ₹98 and 22.4.1 ₹80. 366 descriptions and 237 units (mostly Meter → Metre) come from print.
+Rates: the printed rate is used unless the item's analysis contradicts it while the workbook rate agrees. The printed schedule differs from the workbook in 199 rates; in 194 of them the printed analysis book (and the workbook) gives the workbook rate — e.g. 1.14.3 is printed ₹4508/m while its printed analysis gives ₹373, 1.1.1 is printed ₹1406 against ₹1417 in its analysis — so the workbook rate is kept and the item remarks say so. Printed rates used: 6.12 testing joint ₹3614 (workbook ₹140), 22.3.1 ₹98 and 22.4.1 ₹80, and 42.11.6 ₹9322 and 42.11.7 ₹4585. The last two are wrong (see Open issues): the printed schedule is out of step with the analysis book through 42.11.1–42.11.12, and the workbook carries the analysis rates. 366 descriptions and 237 units (mostly Meter → Metre) come from print.
 
 The printed appendices differ from the workbook's Appendix I/II (68 rates by ₹1 or more, e.g. pipes 3001–3014 and 4244–4255, where the analyses use the workbook rates); they are not applied and are listed in `printed_appendix_differences.csv` for review.
 
@@ -65,9 +65,33 @@ Result: of 2,133 priced items, 2,113 have an analysis, and every analysis reprod
 
 ## Remaining gaps
 
-- No analysis in the book for 1.14, 4.2.9, 4.2.14, 6.10, 19.3.1, 20.20.1, 31.1.1–31.1.3 and 42.11.6, nor for the civil items 15.1–15.13 ("Rate to be taken from Civil DSR"; 15.7 and 15.9 carry the rate the analyses use).
+- No analysis in the book for 6.12 (testing joint, printed ₹3614), nor for the civil items 15.1–15.13 ("Rate to be taken from Civil DSR"; 15.7 and 15.9 carry the rate the analyses use).
 - 25.1.8–25.1.23 and 25.2.17–25.2.23 are empty analysis tables without schedule items; the 39.10 analysis remains in the book but the item is deleted.
 - The two-level headings 30.7 and 30.11 (each followed directly by another heading) are not imported; their sub-headings and items are.
 - The printed schedule rates disagree with the printed analyses in 194 items (listed in `printed_differences.csv`); a later correction slip may settle them.
 - Some Appendix II descriptions carry the previous section's heading (e.g. 4015/4016 nitrile insulation start with "Hot Dipped Galvanized CABLE TRAYS").
 - Database notes are not written yet (roadmap).
+- 110 Appendix I/II resources are not used by any analysis; they are kept as published.
+
+## Open issues
+
+Found by checking the build against the printed books in `reference/` and an earlier, separate pass over the same sources. None of these is fixed in the build yet.
+
+- **Analyses the build does not attach.** The built database has 2,131 priced items; 2,120 have an analysis. The analyses of 4.2.9, 4.2.14, 19.3.1, 20.20.1, 31.1.1–31.1.3 and 42.11.6 are in the workbook and the analysis book, but under the wrong heading:
+  - 4.2.9 (₹2244) and 4.2.14 (₹3332) run on inside 4.2.8 and 4.2.13 as a second "Details of cost for 1 No"; the analysis book prints no heading for them either.
+  - 19.3.1 (100 W, ₹24162) and 20.20.1 (80 mm, ₹17486) sit under the group headings 19.3 and 20.20; the analysis book prints the 19.3.1 heading, the workbook lost it.
+  - 31.1.1–31.1.3 (₹20947, ₹20083, ₹19111) are numbered 31.2.1–31.2.3 in the workbook and the analysis book, so 31.2.1–31.2.3 appear twice.
+  - 42.11.6 (immersion sensor 5335, ₹4585) sits under a second 42.11.7 heading, in the analysis book as well. The build gives 42.11.7 (water pressure sensor) this analysis.
+- **42.11.x rates.** The printed schedule rates of 42.11.1–42.11.12 do not match the analysis book: from 42.11.5 they are one item late (42.11.5 printed ₹9876 is the analysis of 42.11.4; 42.11.6 ₹9322 that of 42.11.5; 42.11.7 ₹4585 that of 42.11.6; 42.11.11 ₹6550 that of 42.11.10), and 42.11.1–42.11.4 match no analysis. The workbook carries the analysis rates. Because 42.11.6 had no analysis and 42.11.7 had two, the overlay rule took the printed ₹9322 and ₹4585. The analysis rates are 42.11.6 ₹4585 and 42.11.7 ₹8868.
+- **Chapter 19 category.** The workbook has no title row for chapter 19, so its items carry chapter 18's category ELECTRICAL VEHICLE CHARGER. The book's contents name chapter 19 Façade Lighting (Appendix II already uses FAÇADE LIGHTING).
+- **Appendix sub-headings as resources.** Four Appendix II sub-headings that carry schedule item numbers are imported as resources without unit or rate: 19.2, 19.3, 35.1 and 40.2.
+- **1020 and 1021.** The slip replaces 1020 Electronic Technician by 1021 Technician; both remain in the resources at ₹981.
+- **Unrounded rates.** The book prints whole rupees, but 197 schedule rates keep the workbook's formula results (4.2.8 ₹1930.04, 4.2.13 ₹4403.03, 24.13.x, 24.14.x and others), because the overlay keeps the workbook rate when print differs by less than ₹0.50. Civil rates 15.7, 15.9 and 21.1.1/21.1.2 are printed with decimals.
+
+## Other observations on the sources
+
+- Appendix II prints the same rate for consecutive sizes: 1534 and 1535 (1400 A and 1600 A bus trunking) both ₹19438; 5172 and 5174 both ₹2138 in print, where the workbook's ₹5138 for 5174 fits the series and gives the slip rate of 20.5.6 (₹7397).
+- Resources 3099 (20400 CMH) and 3162 (23800 CMH) are printed with their rates swapped; the workbook rates (₹205166.44 and ₹215780.34) are kept. The slip swaps the matching schedule rates 30.27.11/12.
+- Rate series that run the wrong way, put right by the slip: 30.27.11/12; 20.5.5 (₹3726) against 20.5.6 (printed ₹3078).
+- The slip quotes existing text abridged with dots; only the visible differences can be applied. Its note on Appendix I labour and hire charges is not imported.
+- Text read from the PDFs loses degree signs ("0C") and some line breaks.

@@ -21,3 +21,6 @@ modern/.bundle/
 modern/src-tauri/gen/
 modern/test-results/
 modern/playwright-report/
+
+# Published books for the DSR (E&M) 2025 build (large; kept locally)
+spreadsheets/DSREM2025/reference/
