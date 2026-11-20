@@ -10,6 +10,7 @@ Read this before choosing items from this database. The general part says what t
 - **Specifications:** works are to be executed to the CPWD General Specifications for Electrical Works Part I Internal 2023, Part II External 2023, Part III Lifts & Escalators 2003, Part IV Sub-station 2013, Part V Wet Riser & Sprinkler 2020, Part VI Fire Detection & Alarm 2018, Part VII DG Sets 2013, Part VIII Gas Based Fire Extinguishing 2013, the CPWD General Specifications for HVAC Works 2024, BIS codes, and ENS 2024 / ECSBC 2024.
 - **Rates:** schedule rates are complete: material, labour, taxes and duties (Delhi), T&P, overheads and profit, and GST on works contracts. They apply to a working height up to 4.5 m from floor level unless the item says otherwise. Rates are indicative; actual rates are governed by the market.
 - **Appendix I and II (resources):** basic rates of labour and materials. These **exclude** contractor's profit, overheads, carriage and taxes; the analyses add them.
+- **Guardrail:** do not add GST, cartage, labour cess or contractor's overheads and profit on top of schedule rates, and do not use raw Appendix I/II resource rates directly as BOQ items: a resource enters an estimate only through a rate analysis.
 - **Source data:** the CPWD workbook "DSR EandM 2025 3 09 2025", with the schedule's numbering, text and rates taken from the printed book. Where the printed rate disagrees with the printed analysis, the analysis rate is kept and the item's remarks say so. Full build notes: `spreadsheets/DSREM2025/README.md` in the GEstimator repository.
 
 ## How the items are built
@@ -125,7 +126,11 @@ Laying of 11 kV (22.1–22.4) and 33 kV (22.5–22.8) cables per metre: direct i
 
 ## Category: TRANSFORMER
 
-Distribution transformers, supply and installation, by kVA. Headings combine voltage ratio (11/0.433 kV or 33/0.433 kV), insulation (mineral oil, synthetic organic ester oil, dry type), mounting (indoor/outdoor) and efficiency (BEE 3, 4, 5 star; or energy efficiency Level 3, 4, 5 for dry type and higher ratings, with the permissible losses at 50 % and 100 % loading in each child). Choose the heading on all four, then the kVA child. Losses may not exceed the stated values by more than 15 % (book note).
+Distribution transformers, supply and installation, by kVA (24.x). Headings combine voltage ratio, insulation, mounting and efficiency; choose the heading on all of them, then the kVA child:
+- Mineral oil filled, BEE 3, 4, 5 star (one heading each): 33/0.433 kV 500–2500 kVA (24.1–24.3); 11/0.433 kV 1000–2000 kVA (24.4–24.6), 200–630 kVA (24.7–24.9), 63–160 kVA (24.10–24.12).
+- Synthetic organic ester oil filled, BEE 3, 4, 5 star: 33/0.433 kV 500–2500 kVA (24.13–24.15); 11/0.433 kV 1000–2000 kVA (24.16–24.18), 200–630 kVA (24.19–24.21), 63–160 kVA (24.22–24.24).
+- Dry type, energy efficiency Level 3, 4, 5 within one heading: the children run Level 3, then Level 4, then Level 5 in code order, and only the first child of Level 4 and of Level 5 carries the label ("Level 4", "Level 5") in its text; each child states the permissible losses at 50 % and 100 % loading, which identify the level: 33/0.433 kV indoor (24.25) and outdoor (24.26), 1000–2500 kVA; 11/0.433 kV indoor (24.27) and outdoor (24.28), 63–2500 kVA.
+Losses may not exceed the stated values by more than 15 % (book note).
 
 ## Category: AUTOMATIC POWER FACTOR CORRECTION (APFC) PANEL
 
