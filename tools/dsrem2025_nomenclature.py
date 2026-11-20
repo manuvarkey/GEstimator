@@ -110,7 +110,10 @@ RENUMBER = {
 # Appendix II units as printed (the workbook has Nos, m, Mtr ... for what the book calls Each, Meter, sq. m).
 RESOURCE_UNITS = {"nos": "Each", "no": "Each", "e": "Each", "each": "Each", "m": "Meter", "mtr": "Meter",
                   "mtrs.": "Meter", "meter": "Meter", "per sq meter": "sq. m", "sqmtr": "sq. m", "sq meter": "sq. m"}
-RESOURCE_RATES = {"3099": 205166.44, "3162": 215780.34, "5174": 2138}  # 3099/3162: swapped back, as the slip does for 30.27.11/12; 5174 as printed
+RESOURCE_RATES = {"3099": 205166.44, "3162": 215780.34, "5174": 5138,
+                  "2322": 946, "2323": 1326}
+# 3099/3162: swapped back, as the slip does for 30.27.11/12. 5174: the book prints 2138 (a copy of 5172); the slip rate of 20.5.6
+# (7397) needs 5138. 2322/2323: the DAR and the slip rates of 11.2.23/24 price the 150 and 185 sq mm kits the other way round.
 RESOURCE_UNIT_BY_CODE = {"2416": "Set"}
 # Resource descriptions: (old, new) on every resource.
 RESOURCE_TEXT = [
@@ -128,9 +131,13 @@ KEEP_DECIMALS_PREFIX = ("15.",)
 # Analysis codes (DAR) that differ from the schedule: item code in the analysis -> code in the schedule.
 ANALYSIS_RENUMBER = {"5.1.4": "26.1.4", "30.10.1": "30.10"}
 ANALYSIS_RENUMBER_PREFIX = (("18.19", "8.19"), ("30.10.1.", "30.10."))
-# Analysis lines whose rate the DAR prints differently from Appendix II: (item, resource code) -> rate.
-# The DAR prices the two jointing kits the other way round, which is what the corrected 11.2.23/11.2.24 rates follow.
-ANALYSIS_LINE_RATES = {("11.2.23", "2322"): 946, ("11.2.24", "2323"): 1326}
+# Analysis lines whose code names the wrong resource: (item, code in the analysis) -> (right code, qty or None).
+# 19.10.1: keypad is 5164 (5165 is a fountain nozzle). 27.17.2: gate valve 4213 and lump sum 4355 as in 27.17.1
+# (4256 is a G.I. pipe, 4255 a 300 mm pipe). 19.9.3: the XLR connector is 5163.
+ANALYSIS_LINE_CODES = {("19.10.1", "5165"): ("5164", None), ("27.17.2", "4256"): ("4213", None),
+                       ("27.17.2", "4255"): ("4355", 1), ("19.9.3", "5164"): ("5163", None)}
+# "Fitter, Grade 1" is 1004; the DAR codes it 1006 (Painter).
+ANALYSIS_FITTER = ("1006", "1004")
 
 # The workbook has no title row for chapter 19, so its items fall under chapter 18.
 CHAPTER_CATEGORY = {"19": "FACADE LIGHTING"}
@@ -154,3 +161,28 @@ ANALYSIS_BLANK_AFTER = {("42.11.6", "42.11.7")}
 
 # Labour lines of chapter 39 without a resource code, at the Appendix I rate: description -> (code, name, rate).
 ANALYSIS_LABOUR = {"wiremen": (1001, "Wireman", 981), "khallasi": (1007, "Khallasi", 805)}
+
+# Analyses whose priced line has no code, the resource code standing on the description line above it.
+ANALYSIS_CODE_ROW_ITEMS = {"27.5.1", "27.5.2", "27.5.3", "27.5.4", "27.5.5", "27.5.6"}
+# 28.1.10: the workbook's running totals leave out the panel (Total A 47648.77); the corrected totals reproduce
+# the slip rate 75339. Values in the order of the rows after the labour lines.
+ANALYSIS_AMOUNTS = {"28.1.10": [54968.77, 8245.32, 63214.09, 632.14, 63846.23, 11492.32, 75338.55, 75339]}
+ANALYSIS_AMOUNT_LABELS = ("Total", "Overhead & Profit @15%", "Labours cess@1%", "Add 18% GST", "Rate of Each", "Say")
+
+# Analysis lines without an ICD number, by description: mapped to the Appendix I/II (or civil) item that is meant,
+# or dropped where Appendix II has no such item (no resource is added for them; see OBSERVATIONS.md).
+ANALYSIS_LINE_BY_DESCRIPTION = {
+    "add valve cladding": ("3023", 360),
+    "khallasi": ("1007", 805),
+    "cement sand and grit etc.": ("2935", 7.2),
+    "excavation i/c refilling etc. as required": ("15.4", 830),
+}
+ANALYSIS_DROP_BY_DESCRIPTION = ("cold water tank", "tank connections and water inlet valve", "battery rack i/c connections",
+                                "basic price of insulation - 25 mm")
+
+# Analyses that cannot be reproduced from Appendix II items alone: the DAR adds lump-sum lines that have no Appendix II
+# item (battery racks of the UPS, tank and connections of solar water heaters, screws of ducts). No resource is added for
+# them; the rate of the main material of the item is back-calculated so that the analysis gives the published rate.
+BACKCALC_ITEMS = (["16.1.%d" % n for n in range(1, 5)] + ["16.2.%d" % n for n in range(1, 6)]
+                  + ["26.1.%d" % n for n in range(1, 5)] + ["26.2.%d" % n for n in range(1, 14)]
+                  + ["30.15", "30.16", "30.17", "30.18"])

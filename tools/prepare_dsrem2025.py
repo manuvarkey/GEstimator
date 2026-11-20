@@ -219,9 +219,9 @@ def apply_slip_resources(rows):
     rows[:] = result
 
 
-def apply_slip_analysis(rows):
+def apply_slip_analysis(rows, resource_rows=None):
     """Analysis codes follow the schedule; resource lines follow the corrected Appendix I and II."""
-    item, section, previous_header, seen_say, renamed, result = None, None, None, False, set(), []
+    item, section, previous_header, seen_say, renamed, result, pending, amounts = None, None, None, False, set(), [], None, []
     for row in rows:
         row = list(row)
         code = str(row[0]).strip() if row[0] is not None else ""
@@ -232,7 +232,7 @@ def apply_slip_analysis(rows):
             item, seen_say = nomenclature.ANALYSIS_INSERT_HEADERS[item][0], False
         if row[1] == "Say":
             seen_say = True
-        if (code and "." in code or code in {old for old, _ in nomenclature.ANALYSIS_HEADER_CODES}) and row[1] and not row[2] and row[3] is None:
+        if (code and "." in code or code in {old for old, _ in nomenclature.ANALYSIS_HEADER_CODES}) and (row[1] or code in nomenclature.ANALYSIS_CODE_ROW_ITEMS) and not row[2] and row[3] is None:
             seen_say = False
             if code in nomenclature.ANALYSIS_RENUMBER:
                 row[0] = nomenclature.ANALYSIS_RENUMBER[code]
@@ -256,10 +256,36 @@ def apply_slip_analysis(rows):
                 if row[0].count(".") == 1:
                     section = row[0]
                 item = row[0]
+            amounts = list(nomenclature.ANALYSIS_AMOUNTS.get(str(row[0]), []))
             result.append(row)
             continue
         if code and not isinstance(row[0], (int, float)) and "." in code and row[1] and row[2] is None:
             previous_header = None
+        if item in nomenclature.ANALYSIS_CODE_ROW_ITEMS:
+            if code.isdigit() and row[2] is None and row[3] is None:
+                pending, row[0], code = row[0], None, ""
+            elif pending is not None and row[0] is None and row[2] and isinstance(row[3], (int, float, str)):
+                row[0], code, pending = pending, str(pending), None
+        if item in nomenclature.ANALYSIS_AMOUNTS and row[0] is None and row[1] in nomenclature.ANALYSIS_AMOUNT_LABELS and amounts:
+            row[5] = amounts.pop(0)
+        text_ = str(row[1]).strip().lower() if row[1] is not None else ""
+        if row[0] is None and isinstance(row[3], (int, float, str)) and row[3] not in ("", None) and row[2] is not None:
+            if text_.startswith(nomenclature.ANALYSIS_DROP_BY_DESCRIPTION):
+                continue
+            if text_ in nomenclature.ANALYSIS_LINE_BY_DESCRIPTION:
+                new, rate = nomenclature.ANALYSIS_LINE_BY_DESCRIPTION[text_]
+                row[0], row[4] = new, rate
+                code = new
+                row[5] = row[3] * rate if isinstance(row[3], (int, float)) else row[5]
+        if (item, code) in nomenclature.ANALYSIS_LINE_CODES:
+            new, qty = nomenclature.ANALYSIS_LINE_CODES[(item, code)]
+            row[0] = code = new
+            if qty is not None:
+                row[3] = qty
+            row[4] = next((r[3] for r in resource_rows if str(r[0]) == new), row[4]) if resource_rows else row[4]
+            row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) and isinstance(row[4], (int, float)) else row[5]
+        if code == nomenclature.ANALYSIS_FITTER[0] and str(row[1]).startswith("Fitter"):
+            row[0] = code = int(nomenclature.ANALYSIS_FITTER[1])
         if row[0] is None and row[2] == "day" and str(row[1]).strip().lower() in nomenclature.ANALYSIS_LABOUR:
             labour = nomenclature.ANALYSIS_LABOUR[str(row[1]).strip().lower()]
             if row[4] == labour[2]:
@@ -270,11 +296,46 @@ def apply_slip_analysis(rows):
         elif code in slip.RESOURCE_RATES and isinstance(row[4], (int, float)):
             row[4] = slip.RESOURCE_RATES[code]
             row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) else row[5]
-        elif (item, code) in nomenclature.ANALYSIS_LINE_RATES and isinstance(row[4], (int, float)):
-            row[4] = nomenclature.ANALYSIS_LINE_RATES[(item, code)]
-            row[5] = row[3] * row[4] if isinstance(row[3], (int, float)) else row[5]
         result.append(row)
     rows[:] = result
+
+
+def apply_chapter16(rows):
+    """Chapter 16 analyses keep their formulas without saved values, so the workbook has no amounts. The chain of the
+    DAR (cartage 1 %, ITC 4 %, overheads 15 %, cess 1 %, GST 18 %) is written out; the tank (Rs 11 per litre) and
+    connections (Rs 400) of the evacuated tube systems have no Appendix II item and are added to the collector rate."""
+    start = None
+    blocks = []
+    for index, row in enumerate(rows):
+        code = str(row[0]).strip() if row[0] is not None else ""
+        if code.startswith("16.") and row[1] and row[2] is None and code.count(".") == 2:
+            start = index
+            blocks.append([index, None])
+        elif start is not None and row[1] == "Say":
+            blocks[-1][1] = index
+            start = None
+    for first, last in blocks:
+        if last is None:
+            continue
+        lines = [i for i in range(first, last) if rows[i][0] is not None and str(rows[i][0]).isdigit() and rows[i][4] not in (None, "")]
+        collector = lines[0]
+        extras = sum(float(rows[i][3]) * 11 for i in range(first, last) if str(rows[i][1]).startswith("Cold water tank")) + \
+            sum(float(rows[i][3]) for i in range(first, last) if str(rows[i][1]).startswith("Tank Connections"))
+        rate = float(rows[collector][5] if rows[collector][5] not in (None, "") else rows[collector][4]) + extras
+        rows[collector][2:6] = ["Each", 1, rate, rate]
+        cart = round(rate * 0.01, 2); total_a = rate + cart
+        itc = round(total_a * 0.04, 2); total_b = total_a + itc
+        overhead = round(total_b * 0.15, 2); total = total_b + overhead
+        cess = round(total * 0.01, 2); total_c = total + cess
+        gst = round(total_c * 0.18, 2); final = round(total_c + gst, 2)
+        labels = [r for r in range(collector + 1, last + 1) if rows[r][1] not in (None, "", "MATERIALS (A)", "LABOUR (B)") and not str(rows[r][1]).startswith(("Cold water tank", "Tank Connections"))]
+        values = ([rate] if str(rows[labels[0]][1]).lower() == "total" else []) + [cart, total_a, itc, total_b, total_b, overhead, total, cess, total_c, gst, final]
+        if str(rows[labels[-2]][1]).startswith("Rate"):
+            values.append(final)
+        values.append(round(final))
+        for r, value in zip(labels, values):
+            rows[r][5] = value
+    rows[:] = [r for r in rows if not (r[1] and str(r[1]).startswith(("Cold water tank", "Tank Connections")))]
 
 
 def resources(book):
@@ -351,7 +412,8 @@ def main():
         slip_report = apply_slip_schedule(schedule_rows)
         resource_rows = resources(book)
         apply_slip_resources(resource_rows)
-        apply_slip_analysis(analysis_rows)
+        apply_chapter16(analysis_rows)
+        apply_slip_analysis(analysis_rows, resource_rows)
         counts = dict(
             schedule=write(FOLDER / "schedule.xlsx", ["Code", "Description", "Unit", "Rate", "Category", "Remarks"], schedule_rows),
             resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resource_rows),

@@ -49,7 +49,20 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 - 31.1.1-31.1.3: numbered 31.2.1-31.2.3 under heading 31.1.
 - 42.11.6 (immersion temperature sensor): its lines sat under a second, wrongly numbered 42.11.7 header.
 - Chapter 39 labour lines without a code ("Wiremen", "Khallasi") at the Appendix I rates mapped to 1001 and 1007.
+- Resource codes the DAR gives to the wrong item, now mapped to the item meant (the importer had silently used the Appendix II item of that code):
+  - "Fitter, Grade 1" coded 1006 (Painter) in 27.11.5, 27.11.8, 27.11.9 and 27.12.1-27.12.6: now 1004. With the Fitter rate the analyses of 27.12.2-27.12.6 reach the slip rates (7691, 9869, 11386, 15603, 24088).
+  - 19.10.1: keypad is 5164 (6225), the DAR uses 5165 (a fountain nozzle, 7275); with 5164 the analysis gives the slip rate 8962.
+  - 27.17.2: gate valve 4213 and lump sum 4355 as in 27.17.1 (the DAR uses 4256, a G.I. pipe, and 4255, a 300 mm pipe at Rs 5026.50); the analysis then gives the slip rate 11086.
+  - 19.9.3: XLR connector is 5163 (1360), the DAR uses 5164.
+  - 27.5.1-27.5.6: the priced line has no code; the code stands on the line above (4321-4326, the control panels); the lines had been merged into one resource of Rs 175000.
+- Lines without an ICD number mapped to the item meant: "Add Valve Cladding" to 3023, "Khallasi" (24.25.6) to 1007, "Cement sand and grit etc." (28.4.1) to 2935, "Excavation i/c refilling" (15.16.x) to the civil item 15.4. Where the DAR rate differs from Appendix I/II (Khallasi 663, cement 1.73) the Appendix rate applies.
+- 28.1.10: the workbook's totals leave out the panel (Total A 47648.77); with the correct totals the analysis gives the slip rate 75339.
+- Chapter 16: the workbook keeps formulas without saved values, so its analyses had no amounts. The DAR chain (cartage 1 %, ITC 4 %, overheads 15 %, cess 1 %, GST 18 %) is written out.
+- Resources 2322 and 2323 (3½ X 150 and 185 sq mm kits) set to 946 and 1326: the DAR and the slip rates of 11.2.23/11.2.24 price them that way round; the book prints 1326 and 946. Resource 5174 set to 5138: the book prints 2138 (a copy of 5172), the slip rate of 20.5.6 (7397) needs 5138.
 - Four sub-heading rows of Appendix II that carry schedule item numbers (35.1, 19.2, 19.3, 40.2) dropped from the resources.
+
+### Back-calculated material rates (no resource added)
+The DAR adds lump-sum lines that have no Appendix II item: battery racks of the UPS (26.1.x, 26.2.x, Rs 500 each), tank (Rs 11 per litre) and connections (Rs 400) of the evacuated tube solar heaters (16.1.x), screws of ducts (30.15-30.18, Rs 260). No resource is added for them. The rate of the main material of the item is back-calculated so that the analysis gives the published rate; 30 resources are changed and listed in `backcalculated_materials.csv` with the book rate, the adjusted rate and the result. The collector and UPS rates therefore differ from Appendix II of the book by the lump sums (up to about 5 %); the other items using those resources are none (each is used by one item).
 
 ## 3. Observations in the sources (not all changed)
 
@@ -80,8 +93,8 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 | | Book | Database |
 |---|---|---|
 | Schedule rows | 2,439 coded rows, 2,118 priced, 13 DELETED | 2,428 rows, 2,128 priced, 300 headings |
-| Resources | 2,193 | 2,209 (14 `R…` codes, 3 civil codes 15.4/15.7/15.9) |
-| Items with an analysis | | 2,126 of 2,128 priced (15.7 and 15.9 are civil items) |
+| Resources | 2,193 | 2,195 (no auto-created `R…` codes; civil codes 15.4/15.7/15.9) |
+| Items with an analysis | | 2,126 of 2,128 priced (15.7 and 15.9 are civil rates) |
 
 - Schedule rates: 2,069 equal; 31 differ through the slip; 3 other (11.1.35, 31.12.3 after renumbering; 42.11.18 parse noise).
 - Schedule units: 2,101 compared, all equal.
@@ -90,14 +103,20 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 - Only in the book: the 13 DELETED items and 39.10.
 - Appendix rates: 2,156 equal; 6 differ (5246-5249 slip; 1528 and 3059 reading noise).
 - Analyses matched on import: 2,126; 26 blocks stay unmatched (`#REF!` blocks of chapter 25, deleted 6.1, 6.11 and 39.10).
+- Analysis against published rate after the fixes: of 2,126 analyses, 2,092 agree within Re 1 (about 20 differ by Re 1 through rounding of the book's unrounded intermediate amounts; the 39.18.2 and 39.18.4 slip rates 99 and 174 give 100 and 175 with the corrected Appendix II rates); the others are listed in section 5.
 - Chapters with different priced counts: 1 (175/176), 6 (10/7, deleted items), 15 (20/22), 19 (32/30), 30 (168/177, 30.11.4.x), 35 (27/26), 39 (41/45).
 
 ## 5. Gaps
 
-- 15.7 and 15.9 are priced from the Civil DSR (no analysis); other chapter 15 items have the three civil rates filled from the analyses only.
-- Analyses of slip items (list in section 3) keep the old DAR amounts: the slip gives no corrected analysis and no Appendix II change that would explain the new rates. The published rate is kept.
+- 15.7 and 15.9 are rates with those codes (civil items, no analysis); other chapter 15 items take their rates from the Civil DSR, which this database does not hold.
+- Analyses still different from the published rate by more than Re 1:
+  - 30.3.10 (analysis 2948, published 2716): the labour groups of the insulation work are counted although the sheet does not add them.
+  - 30.7.4.6 (8598, published 8644): the 25 mm insulation line (Rs 152.54 per metre) has no Appendix II item and was dropped.
+  - 30.21 (8903, published 890): the DAR gives the cost for 10 sq m and divides by 10; the import does not carry the division.
+  - 26.2.7-26.2.13 and 16.1.4: up to Rs 5 (the back-calculation rounds the rate to two decimals).
+- Slip item analyses now agree with the slip rates except 39.18.2 and 39.18.4 (Re 1).
+- Back-calculated materials (30) differ from Appendix II of the book; see `backcalculated_materials.csv`.
 - 26 analysis blocks stay unmatched: `#REF!` blocks of chapter 25, deleted 6.1, 6.11 and 39.10.
-- 14 resources with `R…` codes come from DAR lines that have no ICD number (battery rack, valve cladding, cold water tanks, insulation, excavation, a Khallasi line at Rs 663). They keep their DAR rates; mapping them to Appendix II needs a decision on the rates.
-- 105 Appendix II resources are not used by any analysis; they are kept as published.
+- 95 Appendix II resources are not used by any analysis; they are kept as published.
 - Analyses are verified against the DAR for part of the items only (1,188 with a readable rate); the rest rely on the workbook.
 - The slip was read by eye; item texts of 39.x and 40.x were re-checked against the database after the build.
