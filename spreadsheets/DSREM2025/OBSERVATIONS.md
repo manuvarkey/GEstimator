@@ -62,7 +62,7 @@ Sources: `DSR EandM 2025 3 09 2025.xlsx` (workbook), `DSR_EM_2025.pdf` (book, au
 - Four sub-heading rows of Appendix II that carry schedule item numbers (35.1, 19.2, 19.3, 40.2) dropped from the resources.
 
 ### Back-calculated material rates (no resource added)
-The DAR adds lump-sum lines that have no Appendix II item: battery racks of the UPS (26.1.x, 26.2.x, Rs 500 each), tank (Rs 11 per litre) and connections (Rs 400) of the evacuated tube solar heaters (16.1.x), screws of ducts (30.15-30.18, Rs 260). No resource is added for them. The rate of the main material of the item is back-calculated so that the analysis gives the published rate; 30 resources are changed and listed in `backcalculated_materials.csv` with the book rate, the adjusted rate and the result. The collector and UPS rates therefore differ from Appendix II of the book by the lump sums (up to about 5 %); the other items using those resources are none (each is used by one item).
+The DAR adds lump-sum lines that have no Appendix II item: battery racks of the UPS (26.1.x, 26.2.x, Rs 500 each), tank (Rs 11 per litre) and connections (Rs 400) of the evacuated tube solar heaters (16.1.x), screws of ducts (30.15-30.18, Rs 260). No resource is added for them. The rate of the main material of the item is back-calculated so that the analysis gives the published rate; 30 resources are changed and listed in `backcalculated_materials.csv` with the book rate, the adjusted rate and the result. The collector and UPS rates therefore differ from Appendix II of the book by the lump sums (up to about 5 %); each of those resources is used by one item only.
 
 ## 3. Observations in the sources (not all changed)
 
@@ -103,7 +103,7 @@ The DAR adds lump-sum lines that have no Appendix II item: battery racks of the 
 - Only in the book: the 13 DELETED items and 39.10.
 - Appendix rates: 2,156 equal; 6 differ (5246-5249 slip; 1528 and 3059 reading noise).
 - Analyses matched on import: 2,126; 26 blocks stay unmatched (`#REF!` blocks of chapter 25, deleted 6.1, 6.11 and 39.10).
-- Analysis against published rate after the fixes: of 2,126 analyses, 2,092 agree within Re 1 (about 20 differ by Re 1 through rounding of the book's unrounded intermediate amounts; the 39.18.2 and 39.18.4 slip rates 99 and 174 give 100 and 175 with the corrected Appendix II rates); the others are listed in section 5.
+- Analysis against published rate after the fixes: of 2,126 analyses, 2,092 agree to less than Re 1 and about 20 differ by about Re 1 (through rounding of the book's unrounded intermediate amounts; the 39.18.2 and 39.18.4 slip rates 99 and 174 give 100 and 175 with the corrected Appendix II rates); the others are listed in section 5.
 - Chapters with different priced counts: 1 (175/176), 6 (10/7, deleted items), 15 (20/22), 19 (32/30), 30 (168/177, 30.11.4.x), 35 (27/26), 39 (41/45).
 
 ## 5. Gaps
