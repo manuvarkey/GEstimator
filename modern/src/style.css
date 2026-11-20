@@ -2330,3 +2330,8 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .markdown blockquote { padding-left: 10px; border-left: 3px solid var(--accent); color: var(--muted); }
 .markdown hr { border: 0; border-top: 1px solid var(--line); }
 .markdown a { color: var(--accent); }
+/* Display-only group total ("TOTAL of MATERIALS") after a group's resources. */
+.analysis-table .tabulator-row[data-kind="GroupTotal"] { font-weight: 650; background: var(--raised); }
+.analysis-table .tabulator-row[data-kind="GroupTotal"] .tabulator-cell:first-child * { visibility: hidden; }
+.row-badge.kind-grouptotal { background: var(--accent-soft); color: var(--accent); }
+.import-sample .import-line-total td { font-weight: 650; }

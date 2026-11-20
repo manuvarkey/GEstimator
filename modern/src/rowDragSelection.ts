@@ -39,7 +39,7 @@ export function rowDragSelection(table: Tabulator, host: HTMLElement, options: {
     // Crossing a group heading should not import all its off-page children.
     // Clicking a category still provides the explicit whole-category shortcut.
     const range = drag.rows.slice(Math.min(drag.start, index), Math.max(drag.start, index) + 1)
-      .filter(row => row.getData().rowtype !== "Category");
+      .filter(row => row.getData().rowtype !== "Category" && !row.getData()._displayOnly);
     if (options.cells !== false && drag.column >= 0 && column >= 0) for (const selectedRow of range) {
       for (const selectedColumn of columns.slice(Math.min(drag.column, column), Math.max(drag.column, column) + 1)) {
         const cell = selectedRow.getCell(selectedColumn.getField());

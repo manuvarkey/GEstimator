@@ -6,7 +6,8 @@ export type RowKind =
   | "Subtotal"
   | "Weight"
   | "Multiply"
-  | "Round";
+  | "Round"
+  | "GroupTotal"; // display-only "TOTAL of <group>" line after a group's resources
 export interface AnalysisRow {
   id: string;
   kind: RowKind;
@@ -23,6 +24,8 @@ export interface AnalysisRow {
   reference?: string;
   category?: string;
   _children?: AnalysisRow[];
+  /** Display-only row (not part of the analysis; never selected or edited). */
+  _displayOnly?: boolean;
 }
 export interface AnalysisState {
   measurement_draft?: { id: string; dirty: boolean; undo: boolean; redo: boolean } | null;

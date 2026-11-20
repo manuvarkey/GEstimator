@@ -605,11 +605,14 @@ def analysis_rows(draft):
     for index, item in enumerate(draft.ana_items):
         kind = item["itemtype"]
         if kind == ScheduleItemModel.ANA_GROUP:
-            rows.append(dict(kind="Group", description=item["description"] or "", amount=str(draft.results[index][-1])))
+            rows.append(dict(kind="Group", description=item["description"] or ""))
             for (code, qty, remarks), (rate, total) in zip(item["resource_list"], draft.results[index][:-1]):
                 resource = draft.resources.get(code)
                 rows.append(dict(kind="Resource", code=code, description=getattr(resource, "description", "") or "",
                                  unit=getattr(resource, "unit", "") or "", qty=str(qty), rate=str(rate), amount=str(total), remarks=remarks or ""))
+            # The group total follows its resources ("TOTAL of MATERIALS").
+            rows.append(dict(kind="Total", description="TOTAL of " + (item.get("code") or item["description"] or "group"),
+                             amount=str(draft.results[index][-1])))
         else:
             label = {ScheduleItemModel.ANA_SUM: "Subtotal", ScheduleItemModel.ANA_WEIGHT: "Weight",
                      ScheduleItemModel.ANA_TIMES: "Multiply", ScheduleItemModel.ANA_ROUND: "Round"}.get(kind, "")

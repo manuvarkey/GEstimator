@@ -380,6 +380,7 @@ const selectionHint = computed(
   () =>
     ({
       Group: "Organize resources into a calculation group.",
+      GroupTotal: "Total of the group's resources.",
       Resource:
         "Definition changes apply to every use of this resource when saved.",
       Subtotal: "Sets the base for subsequent weighted additions.",

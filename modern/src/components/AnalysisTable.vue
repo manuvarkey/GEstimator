@@ -55,13 +55,27 @@ watch(moneyFormatKey, async () => {
   void fitVisibleTable();
 });
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
+const isTotal = (cell: CellComponent) => cell.getData().kind === "GroupTotal";
+/** A group's total is shown on a "TOTAL of …" line after its resources, not on the heading. */
+function displayRows(rows: AnalysisRow[]): AnalysisRow[] {
+  return rows.map(row => row.kind !== "Group" ? row : {
+    ...row,
+    _children: [...(row._children || []), {
+      id: row.id + ":total", kind: "GroupTotal", description: "TOTAL of " + (row.code || row.description || "group"),
+      value: "", amount: row.amount, _displayOnly: true,
+    } as AnalysisRow],
+  });
+}
+function amountCell(cell: CellComponent) {
+  return cell.getData().kind === "Group" ? "" : moneyCell(cell);
+}
 function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
   const label = document.createElement("span");
   label.className = `row-badge kind-${row.kind.toLowerCase()}`;
   label.textContent =
-    row.kind === "Resource" ? row.code || "Resource" : row.kind;
-  label.title = row.kind === "Resource" ? `Resource ${row.code}` : row.kind;
+    row.kind === "Resource" ? row.code || "Resource" : row.kind === "GroupTotal" ? "Total" : row.kind;
+  label.title = row.kind === "Resource" ? `Resource ${row.code}` : row.kind === "GroupTotal" ? "Group total" : row.kind;
   return label;
 }
 function keyboard(event: KeyboardEvent) {
@@ -79,7 +93,7 @@ watch(
     await built;
     if (!active) return;
     const selected = table.getSelectedData().map((r) => r.id);
-    replacement = table.replaceData(rows);
+    replacement = table.replaceData(displayRows(rows));
     await replacement;
     table.selectRow(selected.filter((id) => rows.some((r) => r.id === id)));
     // Resource rows are children; select them using their row components.
@@ -98,7 +112,7 @@ onMounted(() => {
     height: "100%",
     layout: "fitColumns",
     layoutColumnsOnNewData: true,
-    data: props.rows,
+    data: displayRows(props.rows),
     index: "id",
     editTriggerEvent: "dblclick",
     dataTree: true,
@@ -109,6 +123,7 @@ onMounted(() => {
     dataTreeSelectPropagate: false,
     selectableRows: true,
     selectableRowsRangeMode: "click",
+    selectableRowsCheck: row => !row.getData()._displayOnly,
     clipboard: false,
     placeholder: "Add a resource group to begin your analysis.",
     columnDefaults: { headerSort: false, resizable: true, vertAlign: "middle", editorParams: () => ({ enterSubmit: true, shiftEnterNewLine: true, ctrlEnterNewLine: true, metaEnterNewLine: true }) },
@@ -142,7 +157,7 @@ onMounted(() => {
         field: "description",
         editor: tableTextEditor,
         editorParams: () => ({ grow: false }),
-        editable: cell => !isResource(cell),
+        editable: cell => !isResource(cell) && !isTotal(cell),
         formatter: "textarea",
         variableHeight: true,
         minWidth: 80,
@@ -165,18 +180,18 @@ onMounted(() => {
         widthShrink: 1,
         tooltip: true,
         editable: (cell) =>
-          !["Group", "Subtotal"].includes(cell.getData().kind),
+          !["Group", "Subtotal", "GroupTotal"].includes(cell.getData().kind),
       },
       { title: "RATE", field: "effective_rate", formatter: moneyCell, hozAlign: "right", width: 110, minWidth: 56, widthShrink: 1, tooltip: (_event, cell) => moneyCell(cell) },
       {
         title: "AMOUNT",
         field: "amount",
-        formatter: moneyCell,
+        formatter: amountCell,
         hozAlign: "right",
         width: 114,
         minWidth: 60,
         widthShrink: 1,
-        tooltip: (_event, cell) => moneyCell(cell),
+        tooltip: (_event, cell) => amountCell(cell),
         frozen: true,
       },
     ],
@@ -202,7 +217,7 @@ onMounted(() => {
   table.on("rowSelectionChanged", (data) =>
     emit("selection", data as AnalysisRow[]),
   );
-  table.on("cellClick", (event, cell) => { navigation.clicked(cell); if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
+  table.on("cellClick", (event, cell) => { if (isTotal(cell)) return; navigation.clicked(cell); if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
   void fitVisibleTable();
 });
 defineExpose({

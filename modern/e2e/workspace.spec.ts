@@ -2661,6 +2661,16 @@ test("Excel analysis import previews a calculated rate and can be undone", async
   await dialog.getByRole("button", { name: "Replace analysis draft" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".summary-value")).toContainText("21.00");
+  // The group total sits on a "TOTAL of …" line after the resources, not on the heading.
+  const analysisGrid = page.locator(".analysis-table:visible");
+  const groupRow = analysisGrid.locator('.tabulator-row[data-kind="Group"]').first();
+  await expect(groupRow.locator('[tabulator-field="amount"]')).toHaveText("");
+  const totalRow = analysisGrid.locator('.tabulator-row[data-kind="GroupTotal"]').first();
+  await expect(totalRow.locator('[tabulator-field="description"]')).toHaveText("TOTAL of MATERIALS");
+  await expect(totalRow.locator('[tabulator-field="amount"]')).toHaveText("21.00");
+  await totalRow.locator('[tabulator-field="description"]').click();
+  await expect(totalRow).not.toHaveClass(/tabulator-selected/);
+  await page.screenshot({ path: "test-results/analysis-group-total.png", animations: "disabled" });
   await header.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".summary-value")).toContainText("20.00");
 });
@@ -3838,7 +3848,7 @@ test('feedback 5: regional money formatting updates views and preserves raw nume
   await row.locator('[tabulator-field="description"]').click();
   await page.getByRole('button', { name: 'Edit analysis', exact: true }).click();
   await expect(page.locator('.summary-value')).toContainText('₹');
-  await expect(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row').first().locator('[tabulator-field="amount"]')).toContainText('₹');
+  await expect(page.getByRole('grid', { name: 'Rate analysis table' }).locator('.tabulator-row[data-kind="GroupTotal"]').first().locator('[tabulator-field="amount"]')).toContainText('₹');
   await page.getByRole('button', { name: 'Application menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Program settings…', exact: true }).click();
   await settings.getByLabel('Regional format').selectOption('de-DE');

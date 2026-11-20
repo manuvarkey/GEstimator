@@ -17,7 +17,8 @@ export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boo
   const rows: RowComponent[] = [];
   function flatten(values: RowComponent[]) {
     for (const row of values) {
-      rows.push(row);
+      // Display-only rows (e.g. a group's TOTAL line) are never selected.
+      if (!row.getData()._displayOnly) rows.push(row);
       if (tree && row.isTreeExpanded()) flatten(row.getTreeChildren() || []);
     }
   }
