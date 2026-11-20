@@ -67,22 +67,23 @@ def lines(pdf, first_marker, last_marker):
         yield key[0], key[1], sorted(current)
 
 
-def columns(parts):
+def columns(parts, boundary=DESCRIPTION):
+    """Split a line into code, description, unit and rate by position."""
     split = []
     for left, width, size, text in parts:
         # A narrow gap merges the code with the description ("11.1.10  3 X 35 sq. mm").
-        match = re.match(r"^(\d+(?:\.\d+)+|\d{4}[A-Z]?)\s+(\S.*)$", text) if left < DESCRIPTION else None
+        match = re.match(r"^(\d+(?:\.\d+)+|\d{4}[A-Z]?)\s+(\S.*)$", text) if left < boundary else None
         merged_rate = re.match(r"^(\D.*?)\s+(-?[\d,]+(?:\.\d+)?)$", text) if UNIT <= left < RATE else None
         if match:
-            split += [(left, 0, size, match[1]), (DESCRIPTION, width, size, match[2])]
+            split += [(left, 0, size, match[1]), (boundary, width, size, match[2])]
         elif merged_rate:
             # A narrow gap merges the unit with the rate ("Each 601606").
             split += [(left, 0, size, merged_rate[1]), (RATE, width, size, merged_rate[2])]
         else:
             split.append((left, width, size, text))
     parts = split
-    code = " ".join(text for left, width, size, text in parts if left < DESCRIPTION)
-    description = [(left, size, text) for left, width, size, text in parts if DESCRIPTION <= left < UNIT]
+    code = " ".join(text for left, width, size, text in parts if left < boundary)
+    description = [(left, size, text) for left, width, size, text in parts if boundary <= left < UNIT]
     # A number in the unit area is a rate set a little to the left ("38,870").
     unit = " ".join(text for left, width, size, text in parts if UNIT <= left < RATE and not number(text))
     rate = " ".join(text for left, width, size, text in parts if left >= RATE or (UNIT <= left < RATE and number(text)))
@@ -161,14 +162,33 @@ def printed_schedule(pdf):
 
 
 def printed_appendix(pdf):
-    rows, current = [], None
+    """Appendix I/II rows [code, description, unit, rate, section, context].
+
+    Lines between items are either a section heading (upper case, e.g.
+    "METAL BOXES") or context for the short items that follow ("LED Down
+    lighter … of following wattage" before "5 - 7 watt"); both are returned
+    separately, not joined to the previous item."""
+    rows, current, section, context, fresh = [], None, "", [], False
     for page, top, parts in lines(pdf, "APPENDIX-I", None):
-        code, description, unit, rate = columns(parts)
+        code, description, unit, rate = columns(parts, boundary=90)  # Appendix I descriptions start at x = 99
         text = " ".join(part[2] for part in description)
+        if code.upper().startswith("CODE") or text.upper() in ("DESCRIPTION", "DESCRIPTION UNIT"):
+            continue
         if RESOURCE_CODE.match(code):
-            current = dict(code=code, lines=[], unit="", rate="")
+            current = dict(code=code, lines=[], unit="", rate="", section=section, context=list(context))
             rows.append(current)
-        elif code or current is None:
+            fresh = False
+        elif code:
+            continue
+        elif text and (current is None or current["rate"]):
+            letters = [c for c in text if c.isalpha()]
+            if letters and all(c.isupper() for c in letters):
+                section, context, fresh = text, [], False
+            else:
+                context = context + [text] if fresh else [text]
+                fresh = True
+            continue
+        if current is None:
             continue
         if text:
             current["lines"].append(((page, top), text))
@@ -176,4 +196,5 @@ def printed_appendix(pdf):
             current["unit"] = f"{current['unit']} {unit}".strip()  # a unit may wrap ("Per sq / meter")
         if number(rate) and not current["rate"]:
             current["rate"] = number(rate)
-    return [[row["code"], paragraph(row["lines"]), row["unit"], row["rate"]] for row in rows]
+    return [[row["code"], paragraph(row["lines"]), row["unit"], row["rate"], row["section"], " ".join(row["context"])]
+            for row in rows]

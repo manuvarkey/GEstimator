@@ -8,6 +8,7 @@ Source: the printed CPWD Delhi Schedule of Rates (E&M) 2025 (`reference/DSR E&M 
 | `resources.xlsx` | Code, Description, Unit, Rate, Category from "APPENDIX-II BASIC MATERIAL RATE" (labour and materials); section headings become categories; descriptive lines above short item rows are joined into the description; correction slip changes applied. |
 | `analysis.xlsx` | The six analysis columns of every chapter sheet ("CH…"), one after another (CH-16's extra unit column between Qty and Rate is dropped); notes under resource lines kept as text; analyses numbered differently from the schedule carry the schedule code; analyses corrected by the slip replace the book's. |
 | `printed_differences.csv` | Every difference between the printed book and the workbook (code, description, unit, rate) and which one is used. |
+| `printed_appendix_differences.csv` | For review, not applied: Appendix I/II codes whose printed description, unit or rate (by ₹1 or more) differs from `resources.xlsx`, with the printed section and context line, the rates the book's analyses use, and any correction slip change. Written by `tools/appendix_differences_dsrem2025.py`. |
 | `correction_slip_1.csv` | Transcription of Correction Slip No. 1 (schedule and Appendix changes). Rates are applied; complete new descriptions (39.14, 40.9.3) replace the old ones; the changed phrases the slip quotes are replaced in the printed descriptions (each must be found, or reported). |
 | `correction_slip_1_analysis.csv` | Corrected analyses from the slip that differ from the book's in their resources or arithmetic: 19.1.6 (new), 19.10.1 (keypad 5164), 27.17.2 (globe valve 4213, fittings 4355), 28.1.10 (materials included in the total). |
 | `corrections.csv` | Every change the build makes to an analysis line (link, back-calculated resource, unit item, multiplier) and every line note, with the book's figures. |
@@ -30,7 +31,7 @@ Printed items are matched to the workbook rows chapter by chapter with an order-
 
 Rates: the printed rate is used unless the item's analysis contradicts it while the workbook rate agrees. The printed schedule differs from the workbook in 199 rates; in 194 of them the printed analysis book (and the workbook) gives the workbook rate — e.g. 1.14.3 is printed ₹4508/m while its printed analysis gives ₹373, 1.1.1 is printed ₹1406 against ₹1417 in its analysis — so the workbook rate is kept and the item remarks say so. Printed rates used: 6.12 testing joint ₹3614 (workbook ₹140), 42.11.6 ₹9322 and 42.11.7 ₹4585 (the workbook had them shifted), 22.3.1 ₹98 and 22.4.1 ₹80. 366 descriptions and 237 units (mostly Meter → Metre) come from print.
 
-The printed appendices differ from the workbook's Appendix I/II (63 rates, e.g. pipes 3001–3014 and 4244–4250, where the analyses use the workbook rates); they are not applied.
+The printed appendices differ from the workbook's Appendix I/II (68 rates by ₹1 or more, e.g. pipes 3001–3014 and 4244–4255, where the analyses use the workbook rates); they are not applied and are listed in `printed_appendix_differences.csv` for review.
 
 ## Numbering fixes (prepare step)
 
