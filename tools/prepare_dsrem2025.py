@@ -75,6 +75,11 @@ def write(path, header, rows):
         sheet.append(header)
     for row in rows:
         sheet.append(row)
+        for column, value in enumerate(row, 1):
+            if isinstance(value, str) and value.startswith("="):
+                # Notes such as "= 50.0 + 2.5 (Wastage @ 5%) = 52.5m" are text,
+                # not formulas (openpyxl would store them as formulas).
+                sheet.cell(row=sheet.max_row, column=column).data_type = "s"
     book.save(path)
     return len(rows)
 
@@ -297,6 +302,111 @@ def analysis(book, lookup):
     return rows
 
 
+SLIPS = [("correction_slip_1.csv", "Correction Slip No. 1 (27-11-2025)")]
+SLIP_ANALYSES = ["correction_slip_1_analysis.csv"]  # corrected DAR (E&M) 2025 analyses
+
+
+def item_code_row(row):
+    code = text(row[0])
+    return "." in code and CODE.match(code) and row[1] and not row[2]
+
+
+def apply_slip_analyses(analysis_rows):
+    """Replace the book's analysis of each item in the slip analysis files
+    (same six columns) with the corrected one."""
+    import csv
+    replaced = []
+    for name in SLIP_ANALYSES:
+        with open(FOLDER / name, encoding="utf-8") as handle:
+            rows = [[(float(value) if re.fullmatch(r"-?\d+(\.\d+)?", value) else value or None) for value in row]
+                    for row in list(csv.reader(handle))[1:]]
+        for row in rows:
+            if row[0] is not None and isinstance(row[0], float):
+                row[0] = text(row[0]) if "." in text(row[0]) else int(row[0])
+        codes = [text(row[0]) for row in rows if item_code_row(row)]
+        for code in codes:
+            starts = [index for index, row in enumerate(analysis_rows) if item_code_row(row) and text(row[0]) == code]
+            for start in reversed(starts):
+                end = next((index for index in range(start + 1, len(analysis_rows)) if item_code_row(analysis_rows[index])),
+                           len(analysis_rows))
+                del analysis_rows[start:end]
+            replaced.append(f"{code} ({len(starts)} book block{'s' if len(starts) != 1 else ''} replaced)")
+        analysis_rows.extend([[None] * 6] * 3)
+        analysis_rows.extend(rows)
+    for line in replaced:
+        print("slip analysis:", line)
+    return len(replaced)
+
+
+def apply_slips(schedule_rows, resource_rows, analysis_rows):
+    """Apply the transcribed correction slips. Each change names the book's
+    existing value; a value the workbook already carries is reported, not
+    changed again."""
+    import csv
+    applied = []
+    for name, title in SLIPS:
+        with open(FOLDER / name, encoding="utf-8") as handle:
+            changes = list(csv.DictReader(handle))
+        for change in changes:
+            code, field, new = change["code"], change["field"], change["modified"]
+            if change["kind"] == "analysis":
+                # Analysis lines with this code and description use another code.
+                moved = 0
+                for line in analysis_rows:
+                    if text(line[0]) == code and line[2] and text(line[1]) == change["existing"]:
+                        line[0] = int(new) if new.isdigit() else new
+                        moved += 1
+                applied.append(f"analysis lines {code} {change['existing']} -> {new} ({moved})")
+                continue
+            rows = schedule_rows if change["kind"] == "schedule" else resource_rows
+            row = next((row for row in rows if row[0] == code), None)
+            if change["kind"] == "resource" and field == "add":
+                if row is None:
+                    unit, rate, category = change["existing"].split("|")
+                    resource_rows.append([code, new, unit, rate, category])
+                    applied.append(f"resource {code} {new} added")
+                else:
+                    applied.append(f"resource {code} already present")
+                continue
+            if row is None:
+                applied.append(f"{title}: {change['kind']} {code} not found")
+                continue
+            if change["kind"] == "schedule":
+                note = lambda text: row.__setitem__(5, "; ".join(filter(None, [row[5], f"{title}: {text}"])))  # noqa: E731
+                if field == "rate":
+                    if abs(float(row[3] or 0) - float(new)) < 0.005:
+                        applied.append(f"{code} rate {new} already in the workbook")
+                        note(f"rate {new}")
+                    else:
+                        applied.append(f"{code} rate {row[3]} -> {new}")
+                        note(f"rate {change['existing']} -> {new}")
+                        row[3] = new
+                elif field == "delete":
+                    rows.remove(row)
+                    applied.append(f"{code} deleted")
+                elif field == "description":
+                    row[1] = new
+                    note("description modified")
+                    applied.append(f"{code} description replaced")
+                elif field == "specification":
+                    note(f"specification modified ({change['note']})")
+                    applied.append(f"{code} specification noted")
+            else:
+                if field == "description":
+                    lines = row[1].split("\n")
+                    row[1] = "\n".join(lines[:-1] + [new])
+                    applied.append(f"resource {code} description {new}")
+                elif field == "rate":
+                    if abs(float(row[3] or 0) - float(new)) < 0.005:
+                        applied.append(f"resource {code} rate {new} already in the workbook")
+                    else:
+                        applied.append(f"resource {code} rate {row[3]} -> {new}")
+                        row[3] = new
+    for line in applied:
+        print("slip:", line)
+    return len(applied)
+
+
 def main():
     source = Path(sys.argv[1]) if len(sys.argv) > 1 else SOURCE
     book = load_workbook(source, read_only=True, data_only=True)
@@ -304,11 +414,16 @@ def main():
         schedule_rows = schedule(book)
         analysis_rows = analysis(book, analysis_codes(schedule_rows))
         filled = civil_rates(schedule_rows, analysis_rows)
+        resource_rows = resources(book)
+        slip_changes = apply_slips(schedule_rows, resource_rows, analysis_rows)
+        slip_analyses = apply_slip_analyses(analysis_rows)
         counts = dict(
             schedule=write(FOLDER / "schedule.xlsx", ["Code", "Description", "Unit", "Rate", "Category", "Remarks"], schedule_rows),
-            resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resources(book)),
+            resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resource_rows),
             analysis=write(FOLDER / "analysis.xlsx", None, analysis_rows),  # chapter sheets carry their own headers
             civil_rates_filled=filled,
+            slip_changes=slip_changes,
+            slip_analyses=slip_analyses,
         )
     finally:
         book.close()

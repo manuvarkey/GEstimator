@@ -1,0 +1,80 @@
+code,description,unit,qty,rate,amount
+19.1.6,120W,,,,
+ICD No.,Description,Unit,Qty.,Rate,Amount
+,(A) Material,,,,
+5140,120W LED floodlight,Nos.,1,55705,55705
+,Total,,,,55705
+,Cartage@ 1% of A,,,,557.05
+,Total A,,,,56262.05
+,(B) LABOUR,,,,
+,ITC @4% of A,,,,2250.48
+,Total B,,,,2250.48
+,Total (A +B),,,,58512.53
+,Overhead & Profit @15%,,,,8776.88
+,Total,,,,67289.41
+,Labours cess@1%,,,,672.89
+,Total,,,,67962.31
+,Add 18% of GST,,,,12233.22
+,Say,,,,80196
+,,,,,
+19.10.1,Supplying Installation Testing and Commissioning of push button type keypad with 10 buttons,,,,
+ICD No.,Description,Unit,Qty.,Rate,Amount
+,(A) Material,,,,
+5164,10 buttons programmable Keypad,Nos.,1,6225,6225
+,Total,,,,6225
+,Cartage@ 1% of A,,,,62.25
+,Total A,,,,6287.25
+,(B) LABOUR,,,,
+,ITC @4% of A,,,,251.49
+,Total B,,,,251.49
+,Total (A +B),,,,6538.74
+,Overhead & Profit @15%,,,,980.811
+,Total,,,,7519.551
+,Labours cess@1%,,,,75.19551
+,Total,,,,7594.74651
+,Add 18% of GST,,,,1367.05437
+,Total,,,,8962
+,,,,,
+27.17.2,40 m,,,,
+ICD No.,Description,Unit,Qty.,Rate,Amount
+,Materials,,,,
+4211,(a) Cost of swinging type hose reel complete with 19mm x 40m Thermolplastic hose,Each,1,3232,3232
+4212,(b) Hose reel drum,Each,1,2350,2350
+4213,(c) 25mm dia gun metal globe valve & nozzle,Each,1,691,691
+4355,"(d) Cost of 25mm dia socket, union, nipples (Lumpsum)",Each,1,210,210
+,Total,,,,6483
+,Cartage @1%,,,,64.83
+,Total,,,,6547.83
+,Labour,,,,
+1004,"Fitter, Grade 1",day,0.5,981,490.5
+1087,Welder,day,0.25,981,245.25
+1007,Khallasi,day,1,805,805
+,Total,,,,8088.58
+,OVERHEADS & PROFIT @ 15 %,,,,1213.29
+,Total,,,,9301.87
+,Labours cess@1%,,,,93.02
+,Total,,,,9394.89
+,Add 18% GST,,,,1691.08
+,Rate of Each,,,,11085.97
+,Say,,,,11086
+,,,,,
+28.1.10,Supplying installation testing & commissioning of main control and indicating panel (10 Zone panel for fire alarm system),,,,
+,COST FOR 1 POINT,,,,
+ICD No.,Description,Unit,Qty.,Rate,Amount
+,Materials,,,,
+4112,10 zone control panel for fire alarm system with following:-,each,1,47177,47177
+,Total,,,,47177
+,Cartage @1% of A,,,,471.77
+,Total,,,,47648.77
+,Labour,,,,
+1020,Electronic Technician,day,2,981,1962
+1019,Electrician,day,3,981,2943
+1007,Khallasi,day,3,805,2415
+,Total,,,,54968.77
+,Overhead & Profit @15%,,,,8245.32
+,Total,,,,63214.09
+,Labours cess@1%,,,,632.14
+,Total,,,,63846.23
+,Add 18% GST,,,,11492.32
+,Rate of Each,,,,75338.55
+,Say,,,,75339

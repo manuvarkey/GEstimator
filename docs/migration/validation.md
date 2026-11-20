@@ -658,3 +658,12 @@ The importer was checked against the source analysis sheets of the 2016 database
 
 Validation: 178 Python tests; `vue-tsc`, production build; browser suite 82 passed (new search/live search/remarks scenario; insertion scenario checks the subitem rule; perf scenario skipped by default).
 
+## 2026-11-20 — DSR (E&M) 2025: coefficients kept, Correction Slip No. 1, book remarks
+
+- Policy: analysis coefficients are the book's and are never changed. Line amounts that differ from coefficient × Appendix II rate, and subtotals that add a row twice, are documented (line remarks, analysis remarks, `spreadsheets/DSREM2025/discrepancies.csv`). Lines with a coefficient but no Appendix II resource get a resource with a rate back-calculated from the book (17 resources, category RESOURCES FROM ANALYSES); only rows without a coefficient use the "X – Unit item" resource (30.15–30.18).
+- Correction Slip No. 1 (27-11-2025) transcribed (`correction_slip_1.csv`, `correction_slip_1_analysis.csv`) and applied by the prepare step: 31 schedule rates (4 already in the workbook), 39.10 deleted, two descriptions, specification notes, Appendix II 5246–5249, resource 1021 Technician; corrected analyses 19.1.6, 19.10.1, 27.17.2, 28.1.10. All analyses but 11.2.23/11.2.24 (Appendix II kit rates inverted; documented) reproduce the published rates within ₹1.
+- Book remarks under resource lines are imported: the prepare step wrote notes starting with "=" as formulas, which the importer could not evaluate. Lines with remarks 132 → 707.
+- Analysis Remarks column shown in italics with the muted text colour.
+
+Validation: 178 Python tests; `vue-tsc`, production build; browser tests for search/remarks, compact widths and cell ranges pass.
+

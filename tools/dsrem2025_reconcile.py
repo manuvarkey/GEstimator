@@ -1,37 +1,34 @@
-"""Reconcile imported DSR (E&M) 2025 analyses with the book's amounts.
+"""Reconcile imported DSR (E&M) 2025 analyses with the book.
 
 The analysis import links every resource line to the Appendix II resource with
-the same code and keeps the book's quantity. A line then differs from the book
-when the book:
+the same code and keeps the book's coefficient (quantity). Coefficients are
+never changed here. For each resource line:
 
-- prices the resource differently from Appendix II (4.4.2 uses ₹36 for 2936,
-  Appendix II has ₹7.20);
-- uses a code that belongs to another Appendix II resource (19.9.3 lists an XLR
-  connector under 5164, a keypad controller in Appendix II);
-- names a resource without a code ("Khallasi", "Cold water tank 100 ltr");
-- shows an amount that is not quantity × rate (11.4.29 charges 1 day of a
-  cable jointer against a quantity of 0.25; 12.5 prices sundries at ₹0).
+- a line whose code is an Appendix II resource of that kind stays as it is; if
+  the book's amount differs from coefficient × Appendix II rate (the book used
+  another rate, or its arithmetic slipped), the difference is documented;
+- a codeless line, or one whose code is another resource in Appendix II
+  (19.9.3 lists an XLR connector under 5164, a keypad controller), is linked to
+  the Appendix II resource with the same description when there is one;
+- otherwise the coefficient is available but no Appendix II rate is: the line
+  gets its own resource whose rate is back-calculated from the book (amount ÷
+  coefficient), in category RESOURCES FROM ANALYSES.
 
-For each line the book amount is kept by changing the quantity, and the line's
-remarks say what the book shows:
+Rows the book prices without a coefficient ("Add for screws etc. LS 260",
+which the importer skips) are missing resources: they become the "Unit item"
+resource X (rate 1, quantity = amount) before the following subtotal. A book
+subtotal that adds a row twice is documented, not reproduced. A per-unit step
+the book works out after rounding (30.21) is added when it brings the
+analysis to the published rate.
 
-- a codeless line or a mismatched code is linked to the Appendix II resource
-  with the same description (and rate) when there is one;
-- otherwise the line becomes the "Unit item" resource X (rate 1, quantity =
-  book amount), with the book's description in the remarks;
-- a linked resource whose book amount differs gets quantity = book amount /
-  Appendix II rate.
-
-A book subtotal can also differ from the lines above it: a lump sum without
-quantity or rate ("Add for screws etc. LS 260", which the importer skips) or a
-line counted twice (27.13 adds the cartage again). The difference is added as
-a unit item line just before that subtotal.
-
+Every change and every documented difference goes into the line remarks
+(after any remark from the book) and into corrections.csv / discrepancies.csv.
 Edits go through the desktop operations (analysis.load, edit, add,
 resource.add, analysis.apply), so they are the same as editing by hand.
 """
 
 import csv
+import hashlib
 import re
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -39,6 +36,7 @@ from modern.backend import analysis_import
 
 UNIT_CODE = "X"
 UNIT_ITEM = dict(code=UNIT_CODE, description="Unit item", unit="Rs", rate="1", category="UNIT ITEMS")
+DERIVED_CATEGORY = "RESOURCES FROM ANALYSES"
 GENERATED = re.compile(r"^R[0-9A-F]{6}$")  # importer codes for lines without a code
 CENT = Decimal("0.01")
 
@@ -76,8 +74,9 @@ def sheet_drafts(path):
     """Parsed analyses with the book figures the importer does not keep.
 
     Returns ({code: [draft, alternative drafts…]}, {id(line entry): figures},
-    {id(draft): [finding, …]}). Findings are rows the importer skipped and book
-    subtotals that differ from the lines above them.
+    {id(draft): [finding, …]}). Findings are rows the importer skipped, book
+    subtotals that differ from the lines above them, and rows after the
+    rounded rate.
     """
     figures, findings = {}, {}
     block_class = analysis_import._Block
@@ -85,9 +84,11 @@ def sheet_drafts(path):
 
     def capture_resource(block, line, code, description, unit, qty, rate, amount):
         add_resource(block, line, code, description, unit, qty, rate, amount)
+        # The importer fills a blank coefficient from amount ÷ rate; use its value.
+        filled = Decimal(block.last_resource[1] or 0)
         figures[id(block.last_resource)] = dict(
             row=line, code=code or "", description=description or "", unit=unit or "",
-            qty=Decimal(qty or 0), rate=Decimal(rate or 0), amount=None if amount in (None, "") else Decimal(amount))
+            qty=filled, rate=Decimal(rate or 0), amount=None if amount in (None, "") else Decimal(amount))
 
     def capture_warning(block, line, message):
         warn(block, line, message)
@@ -125,101 +126,18 @@ def sheet_drafts(path):
     return {code: [draft] + getattr(draft, "alternatives", []) for code, draft in drafts.items()}, figures, findings
 
 
-def gap_lines(found, subtotal):
-    """Unit item lines for book subtotals that differ from the lines above
-    them: [(position, group description, amount, remark)]. `subtotal(position)`
-    is the analysis subtotal after the line corrections."""
-    result, skipped = [], []
-    for entry in found:
-        if entry["kind"] == "skipped":
-            skipped.append(entry)
-            continue
-        if entry["kind"] != "total":
-            continue
-        calculated = subtotal(entry["position"])
-        gap = money(entry["book"] - calculated)
-        if abs(gap) > Decimal("0.1"):
-            if skipped and abs(sum(row["amount"] for row in skipped) - gap) <= Decimal("0.5"):
-                for row in skipped:
-                    unit = f"{row['unit']} " if row["unit"] else ""
-                    result.append((entry["position"], row["description"][:80], money(row["amount"]),
-                                   f"{row['description']} — {unit}₹{number(money(row['amount']))} in the book "
-                                   "(no quantity or rate); no matching Appendix II resource"))
-            else:
-                repeated = next((label for label, amount in reversed(entry["earlier"])
-                                 if gap > 0 and abs(amount - gap) <= Decimal("0.05")), None)
-                if repeated is not None:
-                    remark = (f"The book's '{entry['label']}' (₹{number(money(entry['book']))}) adds "
-                              f"'{repeated.strip()}' (₹{number(gap)}) a second time")
-                else:
-                    change = "more" if gap > 0 else "less"
-                    remark = (f"The book's '{entry['label']}' is ₹{number(money(entry['book']))}, ₹{number(abs(gap))} "
-                              f"{change} than the lines above it (₹{number(money(calculated))})")
-                result.append((entry["position"], "Book adjustment", gap,
-                               remark + "; the difference is kept as a unit item so the analysis gives the published rate"))
-        skipped = []
-    return result
-
-
-def structure(call, rows, rate, code, found, target_rate):
-    """Subtotal adjustments, then a per-unit step after the rounded rate, each
-    kept only when the analysis gets closer to the published rate."""
-    changes = []
-    before = abs(rate() - target_rate)
-    current_rows = rows()
-    extra = gap_lines(found, lambda position: Decimal(current_rows[position]["amount"]))
-    steps, added = 0, []
-    for position, description, amount, remark in sorted(extra, key=lambda entry: -entry[0]):
-        after = {"id": rows()[position - 1]["id"]} if position else {}
-        call("add", kind="Group", description=description, **after)
-        call("resource.add", id=rows()[position]["id"], library=True, code=UNIT_CODE, qty=number(amount))
-        call("edit", id=rows()[position]["_children"][0]["id"], field="remarks", value=remark)
-        steps += 3
-        added.append(dict(item=code, row="", book_code="", description=description, book_qty="", book_rate="",
-                          book_amount=number(amount), resource=UNIT_CODE, qty=number(amount), remarks=remark))
-    if added:
-        if abs(rate() - target_rate) < before:
-            changes += added
-            before = abs(rate() - target_rate)
-        else:
-            for _ in range(steps):
-                call("undo")
-    tail = next((entry["rows"] for entry in found if entry["kind"] == "tail"), None)
-    if tail and before > 1 and rate():
-        # "OR SAY 8903", then "Rate for 1 sqm 890.3" and "OR SAY 890".
-        (label, amount), rounded = tail[0], tail[-1]
-        factor = (amount / rate()).quantize(Decimal("0.000001"), ROUND_HALF_UP)
-        call("add", kind="Multiply", description=label, value=number(factor), id=rows()[-1]["id"])
-        steps = 1
-        if len(tail) > 1 and rounded[1] == rounded[1].to_integral():
-            call("add", kind="Round", description=rounded[0], value="0", id=rows()[-1]["id"])
-            steps = 2
-        if abs(rate() - target_rate) < before:
-            changes.append(dict(item=code, row="", book_code="", description=label, book_qty="", book_rate="",
-                                book_amount=number(amount), resource="", qty=number(factor),
-                                remarks=f"The book works out '{label}' (₹{number(amount)}) after rounding the "
-                                        f"analysis; multiplier {number(factor)} added"))
-        else:
-            for _ in range(steps):
-                call("undo")
-    return changes
-
-
-def lines(items):
-    return [[(entry[0], Decimal(entry[1])) for entry in item["resource_list"]] for item in items if item["itemtype"] == 0]
-
-
 class Appendix:
     """Appendix II resources of the project, for matching book descriptions."""
 
     def __init__(self, db):
         table = db.ResourceTable
-        self.rows = {row.code: row for row in table.select() if not GENERATED.match(row.code) and row.code != UNIT_CODE}
+        self.rows = {row.code: row for row in table.select()
+                     if not GENERATED.match(row.code) and row.code != UNIT_CODE}
 
     def get(self, code):
         return self.rows.get(code)
 
-    def find(self, description, unit, rate):
+    def find(self, description, rate):
         """Appendix II resource with the same rate and (nearly) the same description."""
         best, score = None, 0.0
         for row in self.rows.values():
@@ -242,72 +160,75 @@ class Appendix:
 
 
 def close(qty, rate, amount):
-    """Quantity × rate gives the book amount, allowing for the book multiplying
-    unrounded rates (₹1850.338983… against Appendix II ₹1850.34)."""
+    """Coefficient × rate gives the book amount, allowing for the book
+    multiplying unrounded rates (₹1850.338983… against Appendix II ₹1850.34)."""
     return abs(qty * rate - amount) <= abs(qty) * Decimal("0.005") + Decimal("0.011")
 
 
-def decide(figures, current, appendix):
-    """Action for one line: None, or (code, quantity, remark)."""
-    book_amount = figures["amount"] if figures["amount"] is not None else figures["qty"] * figures["rate"]
-    qty, rate, unit = figures["qty"], figures["rate"], figures["unit"]
-    resource = appendix.get(current)
-    if not book_amount:
-        # A line the book prices at nothing ("Sundries 70 L.S. @ 0 = 0").
-        if figures["amount"] == 0 and qty and resource is not None and resource.rate:
-            return current, Decimal(0), (f"Book: {number(qty)} {unit} @ ₹{number(money(rate))} = ₹0; "
-                                         f"quantity {number(qty)} → 0 to keep the book amount")
-        named = appendix.named(figures["description"], unit) if resource is None else None
-        if named is not None:
-            # A codeless line with no amount ("Khallasi, 0 day @ ₹663").
-            return named.code, qty, (f"Book: {figures['description'][:80]} (no code), {number(qty)} {unit} @ "
-                                     f"₹{number(money(rate))}; linked to Appendix II {named.code}")
-        return None
+def book_amount(figures):
+    return figures["amount"] if figures["amount"] is not None else figures["qty"] * figures["rate"]
+
+
+def shown(figures):
+    """The book's line, e.g. "1 L.S. @ ₹36 = ₹36"."""
+    qty, unit, rate = figures["qty"], figures["unit"], figures["rate"]
     priced = f" @ ₹{number(money(rate))} =" if rate else ","
-    shown = f"{number(qty)} {unit}{priced} ₹{number(money(book_amount))}".replace("  ", " ")
-    book_code = figures["code"]
-    if resource is not None and close(qty, Decimal(resource.rate), book_amount):
-        return None  # the line already gives the book amount
-    if resource is None or money(rate) != money(resource.rate):
-        # The book's rate (and description) may belong to another resource.
-        match = appendix.find(figures["description"], unit, rate)
-        if match is not None and match.code != current:
-            origin = (f"Book: {figures['description'][:80]} ({'code ' + book_code if book_code else 'no code'}), "
-                      f"{shown}; linked to Appendix II {match.code}")
-            return finish(match.code, Decimal(match.rate), qty, book_amount, origin, force=True)
+    return f"{number(qty)} {unit}{priced} ₹{number(money(book_amount(figures)))}".replace("  ", " ")
+
+
+def decide(figures, current, appendix):
+    """(change, note, discrepancy) for one resource line.
+
+    change: None, ("link", code) or ("derive", description, unit, rate);
+    note: text for the line remarks; discrepancy: text or None.
+    """
+    amount, qty, rate = book_amount(figures), figures["qty"], figures["rate"]
+    book_code, description, unit = figures["code"], figures["description"], figures["unit"]
+    resource = appendix.get(current)
     clash = (resource is not None and book_code and money(rate) != money(resource.rate)
-             and similarity(figures["description"], resource.description) < 0.5)
-    if resource is None or clash:
-        named = appendix.named(figures["description"], unit)
-        if named is not None and named.code != current and named.rate:
-            origin = (f"Book: {figures['description'][:80]} ({'code ' + book_code if book_code else 'no code'}), "
-                      f"{shown}; linked to Appendix II {named.code} at ₹{number(named.rate)}")
-            return finish(named.code, Decimal(named.rate), qty, book_amount, origin, force=True)
-        remark = f"{figures['description']} — {shown} in the book; no matching Appendix II resource"
-        if resource is not None:
-            remark += f" (book code {book_code} is '{resource.description.splitlines()[-1][:60]}' in Appendix II)"
-        return UNIT_CODE, money(book_amount), remark
-    if money(rate) != money(resource.rate):
-        reason = f"Book: {shown}; Appendix II rate ₹{number(resource.rate)}"
-    else:
-        reason = (f"Book: amount ₹{number(money(book_amount))} for {number(qty)} {unit} @ ₹{number(money(rate))} "
-                  f"(quantity × rate = ₹{number(money(qty * rate))})")
-    return finish(resource.code, Decimal(resource.rate), qty, book_amount, reason)
+             and similarity(description, resource.description) < 0.5)
+    if resource is not None and not clash:
+        if close(qty, Decimal(resource.rate), amount):
+            return None, None, None
+        if money(rate) != money(resource.rate):
+            text = f"Book: {shown(figures)}; Appendix II rate ₹{number(resource.rate)}"
+        else:
+            text = (f"Book: amount ₹{number(money(amount))} for {number(qty)} {unit} @ ₹{number(money(rate))} "
+                    f"(coefficient × rate = ₹{number(money(qty * rate))})")
+        return None, text, text
+    origin = f"Book: {description[:80]} ({'code ' + book_code if book_code else 'no code'})"
+    if clash:
+        origin += f"; {book_code} is '{resource.description.splitlines()[-1][:60]}' in Appendix II"
+    match = appendix.find(description, rate) or appendix.named(description, unit)
+    if match is not None:
+        note = f"{origin}; linked to Appendix II {match.code}"
+        discrepancy = None
+        if amount and not close(qty, Decimal(match.rate), amount):
+            discrepancy = f"Book: {shown(figures)}; Appendix II {match.code} rate ₹{number(match.rate)}"
+            note += f". {discrepancy}"
+        return ("link", match.code), note, discrepancy
+    if qty and amount:
+        derived = money(amount / qty)
+        note = (f"{origin}; not in Appendix II: rate ₹{number(derived)} back-calculated from the book "
+                f"({number(qty)} {unit} = ₹{number(money(amount))})")
+        return ("derive", description, unit, derived), note, None
+    if qty and rate:
+        note = f"{origin}; not in Appendix II: rate ₹{number(money(rate))} as in the book"
+        return ("derive", description, unit, money(rate)), note, None
+    return None, None, None
 
 
-def finish(code, rate, qty, book_amount, reason, force=False):
-    if not rate:
-        return (UNIT_CODE, money(book_amount), reason + "; resource has no rate") if book_amount else None
-    adjusted = qty
-    if not close(qty, rate, book_amount):
-        for places in (4, 6, 8):
-            adjusted = (book_amount / rate).quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
-            if money(adjusted * rate) == money(book_amount):
-                break
-    if adjusted == qty and not force:
-        return None
-    remark = reason if adjusted == qty else f"{reason}; quantity {number(qty)} → {number(adjusted)} to keep the book amount"
-    return code, adjusted, remark
+def derived_code(description, unit, rate):
+    digest = hashlib.sha1(f"{' '.join(description.lower().split())}|{unit.lower()}|{rate}".encode()).hexdigest()
+    return "R" + digest[:6].upper()
+
+
+def lines(items):
+    return [[(entry[0], Decimal(entry[1])) for entry in item["resource_list"]] for item in items if item["itemtype"] == 0]
+
+
+def append(existing, note):
+    return "\n".join(filter(None, [existing or "", note]))
 
 
 def published_rates(path):
@@ -323,22 +244,57 @@ def published_rates(path):
         book.close()
 
 
-def reconcile(call, db, workbook, published, report_path=None):
-    """Apply the corrections to every imported analysis; returns a summary.
+def missing_lines(found):
+    """Unit item lines for rows priced without a coefficient (the importer
+    skips them) and documented subtotal slips: ([(position, description,
+    amount, remark)], [(row, text)])."""
+    units, slips, skipped = [], [], []
+    for entry in found:
+        if entry["kind"] == "skipped":
+            skipped.append(entry)
+            continue
+        if entry["kind"] != "total":
+            continue
+        gap = money(entry["book"] - entry["calculated"])
+        if skipped and abs(sum(row["amount"] for row in skipped) - gap) <= Decimal("0.5"):
+            for row in skipped:
+                unit = f"{row['unit']} " if row["unit"] else ""
+                units.append((entry["position"], row["description"][:80], money(row["amount"]),
+                              f"{row['description']} — {unit}₹{number(money(row['amount']))} in the book "
+                              "without a coefficient; no Appendix II resource"))
+        elif abs(gap) > Decimal("0.1"):
+            repeated = next((label for label, amount in reversed(entry["earlier"])
+                             if gap > 0 and abs(amount - gap) <= Decimal("0.05")), None)
+            # Other gaps are section totals ("Total of A(4)") or follow from
+            # line amounts already documented.
+            if repeated is not None:
+                slips.append((entry["row"], f"The book's '{entry['label']}' (₹{number(money(entry['book']))}) adds "
+                                            f"'{repeated.strip()}' (₹{number(gap)}) a second time"))
+        skipped = []
+    return units, slips
 
-    `published` maps item codes to the book's schedule rates. Line corrections
-    always apply (they copy the book's amounts); subtotal adjustments and a
-    per-unit step after the rounded rate are kept only when they bring the
-    analysis closer to the published rate.
-    """
+
+def reconcile(call, db, workbook, published, report_path=None, discrepancy_path=None):
+    """Apply the changes to every imported analysis and document the book's
+    differences; returns a summary. `published` maps item codes to the
+    schedule rates (after correction slips)."""
     drafts, figures, findings = sheet_drafts(workbook)
     if db.get_resource(UNIT_CODE) is None:
         call("resources.editor.add", data=dict(UNIT_ITEM))
     appendix = Appendix(db)
     table = db.ScheduleTable
-    report, items = [], 0
+    report, discrepancies, items = [], [], 0
     rows = lambda: call("state")["rows"]  # noqa: E731 - analysis rows, one per analysis entry
     rate = lambda: Decimal(call("state")["rate"])  # noqa: E731
+
+    def derive(description, unit, value, item):
+        code = derived_code(description, unit, value)
+        if db.get_resource(code) is None:
+            call("resources.editor.add", data=dict(code=code, description=description, unit=unit or "LS",
+                                                   rate=str(value), category=DERIVED_CATEGORY,
+                                                   reference=f"Rate back-calculated from DAR (E&M) 2025 {item}"))
+        return code
+
     for code, candidates in drafts.items():
         if table.get_or_none(table.code == code) is None:
             continue
@@ -353,45 +309,101 @@ def reconcile(call, db, workbook, published, report_path=None):
         actions = []
         for group, (stored_group, sheet_group) in enumerate(zip(stored, sheet)):
             for index, ((current, _), line) in enumerate(zip(stored_group, sheet_group)):
-                action = decide(line, current, appendix) if line else None
-                if action:
-                    actions.append((group, index, line, current, action))
-        found = [entry for entry in findings.get(id(draft), []) if entry["kind"] != "total"
-                 or abs(entry["book"] - entry["calculated"]) > Decimal("0.1")]
+                if not line:
+                    continue
+                change, note, discrepancy = decide(line, current, appendix)
+                if discrepancy:
+                    discrepancies.append(dict(item=code, row=line["row"], kind="line amount", code=line["code"] or current,
+                                              description=line["description"][:100], text=discrepancy))
+                if change or note:
+                    actions.append((group, index, line, current, change, note))
+        found = findings.get(id(draft), [])
+        units, slips = missing_lines(found)
+        for row, text in slips:
+            discrepancies.append(dict(item=code, row=row, kind="subtotal", code="", description="", text=text))
         target_rate = published.get(code)
         model.evaluate_results()
-        if not actions and (not found or target_rate is None or abs((model.get_ana_rate() or 0) - target_rate) <= 1):
+        tail = next((entry["rows"] for entry in found if entry["kind"] == "tail"), None)
+        tail = tail if tail and target_rate is not None and abs((model.get_ana_rate() or 0) - target_rate) > 1 else None
+        if not actions and not units and not tail and not slips:
             continue
-        state = call("analysis.load", code=code)
-        groups = [row for row in state["rows"] if row["kind"] == "Group"]
-        changes = []
-        for group, index, line, current, (target, qty, remark) in actions:
-            identity = groups[group]["_children"][index]["id"]
+        # New resources first: adding one refreshes the loaded analysis.
+        targets = [change[1] if change and change[0] == "link" else
+                   derive(change[1], change[2], change[3], code) if change else current
+                   for group, index, line, current, change, note in actions]
+        call("analysis.load", code=code)
+        for (group, index, line, current, change, note), target in zip(actions, targets):
+            child = [row for row in rows() if row["kind"] == "Group"][group]["_children"][index]
             if target != current:
-                call("edit", id=identity, field="code", value=target)
-            call("edit", id=identity, field="value", value=number(qty))
-            call("edit", id=identity, field="remarks", value=remark)
-            changes.append(dict(item=code, row=line["row"], book_code=line["code"], description=line["description"][:100],
-                                book_qty=number(line["qty"]), book_rate=number(line["rate"]),
-                                book_amount="" if line["amount"] is None else number(money(line["amount"])),
-                                resource=target, qty=number(qty), remarks=remark))
-        if found and target_rate is not None and abs(rate() - target_rate) > 1:
-            changes += structure(call, rows, rate, code, found, target_rate)
-        if changes:
-            call("analysis.apply")
-            report += changes
-            items += 1
+                call("edit", id=child["id"], field="code", value=target)
+            call("edit", id=child["id"], field="remarks", value=append(child.get("remarks"), note))
+            report.append(dict(item=code, row=line["row"], book_code=line["code"], description=line["description"][:100],
+                               book_qty=number(line["qty"]), book_rate=number(line["rate"]),
+                               book_amount="" if line["amount"] is None else number(money(line["amount"])),
+                               resource=target, change=(change or ("note",))[0], remarks=note))
+        # Insert from the end so earlier positions stay valid.
+        for position, description, amount, remark in sorted(units, key=lambda entry: -entry[0]):
+            after = {"id": rows()[position - 1]["id"]} if position else {}
+            call("add", kind="Group", description=description, **after)
+            call("resource.add", id=rows()[position]["id"], library=True, code=UNIT_CODE, qty=number(amount))
+            call("edit", id=rows()[position]["_children"][0]["id"], field="remarks", value=remark)
+            report.append(dict(item=code, row="", book_code="", description=description, book_qty="", book_rate="",
+                               book_amount=number(amount), resource=UNIT_CODE, change="unit item", remarks=remark))
+        if slips:
+            # Book arithmetic is documented on the analysis, not reproduced.
+            current = call("state").get("ana_remarks", "")
+            call("analysis.edit", field="ana_remarks", value=append(current, "; ".join(text for _, text in slips)))
+        if tail:
+            # "OR SAY 8903", then "Rate for 1 sqm 890.3" and "OR SAY 890".
+            before = abs(rate() - target_rate)
+            (label, amount), rounded = tail[0], tail[-1]
+            factor = (amount / rate()).quantize(Decimal("0.000001"), ROUND_HALF_UP) if rate() else None
+            if factor:
+                call("add", kind="Multiply", description=label, value=number(factor), id=rows()[-1]["id"])
+                steps = 1
+                if len(tail) > 1 and rounded[1] == rounded[1].to_integral():
+                    call("add", kind="Round", description=rounded[0], value="0", id=rows()[-1]["id"])
+                    steps = 2
+                if abs(rate() - target_rate) < before:
+                    report.append(dict(item=code, row="", book_code="", description=label, book_qty="", book_rate="",
+                                       book_amount=number(amount), resource="", change="multiplier",
+                                       remarks=f"The book works out '{label}' (₹{number(amount)}) after rounding the "
+                                               f"analysis; multiplier {number(factor)} added"))
+                else:
+                    for _ in range(steps):
+                        call("undo")
+        call("analysis.apply")
+        items += 1
     # Resources the importer created for codeless lines that are no longer used.
     removed = 0
     for row in list(db.ResourceTable.select()):
-        if GENERATED.match(row.code) and not row.resourceitems.count():
+        if GENERATED.match(row.code) and not row.resourceitems.count() and row.category.description != DERIVED_CATEGORY:
             call("resources.editor.delete", id=str(row.id))
             removed += 1
-    if report_path:
-        with open(report_path, "w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(report[0]) if report else ["item"])
-            writer.writeheader()
-            writer.writerows(report)
-    return dict(items=items, lines=len(report), unit_items=sum(row["resource"] == UNIT_CODE for row in report),
-                relinked=sum(row["resource"] not in (UNIT_CODE, row["book_code"]) for row in report),
-                removed_resources=removed)
+    # Analyses that still differ from the published rate (after correction slips).
+    for row in table.select():
+        target_rate = published.get(row.code)
+        if target_rate is None or not row.unit:
+            continue
+        model = db.get_item(row.code, modify_res_code=False)
+        if model is None or not model.results:
+            continue
+        calculated = Decimal(model.get_ana_rate() or 0)
+        if abs(calculated - target_rate) > Decimal("0.01"):
+            discrepancies.append(dict(item=row.code, row="", kind="rate", code="", description=row.description[:100],
+                                      text=f"Analysis gives ₹{number(money(calculated))}, published rate ₹{number(target_rate)} "
+                                           f"(difference ₹{number(money(calculated - target_rate))})"))
+    for path, records, fields in ((report_path, report, ["item", "row", "book_code", "description", "book_qty", "book_rate",
+                                                          "book_amount", "resource", "change", "remarks"]),
+                                  (discrepancy_path, discrepancies, ["item", "row", "kind", "code", "description", "text"])):
+        if path:
+            with open(path, "w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows(records)
+    count = lambda kind: sum(record["change"] == kind for record in report)  # noqa: E731
+    return dict(items=items, linked=count("link"), derived=count("derive"), unit_items=count("unit item"),
+                noted=count("note"), removed_resources=removed,
+                line_discrepancies=sum(record["kind"] == "line amount" for record in discrepancies),
+                subtotal_discrepancies=sum(record["kind"] == "subtotal" for record in discrepancies),
+                rate_differences=sum(record["kind"] == "rate" for record in discrepancies))

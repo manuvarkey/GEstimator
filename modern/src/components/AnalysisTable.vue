@@ -171,6 +171,7 @@ onMounted(() => {
         // Notes on a resource line, e.g. what a substituted resource stands for.
         title: "REMARKS",
         field: "remarks",
+        cssClass: "analysis-remarks",
         editor: tableTextEditor,
         editorParams: () => ({ grow: false }),
         editable: cell => isResource(cell),
