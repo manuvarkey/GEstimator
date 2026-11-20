@@ -1,0 +1,38 @@
+[
+  {
+    "term": "RCCB",
+    "expand": [
+      "residual current circuit breaker"
+    ],
+    "scope": "electrical"
+  },
+  {
+    "term": "MCB",
+    "expand": [
+      "miniature circuit breaker"
+    ],
+    "scope": "electrical"
+  },
+  {
+    "term": "TPN",
+    "expand": [
+      "triple pole neutral",
+      "three phase neutral"
+    ],
+    "scope": "electrical"
+  },
+  {
+    "term": "FRLS",
+    "expand": [
+      "flame retardant low smoke"
+    ],
+    "scope": "electrical"
+  },
+  {
+    "term": "SWG",
+    "expand": [
+      "standard wire gauge"
+    ],
+    "scope": "electrical"
+  }
+]

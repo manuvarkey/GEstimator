@@ -13,11 +13,13 @@
 <a href="https://beta.flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
 <a href="https://snapcraft.io/gestimator"><img height="51" alt="Download on Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg"/> </a> 
 
-GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2021 (Civil)** and **DSR 2022 (E&M)**.
+GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2021 (Civil)** and **DSR (E&M) 2025**.
 
-The program is organised in three tabs - Schedule Items, Details of Measurements and Resource Items. Schedule Items implements an interface to input the estimate schedule/import the schedule from a .xlsx file. On editing (`Edit`) any schedule item an Analysis View is displayed allowing edit of the rate analysis. Details of Measurements allows the details of measurements to be recorded against items added under Schedule Items. Resource Items allows input/manipulation of the resources like material, labour and tools/plants upon which the rate analysis will be framed.
+The program is organised in Schedule, Resources and Measurements views. Schedule holds the estimate items, entered directly, added from a database or imported from a .xlsx file; opening an item's analysis shows the rate analysis editor. Measurements records the details of measurements against schedule items. Resources holds the materials, labour and tools/plants on which the rate analyses are framed. Several projects can be open in tabs, and unsaved work is recovered after a crash.
 
-The estimates can be rendered into a .xlsx document from `Menu->Export...`. The exported sheet includes - the schedule of rates for the work, schedule of resources, details of measurements, resource usage for the work and analysis of rates for various items of work.
+The estimate can be exported to a .xlsx workbook containing the schedule of rates, schedule of resources, details of measurements, resource usage and the analysis of rates for each item. An optional local MCP server lets AI assistants read and prepare estimates.
+
+The earlier GTK application (version 2.x) is kept on the [`archive/gtk`](https://github.com/manuvarkey/GEstimator/tree/archive/gtk) branch.
 
 
 ## Tutorials
@@ -39,25 +41,18 @@ Additional libraries and other resources can be downloaded from [GEstimator Othe
 
 ## Installation
 
-Latest source code and binaries for GEstimator can be downloaded from this page under `Releases`.
+Installers for Windows (`.exe`) and Linux (`.deb`, `.AppImage`, Flatpak and Snap) are published under [Releases](https://github.com/manuvarkey/GEstimator/releases/latest).
 
-### Source installation
+## Building from source
 
-Application can be installed using `python setup.py install`. It has been tested with Python 3.4 and Gtk 3.18, and has the following extra dependencies.
+The application is a [Tauri](https://tauri.app) desktop program (`modern/`) with a Vue interface and a Python backend (`modern/backend`, using the calculation engine in `estimator/`). It needs Python 3.14, Node.js 22 or later, Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). See [modern/README.md](modern/README.md) for development and Windows builds.
 
-## Dependencies:
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt pyinstaller==6.22.3
+npm ci --prefix modern
+npm run --prefix modern bundle:backend
+npm run --prefix modern tauri -- build
+```
 
-### Python 3 (v3.5)
-
-Python Modules:
-
-* undo - Included along with distribution.
-* openpyxl (v2.5.1) - Not included
-* appdirs (v1.4.3) - Not included
-* jdcal - Not included
-* et_xmlfile - Not included
-* peewee (v3.2.0) - Not included
-* pycairo - Not included
-* PyGObject - Not included
-
-### GTK3  (v3.36)
+Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. Flatpak and Snap recipes are in `packaging/flatpak` and `snapcraft.yaml`; both repackage the Linux `.deb`.

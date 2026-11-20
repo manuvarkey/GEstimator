@@ -1,0 +1,5 @@
+gestimator.deb
+gestimator.flatpak
+build-dir/
+repo/
+.flatpak-builder/

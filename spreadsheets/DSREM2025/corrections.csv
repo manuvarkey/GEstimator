@@ -1,0 +1,96 @@
+item,row,book_code,description,book_qty,book_rate,book_amount,resource,change,remarks
+19.9.3,7100,5164,5 pin XLR Male/Female connectors,1,1360,1360,R4C031D,derive,Book: 5 pin XLR Male/Female connectors (code 5164); 5164 is 'Push button type keypad with 10 buttons. Each button is prog' in Appendix II; not in Appendix II: rate ₹1360 back-calculated from the book (1 Nos. = ₹1360)
+24.25.6,10296,,Khallasi,0,663,0,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+26.1.1,12796,,Battery Rack i/c connections,1,500,500,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (1 NO. = ₹500)
+26.1.2,12816,,Battery Rack i/c connections,2,500,1000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (2 NO. = ₹1000)
+26.1.3,12835,,Battery Rack i/c connections,3,500,1500,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (3 NO. = ₹1500)
+26.1.4,12854,,Battery Rack i/c connections,4,500,2000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (4 NO. = ₹2000)
+26.2.1,12875,,Battery Rack i/c connections,4,500,2000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (4 NO. = ₹2000)
+26.2.2,12894,,Battery Rack i/c connections,8,500,4000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (8 NO. = ₹4000)
+26.2.3,12913,,Battery Rack i/c connections,12,500,6000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (12 NO. = ₹6000)
+26.2.4,12932,,Battery Rack i/c connections,16,500,8000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (16 NO. = ₹8000)
+26.2.5,12951,,Battery Rack i/c connections,24,500,12000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (24 NO. = ₹12000)
+26.2.6,12970,,Battery Rack i/c connections,32,500,16000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (32 NO. = ₹16000)
+26.2.7,12989,,Battery Rack i/c connections,40,500,20000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (40 NO. = ₹20000)
+26.2.8,13008,,Battery Rack i/c connections,48,500,24000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (48 NO. = ₹24000)
+26.2.9,13027,,Battery Rack i/c connections,60,500,30000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (60 NO. = ₹30000)
+26.2.10,13046,,Battery Rack i/c connections,80,500,40000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (80 NO. = ₹40000)
+26.2.11,13065,,Battery Rack i/c connections,120,500,60000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (120 NO. = ₹60000)
+26.2.12,13084,,Battery Rack i/c connections,160,500,80000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (160 NO. = ₹80000)
+26.2.13,13103,,Battery Rack i/c connections,200,500,100000,RAC2E2D,derive,Book: Battery Rack i/c connections (no code); not in Appendix II: rate ₹500 back-calculated from the book (200 NO. = ₹100000)
+27.5.1,13738,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,175000,175000,RBB11C9,derive,"Book: Designing, Supply, Installation, Testing and commissioning of system controller  (no code); not in Appendix II: rate ₹175000 back-calculated from the book (1 Each = ₹175000)"
+27.5.2,13772,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,205000,205000,R3C3C5E,derive,"Book: Designing, Supply, Installation, Testing and commissioning of system controller  (no code); not in Appendix II: rate ₹205000 back-calculated from the book (1 Each = ₹205000)"
+27.5.3,13806,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,230000,230000,RFC3111,derive,"Book: Designing, Supply, Installation, Testing and commissioning of system controller  (no code); not in Appendix II: rate ₹230000 back-calculated from the book (1 Each = ₹230000)"
+27.5.4,13840,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,265000,265000,R03D85D,derive,"Book: Designing, Supply, Installation, Testing and commissioning of system controller  (no code); not in Appendix II: rate ₹265000 back-calculated from the book (1 Each = ₹265000)"
+27.5.5,13874,,"Designing, Supply, Installation, Testing and commissioning of system controller to control operation",1,320000,320000,R88833F,derive,"Book: Designing, Supply, Installation, Testing and commissioning of system controller  (no code); not in Appendix II: rate ₹320000 back-calculated from the book (1 Each = ₹320000)"
+27.5.6,13908,,"Battery charger suitbale for 12V/24 V DC with boost and trickle selector switch, 0-30 V DC volt mete",1,410000,410000,RBF9760,derive,"Book: Battery charger suitbale for 12V/24 V DC with boost and trickle selector switch, (no code); not in Appendix II: rate ₹410000 back-calculated from the book (1 Each = ₹410000)"
+27.11.5,14634,1006,"Fitter, Grade 1",0.5,981,490.5,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004"
+27.11.8,14700,1006,"Fitter, Grade 1",0.5,981,490.5,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004"
+27.11.9,14722,1006,"Fitter, Grade 1",0.5,981,490.5,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004"
+27.12.1,14745,1006,"Fitter, Grade 1",0.15,981,147.15,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004"
+27.12.2,14767,1006,"Fitter, Grade 1",0.22,806,177.32,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004. Book: 0.22 day @ ₹806 = ₹177.32; Appendix II 1004 rate ₹981"
+27.12.3,14789,1006,"Fitter, Grade 1",0.3,806,241.8,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004. Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981"
+27.12.4,14811,1006,"Fitter, Grade 1",0.3,806,241.8,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004. Book: 0.3 day @ ₹806 = ₹241.8; Appendix II 1004 rate ₹981"
+27.12.5,14833,1006,"Fitter, Grade 1",0.5,806,403,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004. Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981"
+27.12.6,14855,1006,"Fitter, Grade 1",0.5,806,403,1004,link,"Book: Fitter, Grade 1 (code 1006); 1006 is 'Painter' in Appendix II; linked to Appendix II 1004. Book: 0.5 day @ ₹806 = ₹403; Appendix II 1004 rate ₹981"
+28.4.1,16691,,Cement sand and grit etc.,5.33,1.73,9.22,R0004B8,derive,Book: Cement sand and grit etc. (no code); not in Appendix II: rate ₹1.73 back-calculated from the book (5.33 LS = ₹9.22)
+30.2.13,20318,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,1.2,669.6610169491527,803.59,4016,note,Book: 1.2 per sq meter @ ₹669.66 = ₹803.59; Appendix II rate ₹370.68
+30.2.14,20361,4016,A(3) Basic Price of Insulation - 19 mm thick nitrile rubber,0.9,669.6610169491527,602.69,4016,note,Book: 0.9 per sq meter @ ₹669.66 = ₹602.69; Appendix II rate ₹370.68
+30.7.1.1,21301,,Add Valve Cladding,0.3,360,108,R9356BB,derive,Book: Add Valve Cladding (no code); not in Appendix II: rate ₹360 back-calculated from the book (0.3 sqm = ₹108)
+30.7.4.6,22273,,Basic Price of Insulation - 25 mm,0.2,152.542372881356,30.51,R29A59F,derive,Book: Basic Price of Insulation - 25 mm (no code); not in Appendix II: rate ₹152.54 back-calculated from the book (0.2 m = ₹30.51)
+30.15,,,Add for screws etc.,,,260,X,unit item,Add for screws etc. — LS ₹260 in the book without a coefficient; no Appendix II resource
+30.16,,,Add for screws etc.,,,260,X,unit item,Add for screws etc. — LS ₹260 in the book without a coefficient; no Appendix II resource
+30.17,,,Add for screws etc.,,,250,X,unit item,Add for screws etc. — LS ₹250 in the book without a coefficient; no Appendix II resource
+30.18,,,Add for screws etc.,,,250,X,unit item,Add for screws etc. — LS ₹250 in the book without a coefficient; no Appendix II resource
+30.21,,,Rate for 1 sqmeter,,,890.3,,multiplier,The book works out 'Rate for 1 sqmeter' (₹890.3) after rounding the analysis; multiplier 0.1 added
+4.4.2,31916,2936,Painting with primer and finish paint,1,36,36,2936,note,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
+4.5.4,32385,2936,Painting with primer and finish paint,1,36,36,2936,note,Book: 1 L.S. @ ₹36 = ₹36; Appendix II rate ₹7.2
+16.1.1,35647,,Cold water tank 100 ltr @ 11 per /ltr,100,0,1100,R7B30AE,derive,Book: Cold water tank 100 ltr @ 11 per /ltr (no code); not in Appendix II: rate ₹11 back-calculated from the book (100 Each = ₹1100)
+16.1.1,35648,,Tank Connections and water inlet valve,400,0,400,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (400 LS = ₹400)
+16.1.2,35667,,Cold water tank 200 ltr @ 11 per /ltr,200,0,2200,R23910F,derive,Book: Cold water tank 200 ltr @ 11 per /ltr (no code); not in Appendix II: rate ₹11 back-calculated from the book (200 Each = ₹2200)
+16.1.2,35668,,Tank Connections and water inlet valve,400,0,400,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (400 LS = ₹400)
+16.1.3,35687,,Cold water tank 300 ltr @ 11 per /ltr,300,0,3300,R7894D2,derive,Book: Cold water tank 300 ltr @ 11 per /ltr (no code); not in Appendix II: rate ₹11 back-calculated from the book (300 Each = ₹3300)
+16.1.3,35688,,Tank Connections and water inlet valve,450,0,450,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (450 LS = ₹450)
+16.1.4,35707,,Cold water tank 500 ltr @ 11 per /ltr,500,0,5500,R6E41EE,derive,Book: Cold water tank 500 ltr @ 11 per /ltr (no code); not in Appendix II: rate ₹11 back-calculated from the book (500 Each = ₹5500)
+16.1.4,35708,,Tank Connections and water inlet valve,450,0,450,RBBC3D7,derive,Book: Tank Connections and water inlet valve (no code); not in Appendix II: rate ₹1 back-calculated from the book (450 LS = ₹450)
+11.2.23,36983,2322,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 150 sq. mm 1.1 KV grade cable,1,1326,1326,2322,note,Book: 1 set @ ₹1326 = ₹1326; Appendix II rate ₹946
+11.2.24,37002,2323,Outdoor cable jointing kit with cast resin compound with lugs for 3½ X 185 sq. mm 1.1 KV grade cable,1,946,946,2323,note,Book: 1 set @ ₹946 = ₹946; Appendix II rate ₹1326
+11.4.29,38319,1002,Cable jointer,0.25,981,981,1002,note,Book: amount ₹981 for 0.25 day @ ₹981 (coefficient × rate = ₹245.25)
+11.4.29,38320,1007,Khallasi,0.25,805,805,1007,note,Book: amount ₹805 for 0.25 day @ ₹805 (coefficient × rate = ₹201.25)
+12.5,38632,9999,Sundries,70,0,0,9999,note,"Book: 70 L.S., ₹0; Appendix II rate ₹2.7"
+8.9.3,40215,1001,Wireman,0.1,805,80.5,1001,note,Book: 0.1 day @ ₹805 = ₹80.5; Appendix II rate ₹981
+8.9.3,40216,1007,Khallasi,0.1,783,78.3,1007,note,Book: 0.1 day @ ₹783 = ₹78.3; Appendix II rate ₹805
+39.14,43581,5239,CAT6 Copper Information Outlet (IO) with face plate(105+42),1,147,147,5239,note,Book: 1 Each @ ₹147 = ₹147; Appendix II rate ₹105
+39.17.1,43635,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.17.1,43636,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.17.2,43654,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.17.2,43655,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.17.3,43673,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.17.3,43674,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.17.4,43691,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.17.4,43692,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.18.1,43711,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.18.1,43712,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.18.2,43728,5247,Cat 6A UTP 4 Pair 32 AWG (For 2 Run of cable),51.5,70,3605,5247,note,Book: 51.5 Meter @ ₹70 = ₹3605; Appendix II rate ₹52.5
+39.18.2,43731,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.18.2,43732,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.18.3,43747,5248,Cat 6A UTP 4 Pair 32 AWG (For 3 Run of cable),51.5,105,5407.5,5248,note,Book: 51.5 Meter @ ₹105 = ₹5407.5; Appendix II rate ₹78.75
+39.18.3,43750,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.18.3,43751,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.18.4,43766,5249,Cat 6A UTP 4 Pair 32 AWG (For 4 Run of cable),51.5,140,7210,5249,note,Book: 51.5 Meter @ ₹140 = ₹7210; Appendix II rate ₹105
+39.18.4,43769,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.18.4,43770,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.19.1,43788,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.19.1,43789,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.19.2,43807,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.19.2,43808,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.20.1,43827,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.20.1,43828,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+39.20.2,43847,,Wiremen,0.5,981,490.5,1001,link,Book: Wiremen (no code); linked to Appendix II 1001
+39.20.2,43848,,Khallasi,0.5,805,402.5,1007,link,Book: Khallasi (no code); linked to Appendix II 1007
+15.14.4,44727,2948,Cement,0.01,63,0.63,2948,note,Book: 0.01 tonne @ ₹63 = ₹0.63; Appendix II rate ₹7200
+15.16.1,44870,,Excavation i/c refilling etc. as required,9.19,830,7627.7,RE8B24F,derive,Book: Excavation i/c refilling etc. as required (no code); not in Appendix II: rate ₹830 back-calculated from the book (9.19 cu.m = ₹7627.7)
+15.16.2,44893,,Excavation i/c refilling etc. as required,9.19,830,7627.7,RE8B24F,derive,Book: Excavation i/c refilling etc. as required (no code); not in Appendix II: rate ₹830 back-calculated from the book (9.19 cu.m = ₹7627.7)
+15.16.3,44916,,Excavation i/c refilling etc. as required,9.19,830,7627.7,RE8B24F,derive,Book: Excavation i/c refilling etc. as required (no code); not in Appendix II: rate ₹830 back-calculated from the book (9.19 cu.m = ₹7627.7)
+15.16.4,44939,,Excavation i/c refilling etc. as required,9.19,830,7627.7,RE8B24F,derive,Book: Excavation i/c refilling etc. as required (no code); not in Appendix II: rate ₹830 back-calculated from the book (9.19 cu.m = ₹7627.7)
+15.16.5,44962,,Excavation i/c refilling etc. as required,9.19,830,7627.7,RE8B24F,derive,Book: Excavation i/c refilling etc. as required (no code); not in Appendix II: rate ₹830 back-calculated from the book (9.19 cu.m = ₹7627.7)

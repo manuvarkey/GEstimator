@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "GEstimator",
+  "mainBinaryName": "gestimator",
+  "version": "3.0.0",
+  "identifier": "com.kavilgroup.gestimator",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "GEstimator",
+        "decorations": false,
+        "visible": false,
+        "width": 1440,
+        "height": 900
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "Manu Varkey",
+    "copyright": "Copyright © Manu Varkey. Licensed under GPL-3.0-or-later.",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "../../LICENSE",
+    "homepage": "https://github.com/manuvarkey/GEstimator",
+    "category": "Business",
+    "shortDescription": "Cost estimates with rate analysis for civil and electrical works",
+    "longDescription": "GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis, details of measurements and resource schedules. It supports several databases of items and exports estimates to Excel workbooks.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/gestimator-backend"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "eproj"
+        ],
+        "name": "GEstimator project",
+        "description": "GEstimator project",
+        "role": "Editor",
+        "mimeType": "application/x-gestimator-project"
+      }
+    ],
+    "linux": {
+      "deb": {
+        "section": "office",
+        "desktopTemplate": "../../packaging/linux/deb.desktop",
+        "files": {
+          "/usr/share/mime/packages/com.kavilgroup.gestimator.xml": "../../packaging/linux/mime/com.kavilgroup.gestimator.xml",
+          "/usr/share/metainfo/com.kavilgroup.gestimator.metainfo.xml": "../../packaging/linux/metainfo/com.kavilgroup.gestimator.metainfo.xml"
+        }
+      },
+      "appimage": {
+        "files": {
+          "/usr/share/mime/packages/com.kavilgroup.gestimator.xml": "../../packaging/linux/mime/com.kavilgroup.gestimator.xml"
+        }
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "both"
+      }
+    }
+  }
+}

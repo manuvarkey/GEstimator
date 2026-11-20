@@ -1,0 +1,9 @@
+[
+  {
+    "term": "HVAC",
+    "expand": [
+      "heating ventilation air conditioning"
+    ],
+    "scope": "hvac"
+  }
+]

@@ -1,0 +1,59 @@
+[
+  {
+    "term": "PVC",
+    "expand": [
+      "polyvinyl chloride"
+    ]
+  },
+  {
+    "term": "GI",
+    "expand": [
+      "galvanized iron"
+    ]
+  },
+  {
+    "term": "socket",
+    "expand": [
+      "outlet",
+      "receptacle"
+    ]
+  },
+  {
+    "term": "outlet",
+    "expand": [
+      "socket",
+      "receptacle"
+    ]
+  },
+  {
+    "term": "receptacle",
+    "expand": [
+      "socket",
+      "outlet"
+    ]
+  },
+  {
+    "term": "earthing",
+    "expand": [
+      "grounding"
+    ]
+  },
+  {
+    "term": "grounding",
+    "expand": [
+      "earthing"
+    ]
+  },
+  {
+    "term": "wire",
+    "expand": [
+      "cable"
+    ]
+  },
+  {
+    "term": "cable",
+    "expand": [
+      "wire"
+    ]
+  }
+]

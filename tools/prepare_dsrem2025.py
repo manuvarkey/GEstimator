@@ -1,0 +1,726 @@
+"""Prepare the CPWD DSR (E&M) 2025 workbook for import into a GEstimator database.
+
+Reads ``spreadsheets/DSREM2025/DSR EandM 2025 3 09 2025.xlsx`` (saved values) and
+writes three plain workbooks next to it:
+
+- ``schedule.xlsx``  Code, Description, Unit, Rate, Category — chapter titles
+  become categories; headings and items keep their codes so the importer's
+  code hierarchy places 1.1.1 under 1.1.
+- ``resources.xlsx`` Code, Description, Unit, Rate, Category — section headings
+  of Appendix I/II become categories; descriptive lines above short item rows
+  ("LED Down lighter … of following wattage" + "5 - 7 watt") are joined into the
+  item description.
+- ``analysis.xlsx``  the six analysis columns of every chapter sheet ("CH…"),
+  one after another, for a single multiple-analysis import.
+
+Usage: python tools/prepare_dsrem2025.py [source.xlsx]
+"""
+
+import os
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+from openpyxl import Workbook, load_workbook
+
+FOLDER = Path(__file__).resolve().parent.parent / "spreadsheets" / "DSREM2025"
+SOURCE = FOLDER / "DSR EandM 2025 3 09 2025.xlsx"
+CODE = re.compile(r"^\d+(\.\d+)*[A-Za-z]?(\s*\([A-Za-z0-9]+\))?$")  # 1101, 1.1.1, 4143 (B)
+# Title-case section headings that read like descriptions; listed explicitly.
+RESOURCE_SECTIONS = {"HVAC ITEMS", "METAL BOXES", "PASSENGER LIFTS", "GOODS LIFTS", "HOT DIPPED GALVANIZED CABLE TRAYS"}
+HEADER_CODES = ("code no", "item no", "s no", "sr no", "sl no", "icd no")
+# Appendix items that follow a group without a blank row but are not part of it
+# (3201 insulation after the AHU capacities; the book prints them the same way).
+NO_CONTEXT = {"3201"}
+# Chapters without a title row in the workbook (named in the book's contents).
+MISSING_CHAPTERS = {"19": "FAÇADE LIGHTING"}
+
+
+def text(value):
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        value = "%.12g" % value
+    return " ".join(str(value).replace(" ", " ").split())
+
+
+class CodeSequence:
+    """Restore trailing zeros of codes stored as numbers: Excel shows 15.10 but
+    keeps 15.1. A number is extended (15.1 -> 15.10) only when the result is the
+    next sibling after the previous code, allowing a few withdrawn numbers; the
+    sequence never moves backwards, so mistyped codes are left as they are."""
+
+    def __init__(self):
+        self.previous = {}
+
+    def fix(self, raw, code):
+        parent, _, last = code.rpartition(".")
+        before = self.previous.get(parent)
+        if isinstance(raw, float) and before is not None and last.isdigit() and int(last) <= before:
+            extended = last
+            while int(extended) <= before and len(extended) < 3:
+                extended += "0"
+            if before < int(extended) <= before + 5:
+                last = extended
+        code = f"{parent}.{last}" if parent else last
+        if last.isdigit() and (before is None or int(last) > before):
+            self.previous[parent] = int(last)
+        return code
+
+
+def is_header(code, description):
+    key = re.sub(r"[^a-z ]", " ", code.lower())
+    return " ".join(key.split()) in HEADER_CODES or description.lower().startswith(("description", "descr"))
+
+
+def write(path, header, rows):
+    book = Workbook()
+    sheet = book.active
+    if header:
+        sheet.append(header)
+    for row in rows:
+        sheet.append(row)
+        for column, value in enumerate(row, 1):
+            if isinstance(value, str) and value.startswith("="):
+                # Notes such as "= 50.0 + 2.5 (Wastage @ 5%) = 52.5m" are text,
+                # not formulas (openpyxl would store them as formulas).
+                sheet.cell(row=sheet.max_row, column=column).data_type = "s"
+    book.save(path)
+    return len(rows)
+
+
+def schedule(book):
+    """Chapter rows set the category; other rows are copied unchanged."""
+    rows, category, sequence = [], "", CodeSequence()
+    for values in book["DSR 2025"].iter_rows(min_row=1, max_col=4, values_only=True):
+        values = (tuple(values) + (None,) * 4)[:4]
+        code, description, unit, rate = (text(v) for v in values)
+        if description.upper().startswith("DELETED"):
+            continue  # withdrawn items keep their number in the book only
+        if CODE.match(code):
+            code = sequence.fix(values[0], code)
+        joined = f"{code} {description}".strip()
+        chapter = re.match(r"^chapter\s*-?\s*\d+\s*(.*)$", joined, re.IGNORECASE)
+        if chapter:
+            category = chapter[1].strip(" -").upper()
+            continue
+        if not (code or description) or is_header(code, description):
+            continue
+        if not code and description.upper() == description:
+            # Sub-section headings are kept as category-only rows: the importer
+            # reads uppercase description-only rows as category changes, so emit
+            # nothing and keep the chapter category instead.
+            continue
+        if code.split(".")[0] in MISSING_CHAPTERS:
+            category = MISSING_CHAPTERS[code.split(".")[0]]
+        rows.append([code, description, unit, rate, category, ""])
+    return fix_duplicate_codes(rows)
+
+
+def normal(description):
+    return " ".join(re.sub(r"[^a-z0-9.½]+", " ", description.lower()).split())
+
+
+def fix_duplicate_codes(rows, quiet=False):
+    """Give repeated schedule codes the number the analyses use.
+
+    - A coded sub-heading followed by an item with the same code ("31.12.1 High
+      Static Ductable units", "31.12.1 5.5 TR") keeps only its text.
+    - A repeated code under another heading becomes that heading's next number
+      (23.4 lists 23.3, 23.3.1… → 23.4.1, 23.4.2…; 24.8.6 under 24.9 → 24.9.6).
+    - A repeated code among its siblings takes the next free number, and later
+      siblings move up (11.1.34 twice, 11.1.35 → 11.1.34, 11.1.35, 11.1.36).
+    """
+    for row, following in zip(rows, rows[1:]):
+        if row[0] and row[0] == following[0] and not row[2] and following[2]:
+            row[0] = ""
+    assigned, heading, renumbered = set(), "", []
+    for row in rows:
+        code = row[0]
+        if not code or not CODE.match(code):
+            continue
+        if not row[2]:
+            heading = code
+        if code in assigned:
+            if heading and code != heading and not code.startswith(heading + "."):
+                parent = heading
+            else:
+                parent = code.rpartition(".")[0]
+            # After the last sibling: withdrawn numbers are not reused.
+            used = [int(other.rpartition(".")[2]) for other in assigned
+                    if other.rpartition(".")[0] == parent and other.rpartition(".")[2].isdigit()]
+            row[0] = f"{parent}.{max(used, default=0) + 1}"
+            row[5] = f"Numbered {code} in the book"
+            renumbered.append((code, row[0], row[1]))
+        assigned.add(row[0])
+    for old, new, description in renumbered:
+        if not quiet:
+            print(f"schedule {old} -> {new} ({description[:40]})")
+    return rows
+
+
+def analysis_codes(schedule_rows):
+    """lookup(code, description, result, analysed) -> schedule code, for
+    analyses numbered differently from the schedule:
+
+    - the schedule item with that code has another description and exactly one
+      sibling has the analysis description and the analysis result as its rate
+      (31.12.2 "6.6 TR", ₹78065, is 31.12.3 in the schedule);
+    - the code is not in the schedule and exactly one item without an analysis
+      has the analysis result as its rate and the same code ending or
+      description (18.19.1 is 8.19.1, 30.10.1.1 is 30.10.1, 5.1.4 is 26.1.4).
+    """
+    by_code = {row[0]: normal(row[1]) for row in schedule_rows if row[0]}
+    rates = {row[0]: float(row[3]) for row in schedule_rows if row[0] and re.fullmatch(r"-?\d+(\.\d+)?", str(row[3]))}
+    siblings = {}
+    for row in schedule_rows:
+        if row[0] and row[2]:
+            siblings.setdefault(row[0].rpartition(".")[0], []).append((row[0], normal(row[1])))
+
+    def same_ending(code, other):
+        ours, theirs = code.split("."), other.split(".")
+        # 18.19.1 ~ 8.19.1, 5.1.4 ~ 26.1.4, 30.10.1.2 ~ 30.10.2 (and 30.10.1.1 ~ 30.10.1)
+        return len(ours) > 1 and len(theirs) > 1 and (
+            ours[-2:] == theirs[-2:] or ours[:-1] == theirs or ours[:-2] + ours[-1:] == theirs)
+
+    def lookup(code, description, final, analysed, unknown):
+        """`unknown` selects the second rule (codes missing from the schedule)."""
+        wanted = normal(description or "")
+        if by_code.get(code) == wanted or final is None or abs(rates.get(code, -1e9) - final) < 1:
+            return code
+        if code in by_code and not unknown:
+            matches = [other for other, text in siblings.get(code.rpartition(".")[0], [])
+                       if text == wanted and abs(rates.get(other, -1e9) - final) < 1]
+        elif code not in by_code and unknown:
+            matches = [other for other, rate in rates.items() if abs(rate - final) < 1 and not analysed[other]
+                       and (same_ending(code, other) or by_code.get(other) == wanted)]
+        else:
+            return code
+        return matches[0] if len(matches) == 1 else code
+    return lookup
+
+
+def civil_rates(schedule_rows, analysis_rows):
+    """Items marked "Rate to be taken from Civil DSR" have no rate in the
+    schedule, but the analyses use them as sub-analyses at a definite rate.
+    Fill that rate (the most common one) and say where it came from."""
+    pending = {row[0]: row for row in schedule_rows if row[3] and not re.match(r"^-?[\d.]+$", str(row[3]))}
+    used = {}
+    for code, description, unit, qty, rate, amount in analysis_rows:
+        code = text(code)
+        if code in pending and unit and isinstance(rate, (int, float)) and rate:
+            used.setdefault(code, Counter())[round(rate, 2)] += 1
+    for code, counts in used.items():
+        row = pending[code]
+        row[5] = f"{row[3]}; rate as used in the DSR (E&M) 2025 analyses"
+        row[3] = counts.most_common(1)[0][0]
+    return len(used)
+
+
+def resources(book):
+
+    rows, category, context, coded_since_context = [], "LABOUR & HIRE CHARGES", [], False
+    sheet = list(book["APPENDIX-II BASIC MATERIAL RATE"].iter_rows(min_row=1, max_col=4, values_only=True))
+    cells = [[text(v) for v in (tuple(values) + (None,) * 4)[:4]] for values in sheet]
+
+    def next_kind(index):
+        for code, description, unit, rate in cells[index + 1:index + 4]:
+            if not (code or description):
+                continue
+            if is_header(code, description):
+                return "header"
+            return "item" if CODE.match(code) else "text"
+        return "end"
+
+    for index, (code, description, unit, rate) in enumerate(cells):
+        if not (code or description):
+            context, coded_since_context = [], False
+            continue
+        if is_header(code, description):
+            continue
+        if CODE.match(code) and "." in code and not unit and not rate:
+            # A sub-heading that carries a schedule item number (19.2, 35.1, 40.2):
+            # the items below already repeat its text.
+            continue
+        if CODE.match(code):
+            full = "\n".join(context + [description]) if context and code not in NO_CONTEXT else description
+            rows.append([code, full, unit, rate, category])
+            coded_since_context = True
+            continue
+        label = code or description
+        if label.lower().startswith("note"):
+            continue
+        if label.upper().startswith("APPENDIX-II"):
+            # The material appendix starts with cables but has no heading for them.
+            category, context = "WIRES AND CABLES", []
+            continue
+        if label.upper().startswith("APPENDIX-I"):
+            category, context = "LABOUR & HIRE CHARGES", []
+            continue
+        following = next_kind(index)
+        heading = (label.upper() == label or label.upper() in RESOURCE_SECTIONS or following == "header"
+                   or (len(label.split()) <= 4 and following == "item" and not context))
+        if heading and len(label) <= 80:
+            category, context, coded_since_context = label.upper(), [], False
+            continue
+        if coded_since_context:
+            context, coded_since_context = [], False
+        context.append(label)
+    return rows
+
+
+def analysis(book, lookup):
+    rows, blocks = [], []
+    for name in book.sheetnames:
+        if not name.upper().startswith("CH"):
+            continue
+        sequence = CodeSequence()
+        columns = (0, 1, 2, 3, 4, 5)
+        sheet_codes = []
+        for values in book[name].iter_rows(min_row=1, max_col=7, values_only=True):
+            values = tuple(values) + (None,) * 7
+            labels = [text(v).lower() for v in values[:7]]
+            if labels[1].startswith("descr"):
+                # CH-16 has an extra unit column ("LPD", "Liter") between Qty
+                # and Rate: Code, Description, Unit, Qty, -, Rate, Amount.
+                extra = not labels[4] and labels[5].startswith("rate") and labels[6].startswith("amount")
+                columns = (0, 1, 2, 3, 5, 6) if extra else (0, 1, 2, 3, 4, 5)
+            values = tuple(values[index] for index in columns)
+            row = [v if isinstance(v, (int, float)) else (text(v) or None) for v in values]
+            # Item code rows: a dotted code with a description and no unit.
+            if values[0] is not None and "." in text(values[0]) and CODE.match(text(values[0])) and values[1] and not values[2]:
+                row[0] = sequence.fix(values[0], text(values[0]))
+                sheet_codes.append(len(rows))
+            rows.append(row)
+            if (len(rows) > 1 and labels[1].startswith("descr") and rows[-2][0] is not None and rows[-2][1]
+                    and not rows[-2][2] and len(rows) - 2 not in sheet_codes and CODE.match(text(rows[-2][0]))):
+                # An undotted item code just above the analysis header ("5190" for 20.15).
+                rows[-2][0] = text(rows[-2][0])
+                sheet_codes.append(len(rows) - 2)
+        blocks += zip(sheet_codes, sheet_codes[1:] + [len(rows)])
+        rows.extend([[None] * 6] * 3)
+    # The analysis result: the last amount without a unit ("Say 78065").
+    results = [(index, next((row[5] for row in reversed(rows[index + 1:end])
+                             if isinstance(row[5], (int, float)) and not row[2]), None)) for index, end in blocks]
+    analysed = Counter(rows[index][0] for index, final in results if final is not None)
+    for unknown in (False, True):
+        for index, final in results:
+            code = rows[index][0]
+            rows[index][0] = lookup(code, rows[index][1], final, analysed, unknown)
+            if rows[index][0] != code:
+                analysed[code] -= 1
+                analysed[rows[index][0]] += 1
+                print(f"analysis {code} -> {rows[index][0]} ({rows[index][1][:40]}, {final})")
+    return rows
+
+
+def is_say(row):
+    """The closing "Say" / "Say Rs." row of an analysis."""
+    return isinstance(row[5], (int, float)) and not row[2] and text(row[1]).lower().startswith("say")
+
+
+def attach_misplaced(schedule_rows, analysis_rows):
+    """Give analyses that sit under the wrong heading their item. Each move needs
+    exactly one priced item without an analysis whose rate equals the analysis
+    result (within ₹1):
+
+    - a second analysis inside a block (after its "Say"), for the next sibling
+      (4.2.9 inside 4.2.8, 4.2.14 inside 4.2.13; the books print no heading);
+    - an analysis under a group heading, for one of its items (19.3.1 under 19.3,
+      20.20.1 under 20.20);
+    - one of two blocks with the same code whose result is not that item's rate,
+      for an item with the same description or parent (31.2.1–31.2.3 printed for
+      31.1.1–31.1.3; the first of two 42.11.7 blocks is 42.11.6)."""
+    rates = {row[0]: float(row[3]) for row in schedule_rows if row[0] and re.fullmatch(r"-?\d+(\.\d+)?", str(row[3]))}
+    descriptions = {row[0]: row[1] for row in schedule_rows if row[0]}
+    parent = lambda code: code.rpartition(".")[0]  # noqa: E731
+
+    def blocks():
+        starts = [index for index, row in enumerate(analysis_rows) if item_code_row(row)]
+        return list(zip(starts, starts[1:] + [len(analysis_rows)]))
+
+    def result(start, end):
+        return next((row[5] for row in reversed(analysis_rows[start + 1:end])
+                     if isinstance(row[5], (int, float)) and not row[2]), None)
+
+    def candidate(final, near):
+        found = [code for code, rate in rates.items() if abs(rate - final) < 1 and code not in analysed and near(code)]
+        return found[0] if len(found) == 1 else None
+
+    def header(code):
+        return [code, descriptions[code], None, None, None, None]
+
+    analysed = {text(analysis_rows[start][0]) for start, end in blocks() if result(start, end) is not None}
+    moves = []
+    # A second analysis inside a block.
+    for start, end in reversed(blocks()):
+        code = text(analysis_rows[start][0])
+        says = [index for index in range(start + 1, end) if is_say(analysis_rows[index])]
+        for first, second in reversed(list(zip(says, says[1:]))):
+            target = candidate(analysis_rows[second][5], lambda other: parent(other) == parent(code))
+            if target:
+                analysis_rows.insert(first + 1, header(target))
+                analysed.add(target)
+                moves.append(f"{target}: second analysis in {code}")
+    # An analysis under a group heading.
+    for start, end in reversed(blocks()):
+        code, final = text(analysis_rows[start][0]), result(start, end)
+        if code in rates or final is None:
+            continue
+        target = candidate(final, lambda other: parent(other) == code)
+        column_header = next((index for index in range(start + 1, end)
+                              if text(analysis_rows[index][1]).lower().startswith(("descr", "details of cost"))), None)
+        if target and column_header:
+            analysis_rows.insert(column_header, header(target))
+            analysed.add(target)
+            moves.append(f"{target}: analysis under the heading {code}")
+    # Two blocks with the same code.
+    by_code = {}
+    for start, end in blocks():
+        by_code.setdefault(text(analysis_rows[start][0]), []).append((start, result(start, end)))
+    for code, found in by_code.items():
+        if len(found) < 2 or code not in rates or not any(final is not None and abs(final - rates[code]) < 1 for _, final in found):
+            continue
+        for start, final in found:
+            if final is None or abs(final - rates[code]) < 1:
+                continue
+            target = candidate(final, lambda other: parent(other) == parent(code) or normal(descriptions[other]) == normal(descriptions[code]))
+            if target:
+                analysis_rows[start][:2] = [target, descriptions[target]]
+                analysed.add(target)
+                moves.append(f"{target}: printed as a second {code}")
+    for line in moves:
+        print("analysis attached:", line)
+    return moves
+
+
+def drop_orphan_analyses(schedule_rows, analysis_rows):
+    """Remove analyses whose item is not in the schedule: the empty #REF! tables
+    of chapter 25, items the book or the slip deletes (39.10)."""
+    codes = {row[0] for row in schedule_rows if row[0]}
+    starts = [index for index, row in enumerate(analysis_rows) if item_code_row(row)]
+    dropped = []
+    for start, end in reversed(list(zip(starts, starts[1:] + [len(analysis_rows)]))):
+        code = text(analysis_rows[start][0])
+        if code not in codes:
+            del analysis_rows[start:end]
+            dropped.append(code)
+    print("analyses without a schedule item removed:", ", ".join(reversed(dropped)))
+    return len(dropped)
+
+
+SLIPS = [("correction_slip_1.csv", "Correction Slip No. 1 (27-11-2025)")]
+SLIP_ANALYSES = ["correction_slip_1_analysis.csv"]  # corrected DAR (E&M) 2025 analyses
+
+
+def item_code_row(row):
+    """An item code row: a dotted code without unit, quantity or rate (the
+    description may be missing, as for 30.7.4.7)."""
+    code = text(row[0])
+    return "." in code and CODE.match(code) and not row[2] and row[3] is None and row[4] is None
+
+
+def apply_slip_analyses(analysis_rows):
+    """Replace the book's analysis of each item in the slip analysis files
+    (same six columns) with the corrected one."""
+    import csv
+    replaced = []
+    for name in SLIP_ANALYSES:
+        with open(FOLDER / name, encoding="utf-8") as handle:
+            rows = [[(float(value) if re.fullmatch(r"-?\d+(\.\d+)?", value) else value or None) for value in row]
+                    for row in list(csv.reader(handle))[1:]]
+        for row in rows:
+            if row[0] is not None and isinstance(row[0], float):
+                row[0] = text(row[0]) if "." in text(row[0]) else int(row[0])
+        codes = [text(row[0]) for row in rows if item_code_row(row)]
+        for code in codes:
+            starts = [index for index, row in enumerate(analysis_rows) if item_code_row(row) and text(row[0]) == code]
+            for start in reversed(starts):
+                end = next((index for index in range(start + 1, len(analysis_rows)) if item_code_row(analysis_rows[index])),
+                           len(analysis_rows))
+                del analysis_rows[start:end]
+            replaced.append(f"{code} ({len(starts)} book block{'s' if len(starts) != 1 else ''} replaced)")
+        analysis_rows.extend([[None] * 6] * 3)
+        analysis_rows.extend(rows)
+    for line in replaced:
+        print("slip analysis:", line)
+    return len(replaced)
+
+
+def apply_slips(schedule_rows, resource_rows, analysis_rows):
+    """Apply the transcribed correction slips. Each change names the book's
+    existing value; a value the workbook already carries is reported, not
+    changed again."""
+    import csv
+    applied = []
+    for name, title in SLIPS:
+        with open(FOLDER / name, encoding="utf-8") as handle:
+            changes = list(csv.DictReader(handle))
+        for change in changes:
+            code, field, new = change["code"], change["field"], change["modified"]
+            if change["kind"] == "analysis":
+                # Analysis lines with this code and description use another code.
+                moved = 0
+                for line in analysis_rows:
+                    if text(line[0]) == code and line[2] and (not change["existing"] or text(line[1]) == change["existing"]):
+                        line[0] = int(new) if new.isdigit() else new
+                        moved += 1
+                applied.append(f"analysis lines {code} {change['existing']} -> {new} ({moved})")
+                continue
+            rows = schedule_rows if change["kind"] == "schedule" else resource_rows
+            row = next((row for row in rows if row[0] == code), None)
+            if change["kind"] == "resource" and field == "add":
+                if row is None:
+                    unit, rate, category = change["existing"].split("|")
+                    resource_rows.append([code, new, unit, rate, category])
+                    applied.append(f"resource {code} {new} added")
+                else:
+                    applied.append(f"resource {code} already present")
+                continue
+            if row is None:
+                applied.append(f"{title}: {change['kind']} {code} not found")
+                continue
+            if change["kind"] == "resource" and field == "delete":
+                # Every row with the code (Appendix I and II both list 1020).
+                rows[:] = [other for other in rows if other[0] != code]
+                applied.append(f"resource {code} deleted")
+                continue
+            if change["kind"] == "schedule":
+                note = lambda text: row.__setitem__(5, "; ".join(filter(None, [row[5], f"{title}: {text}"])))  # noqa: E731
+                if field == "rate":
+                    if abs(float(row[3] or 0) - float(new)) < 0.005:
+                        applied.append(f"{code} rate {new} already in the workbook")
+                        note(f"rate {new}")
+                    else:
+                        applied.append(f"{code} rate {row[3]} -> {new}")
+                        note(f"rate {change['existing']} -> {new}")
+                        row[3] = new
+                elif field == "delete":
+                    rows.remove(row)
+                    applied.append(f"{code} deleted")
+                elif field == "description":
+                    row[1] = new
+                    note("description modified")
+                    applied.append(f"{code} description replaced")
+                elif field == "replace":
+                    # The slip quotes only the changed phrase of a description.
+                    old = change["existing"]
+                    if old in row[1]:
+                        row[1] = row[1].replace(old, new)
+                        if f"{title}: description amended" not in (row[5] or ""):
+                            note("description amended")
+                        applied.append(f"{code} description: '{old[:40]}' -> '{new[:40]}'")
+                    elif new in row[1]:
+                        applied.append(f"{code} description: '{new[:40]}' already in the workbook")
+                    else:
+                        applied.append(f"{code} description: '{old[:40]}' NOT FOUND")
+                elif field == "specification":
+                    note(f"specification modified ({change['note']})")
+                    applied.append(f"{code} specification noted")
+            else:
+                if field == "description":
+                    lines = row[1].split("\n")
+                    row[1] = "\n".join(lines[:-1] + [new])
+                    applied.append(f"resource {code} description {new}")
+                elif field == "rate":
+                    if abs(float(row[3] or 0) - float(new)) < 0.005:
+                        applied.append(f"resource {code} rate {new} already in the workbook")
+                    else:
+                        applied.append(f"resource {code} rate {row[3]} -> {new}")
+                        row[3] = new
+    for line in applied:
+        print("slip:", line)
+    return len(applied)
+
+
+# The printed book (not committed; see the folder README). DSREM2025_PRINTED overrides the path.
+PRINTED = Path(os.environ.get("DSREM2025_PRINTED", FOLDER / "reference" / "DSR E&M 2025.pdf"))
+
+
+def ratio(first, second):
+    from difflib import SequenceMatcher
+    # autojunk would discard common characters of long texts and collapse the score
+    return SequenceMatcher(None, normal(first)[:300], normal(second)[:300], autojunk=False).ratio()
+
+
+def numeric(value):
+    try:
+        return float(str(value).replace(",", ""))
+    except ValueError:
+        return None
+
+
+def block_results(analysis_rows):
+    """{item code: [analysis results]}: the last amount without a unit in each block."""
+    results, starts = {}, [index for index, row in enumerate(analysis_rows) if item_code_row(row)]
+    for index, end in zip(starts, starts[1:] + [len(analysis_rows)]):
+        final = next((row[5] for row in reversed(analysis_rows[index + 1:end])
+                      if isinstance(row[5], (int, float)) and not row[2]), None)
+        if final is not None:
+            results.setdefault(text(analysis_rows[index][0]), []).append(final)
+    return results
+
+
+def align(left, right):
+    """Order-preserving pairs of workbook and printed items (both in book
+    order): the largest total text similarity, a small bonus for the same
+    code; pairs below 0.45 similarity are not made."""
+    score = {}
+    for i, row in enumerate(left):
+        for j, other in enumerate(right):
+            mine, theirs = normal(row[1]), normal(other[1])
+            if mine == theirs:
+                value = 1.0
+            elif len(mine) >= 3 and len(theirs) >= 3 and (mine in theirs or theirs in mine):
+                value = 0.85  # one keeps only the heading or variant ("LED floodlight", "200KVA")
+            else:
+                value = ratio(row[1], other[1])
+                if row[0] == other[0] and value >= 0.3:
+                    value = max(value, 0.5)  # same item reworded ("Supplying" / "Supply …")
+            if value >= 0.45:
+                score[i, j] = value + (0.15 if row[0] == other[0] else 0)
+    best = [[0.0] * (len(right) + 1) for _ in range(len(left) + 1)]
+    for i in range(len(left) - 1, -1, -1):
+        for j in range(len(right) - 1, -1, -1):
+            best[i][j] = max(best[i + 1][j], best[i][j + 1], best[i + 1][j + 1] + score[i, j] if (i, j) in score else 0)
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if (i, j) in score and best[i][j] == best[i + 1][j + 1] + score[i, j]:
+            yield i, j
+            i, j = i + 1, j + 1
+        elif best[i][j] == best[i + 1][j]:
+            i += 1
+        else:
+            j += 1
+
+
+def overlay_printed(schedule_rows, analysis_rows):
+    """Take numbering, descriptions, units and rates from the printed book.
+
+    Printed items are matched to workbook rows by code and description within
+    each chapter (chapter 6 is numbered differently in the printed book). A
+    printed rate is used unless the item's analysis contradicts it while the
+    workbook rate agrees (a misprint, e.g. 1.14.3 printed ₹4508/m, analysis
+    ₹373); analyses follow renumbered items. Returns the differences."""
+    if not PRINTED.exists():
+        raise SystemExit(f"The printed book is required: {PRINTED} (or set DSREM2025_PRINTED)")
+    try:
+        from printed_dsrem2025 import printed_schedule
+    except ImportError:
+        from tools.printed_dsrem2025 import printed_schedule
+    printed = fix_duplicate_codes([[code, (subheading + "\n" + description) if subheading else description, unit, rate, "", "", book]
+                                   for code, description, unit, rate, subheading, book in printed_schedule(PRINTED)], quiet=True)
+    items = [row for row in schedule_rows if row[0] and CODE.match(row[0])]
+    chapter = lambda code: code.split(".")[0]  # noqa: E731
+    pairs, used = {}, set()
+    for group in sorted({chapter(row[0]) for row in items}, key=lambda value: int(value) if value.isdigit() else 0):
+        left = [row for row in items if chapter(row[0]) == group]
+        right = [row for row in printed if row[0] and chapter(row[0]) == group]
+        for index, other_index in align(left, right):
+            pairs[id(left[index])] = right[other_index]
+            used.add(id(right[other_index]))
+    results = block_results(analysis_rows)
+    differences, renamed = [], {}
+    note = lambda row, message: row.__setitem__(5, "; ".join(filter(None, [row[5], message])))  # noqa: E731
+    for row in items:
+        other = pairs.get(id(row))
+        if other is None:
+            note(row, "Not in the printed book")
+            differences.append(dict(code=row[0], workbook_code=row[0], field="item", workbook=row[1][:80], printed="", used="workbook"))
+            continue
+        code = other[0]
+        if code != row[0]:
+            renamed[row[0]] = code
+            differences.append(dict(code=code, workbook_code=row[0], field="code", workbook=row[0], printed=code, used="printed"))
+            note(row, f"Numbered {row[0]} in the workbook")
+        if normal(row[1]) != normal(other[1]):
+            differences.append(dict(code=code, workbook_code=row[0], field="description", workbook=row[1][:200],
+                                    printed=other[1][:200], used="printed"))
+        if other[2] and normal(row[2]) != normal(other[2]):
+            differences.append(dict(code=code, workbook_code=row[0], field="unit", workbook=row[2], printed=other[2], used="printed"))
+        old, new = numeric(row[3]), numeric(other[3])
+        rate = row[3]
+        if new is not None and old is not None and abs(old - new) >= 0.5:
+            found = results.get(row[0], [])
+            if any(abs(value - new) < 1 for value in found) or not any(abs(value - old) < 1 for value in found):
+                rate, used_rate = other[3], "printed"
+                note(row, f"Printed rate {other[3]} (workbook {row[3]})")
+            else:
+                used_rate = "workbook"
+                note(row, f"Printed rate {other[3]} disagrees with the analysis ({found[0]:g}); workbook rate {row[3]} kept")
+            differences.append(dict(code=code, workbook_code=row[0], field="rate", workbook=row[3], printed=other[3], used=used_rate))
+        elif new is not None and (old is not None or not str(row[3]).strip()):
+            rate = other[3]  # the printed figure (whole rupees where the workbook keeps 1930.0383)
+        row[0], row[1], row[2], row[3] = code, other[1], other[2] or row[2], rate
+    # The workbook continues long specifications in uncoded rows, which the
+    # import appends to the heading; the printed description already has them.
+    keep, dropped, after_printed = [], 0, False
+    for row in schedule_rows:
+        if row[0]:
+            after_printed = id(row) in pairs
+        elif after_printed and not row[2] and not str(row[3] or "").strip():
+            dropped += 1
+            continue
+        keep.append(row)
+    schedule_rows[:] = keep
+    # Printed items the workbook lacks go after the previous printed item.
+    position = {id(pairs[id(row)]): index for index, row in enumerate(schedule_rows) if id(row) in pairs}
+    added, last = 0, None
+    for other in printed:
+        if id(other) in position:
+            last = position[id(other)]
+            continue
+        if not other[0] or id(other) in used or last is None:
+            continue
+        category = schedule_rows[last + added][4]
+        schedule_rows.insert(last + added + 1, [other[0], other[1], other[2], other[3], category, "Not in the workbook"])
+        differences.append(dict(code=other[0], workbook_code="", field="item", workbook="", printed=other[1][:80], used="printed"))
+        added += 1
+    # Analyses follow renumbered items (all at once: codes may swap).
+    for line in analysis_rows:
+        if item_code_row(line) and text(line[0]) in renamed:
+            line[0] = renamed[text(line[0])]
+    print(f"printed book: {len(pairs)} items matched, {len(renamed)} renumbered, {added} added, {dropped} workbook continuation rows replaced, "
+          f"{sum(d['field'] == 'description' for d in differences)} descriptions, "
+          f"{sum(d['field'] == 'rate' for d in differences)} rates differ "
+          f"({sum(d['field'] == 'rate' and d['used'] == 'workbook' for d in differences)} printed misprints kept from the workbook)")
+    return differences
+
+
+def main():
+    source = Path(sys.argv[1]) if len(sys.argv) > 1 else SOURCE
+    book = load_workbook(source, read_only=True, data_only=True)
+    try:
+        schedule_rows = schedule(book)
+        analysis_rows = analysis(book, analysis_codes(schedule_rows))
+        attached = attach_misplaced(schedule_rows, analysis_rows)
+        differences = overlay_printed(schedule_rows, analysis_rows)
+        if differences:
+            import csv
+            with open(FOLDER / "printed_differences.csv", "w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["code", "workbook_code", "field", "workbook", "printed", "used"], lineterminator="\n")
+                writer.writeheader()
+                writer.writerows(differences)
+        filled = civil_rates(schedule_rows, analysis_rows)
+        resource_rows = resources(book)
+        slip_analyses = apply_slip_analyses(analysis_rows)
+        slip_changes = apply_slips(schedule_rows, resource_rows, analysis_rows)
+        orphans = drop_orphan_analyses(schedule_rows, analysis_rows)
+        counts = dict(
+            schedule=write(FOLDER / "schedule.xlsx", ["Code", "Description", "Unit", "Rate", "Category", "Remarks"], schedule_rows),
+            resources=write(FOLDER / "resources.xlsx", ["Code", "Description", "Unit", "Rate", "Category"], resource_rows),
+            analysis=write(FOLDER / "analysis.xlsx", None, analysis_rows),  # chapter sheets carry their own headers
+            civil_rates_filled=filled,
+            slip_changes=slip_changes,
+            slip_analyses=slip_analyses,
+            analyses_attached=len(attached),
+            analyses_removed=orphans,
+        )
+    finally:
+        book.close()
+    print(counts)
+
+
+if __name__ == "__main__":
+    main()

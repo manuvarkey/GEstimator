@@ -1,0 +1,71 @@
+/* Shared workspace tokens. Open Planner Studio / OpenAEC 0.4 visual reference:
+ * https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/styles/openaec-tokens.css
+ * Keep platform typography and GEstimator semantic roles independent. */
+:root {
+  font: menu;
+  --ui-font-family: system-ui;
+  --ui-font-size: 13px;
+  --table-font-family: var(--ui-font-family);
+  --table-font-size: var(--ui-font-size);
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size);
+  --text-size-ui: 1rem;
+  --text-size-small: .9rem;
+  --toolbar-icon: var(--muted);
+  --text-size-toolbar: 0.95rem;
+  --text-size-heading: 1.1rem;
+  --text-size-table: var(--table-font-size);
+  --table-line-height: 1.35;
+  --focus-width: 2px;
+  --control-radius: 4px;
+  --error-text: #f0aaaa;
+  --error-bg: color-mix(in srgb, var(--danger) 9%, transparent);
+  --error-line: color-mix(in srgb, var(--danger) 22%, transparent);
+  --window-close: #b91c1c;
+  font-synthesis: none;
+  --icon-accent: #d97706;
+  --on-accent: #1c1917;
+  --workspace: #26262d;
+  --bg: #2a2a32;
+  --panel: #33333c;
+  --raised: #3b3b45;
+  --well: #2c2c34;
+  --line: #474750;
+  --line-soft: #3d3d46;
+  --text: #edebe8;
+  --muted: #bebdbd;
+  --hint: #a7a7a8;
+  --accent: #fbbf24;
+  --accent-fill: #d97706;
+  --accent-soft: #513f32;
+  --green: #4ade80;
+  --amber: #facc15;
+  --danger: #fca5a5;
+  --shadow: 0 16px 70px #0008;
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+}
+:root[data-theme="light"] {
+  --toolbar-icon: var(--muted);
+  --danger: #b91c1c;
+  --error-text: #a73636;
+  --workspace: #ffffff;
+  --bg: #f4f4f5;
+  --panel: #fff;
+  --raised: #ffffff;
+  --well: #ffffff;
+  --line: #d4d4d8;
+  --line-soft: #eaeaea;
+  --text: #2a2a31;
+  --muted: #5f5f65;
+  --hint: #69696f;
+  --accent: #92400e;
+  --accent-fill: #d97706;
+  --accent-soft: #fbf1e6;
+  --icon-accent: #b45309;
+  --green: #166534;
+  --amber: #854d0e;
+  --shadow: 0 16px 70px #27364b26;
+  color-scheme: light;
+}

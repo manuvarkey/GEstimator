@@ -1,0 +1,95 @@
+# DSR (E&M) 2025
+
+Source: the printed CPWD Delhi Schedule of Rates (E&M) 2025 (`reference/DSR E&M 2025.pdf`) is authoritative for the schedule; the workbook `DSR EandM 2025 3 09 2025.xlsx` (combined and updated up to 08/2025) supplies categories, the analyses and the resources. The published books are kept locally in `reference/` (not committed): `DSR E&M 2025.pdf`, the analysis of rates `DarEm2025PART1–3.pdf`, and Correction Slip No. 1 dated 27-11-2025 (`1.pdf` for the schedule, `1-ana.pdf` = `DarEm2025Part4.pdf` for the analyses; scanned).
+
+| File | Contents |
+|---|---|
+| `schedule.xlsx` | Code, Description, Unit, Rate, Category, Remarks: items of sheet "DSR 2025" with the printed book's numbering, descriptions, units and rates (see below); chapters become categories; DELETED items dropped; codes stored as numbers restored (15.1 → 15.10 in sequence); repeated codes renumbered (see below); civil items "Rate to be taken from Civil DSR" carry the rate the analyses use; correction slip changes applied, each noted in the item remarks. |
+| `resources.xlsx` | Code, Description, Unit, Rate, Category from "APPENDIX-II BASIC MATERIAL RATE" (labour and materials); section headings become categories; descriptive lines above short item rows are joined into the description; correction slip changes applied. |
+| `analysis.xlsx` | The six analysis columns of every chapter sheet ("CH…"), one after another (CH-16's extra unit column between Qty and Rate is dropped); notes under resource lines kept as text; analyses numbered differently from the schedule carry the schedule code; analyses corrected by the slip replace the book's. |
+| `printed_differences.csv` | Every difference between the printed book and the workbook (code, description, unit, rate) and which one is used. |
+| `printed_appendix_differences.csv` | For review, not applied: Appendix I/II codes whose printed description, unit or rate (by ₹1 or more) differs from `resources.xlsx`, with the printed section and context line, the rates the book's analyses use, and any correction slip change. Written by `tools/appendix_differences_dsrem2025.py`. |
+| `correction_slip_1.csv` | Transcription of Correction Slip No. 1 (schedule and Appendix changes). Rates are applied; complete new descriptions (39.14, 40.9.3) replace the old ones; the changed phrases the slip quotes are replaced in the printed descriptions (each must be found, or reported). |
+| `correction_slip_1_analysis.csv` | Corrected analyses from the slip that differ from the book's in their resources or arithmetic: 19.1.6 (new), 19.10.1 (keypad 5164), 27.17.2 (globe valve 4213, fittings 4355), 28.1.10 (materials included in the total). |
+| `database_notes.md` | Database notes for AI agents, loaded into the database settings by the build: the book's metadata and rate basis, how items are built, and per chapter (`## Category: <name>`) what the items cover and how to pick one (e.g. wiring groups A/B/C by building type, CPWD General Specifications Part I 2023 clause 3.4.4). |
+| `corrections.csv` | Every change the build makes to an analysis line (link, back-calculated resource, unit item, multiplier) and every line note, with the book's figures. |
+| `discrepancies.csv` | The book's differences, documented and not reproduced: line amounts that are not coefficient × Appendix II rate, subtotals that add a row twice, and analyses whose rate differs from the published rate. |
+
+The PDFs in `reference/` are kept out of git (see `.gitignore`).
+
+Rebuild:
+
+```sh
+.venv/bin/python tools/prepare_dsrem2025.py   # writes the three workbooks above (needs poppler's pdftohtml and reference/DSR E&M 2025.pdf, or DSREM2025_PRINTED=<path>)
+.venv/bin/python tools/build_dsrem2025.py     # writes estimator/database/DSREM2025.eproj (the bundled E&M database), corrections.csv and discrepancies.csv
+```
+
+The build imports the schedule (code hierarchy), then resources, then all analyses, reconciles the analyses with the book (`tools/dsrem2025_reconcile.py`), and finally restores the published schedule rates (after the correction slip).
+
+## Printed book (prepare step)
+
+`tools/printed_dsrem2025.py` reads `DSR E&M 2025.pdf` with poppler's `pdftohtml -xml` (text positions and font sizes): columns by position (Item No., Description, Unit, Rate), chapter titles, and the 14 pt subheadings that name a group of items ("2 MP IP IR Dome Camera"), which become the first line of the next item's description. Specification lists keep one numbered point per line. Items printed as DELETED are skipped. A line at the top of a page that is neither a heading nor a list item finishes the item before the page break ("CM/Min (Minimum)" of 9.2.3, "loading < 5300watt)" of 24.27.23).
+
+Printed items are matched to the workbook rows chapter by chapter with an order-preserving alignment on text similarity (a small bonus for the same code), so every item is paired: 2,434 of 2,434. The printed numbering is used: chapter 6 keeps its withdrawn numbers in print (6.1, 6.5, 6.6, 6.11, 6.13 DELETED), so the workbook's 6.1–6.12 become 6.2–6.15 and their analyses follow; chapter 38 is printed as 36.1–36.5 and keeps 38.x. The workbook's uncoded rows that continue long specifications are dropped, as the printed descriptions contain them (chapter 40's camera and NVR specifications, for example, are only in print).
+
+Rates: the printed rate is used unless the item's analysis contradicts it while the workbook rate agrees. Where the two differ by less than ₹0.50 the printed figure is used, so rates are whole rupees as printed (the workbook keeps formula results such as 4.2.8 ₹1930.0383); only the civil rates 15.7 and 15.9 keep decimals. The printed schedule differs from the workbook by ₹0.50 or more in 199 rates; in 197 of them the printed analysis book (and the workbook) gives the workbook rate — e.g. 1.14.3 is printed ₹4508/m while its printed analysis gives ₹373, 1.1.1 is printed ₹1406 against ₹1417 in its analysis — so the workbook rate is kept and the item remarks say so. Printed rates used: 22.3.1 ₹98 and 22.4.1 ₹80. 360 descriptions and 237 units (mostly Meter → Metre) come from print.
+
+The printed rates of 42.11.1–42.11.12 are out of step with the analysis book: from 42.11.5 each is one item late (42.11.5 printed ₹9876 is the analysis of 42.11.4, 42.11.6 ₹9322 that of 42.11.5, 42.11.7 ₹4585 that of 42.11.6, 42.11.11 ₹6550 that of 42.11.10), and 42.11.1–42.11.4 match no analysis. The workbook carries the analysis rates, which are kept (42.11.6 ₹4585, 42.11.7 ₹8868).
+
+The printed appendices differ from the workbook's Appendix I/II (68 rates by ₹1 or more, e.g. pipes 3001–3014 and 4244–4255, where the analyses use the workbook rates); they are not applied and are listed in `printed_appendix_differences.csv` for review.
+
+## Numbering fixes (prepare step)
+
+The "DSR 2025" sheet repeats codes; the chapter sheets number the same items differently. The prepare step prints each change.
+
+- Repeated schedule codes: 11.1.34 appears twice (4 × 25 and 4 × 35 sq. mm) → 11.1.34, 11.1.35, 11.1.36 as in the analyses; the items under 23.4 are numbered 23.3, 23.3.1–23.3.3 → 23.4.1–23.4.4; the 630 KVA item under 24.9 is numbered 24.8.6 → 24.9.6. Renumbered items say "Numbered … in the book" in their remarks. The coded sub-heading "31.12.1 High Static Ductable units" before item 31.12.1 keeps only its text.
+- Analyses moved to the schedule item with the same description and rate: 31.12.2 → 31.12.3 and 31.12.3 → 31.12.4 (the schedule skips 31.12.2), 18.19.1–9 → 8.19.1–9, 30.10.1.1–6 → 30.10.1–6, 5.1.4 → 26.1.4, and "5190" (a resource code in the item code cell) → 20.15. A move needs the analysis result to equal the target's published rate.
+- Analyses under the wrong heading get their item (`attach_misplaced`; each needs exactly one priced item without an analysis whose rate equals the result):
+  - 4.2.9 (₹2244) and 4.2.14 (₹3332) run on inside 4.2.8 and 4.2.13 as a second "Details of cost for 1 No"; neither book prints a heading for them;
+  - 19.3.1 (100 W, ₹24162) and 20.20.1 (80 mm, ₹17486) sit under the group headings 19.3 and 20.20;
+  - 31.1.1–31.1.3 are numbered 31.2.1–31.2.3 in the workbook and the analysis book, so 31.2.1–31.2.3 appear twice;
+  - 42.11.6 (immersion sensor 5335) sits under a second 42.11.7 heading, in the analysis book as well;
+  - 6.10 of the workbook (printed 6.12, testing joint) is stored as the number 6.1, so it reads as a second 6.1.
+- Analyses without a schedule item are removed: the items printed DELETED (1.37, 1.46, 1.53, 2.6–2.9, 3.10, 6.5, 6.13), the empty #REF! tables 25.1.8–25.1.23 and 25.2.17–25.2.23, 39.10 (deleted by the slip) and the DAR group heading 18.19 (its items are 8.19.x).
+- Heading 1.14 (circuit/submain wiring) is printed with the unit "Meter" and no rate; the schedule import treats a row without a rate that is followed by its own subitem code as a heading, so 1.14.1–1.14.11 are its children and the heading has no unit.
+- Chapter 19 has no title row in the workbook, so its items took chapter 18's category; they are FAÇADE LIGHTING, as the book's contents name the chapter.
+- Appendix II: the sub-headings that carry schedule item numbers (19.2, 19.3, 35.1, 40.2) are not resources; "Hot Dipped Galvanized CABLE TRAYS" is a section heading, not the first line of the descriptions below it; 3201 (insulation after the AHU capacities) does not take the AHU text.
+
+## Correction Slip No. 1 (27-11-2025)
+
+Appendix I code 1020 Electronic Technician is replaced by 1021 Technician: 1020 is removed (Appendix I and II both list it) and its analysis lines (28.1.10, 28.1.11) use 1021. 31 schedule rates (4.4.2, 4.5.4, 8.9.3, 11.2.23/24, 11.4.29, 12.5, 15.14.4, 19.10.1, 20.5.6, 27.12.2–6, 27.13, 27.17.2, 27.18.1/2, 28.1.10, 28.5.3.3/4, 30.2.13/14, 30.27.11/12, 39.14, 39.18.1–4), 39.10 deleted, Appendix II 5246–5249 (Cat6A cable ₹26.25/52.50/78.75/105). The workbook already carries 20.5.6, 30.27.11/12, 39.18.1 and 5246; the prepare step reports these as already applied. Most corrected rates are what the book's analyses give with Appendix II rates (e.g. 4.4.2 ₹1458, 27.13 ₹1424, 12.5 ₹9096), so those analyses are unchanged.
+
+Specification changes are merged into the descriptions of 4.4, 4.5, 8.3, 8.8, 8.9, 8.18, 26.1, 26.2, 30.2, 32.3, 32.5, 39.1–39.5, 39.7–39.9 and 39.22 (46 phrases, all found); the items say "description amended" in their remarks. The detailed camera and NVR specifications of 40.1, 40.2, 40.8, 40.9, 40.10 and 40.11 are only in the printed book, so those changes stay as remarks.
+
+Derived from the slip: it swaps the schedule rates of 11.2.23 (3½ × 150 sq. mm → ₹2117) and 11.2.24 (185 sq. mm → ₹2643) but leaves Appendix II, where the 150 sq. mm kit 2322 (₹1326) is dearer than the 185 sq. mm kit 2323 (₹946). The two kit rates are swapped to match (₹946 and ₹1326), so both analyses give the corrected rates; the book's kit prices are noted on the analysis lines.
+
+## Analysis reconciliation (build step)
+
+Coefficients (quantities) are the book's and are not changed. Remarks the book writes under a resource line ("= 0.2 @ 1.11kg/m = 0.22kg") stay on the line; the build's notes follow them.
+
+- **Book amount differs.** Where the book prices a resource differently from Appendix II or its amount is not coefficient × rate, the line keeps the Appendix II resource and the difference is noted on the line and in `discrepancies.csv` (e.g. 4.4.2 painting 2936 at ₹36 against ₹7.20; 11.4.29 labour charged for a full day against 0.25; 12.5 sundries at ₹0; 39.18.2–4 cable at the old rates). The correction slip confirms the Appendix II based rates for these items.
+- **Relinked lines.** Codeless or mis-coded lines whose description matches an Appendix II resource are linked to it: "Wiremen"/"Khallasi" in 39.17–39.20 → 1001/1007; "Fitter, Grade 1" coded 1006 (Painter) in 27.11–27.12 → 1004.
+- **Back-calculated rates.** Lines with a coefficient but no Appendix II resource get a resource of their own (category RESOURCES FROM ANALYSES) whose rate is the book amount ÷ coefficient: battery racks (26.x), fire pump controllers and battery charger (27.5.x), cold water tanks and tank connections (16.1.x), excavation (15.16.x), valve cladding and insulation (30.7.x), cement/sand (28.4.1), and the XLR connector that 19.9.3 lists under the keypad's code 5164.
+- **Unit item X.** Rows the book prices without a coefficient ("Add for screws etc. LS ₹260" in 30.15–30.18) use "X – Unit item" (unit Rs, rate 1, quantity = amount) before the following subtotal.
+- **Book arithmetic.** Subtotals that add a row a second time (27.13, 27.18.x, 27.29, 28.5.3.x, 28.5.4) are noted in the analysis remarks and `discrepancies.csv`. 30.21 rounds the cost of 10 sqm and then divides by 10; a multiplier 0.1 and a rounding row follow the analysis.
+
+Result: of 2,131 priced items, 2,129 have an analysis (15.7 and 15.9 are civil rates), and every analysis reproduces its published rate within ₹1. Because the published rates are whole rupees and the book keeps unrounded intermediate amounts, 208 analyses differ from their rate: 191 by a fraction of a rupee and 17 by ₹1 (`discrepancies.csv`).
+
+The code hierarchy imports every heading level: an upper heading whose children are all headings (30.7 over 30.7.1–30.7.4, 30.11) is a row of its own. The database has one level of parents, so the lower headings carry the joined text and the items sit under them.
+
+## Remaining gaps
+
+- Civil items 15.1–15.13 take their rates from the Civil DSR ("Rate to be taken from Civil DSR"), which this database does not hold; 15.7 and 15.9 carry the rate the analyses use and have no analysis.
+- 6.12 (testing joint): the printed analysis book has no analysis for it and the printed schedule says ₹3614. The workbook has one (G.I. strip and four bolts, ₹140), which is used, so the item keeps the workbook rate ₹140; its remarks say so.
+- The printed schedule rates disagree with the printed analyses in 197 items (listed in `printed_differences.csv`); the analysis rates are kept.
+- The printed Appendix I/II differs from the workbook's (`printed_appendix_differences.csv`); the workbook's is kept.
+- The book prints no heading over the insulation items 4001–4073, so they stay in the category of the cable trays printed before them.
+- 99 Appendix I/II resources are not used by any analysis; they are kept as published.
+
+## Other observations on the sources
+
+- Appendix II prints the same rate for consecutive sizes: 1534 and 1535 (1400 A and 1600 A bus trunking) both ₹19438; 5172 and 5174 both ₹2138 in print, where the workbook's ₹5138 for 5174 fits the series and gives the slip rate of 20.5.6 (₹7397).
+- Resources 3099 (20400 CMH) and 3162 (23800 CMH) are printed with their rates swapped; the workbook rates (₹205166.44 and ₹215780.34) are kept. The slip swaps the matching schedule rates 30.27.11/12.
+- Rate series that run the wrong way, put right by the slip: 30.27.11/12; 20.5.5 (₹3726) against 20.5.6 (printed ₹3078).
+- The slip quotes existing text abridged with dots; only the visible differences can be applied. Its note on Appendix I labour and hire charges is not imported.
+- Text read from the PDFs loses degree signs ("0C") and some line breaks.

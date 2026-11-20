@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.kavilgroup.gestimator</id>
+  <launchable type="desktop-id">com.kavilgroup.gestimator.desktop</launchable>
+  <provides>
+    <binary>gestimator</binary>
+    <mediatype>application/x-gestimator-project</mediatype>
+  </provides>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>GEstimator</name>
+  <developer id="com.kavilgroup">
+    <name>Manu Varkey</name>
+  </developer>
+  <summary>Cost estimates with rate analysis for civil and electrical works</summary>
+  <description>
+    <p>
+      GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2021 (Civil) and DSR (E and M) 2025 and can use other databases of items.
+    </p>
+    <ul>
+      <li>Schedule of items, resources and details of measurements in tables with keyboard navigation</li>
+      <li>Rate analysis editor with undo, bulk editing of analyses and rate updates from databases</li>
+      <li>Several projects open in tabs, with recovery of unsaved work</li>
+      <li>Import from and export to Excel workbooks</li>
+      <li>Optional local MCP server for AI assistants to read and prepare estimates</li>
+    </ul>
+  </description>
+  <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png</image>
+    </screenshot>
+    <screenshot type="source">
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png</image>
+    </screenshot>
+    <screenshot type="source">   
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png</image>
+    </screenshot>
+    <screenshot type="source"> 
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png</image>
+    </screenshot>
+    <screenshot type="source"> 
+      <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/measurements.png</image>
+    </screenshot>
+  </screenshots>
+  <update_contact>manuvarkey@gmail.com</update_contact>
+  <project_group>Office</project_group>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release date="2026-11-20" version="3.0.0">
+      <description>
+        <p>New desktop application with a redesigned interface.</p>
+        <ul>
+          <li>Ribbon commands, light and dark themes, project tabs</li>
+          <li>DSR (E and M) 2025 with Correction Slip No. 1 and database notes</li>
+          <li>Bulk analysis editing, mapped imports and local MCP server</li>
+        </ul>
+      </description>
+    </release>
+	<release date="2025-01-23" version="2.7.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Support for modifying schedule rate while adding item</li>
+			      <li>Update to DSR E and M 2022 as per ammendments issued, modification in GST, LC</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2024-08-08" version="2.6.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2022-11-05" version="2.5.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Add DSR 2021</li>
+            <li>Add support for handling sub analysis of rates</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2022-10-18" version="2.4.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Add DSR E and M 2022</li>
+            <li>Add support for updating rates in item and resource schedules from spreadsheet</li>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+    <release date="2022-01-28" version="2.3.0">
+      <description>
+        <p>Changelog:</p>
+          <ul>
+            <li>Multiple selection support for resource items.</li>
+            <li>Support for rounding quantity in DOM</li>
+            <li>Copy paste support from spreadsheets</li>
+            <li>Interface improvements</li>
+            <li>Bug fixes</li>
+          </ul>
+      </description>
+    </release>
+	  <release date="2020-04-17" version="2.2.0" />
+    <release date="2019-06-27" version="2.1.0" />
+    <release date="2019-04-01" version="2.0.0" />
+  </releases>
+</component>

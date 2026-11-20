@@ -22,11 +22,11 @@
 #
 #
 
-from gi.repository import Gtk, Gdk, GLib
-import copy, logging, importlib, sys
+import copy, logging
 
 # local files import
 from .. import misc
+from .template_loader import load_template
 
 # Get logger object
 log = logging.getLogger()
@@ -309,10 +309,7 @@ class MeasurementItemCustom(MeasurementItem):
         # Read description from file
         if plugin is not None:
             try:
-                spec = importlib.util.spec_from_file_location(plugin, misc.abs_path('meas_templates', plugin+'.py'))
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[spec.name] = module
-                spec.loader.exec_module(module)
+                module = load_template(plugin)
                 self.custom_object = module.CustomItem()
                 self.name = self.custom_object.name
                 self.itemtype = plugin
