@@ -9,6 +9,7 @@ import DatabaseNotes from "./DatabaseNotes.vue";
 import type { ColumnDefinition } from "tabulator-tables";
 import { request } from "../backend";
 import { useLiveSearch } from "../liveSearch";
+import { overflowTooltip } from "../cellTooltip";
 const visible = defineModel<boolean>({ required: true });
 const props = defineProps<{
   analysis?: boolean;
@@ -45,10 +46,10 @@ const selectedIds = computed(() => selected.value.map(row => row.id));
 const preview = ref<{ changed: number; unchanged: number; unmatched: number }>();
 const title = computed(() => props.analysis ? "Add analysis resources from database" : props.mode === "rates" ? "Refresh selected rates from database" : props.kind === "schedule" ? "Add item from database" : "Add resources from database");
 const columns: ColumnDefinition[] = [
-  { title: "CODE", field: "code", width: 126, minWidth: 78, widthShrink: 1, tooltip: true },
+  { title: "CODE", field: "code", width: 126, minWidth: 78, widthShrink: 1, tooltip: overflowTooltip() },
   { title: "DESCRIPTION", field: "description", minWidth: 116, formatter: "textarea", variableHeight: true },
-  { title: "UNIT", field: "unit", width: 64, minWidth: 45, widthShrink: 1, tooltip: true },
-  { title: "RATE", field: "rate", width: 104, minWidth: 72, widthShrink: 1, hozAlign: "right", tooltip: true },
+  { title: "UNIT", field: "unit", width: 64, minWidth: 45, widthShrink: 1, tooltip: overflowTooltip() },
+  { title: "RATE", field: "rate", width: 104, minWidth: 72, widthShrink: 1, hozAlign: "right", tooltip: overflowTooltip() },
 ];
 let searchedQuery = "";
 const liveSearch = useLiveSearch(query, () => searchedQuery, () => search());

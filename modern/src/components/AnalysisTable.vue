@@ -12,6 +12,7 @@ import { rowDragSelection } from "../rowDragSelection";
 import { tableSelection, resetTablePosition } from "../tableSelection";
 import { cellNavigation } from "../cellNavigation";
 import { moneyCell, moneyFormatKey } from "../numberFormatting";
+import { overflowTooltip } from "../cellTooltip";
 const props = defineProps<{
   rows: AnalysisRow[];
   busy: boolean;
@@ -187,7 +188,7 @@ onMounted(() => {
         width: 56,
         minWidth: 32,
         widthShrink: 1,
-        tooltip: true,
+        tooltip: overflowTooltip(),
       },
       {
         title: "QTY / FACTOR",
@@ -197,11 +198,11 @@ onMounted(() => {
         width: 87,
         minWidth: 56,
         widthShrink: 1,
-        tooltip: true,
+        tooltip: overflowTooltip(),
         editable: (cell) =>
           !["Group", "Subtotal", "GroupTotal"].includes(cell.getData().kind),
       },
-      { title: "RATE", field: "effective_rate", formatter: moneyCell, hozAlign: "right", width: 110, minWidth: 56, widthShrink: 1, tooltip: (_event, cell) => moneyCell(cell) },
+      { title: "RATE", field: "effective_rate", formatter: moneyCell, hozAlign: "right", width: 110, minWidth: 56, widthShrink: 1, tooltip: overflowTooltip(moneyCell) },
       {
         title: "AMOUNT",
         field: "amount",
@@ -210,7 +211,7 @@ onMounted(() => {
         width: 114,
         minWidth: 60,
         widthShrink: 1,
-        tooltip: (_event, cell) => amountCell(cell),
+        tooltip: overflowTooltip(amountCell),
         frozen: true,
       },
     ],

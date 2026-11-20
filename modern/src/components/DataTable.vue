@@ -13,6 +13,7 @@ import { tableSelection, resetTablePosition } from "../tableSelection";
 import { guardVirtualRenderer, revealRow } from "../virtualRows";
 import { isRowClipboard } from "../rowClipboard";
 import { formatMoney, moneyFormatKey } from "../numberFormatting";
+import { overflowTooltip } from "../cellTooltip";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
@@ -114,7 +115,7 @@ defineExpose({
 });
 function editorColumns(columns: ColumnDefinition[]) {
   return columns.map(column => ({ ...column,
-    ...(["rate", "effective_rate", "amount"].includes(column.field || "") ? { tooltip: (_event: UIEvent, cell: import("tabulator-tables").CellComponent) => formatMoney(cell.getValue()), formatter: (cell: import("tabulator-tables").CellComponent) => {
+    ...(["rate", "effective_rate", "amount"].includes(column.field || "") ? { tooltip: overflowTooltip(cell => formatMoney(cell.getValue())), formatter: (cell: import("tabulator-tables").CellComponent) => {
       const value = cell.getValue();
       // Preserve the project table's convention for empty/zero schedule rates.
       return column.field === "rate" && cell.getData().rowtype === "Schedule" && Number(value) === 0 ? "" : formatMoney(value);

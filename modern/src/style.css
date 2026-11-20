@@ -2347,3 +2347,14 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
 .analysis-table .tabulator-row[data-kind="GroupTotal"] .tabulator-cell:first-child * { visibility: hidden; }
 .row-badge.kind-grouptotal { background: var(--accent-soft); color: var(--accent); }
 .import-sample .import-line-total td { font-weight: 650; }
+/* Cell tooltips (shown only for clipped cell text) follow the text field theme. */
+.tabulator-popup-container.tabulator-tooltip {
+  color: var(--text);
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  box-shadow: var(--shadow);
+  font-family: var(--table-font-family);
+  font-size: var(--text-size-table);
+  padding: 4px 8px;
+}

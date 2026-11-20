@@ -419,6 +419,31 @@ test("numeric edits select the value, tax shows only entered decimals and clipbo
   await expect(page.locator('.project-view:visible p[role="status"]')).toHaveCount(0);
   await expect(statusbar.locator(".status-notice")).toHaveCount(0, { timeout: 8000 });
 });
+test("cell tooltips show only clipped text and follow the text field theme", async ({ page }) => {
+  await refinementFixture(page);
+  const main = page.locator(".project-view:visible .project-main-grid");
+  const rate = main.locator('.tabulator-row').filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) }).locator('[tabulator-field="rate"]');
+  const tooltip = page.locator(".tabulator-tooltip");
+  await rate.hover({ position: { x: 5, y: 5 } });
+  await page.waitForTimeout(600); // Tabulator's tooltip delay is 300 ms.
+  await expect(tooltip).toHaveCount(0);
+  // Enlarge the text until the rate no longer fits its column.
+  await rate.evaluate(el => { el.style.fontSize = "240px"; });
+  const box = (await rate.boundingBox())!;
+  await page.mouse.move(0, 0);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  await expect(tooltip).toBeVisible();
+  const text = (await rate.textContent())?.trim() || "";
+  await expect(tooltip).toHaveText(text);
+  const [tooltipBackground, fieldBackground] = await tooltip.evaluate(el => {
+    const input = document.createElement("input");
+    document.body.append(input);
+    const values = [getComputedStyle(el).backgroundColor, getComputedStyle(input).backgroundColor];
+    input.remove();
+    return values;
+  });
+  expect(tooltipBackground).toBe(fieldBackground);
+});
 test("cell navigation commits with Tab and Enter across schedule resources measurements and analysis", async ({ page }) => {
   await refinementFixture(page);
   const main = page.locator(".project-view:visible .project-main-grid");
