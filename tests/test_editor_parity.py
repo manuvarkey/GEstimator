@@ -135,6 +135,21 @@ class EditorParity(unittest.TestCase):
         self.assertEqual((state["offset"], state["total"]), (100, 105))
         self.assertIn(identity, [row["id"] for category in state["rows"] for row in category["_children"]])
 
+    def test_type_ahead_find_continues_on_other_pages_and_wraps(self):
+        ids = [self.call("resources.editor.add", data=dict(code="R" + str(index), category="Materials", description="Cement" if index in (3, 104) else "Sand"))["selected"][0] for index in range(105)]
+        state = self.call("resources.editor.state", find="cement", find_from=ids[99], find_direction=1)
+        self.assertEqual((state["found_id"], state["offset"]), (ids[104], 100))
+        self.assertIn(ids[104], [row["id"] for category in state["rows"] for row in category["_children"]])
+        state = self.call("resources.editor.state", offset=100, find="cement", find_from=ids[104], find_direction=1)
+        self.assertEqual((state["found_id"], state["offset"]), (ids[3], 0))
+        state = self.call("resources.editor.state", find="cement", find_from=ids[0], find_direction=-1)
+        self.assertEqual((state["found_id"], state["offset"]), (ids[104], 100))
+        state = self.call("resources.editor.state", query="cement", find="R104", find_from=ids[3], find_direction=1)
+        self.assertEqual(state["found_id"], ids[104])
+        self.assertIsNone(self.call("resources.editor.state", find="gravel", find_direction=1)["found_id"])
+        with self.assertRaises(ValueError):
+            self.call("resources.editor.state", find="sand", find_direction=2)
+
     def test_measurement_batches_load_once_save_once_and_undo_once(self):
         identity = self.measure()
         self.call("measurement.record_add", id=identity, count=120)

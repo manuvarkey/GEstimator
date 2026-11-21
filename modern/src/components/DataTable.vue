@@ -14,7 +14,7 @@ import { guardVirtualRenderer, revealRow } from "../virtualRows";
 import { isRowClipboard } from "../rowClipboard";
 import { formatMoney, moneyFormatKey } from "../numberFormatting";
 import { overflowTooltip } from "../cellTooltip";
-import { useTypeAhead } from "../typeAhead";
+import { useTypeAhead, type TypeAheadFind } from "../typeAhead";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
@@ -25,6 +25,8 @@ const props = defineProps<{
   rowOnlySelection?: boolean;
   /** GTK3-style find popup: typing selects matching rows. */
   typeAhead?: boolean;
+  /** Continues the type-ahead search on other pages of a paged table. */
+  typeAheadFind?: TypeAheadFind;
   activateOnDoubleClick?: boolean;
   label?: string;
   selectIds?: string[];
@@ -42,15 +44,26 @@ const emit = defineEmits<{
 const element = ref<HTMLDivElement>();
 let table: Tabulator;
 // Tabulator owns the table element's children, so the popup is added after it builds.
-let popup: HTMLOutputElement | undefined;
+// Styled like the search fields; placed at the top right under the column headers (GTK3).
+let popup: HTMLDivElement | undefined;
 function showTypeAhead() {
   if (!element.value) return;
   if (!typeAhead.text.value) { popup?.remove(); popup = undefined; return; }
-  if (!popup) { popup = document.createElement("output"); popup.className = "type-ahead"; popup.setAttribute("role", "status"); element.value.appendChild(popup); }
-  popup.textContent = typeAhead.text.value;
+  if (!popup) {
+    popup = document.createElement("div");
+    popup.className = "type-ahead";
+    popup.setAttribute("role", "status");
+    popup.innerHTML = '<svg class="app-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg><span class="type-ahead-text"></span>';
+    element.value.appendChild(popup);
+  }
+  const header = element.value.querySelector<HTMLElement>(".tabulator-header");
+  popup.style.top = (header ? header.offsetHeight : 0) + 6 + "px";
+  popup.querySelector(".type-ahead-text")!.textContent = typeAhead.text.value;
   popup.classList.toggle("missing", typeAhead.missing.value);
+  popup.classList.toggle("searching", typeAhead.searching.value);
+  popup.title = typeAhead.searching.value ? "Searching other pages…" : typeAhead.missing.value ? "No matching row" : "Up/Down: previous/next match · Escape: close";
 }
-const typeAhead = useTypeAhead(() => table, () => ["code", "description", "unit"].filter(field => props.columns.some(column => column.field === field)), () => !!props.tree);
+const typeAhead = useTypeAhead(() => table, () => ["code", "description", "unit"].filter(field => props.columns.some(column => column.field === field)), () => !!props.tree, () => props.typeAheadFind);
 let ready: Promise<void>;
 let alive = true;
 let replacingRows = false;
@@ -180,7 +193,11 @@ watch(moneyFormatKey, async () => {
   reformat(table.getRows());
   await redraw();
 });
-watch([typeAhead.text, typeAhead.missing], showTypeAhead, { flush: "post" });
+watch([typeAhead.text, typeAhead.missing, typeAhead.searching], showTypeAhead, { flush: "post" });
+function typeAheadFocusOut(event: FocusEvent) {
+  if (typeAhead.searching.value || replacingRows || element.value?.contains(event.relatedTarget as Node | null)) return;
+  typeAhead.close();
+}
 function keyboard(event: KeyboardEvent) {
   if (props.typeAhead && table && !props.busy && typeAhead.key(event)) return;
   if (!props.rowOnlySelection && navigation?.keyboard(event)) return;
@@ -308,11 +325,13 @@ watch(
           if (props.tree) { let parent = row.getTreeParent(); while (parent) { if (!parent.isTreeExpanded()) parent.treeExpand(); parent = parent.getTreeParent(); } }
         }
         const selected = table.getSelectedRows();
-        if (selected.length) void revealRow(selected[0]!);
+        if (selected.length) { resetTablePosition(table, selected[0]); void revealRow(selected[0]!); }
       }
     } finally {
       replacingRows = false;
       navigation?.replaced(selectIds !== previousIds);
+      // Type-ahead loaded another page and replaced the focused cell; keep typing here.
+      if (typeAhead.text.value && element.value && !element.value.contains(document.activeElement)) element.value.focus({ preventScroll: true });
     }
     if (alive) emit("selection", table.getSelectedData());
   },
@@ -440,6 +459,6 @@ onBeforeUnmount(() => {
     :aria-busy="busy"
     :aria-label="label || 'Project table'"
     @keydown.capture="keyboard"
-    @focusout="typeAhead.close"
+    @focusout="typeAheadFocusOut"
   />
 </template>

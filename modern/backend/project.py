@@ -535,6 +535,34 @@ class ProjectEditor:
             values.sort(key=lambda row: ranks[row.code])
         else:
             total = records.count()
+        found_id = None
+        if p.get("find") is not None:
+            # Type-ahead across pages: the next row, in listing order, whose
+            # code, description and unit contain every word of `find`.
+            words = text(p["find"]).lower().split()
+            direction = p.get("find_direction", 1)
+            start = p.get("find_from")
+            if not words or direction not in (1, -1) or (start is not None and (not isinstance(start, str) or not start.isdecimal())):
+                raise ValueError("Invalid find request")
+            listing = records.select(table.id, table.code, table.description, table.unit)
+            if ranks is not None:
+                listing = sorted(listing.where(table.code.in_(ranked)).tuples(), key=lambda row: ranks[row[1]])
+            else:
+                listing = list(listing.tuples())
+            ids = [row[0] for row in listing]
+            begin = ids.index(int(start)) if start is not None and int(start) in ids else (-1 if direction == 1 else 0)
+            for step in range(1, len(listing) + 1):
+                identity, code, description, unit = listing[(begin + direction * step) % len(listing)]
+                haystack = " ".join((code or "", description or "", unit or "")).lower()
+                if all(word in haystack for word in words):
+                    found_id = identity
+                    break
+            if found_id is not None:
+                p = dict(p, reveal_id=str(found_id))
+                if ranks is not None:
+                    offset = ranks[table.get_by_id(found_id).code] // limit * limit
+                    values = list(records.where(table.code.in_(ranked[offset:offset + limit])))
+                    values.sort(key=lambda row: ranks[row.code])
         if ranks is None and p.get("reveal_id"):
             revealed = table.get_or_none(table.id == int(p["reveal_id"]))
             if revealed is None:
@@ -634,6 +662,7 @@ class ProjectEditor:
             rows=rows,
             total=total,
             offset=offset,
+            **({"found_id": None if found_id is None else str(found_id)} if p.get("find") is not None else {}),
             undo=bool(self.history),
             redo=bool(self.future),
             revision=self.owner.revision,

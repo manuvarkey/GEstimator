@@ -35,6 +35,7 @@ const rows = ref<{ id: string; [key: string]: any }[]>([]);
 const total = ref(0);
 const enrichment = ref<{ summary: string } | null>(null);
 const selected = ref<{ id: string; [key: string]: any }[]>([]);
+const selectIds = ref<string[]>([]);
 const busy = ref(false);
 const error = ref("");
 const rulesOpen = ref(false);
@@ -77,6 +78,20 @@ async function load() {
     if (token === loadRequest) { rows.value = result.rows; total.value = result.total; categories.value = result.categories; enrichment.value = result.enrichment; loaded = true; }
   } catch (failure) { if (token === loadRequest) { error.value = String(failure); rows.value = []; total.value = 0; } }
   finally { if (token === loadRequest) busy.value = false; }
+}
+/** Type-ahead on the table: load the page holding the next match and select it. */
+async function findAcross(text: string, from: string | undefined, direction: 1 | -1) {
+  if (!source.value || busy.value || props.mode !== "add") return false;
+  const token = ++loadRequest;
+  try {
+    const result = await request<{ rows: typeof rows.value; total: number; offset: number; found_id: string | null }>(props.kind + ".editor.state", { source: source.value === "project" ? undefined : source.value, query: searchedQuery, categories: categoryFilters.value, offset: page.value * 100, find: text, find_from: from, find_direction: direction });
+    if (token !== loadRequest || !result.found_id) return false;
+    page.value = result.offset / 100;
+    rows.value = result.rows;
+    total.value = result.total;
+    selectIds.value = [result.found_id];
+    return true;
+  } catch { return false; }
 }
 function changeSource() {
   loaded = false;
@@ -133,7 +148,7 @@ async function applyRules(params: Record<string, unknown>) {
     <template v-if="mode === 'add' && libraries.length">
       <p v-if="enrichment" role="note"><small class="enrichment-badge">AI-generated</small> {{ enrichment.summary }}</p>
       <div class="project-filter-bar"><form class="search-field" @submit.prevent="search()"><AppIcon name="search" :size="16" /><input data-primary-input autofocus v-model="query" aria-label="Find database items" @keydown.up.down="pickerTable?.step($event)" placeholder="Code, description or category…" /><button class="button small secondary" :disabled="busy">Search</button></form><CategoryFilter :key="source" :model-value="categoryFilters" :categories="categories" :disabled="busy" @update:model-value="filterCategories" /></div>
-      <div class="database-picker-grid"><DataTable class="fit-table" type-ahead :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="(row, keys) => activate(row, keys?.ctrl ?? false)" /></div>
+      <div class="database-picker-grid"><DataTable class="fit-table" type-ahead :active="visible" :key="source" ref="pickerTable" :rows="rows" :columns="columns" :select-ids="selectIds" :type-ahead-find="findAcross" :busy="busy" tree drag-select-rows row-only-selection activate-on-double-click :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'" @selection="selected = $event" @activate="(row, keys) => activate(row, keys?.ctrl ?? false)" /></div>
       <div class="pagination"><button class="text-button" :disabled="busy || !page" @click="goToPage(page - 1)">Previous</button><span>{{ total }} items · Page {{ page + 1 }} · {{ selected.length }} selected</span><button class="text-button" :disabled="busy || (page + 1) * 100 >= total" @click="goToPage(page + 1)">Next</button></div>
     </template>
     <template v-if="mode === 'rates'">

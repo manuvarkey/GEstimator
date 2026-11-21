@@ -4615,3 +4615,25 @@ test("type-ahead selects matching rows without filtering and Up/Down step betwee
   await search.press("ArrowDown");
   await expect(grid.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
 });
+
+test("type-ahead continues on other pages of a paged table", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "typeahead-pages.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  execFileSync(python, ["-c", "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);[d.insert_item_atomic(ScheduleItemModel('P%03d'%i,'Gravel bedding' if i==130 else 'Plain item','m2',rate=5,qty=1,category='Work')) for i in range(140)];d.close_database()", project], { cwd: resolve("..") });
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  const view = page.locator(".project-view:visible");
+  const grid = view.locator(".project-main-grid");
+  await expect(view.getByText(/Page 1/)).toBeVisible();
+  await grid.locator(".tabulator-row").first().locator('[tabulator-field="code"]').click();
+  await page.keyboard.type("gravel");
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Gravel bedding");
+  await expect(view.getByText(/Page 2/)).toBeVisible();
+  await expect(grid.locator(".type-ahead")).not.toHaveClass(/missing/);
+  // Down wraps to the first page; there is one match, so it stays selected.
+  await page.keyboard.press("ArrowDown");
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Gravel bedding");
+  await page.keyboard.type("x");
+  await expect(grid.locator(".type-ahead")).toHaveClass(/missing/);
+});

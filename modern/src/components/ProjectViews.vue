@@ -585,6 +585,18 @@ async function revealCode(code: string) {
   }
   if (row) selectionIds.value = [row.id];
 }
+/** Type-ahead on the main table: load the page holding the next match and select it. */
+async function findAcross(text: string, from: string | undefined, direction: 1 | -1) {
+  if (isMeasurement.value || busy.value || !props.projectOpen) return false;
+  try {
+    const next = await request<GridState & { found_id?: string | null }>(props.view + ".editor.state", { query: searchedQuery, categories: categoryFilters.value, source: source.value, offset: page.value * 100, find: text, find_from: from, find_direction: direction });
+    if (!next.found_id) return false;
+    state.value = next;
+    page.value = (next.offset || 0) / 100;
+    selectionIds.value = [next.found_id];
+    return true;
+  } catch { return false; }
+}
 async function refreshChanges() {
   if (!state.value || isMeasurement.value || source.value) { await load(); return; }
   const flatten = (rows: GridRow[]): GridRow[] => rows.flatMap(row => [row, ...flatten(row._children || [])]);
@@ -1285,6 +1297,7 @@ watch(
         <DataTable
           ref="mainTable"
           :type-ahead="!isMeasurement"
+          :type-ahead-find="findAcross"
           :active="active && !entryId"
           :key="source"
           :label="title"

@@ -2157,7 +2157,7 @@ textarea.measurement-entry-title {
 
 /* WebKitGTK can embolden composited scroll content despite an unchanged weight.
    Keep its text rasterization consistent before and after overflow appears. */
-.library-manager-dialog .p-dialog-content { -webkit-font-smoothing: antialiased; }
+.workspace-dialog .p-dialog-content, .persistent-dialog .p-dialog-content { -webkit-font-smoothing: antialiased; }
 
 /* Shared draft acceptance controls: see docs/ui-guidelines.md. */
 .draft-headerbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--line); background: var(--raised); }
@@ -2359,7 +2359,13 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
   padding: 4px 8px;
 }
 
-/* GTK3-style type-ahead popup */
+/* GTK3-style type-ahead popup: a search field at the top right of the table,
+   just under the column headers. `top` is set from the header height. */
 .project-grid { position: relative; }
-.type-ahead { position: absolute; right: 12px; bottom: 12px; z-index: 20; min-width: 160px; max-width: 60%; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--control-radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); overflow-wrap: anywhere; }
-.type-ahead.missing { border-color: var(--danger); color: var(--danger); }
+.type-ahead { position: absolute; right: 12px; top: 36px; z-index: 20; display: flex; align-items: center; gap: 7px; box-sizing: border-box; min-width: 200px; max-width: min(60%, 420px); height: 31px; padding: 0 9px; border: 1px solid var(--accent); border-radius: 6px; background: var(--well); color: var(--hint); outline: 2px solid var(--accent); outline-offset: -2px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.22); font-size: var(--text-size-ui); pointer-events: none; }
+.type-ahead-text { flex: 1; min-width: 0; overflow: hidden; white-space: pre; text-overflow: ellipsis; color: var(--text); }
+.type-ahead-text::after { content: ""; display: inline-block; width: 1px; height: 1.1em; margin-left: 1px; vertical-align: text-bottom; background: currentColor; animation: type-ahead-caret 1s steps(1) infinite; }
+@keyframes type-ahead-caret { 50% { opacity: 0; } }
+.type-ahead.searching { color: var(--accent); }
+.type-ahead.missing { border-color: var(--danger); outline-color: var(--danger); color: var(--danger); }
+.type-ahead.missing .type-ahead-text { color: var(--danger); }
