@@ -49,7 +49,7 @@ async function browse() {
 <template>
   <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog library-manager-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
     <p class="dialog-intro">Bundled databases and every database in the database folder are attached automatically. Attach another .eproj file here to browse it as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
-    <button class="text-button" :disabled="busy || !projectOpen" @click="refresh">Rescan database folder</button>
+    <button class="text-button library-rescan" :disabled="busy || !projectOpen" @click="refresh">Rescan database folder</button>
     <p v-for="warning in catalogWarnings" :key="warning" class="dialog-error" role="status">{{ warning }}</p>
     <label class="field">Library project
       <div class="file-input"><input v-model="path" data-primary-input autofocus aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" @keydown.enter.prevent="attach()" />

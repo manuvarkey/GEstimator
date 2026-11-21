@@ -1905,7 +1905,7 @@ onBeforeUnmount(() => {
     v-model:visible="helpOpen"
     modal
     header="Keyboard shortcuts"
-    class="workspace-dialog file-dialog"
+    class="workspace-dialog shortcuts-dialog"
     ><div class="shortcut-groups">
       <section v-for="group in shortcutGroups" :key="group.title" class="shortcut-group" :aria-label="group.title">
         <h3>{{ group.title }}</h3>

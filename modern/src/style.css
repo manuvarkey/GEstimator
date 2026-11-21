@@ -1609,6 +1609,7 @@ kbd {
 .saved-libraries { max-height: 280px; overflow: auto; }
 .saved-library { padding: 10px 0; border-top: 1px solid var(--line); }
 .saved-library code { display: block; overflow-wrap: anywhere; margin-block: 5px; font: inherit; font-size: var(--text-size-small); color: var(--muted); }
+.library-rescan { margin: 0 0 14px; }
 .measurement-derived { background: var(--accent-soft); color: var(--muted); }
 .batch-dialog { width: 860px; max-width: 94vw; }
 .workspace-dialog.program-settings-dialog { width: min(94vw, 960px); }
@@ -2133,7 +2134,10 @@ textarea.measurement-entry-title {
 .schedule-estimate-total strong { color: var(--accent); font-variant-numeric: tabular-nums; }
 .shortcut-group + .shortcut-group { margin-top: 20px; }
 .shortcut-group h3 { margin: 0; padding-bottom: 6px; color: var(--accent); font-size: var(--text-size-ui); border-bottom: 1px solid var(--line); }
-.shortcut-list > div { flex-wrap: wrap; gap: 6px 15px; }
+/* One row per shortcut: the label takes the free width, the keys never break. */
+.workspace-dialog.shortcuts-dialog { width: min(94vw, 760px); }
+.shortcut-list > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 15px; }
+.shortcut-list kbd { white-space: nowrap; }
 
 /* Ribbon SVGs are CSS-sized to 20–24 px: use the B2 24-grid weight (1.75 units). */
 .ribbon svg { stroke-width: 1.75; }
