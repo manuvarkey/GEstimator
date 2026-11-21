@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEstimator user manual</title>
+<meta name="description" content="Step-by-step guide to preparing estimates and rate analyses with GEstimator.">
+<link rel="icon" href="images/icon.png">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="bar"><div class="wrap">
+<a class="brand" href="index.html"><img src="images/icon.png" alt="" width="28" height="28">GEstimator</a>
+<nav><a href="index.html#features">Features</a><a href="manual.html">Manual</a><a href="index.html#download">Download</a><a href="https://github.com/manuvarkey/GEstimator">GitHub</a></nav>
+</div></header>
+<main class="wrap manual">
+<h1 id="gestimator-user-manual">GEstimator user manual</h1>
+<p>GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. This manual walks through the workflow with a sample estimate: a small staff quarters building priced from the bundled DSR 2023 (Civil) database.</p>
+<ul>
+<li><a href="#1-the-workspace">1. The workspace</a></li>
+<li><a href="#2-start-or-open-a-project">2. Start or open a project</a></li>
+<li><a href="#3-attach-a-database">3. Attach a database</a></li>
+<li><a href="#4-build-the-schedule">4. Build the schedule</a></li>
+<li><a href="#5-check-and-edit-rate-analyses">5. Check and edit rate analyses</a></li>
+<li><a href="#6-manage-resources-and-rates">6. Manage resources and rates</a></li>
+<li><a href="#7-record-measurements">7. Record measurements</a></li>
+<li><a href="#8-import-from-and-export-to-excel">8. Import from and export to Excel</a></li>
+<li><a href="#9-save-tabs-and-recovery">9. Save, tabs and recovery</a></li>
+<li><a href="#10-settings">10. Settings</a></li>
+<li><a href="#11-use-an-ai-assistant-mcp">11. Use an AI assistant (MCP)</a></li>
+<li><a href="#12-keyboard-shortcuts">12. Keyboard shortcuts</a></li>
+</ul>
+<h2 id="1-the-workspace">1. The workspace</h2>
+<figure><img src="images/schedule.png" alt="Schedule of a sample estimate" loading="lazy"><figcaption>Schedule of a sample estimate</figcaption></figure>
+<ul>
+<li><strong>Title bar:</strong> application menu, back and forward, new, open and save, undo and redo, the project name, theme and keyboard shortcuts.</li>
+<li><strong>View tabs:</strong> Schedule, Analysis, Resources, Measurements, Databases and MCP. The ribbon below the tabs shows the tools of the current view.</li>
+<li><strong>Project rail</strong> (left edge): one tile for each open project. Click a tile to switch projects; <code>+</code> opens a new tab.</li>
+<li><strong>Table:</strong> the rows of the current view. A search field and category filter sit above it; the estimate total and page controls sit below it.</li>
+<li><strong>Status bar:</strong> calculation status, unsaved drafts and hints.</li>
+</ul>
+<p>Tables work like a spreadsheet. Click a cell to select it, double-click (or press Enter or F2) to edit, Tab to accept and move to the next cell, Escape to cancel. Ctrl+click and Shift+click select several rows. Right-click a row for its context menu.</p>
+<p>A dark theme is available from the moon icon in the title bar.</p>
+<figure><img src="images/schedule-dark.png" alt="Dark theme" loading="lazy"><figcaption>Dark theme</figcaption></figure>
+<h2 id="2-start-or-open-a-project">2. Start or open a project</h2>
+<figure><img src="images/start.png" alt="Start page" loading="lazy"><figcaption>Start page</figcaption></figure>
+<p>With no project open, the Schedule view shows the start page:</p>
+<ul>
+<li><strong>New project</strong> starts a blank estimate.</li>
+<li><strong>Open project…</strong> opens an existing <code>.eproj</code> file. Recent projects are listed below for one-click opening.</li>
+</ul>
+<p>GEstimator edits an isolated working copy of the project. The file on disk changes only when you save (see <a href="#9-save-tabs-and-recovery">section 9</a>).</p>
+<p>Give the estimate a name and code prefixes in <strong>Project settings</strong> (application menu). Project settings also hold free-form project notes.</p>
+<h2 id="3-attach-a-database">3. Attach a database</h2>
+<p>A database is any <code>.eproj</code> file whose items and resources you copy into your estimate. GEstimator comes with:</p>
+<ul>
+<li><strong>DSR 2023</strong> – CPWD Delhi Schedule of Rates 2023 (Civil) with Delhi Analysis of Rates 2023.</li>
+<li><strong>DSR (E&amp;M) 2025</strong> – CPWD Delhi Schedule of Rates (E&amp;M) 2025 with its analyses.</li>
+<li><strong>DSR 2025 Horticulture</strong> – CPWD Horticulture and Landscaping 2025.</li>
+</ul>
+<p>Databases are opened read-only: nothing you do in an estimate changes them. Older schedules (DSR 2016–2021, DSR (E&amp;M) 2016–2022 and others) can be downloaded from <a href="https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases" rel="noopener">Other databases</a>.</p>
+<p>To attach a database:</p>
+<ol>
+<li>Open the <strong>Databases</strong> tab and click <strong>Attach database…</strong>.</li>
+<li>Choose a database from <strong>Available databases</strong>, or enter or browse to any <code>.eproj</code> file under <strong>Library project</strong>.</li>
+<li>Keep <strong>Remember for future projects</strong> ticked to attach it automatically next time.</li>
+<li>Click <strong>Attach library</strong>.</li>
+</ol>
+<figure><img src="images/attach-database.png" alt="Attach a database" loading="lazy"><figcaption>Attach a database</figcaption></figure>
+<p><strong>Database folder</strong> opens the folder for your own databases. A <code>.eproj</code> file placed there appears in <strong>Available databases</strong>.</p>
+<h2 id="4-build-the-schedule">4. Build the schedule</h2>
+<p>The Schedule holds the items of the estimate: code, description, unit, rate, quantity, amount and remarks. Items are grouped in categories; an item can have subitems, and a heading row carries the common description of its subitems.</p>
+<h3 id="add-items-from-a-database">Add items from a database</h3>
+<ol>
+<li>In <strong>Schedule</strong>, select the row after which the new items go.</li>
+<li>Click <strong>Add from database</strong> (Ctrl+L).</li>
+<li>Choose the database, search for the work (for example <code>cement plaster</code>) and narrow the list with <strong>All categories</strong> if needed.</li>
+<li>Select one or more items (Ctrl+click or Shift+click) and click <strong>Add selected items</strong>.</li>
+</ol>
+<figure><img src="images/add-from-database.png" alt="Add items from a database" loading="lazy"><figcaption>Add items from a database</figcaption></figure>
+<p>GEstimator copies each item with its rate analysis, the resources the analysis uses and any parent headings, so every rate stays traceable. Codes of imported resources carry the database prefix (for example <code>DC23:0367</code>) so that the same resource from two databases stays one row.</p>
+<ul>
+<li><strong>Modify &amp; Add</strong> lets you change the item (code, description, rate settings) before it is added.</li>
+<li><strong>Modify &amp; Add with rules…</strong> applies bulk analysis rules while adding (see <a href="#5-check-and-edit-rate-analyses">section 5</a>).</li>
+<li><strong>Database notes</strong> explains how the database is organised, what its rates include and how to pick the right item. Read them before using a database for the first time.</li>
+</ul>
+<figure><img src="images/database-notes.png" alt="Database notes" loading="lazy"><figcaption>Database notes</figcaption></figure>
+<h3 id="enter-items-directly">Enter items directly</h3>
+<ul>
+<li><strong>Add item</strong> (Ctrl+I) adds an item in the selected category; <strong>Add subitem</strong> (Ctrl+Shift+I) adds a child of the selected item.</li>
+<li><strong>Add category</strong> groups items; <strong>Duplicate</strong>, <strong>Copy</strong>, <strong>Paste</strong>, <strong>Delete</strong>, <strong>Move up</strong> and <strong>Move down</strong> rearrange rows. Rows copied in one GEstimator window paste into another.</li>
+<li>Edit any cell in place. Type quantities directly, or let measurements fill them (see <a href="#7-record-measurements">section 7</a>).</li>
+<li><strong>Renumber schedule…</strong> renumbers item codes in order; <strong>Row colour</strong> highlights rows; <strong>Rate discrepancies</strong> lists items whose stored rate differs from their analysis.</li>
+</ul>
+<p>The <strong>Overall estimate total</strong> below the table always covers the whole project, whatever the search or filter shows.</p>
+<h2 id="5-check-and-edit-rate-analyses">5. Check and edit rate analyses</h2>
+<p>Select an item and click <strong>Edit analysis</strong> to open its rate analysis. The Project explorer on the left lists the schedule items and resources for quick reference.</p>
+<figure><img src="images/analysis.png" alt="Rate analysis of item 5.3" loading="lazy"><figcaption>Rate analysis of item 5.3</figcaption></figure>
+<p>An analysis is a list of rows, calculated from top to bottom:</p>
+<div class="table"><table><thead><tr><th>Row</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><strong>Group</strong></td><td>A heading such as MATERIALS or LABOUR, followed by resource rows (code, quantity, rate, amount) and a group total.</td></tr>
+<tr><td><strong>Subtotal</strong></td><td>Sums the rows above it and becomes the base for the next rows.</td></tr>
+<tr><td><strong>Weighted addition</strong></td><td>Adds a fraction of the base, for example <code>Add CP&amp;OH @ 15%</code> (0.15) or water charges (0.01).</td></tr>
+<tr><td><strong>Multiplier</strong></td><td>Replaces the running total with the base multiplied by a factor, for example to divide a lot rate by its quantity.</td></tr>
+<tr><td><strong>Round off</strong></td><td>Rounds the running total, for example to the nearest 0.05.</td></tr>
+</tbody></table></div>
+<ul>
+<li>Add resources with <strong>From database</strong> (resources of an attached database) or <strong>Custom resource</strong>. Insert calculation rows with the ribbon buttons; <strong>Default rows</strong> inserts your standard additions and <strong>Custom template</strong> your saved templates.</li>
+<li>The <strong>Calculated unit rate</strong> at the bottom updates as you edit. The <strong>Inspector</strong> on the right shows the properties and calculated values of the selected row.</li>
+<li><strong>Apply analysis</strong> accepts the draft into the project, updates the item rate and every rate that depends on it, and returns to Schedule. <strong>Discard analysis</strong> abandons the changes.</li>
+<li><strong>Export analysis</strong> and <strong>Import analysis</strong> exchange single analyses with Excel workbooks.</li>
+</ul>
+<h3 id="bulk-edit-analyses">Bulk edit analyses</h3>
+<p><strong>Bulk edit analysis</strong> (Schedule ribbon) changes many analyses at once with rules: for example set the CP&amp;OH row to 10 % in every selected item, replace a resource, or delete water charges. Conditions select rows by kind, description, code or value. Preview shows every change before you apply it, and the whole edit is one undo step. Rule sets can be saved as presets.</p>
+<h2 id="6-manage-resources-and-rates">6. Manage resources and rates</h2>
+<figure><img src="images/resources.png" alt="Resources" loading="lazy"><figcaption>Resources</figcaption></figure>
+<p>Resources are the materials, labour and plant on which analyses are built. Each resource has a code, description, unit, rate, tax %, discount and reference. Changing a resource rate updates every analysis and item that uses it.</p>
+<ul>
+<li><strong>Add from database</strong> copies resources from an attached database.</li>
+<li><strong>Database rates</strong> refreshes the rates of the selected resources from a database (for example a newer schedule), with a preview before applying.</li>
+<li><strong>Resource usage</strong> shows which items use a resource and how much of it the estimate consumes; <strong>Find analyses</strong> jumps to them.</li>
+<li><strong>Refresh rates</strong> recalculates every item rate from its analysis.</li>
+<li><strong>Move resources</strong>, <strong>Cut</strong> and <strong>Paste</strong> reorganise resources between categories; <strong>Renumber resources</strong> renumbers codes.</li>
+</ul>
+<h2 id="7-record-measurements">7. Record measurements</h2>
+<p>Measurements record the detailed dimensions behind each quantity.</p>
+<figure><img src="images/measurements.png" alt="Measurements" loading="lazy"><figcaption>Measurements</figcaption></figure>
+<ol>
+<li>In <strong>Measurements</strong>, click <strong>Add item</strong> and choose a template. <strong>NLBH (numbers, length, area, volume)</strong> suits most civil items. Other templates cover several linked quantities, steel reinforcement, electrical points and round or rectangular ducting.</li>
+<li>Double-click the measurement (or click <strong>Edit records</strong>) to open its records.</li>
+<li>Link the measurement to a schedule item under <strong>Measured quantity</strong>: type or search the item code.</li>
+<li>Add records with <strong>Add record</strong> (Ctrl+I) or <strong>Add multiple records</strong>, and fill in the dimensions. Cells accept arithmetic such as <code>2*3.5+1.2</code>. A negative number deducts, for example a door opening.</li>
+<li>Click <strong>Apply records</strong>.</li>
+</ol>
+<figure><img src="images/measurement-records.png" alt="Measurement records" loading="lazy"><figcaption>Measurement records</figcaption></figure>
+<p>When the measurements are complete, click <strong>Update quantities</strong> in the Measurements ribbon to copy the measured totals into the schedule quantities, with the rounding chosen next to it. <strong>Measured quantities</strong> in the Schedule ribbon does the same for the selected items.</p>
+<p><strong>Import records</strong> brings dimensions in from a spreadsheet range, and <strong>Properties</strong> changes the template constants and links of a measurement.</p>
+<h2 id="8-import-from-and-export-to-excel">8. Import from and export to Excel</h2>
+<ul>
+<li><strong>Import workbook</strong> (Schedule or Resources ribbon) imports items or resources from a <code>.xlsx</code> sheet. Choose the sheet and header row, map columns to fields and check the preview, which lists every row that cannot be used.</li>
+<li><strong>Import analyses</strong> imports rate analyses laid out in a workbook.</li>
+<li><strong>Export workbook</strong> writes the whole estimate to a <code>.xlsx</code> workbook: schedule of rates, schedule of resources, details of measurements, resource usage and the analysis of rates of every item.</li>
+</ul>
+<h2 id="9-save-tabs-and-recovery">9. Save, tabs and recovery</h2>
+<ul>
+<li><strong>Save</strong> (Ctrl+S) writes the working copy back to the project file and keeps a backup of the previous version. <strong>Save project copy</strong> (Ctrl+Shift+S) writes a new file.</li>
+<li>Every change is one step of <strong>Undo</strong> (Ctrl+Z) and <strong>Redo</strong> (Ctrl+Y).</li>
+<li>Several projects can be open at once, one per tab in the project rail. Each tab keeps its own project, undo history and view: switching back returns you to the same view, search and selection.</li>
+<li>GEstimator saves a recovery copy of unsaved work. After a crash, the start page offers to recover it.</li>
+<li>You are asked to save or discard unsaved changes before a project closes.</li>
+</ul>
+<h2 id="10-settings">10. Settings</h2>
+<ul>
+<li><strong>Program settings</strong> (application menu): number format and currency symbol, live search and the MCP server (General); theme, fonts and table typography (Appearance); the rows inserted by <strong>Default rows</strong> (Default analysis template); and the settings used by <strong>Modify &amp; Add</strong> (Library Modify &amp; Add).</li>
+<li><strong>Project settings</strong>: project name, code prefixes for items and resources, and project notes.</li>
+</ul>
+<h2 id="11-use-an-ai-assistant-mcp">11. Use an AI assistant (MCP)</h2>
+<p>GEstimator can run a local <a href="https://modelcontextprotocol.io" rel="noopener">Model Context Protocol</a> server so that an AI assistant (Claude, or any MCP client) reads and prepares estimates in the open project, using the same operations as the application.</p>
+<ol>
+<li>Tick <strong>Enable the MCP server for AI assistants</strong> in <strong>Program settings → General</strong>. The <strong>MCP</strong> tab appears.</li>
+<li>Click <strong>Configure server</strong> to choose the port and the access mode: <strong>Read only</strong> or <strong>Read and write</strong>. Copy the client configuration (endpoint and connection token) into your AI client.</li>
+<li>Click <strong>Start server</strong>.</li>
+</ol>
+<figure><img src="images/mcp.png" alt="MCP server settings" loading="lazy"><figcaption>MCP server settings</figcaption></figure>
+<p>The assistant reads database notes before choosing items, searches databases, imports items, edits analyses and records measurements. Every change it makes appears in the open project at once and is one undo step, so you can review it like your own edits. The server listens only on your computer, and only clients with the connection token can use it.</p>
+<h2 id="12-keyboard-shortcuts">12. Keyboard shortcuts</h2>
+<p>The full list is under <strong>Keyboard shortcuts</strong> (the <code>?</code> icon in the title bar). The most used:</p>
+<div class="table"><table><thead><tr><th>Action</th><th>Keys</th></tr></thead><tbody>
+<tr><td>Open / save / save copy</td><td>Ctrl+O / Ctrl+S / Ctrl+Shift+S</td></tr>
+<tr><td>Find in current view</td><td>Ctrl+F</td></tr>
+<tr><td>New / close project tab, next tab</td><td>Ctrl+T / Ctrl+W, Ctrl+Tab</td></tr>
+<tr><td>Undo / redo</td><td>Ctrl+Z / Ctrl+Y</td></tr>
+<tr><td>Add item, record or resource / add subitem</td><td>Ctrl+I / Ctrl+Shift+I</td></tr>
+<tr><td>Add from database</td><td>Ctrl+L</td></tr>
+<tr><td>Copy / paste / duplicate / delete rows</td><td>Ctrl+C / Ctrl+V / Ctrl+D / Delete</td></tr>
+<tr><td>Move row up / down</td><td>Alt+Up / Alt+Down</td></tr>
+<tr><td>Edit cell / cancel / next cell</td><td>Enter or F2 / Escape / Tab</td></tr>
+</tbody></table></div>
+<p>On macOS use ⌘ in place of Ctrl.</p>
+</main>
+<footer><div class="wrap">GEstimator is free software under the GNU GPL v3 · <a href="https://github.com/manuvarkey/GEstimator">Source code</a> · <a href="https://github.com/manuvarkey/GEstimator/discussions/">Forum</a> · <a href="https://github.com/manuvarkey/GEstimator/issues">Bug tracker</a></div></footer>
+</body>
+</html>
