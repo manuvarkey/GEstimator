@@ -1,6 +1,6 @@
 # Local MCP server
 
-The MCP ribbon keeps the active editor in place. Configure port (1024–65535, default 8765), **Read only / Read and write**, optional automatic startup and token rotation. Save configuration before Start; stop before changing it. Existing saved settings retain read-only access until explicitly changed.
+The server is off by default. **Program settings → AI assistants (MCP) → Enable the MCP server for AI assistants** shows the MCP tab and allows Start; the backend refuses `mcp.start` until it is enabled (`mcp.enable`), and disabling it stops a running server. Saved automatic startup applies only while the option is on. The MCP ribbon keeps the active editor in place. Configure port (1024–65535, default 8765), **Read only / Read and write**, optional automatic startup and token rotation. Save configuration before Start; stop before changing it. Existing saved settings retain read-only access until explicitly changed.
 
 **Copy client configuration** copies an `mcpServers.gestimator` entry with the Streamable HTTP URL and Bearer header. Show token reveals selectable configuration text if the clipboard is unavailable. Clients must support HTTP/custom authorization headers. The listener binds to `127.0.0.1`; every request requires its token and valid local Host/Origin headers. The token grants the configured access, including file operations in write mode.
 

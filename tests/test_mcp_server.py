@@ -6,6 +6,29 @@ import unittest
 from modern.backend.runtime import Runtime
 
 
+class MCPOptIn(unittest.TestCase):
+    def test_server_is_off_until_enabled_and_disabling_stops_it(self):
+        runtime = Runtime()
+        self.addCleanup(runtime.close)
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+        status = runtime.call("mcp.configure", dict(port=port))
+        self.assertFalse(status["enabled"])
+        self.assertFalse(status["running"])
+        with self.assertRaisesRegex(Exception, "turned off"):
+            runtime.call("mcp.start")
+        with self.assertRaises(OSError):
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+        runtime.call("mcp.enable", dict(enabled=True))
+        self.assertTrue(runtime.call("mcp.start")["running"])
+        status = runtime.call("mcp.enable", dict(enabled=False))
+        self.assertFalse(status["running"])
+        self.assertFalse(status["enabled"])
+        with self.assertRaises(OSError):
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+
+
 class MCPFixture(unittest.TestCase):
     def setUp(self):
         self.runtime = Runtime()
@@ -13,6 +36,7 @@ class MCPFixture(unittest.TestCase):
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))
             self.port = listener.getsockname()[1]
+        self.runtime.call("mcp.enable", dict(enabled=True))
         self.status = self.runtime.call("mcp.configure", dict(port=self.port))
         self.token = self.status["token"]
 

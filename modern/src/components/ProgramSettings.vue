@@ -4,6 +4,7 @@ import { moneyFormatter } from "../numberFormatting";
 import Dialog from "primevue/dialog";
 import AnalysisRowEditor from "./AnalysisRowEditor.vue";
 import { programSettings, programSettingsWarning, initializeProgramSettings, saveProgramSettings, shippedProgramSettings, type ProgramSettings } from "../programSettings";
+import { applyMCPEnabled } from "../mcp";
 import { appearance, defaultAppearance } from "../appearance";
 import { request } from "../backend";
 const visible = defineModel<boolean>({ required: true });
@@ -54,7 +55,7 @@ watch(tab, async section => {
 async function save() {
   if (!draft.value || busy.value) return;
   busy.value = true; error.value = "";
-  try { moneyFormatter(draft.value); await saveProgramSettings(draft.value, appearanceDraft.value); visible.value = false; }
+  try { moneyFormatter(draft.value); await saveProgramSettings(draft.value, appearanceDraft.value); await applyMCPEnabled(draft.value.mcp_enabled); visible.value = false; }
   catch (failure) { error.value = String(failure); }
   finally { busy.value = false; }
 }
@@ -83,6 +84,9 @@ async function reset() {
         <h3>Search</h3>
         <label class="library-remember"><input v-model="draft.live_search" type="checkbox" :disabled="busy" />Search as you type</label>
         <p class="field-hint">Schedule, Resources and the database picker update their results shortly after you stop typing. When off, press Enter or Search.</p>
+        <h3>AI assistants (MCP)</h3>
+        <label class="library-remember"><input v-model="draft.mcp_enabled" type="checkbox" :disabled="busy" />Enable the MCP server for AI assistants</label>
+        <p class="field-hint">Off by default. When on, the MCP tab lets you start a local server (127.0.0.1 only, with a connection token) that AI assistants on this computer can use to read and, if you allow it, edit the open project. Turning this off stops a running server.</p>
         <h3>Export options</h3>
         <label class="library-remember"><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across multiple rows in exported workbooks</label>
       </template>

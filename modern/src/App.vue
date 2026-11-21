@@ -26,7 +26,7 @@ import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
 import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
-import { programSettingsWarning } from "./programSettings";
+import { programSettings, programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
@@ -120,7 +120,7 @@ const libraryManager = ref<InstanceType<typeof LibraryManager>>();
 const mcpSettingsOpen = ref(false);
 let mcpPoll: ReturnType<typeof setInterval> | undefined;
 const projectHistory = ref({ undo: false, redo: false });
-const views = [
+const allViews = [
   { key: "schedule", label: "Schedule" },
   { key: "analysis", label: "Analysis" },
   { key: "resources", label: "Resources" },
@@ -128,13 +128,16 @@ const views = [
   { key: "databases", label: "Databases" },
   { key: "mcp", label: "MCP" },
 ] as const;
+// The MCP tab appears only after the user enables the server in Program Settings.
+const views = computed(() => allViews.filter(view => view.key !== "mcp" || !!programSettings.value?.mcp_enabled));
 const settingsOpen = ref(false);
 // Start on Schedule: with no project open it shows the landing page.
 // Each project tab remounts this workspace; restore the tab's last editor.
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
   currentDocument.value.view,
 );
-const activeTab = ref<(typeof views)[number]["key"]>(currentDocument.value.view);
+const activeTab = ref<(typeof allViews)[number]["key"]>(currentDocument.value.view);
+watch(() => programSettings.value?.mcp_enabled, enabled => { if (!enabled && activeTab.value === "mcp") activeTab.value = activeView.value; });
 const documentId = activeDocument.value;
 watch(activeView, view => updateDocument(documentId, { view }));
 const measurementEntry = ref<string>();
@@ -736,14 +739,14 @@ async function switchView(view: typeof activeTab.value) {
   });
 }
 function navigateTabs(event: KeyboardEvent, index: number) {
-  const last = views.length - 1;
-  const next = event.key === "ArrowRight" ? (index + 1) % views.length
-    : event.key === "ArrowLeft" ? (index + last) % views.length
+  const last = views.value.length - 1;
+  const next = event.key === "ArrowRight" ? (index + 1) % views.value.length
+    : event.key === "ArrowLeft" ? (index + last) % views.value.length
     : event.key === "Home" ? 0 : event.key === "End" ? last : -1;
   if (next < 0) return;
   event.preventDefault();
   // Move focus without switching away from a draft; Enter/Space activates the tab.
-  document.getElementById("view-" + views[next]!.key)?.focus();
+  document.getElementById("view-" + views.value[next]!.key)?.focus();
 }
 async function loadAnalysis(code: string) {
   await navigate(async (discard) => {

@@ -173,6 +173,8 @@ class Service:
                 return self.mcp.status(include_tools=p.get("include_tools", False))
             if method == "mcp.configure":
                 return self.mcp.configure(p)
+            if method == "mcp.enable":
+                return self.mcp.enable(p.get("enabled"))
             if method == "mcp.start":
                 return self.mcp.start()
             if method == "mcp.stop":

@@ -63,6 +63,8 @@ class MCPServer:
         self.requests = 0
         self.last_activity = ""
         self.access = "read"
+        # Off until the user enables the MCP server in Program Settings.
+        self.enabled = False
         self.change_seq = 0
         self.project_epoch = 0
         self.generation = 0
@@ -72,7 +74,7 @@ class MCPServer:
 
     def status(self, include_tools=True):
         with self.lock:
-            result = dict(running=self.server is not None, port=self.port, token=self.token,
+            result = dict(running=self.server is not None, enabled=self.enabled, port=self.port, token=self.token,
                         url=f"http://127.0.0.1:{self.port}/mcp", requests=self.requests,
                         last_activity=self.last_activity, protocol=VERSION,
                         access=self.access, change_seq=self.change_seq, project_epoch=self.project_epoch)
@@ -95,9 +97,20 @@ class MCPServer:
         self.port, self.token, self.access = port, token, access
         return self.status()
 
+    def enable(self, enabled):
+        """Allow or forbid starting the server; forbidding stops a running server."""
+        if type(enabled) is not bool:
+            raise ValueError("Choose whether the MCP server is enabled")
+        self.enabled = enabled
+        if not enabled and self.server:
+            return self.stop()
+        return self.status()
+
     def start(self):
         if self.server:
             return self.status()
+        if not self.enabled:
+            raise ValueError("The MCP server is turned off. Enable it in Program Settings (AI assistants) to start it.")
         if not self.dispatch:
             raise ValueError("MCP requires the application's serialized service runtime")
         owner = self

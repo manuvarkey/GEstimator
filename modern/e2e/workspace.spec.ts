@@ -77,6 +77,10 @@ async function connectDesktop(page: Page, transport = call) {
     return systemClipboard;
   });
   await page.addInitScript(() => {
+    // The MCP server is off by default (Program Settings). Most scenarios use it, so it is
+    // enabled here unless a test asks for the shipped default (window.name "mcp-default").
+    if (window.name !== "mcp-default" && !localStorage.getItem("gestimator.program-settings.v1"))
+      localStorage.setItem("gestimator.program-settings.v1", JSON.stringify({ version: 1, settings: { mcp_enabled: true } }));
     (window as any).isTauri = true;
     let callbackId = 0;
     (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
@@ -569,6 +573,34 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   expect(editorBounds.x + editorBounds.width).toBeLessThanOrEqual((await fixedHeader.boundingBox())!.x + 1);
 });
 
+test("MCP server is off until enabled in Program Settings", async ({ page }) => {
+  await page.evaluate(() => { window.name = "mcp-default"; localStorage.clear(); });
+  await page.reload();
+  await expect(page.getByText("Calculation engine connected")).toBeVisible();
+  await expect(page.locator("#view-mcp")).toHaveCount(0);
+  expect((await call("mcp.status")).result).toMatchObject({ enabled: false, running: false });
+  expect((await call("mcp.start")).error?.message).toContain("turned off");
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Program settings/ }).click();
+  const settings = page.getByRole("dialog", { name: /Program settings/ });
+  const option = settings.getByRole("checkbox", { name: "Enable the MCP server for AI assistants" });
+  await expect(option).not.toBeChecked();
+  await option.check();
+  await settings.getByRole("button", { name: /^Save/ }).click();
+  await expect(settings).not.toBeVisible();
+  await expect(page.locator("#view-mcp")).toBeVisible();
+  expect((await call("mcp.status")).result).toMatchObject({ enabled: true, running: false });
+  await page.locator("#view-mcp").click();
+  await page.getByRole("button", { name: "Start MCP server", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Program settings/ }).click();
+  await settings.getByRole("checkbox", { name: "Enable the MCP server for AI assistants" }).uncheck();
+  await settings.getByRole("button", { name: /^Save/ }).click();
+  await expect(page.locator("#view-mcp")).toHaveCount(0);
+  expect((await call("mcp.status")).result).toMatchObject({ enabled: false, running: false });
+  await page.evaluate(() => { window.name = ""; });
+});
 test("MCP write mode refreshes the UI and protects in-progress cell edits", async ({ page }) => {
   await page.clock.install();
   await page.reload();

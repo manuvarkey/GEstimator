@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { request } from "./backend";
+import { initializeProgramSettings, programSettings } from "./programSettings";
 
 export interface MCPStatus {
   running: boolean; port: number; token: string; url: string; protocol: string;
@@ -51,7 +52,12 @@ export async function copyMCPConfig() {
   try { await writeText(mcpConfig()); mcpMessage.value = "Client configuration copied."; }
   catch { mcpError.value = "Clipboard unavailable. Copy the client configuration from Configure MCP server."; }
 }
+/** Allow or forbid the server (Program Settings); forbidding stops a running server. */
+export const applyMCPEnabled = (enabled: boolean) => command("mcp.enable", { enabled }, true);
 export async function initializeMCP() {
+  await initializeProgramSettings();
+  const enabled = !!programSettings.value?.mcp_enabled;
+  if (!await applyMCPEnabled(enabled)) return;
   if (!await refreshMCPTools()) return;
   try {
     const saved = JSON.parse(localStorage.getItem(key) || "null");
@@ -59,7 +65,7 @@ export async function initializeMCP() {
       if (saved.version !== 1 || typeof saved.autostart !== "boolean" || typeof saved.port !== "number" || typeof saved.token !== "string") throw new Error("Invalid preferences");
       if (!mcpStatus.value?.running && !await command("mcp.configure", { port: saved.port, token: saved.token, access: saved.access ?? "read" })) return;
       mcpAutostart.value = saved.autostart;
-      if (saved.autostart && !mcpStatus.value?.running) await startMCP();
+      if (enabled && saved.autostart && !mcpStatus.value?.running) await startMCP();
     } else remember();
   } catch { mcpError.value = "Saved MCP settings could not be read. Review and save MCP settings to replace them."; }
 }

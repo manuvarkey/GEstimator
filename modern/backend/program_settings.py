@@ -36,7 +36,7 @@ def library_catalog():
 
 def defaults():
     return dict(export_break_items=True, live_search=False, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
-                number_locale="", currency_code="INR", show_currency_symbol=False,
+                number_locale="", currency_code="INR", show_currency_symbol=False, mcp_enabled=False,
                 ana_default_rows=template_rows(misc.ana_default_add_items), ana_copy_rows=[])
 
 
@@ -75,6 +75,8 @@ def validate(settings):
         raise ValueError("Choose whether exported descriptions should be split")
     if type(base["live_search"]) is not bool:
         raise ValueError("Choose whether to search as you type")
+    if type(base["mcp_enabled"]) is not bool:
+        raise ValueError("Choose whether the MCP server is enabled")
     locale = base["number_locale"]
     if not isinstance(locale, str) or (locale and not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,4}", locale)):
         raise ValueError("Choose a valid regional locale, such as en-IN")
