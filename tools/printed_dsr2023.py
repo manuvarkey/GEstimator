@@ -7,7 +7,7 @@ printed "26.50.1 A" or "2.25(a)" is read as 26.50.1A or 2.25A.
 
 `printed_schedule(pdfs)` returns {code: dict(rate, unit, description)} in book
 order. The rate is the first rate printed under the code before the next code;
-headings have rate None. Chapter 1 (carriage by lead) is printed as tables and is
+headings have rate None. A rate printed as a percentage ("20%") gives percent=True. Chapter 1 (carriage by lead) is printed as tables and is
 read from the workbook instead.
 """
 
@@ -18,7 +18,7 @@ import tempfile
 from pathlib import Path
 
 CODE = re.compile(r"^ {0,45}((?:[1-9]|1\d|2[0-6])\.\d+(?: ?[A-Z]\b|\([a-z]\))?(?:\.[A-Za-z]?\d+(?: ?[A-Z]\b)?)*)\.?\s+(\S.*)$")
-RATE = re.compile(r"\s{2,}(-?\d[\d,]*\.\d{2})\s*$")
+RATE = re.compile(r"\s{2,}(-?\d[\d,]*\.\d{2}|\d+(?:\.\d+)? ?%)\s*$")
 HEAD = re.compile(r"SUB HEAD\s*:\s*(\d+)\.0")
 UNIT_COLUMN = 70
 
@@ -58,13 +58,15 @@ def printed_schedule(pdfs):
                         current = None
                         continue
                     current = code
-                    items[code] = dict(rate=None, unit=None, lines=[])
+                    items[code] = dict(rate=None, unit=None, percent=False, lines=[])
                     line = line[:match.start(1)] + " " * len(match.group(1)) + line[match.end(1):]
             if current is None or items[current]["rate"] is not None:
                 continue
             rate = RATE.search(line)
             if rate and rate.start() >= 60:
-                items[current]["rate"] = float(rate.group(1).replace(",", ""))
+                value = rate.group(1).replace(",", "")
+                items[current]["percent"] = value.endswith("%")
+                items[current]["rate"] = float(value.rstrip("% "))
                 left = line[:rate.start()].rstrip()
                 unit = re.search(r"\s{2,}(\S+(?: \S+){0,3})$", left)
                 if unit and unit.start(1) >= UNIT_COLUMN:

@@ -72,6 +72,16 @@ SIMPLE_UNITS = {"each", "sqm", "metre", "cum", "kg", "100 metre", "quintal", "jo
 PRINTED_UNITS = {"MT": "tonne", "each set": "set", "one set": "set", "each job": "job", "per litre": "litre",
                  "each hole": "hole", "kilo litre": "kilolitre"}
 UNIT_FIX = {"6.24": "cum per metre depth"}
+# Items the book prices as a percentage of other items: unit for the "% above/ ..." unit and remarks.
+PERCENT_ITEMS = {
+    "2.24.1": ("metre depth", "Percentage of the rate of each item executed in or under water or liquid mud, for the "
+               "quantity so executed. Metre depth: from the sub-soil water level to the centre of gravity of that "
+               "quantity, correct to 0.10 m."),
+    "2.24.2": ("metre depth", "Percentage of the rate of each item executed in or under foul position, for the "
+               "quantity so executed. Metre depth: from the sub-soil water level to the centre of gravity of that "
+               "quantity, correct to 0.10 m."),
+    "5.9.14": ("sqm", "Percentage of the rate of the respective centering and shuttering item, for the area of circular work."),
+}
 SHORT_UNITS = {"cum": "cum", "sqm": "sqm", "m": "metre", "nos": "each", "no.": "each", "kg": "kg",
                "qtl": "quintal", "mt": "tonne", "job": "job", "100 m": "100 metre", "joint": "joint",
                "holes": "hole", "times": "times", "units": "unit", "ltr": "litre"}
@@ -177,11 +187,20 @@ def main():
         if (code not in sched and code not in printed_parents and item["rate"] and code.split(".")[0] not in ("1", "3")
                 and not code.endswith(".0")):
             book_changes.append(f"{code}: added from the printed book")
+            chapter = f"{int(code.split('.')[0]):02d}"
             sched[code] = dict(DSR_CODE=code, ITM_CODE=der_by_code.get(code, code), DES_ITEM=item["description"],
-                               UNIT_FUL="", UNIT_NAME="", EST_RATE=item["rate"], SH_NO=f"{int(code.split('.')[0]):02d}")
+                               UNIT_FUL="", UNIT_NAME="", EST_RATE=item["rate"], SH_NO=chapter)
+            if item["percent"]:
+                unit, remark = PERCENT_ITEMS[code]
+                sched[code].update(UNIT_FUL=f"% above/ {unit}", ITM_CODE=None, REMARKS=remark)
+                heading = code.rsplit(".", 1)[0]
+                if heading not in sched and heading in printed:  # 2.24 is not in the source either
+                    book_changes.append(f"{heading}: heading added from the printed book")
+                    sched[heading] = dict(DSR_CODE=heading, ITM_CODE=None, DES_ITEM=printed[heading]["description"],
+                                          UNIT_FUL="", UNIT_NAME="", EST_RATE=0, SH_NO=chapter)
     for code, row in sched.items():
         book = printed.get(code)
-        if code.startswith("1.") or not book or book["rate"] is None or code in source_parents:
+        if code.startswith("1.") or not book or book["rate"] is None or code in source_parents or book.get("percent"):
             continue
         rate = Decimal(str(book["rate"]))
         if (row["EST_RATE"] or 0) < 0:
@@ -424,7 +443,7 @@ def main():
         description = "\n".join(text(sched[c]["DES_ITEM"]) for c in path[1:]) if len(path) > 1 else text(row["DES_ITEM"])
         unit = "" if is_heading else unit_of(row["UNIT_FUL"], row["UNIT_NAME"])
         rate = Decimal(0) if is_heading else Decimal(str(row["EST_RATE"] or 0))
-        remarks, ana_remarks, model = "", None, None
+        remarks, ana_remarks, model = row.get("REMARKS", ""), None, None
         if code in carriage:
             kind, values, note = carriage[code]
             if kind == "mechanical":
