@@ -21,7 +21,7 @@ from estimator import misc
 
 
 from .numbers import decimal, tax_text
-from .persistence import fingerprint, save_existing, write_recovery
+from .persistence import RecoveryClaim, fingerprint, save_existing, write_recovery
 
 
 def text(value: Any) -> str:
@@ -47,7 +47,13 @@ class Service:
         self.recovery_dir = recovery_dir
         self.recovery_id = uuid4().hex
         self.recovery_state = None
-        self.recovered_path = None
+        # Locks that keep other processes from offering this window's copies.
+        self.recovery_claim = None
+        self.recovered_claim = None
+        self._recovered_path = None
+        if recovery_dir:
+            self.recovery_claim = RecoveryClaim(recovery_dir, self.recovery_id)
+            self.recovery_claim.acquire()
         self.model = ScheduleItemModel("DEMO", "Untitled rate analysis", "m³")
         self.history = []
         self.future = []
@@ -241,10 +247,18 @@ class Service:
             if p["id"] not in {item["id"] for item in self.recovery_projects()}:
                 raise ValueError("Recovery copy unavailable")
             recovery = self.recovery_dir / (p["id"] + ".eproj")
-            self.call("project.open", dict(path=str(recovery), discard=p.get("discard")))
+            claim = RecoveryClaim(self.recovery_dir, p["id"])
+            if not claim.acquire():
+                raise ValueError("Recovery copy is open in another window")
+            try:
+                self.call("project.open", dict(path=str(recovery), discard=p.get("discard")))
+            except Exception:
+                claim.release()
+                raise
             self.source_path = self.source_fingerprint = None
             self.workspace_dirty = True
             self.recovered_path = recovery
+            self.recovered_claim = claim
             return self.state()
         if method.startswith("library."):
             if not self.db:
@@ -895,6 +909,18 @@ class Service:
             self.recovered_path.unlink(missing_ok=True)
             self.recovered_path = None
 
+    @property
+    def recovered_path(self):
+        return self._recovered_path
+
+    @recovered_path.setter
+    def recovered_path(self, path):
+        # Dropping the recovered copy also drops its claim (recovery.open sets the new claim).
+        self._recovered_path = path
+        if getattr(self, "recovered_claim", None):
+            self.recovered_claim.release()
+            self.recovered_claim = None
+
     def recovery_projects(self):
         if not self.recovery_dir:
             return []
@@ -903,6 +929,9 @@ class Service:
         claimed = {self.recovered_path} | {peer.recovered_path for peer in self.peers()}
         for path in self.recovery_dir.glob("*.eproj"):
             if path.stem in live or path in claimed:
+                continue
+            # Live or reopened copy of a window in another process.
+            if RecoveryClaim.held(self.recovery_dir, path.stem):
                 continue
             try:
                 projects.append(dict(id=path.stem, updated=path.stat().st_mtime))
@@ -985,4 +1014,7 @@ class Service:
             self.project_editor.close()
         if self.db:
             self.db.close_database()
+        self.recovered_path = None
+        if self.recovery_claim:
+            self.recovery_claim.release()
         self.temp.cleanup()

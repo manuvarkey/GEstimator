@@ -37,6 +37,41 @@ class DocumentSessionTests(unittest.TestCase):
         self.assertEqual(len(self.call("recovery.list")), 1)
 
 
+class SeparateProcessRecoveryTests(unittest.TestCase):
+    """Windows in separate processes share the recovery folder (each snap launch is a process)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+
+    def runtime(self):
+        # Separate open files lock against each other as separate processes do.
+        runtime = Runtime(Path(self.temp.name))
+        self.addCleanup(runtime.close)
+        return runtime
+
+    @staticmethod
+    def call(runtime, method, **params):
+        revision = runtime.call("state").get("revision", 0)
+        return runtime.call(method, dict(revision=revision, **params))
+
+    def test_live_and_reopened_copies_are_not_offered_to_other_processes(self):
+        first, second = self.runtime(), self.runtime()
+        self.call(first, "project.new")
+        self.call(first, "schedule.editor.add", data=dict(code="X", category="Work"))
+        first.checkpoint_recovery()
+        self.assertEqual(self.call(second, "recovery.list"), [])
+        # Closing without saving leaves the copy for recovery.
+        first.close()
+        copies = self.call(second, "recovery.list")
+        self.assertEqual(len(copies), 1)
+        self.call(second, "recovery.open", id=copies[0]["id"])
+        third = self.runtime()
+        self.assertEqual(self.call(third, "recovery.list"), [])
+        with self.assertRaisesRegex(ValueError, "unavailable|another window"):
+            self.call(third, "recovery.open", id=copies[0]["id"])
+
+
 class CloseProjectTests(unittest.TestCase):
     def test_close_requires_discard_for_unsaved_work_and_clears_project(self):
         from modern.backend.service import Service

@@ -72,23 +72,76 @@ def preserve_backup(staged, destination):
                 raise
 
 
+def lock_exclusive(stream):
+    """Take a non-blocking exclusive lock on an open file; OSError when held elsewhere."""
+    stream.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
 @contextmanager
 def save_lock(source):
     lock_path = source.with_name(f".{source.name}.gestimator-lock")
     with lock_path.open("a+b") as lock:
-        lock.seek(0)
         try:
-            if os.name == "nt":
-                import msvcrt
-
-                msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_exclusive(lock)
         except OSError as exc:
             raise ValueError("Another GEstimator window is saving this project") from exc
         yield
+
+
+class RecoveryClaim:
+    """Lock on <id>.lock beside a recovery copy, held while a window uses that copy.
+
+    Windows in other processes (each snap launch is its own process) skip
+    claimed copies, so they never offer or delete another window's live copy.
+    The OS drops the lock when the process ends, so copies left by a crash
+    become available again.
+    """
+
+    def __init__(self, directory, identity):
+        self.path = Path(directory) / (identity + ".lock")
+        self.stream = None
+
+    def acquire(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        stream = self.path.open("a+b")
+        try:
+            lock_exclusive(stream)
+        except OSError:
+            stream.close()
+            return False
+        self.stream = stream
+        return True
+
+    def release(self):
+        if self.stream is None:
+            return
+        self.stream.close()
+        self.stream = None
+        try:
+            self.path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    @staticmethod
+    def held(directory, identity):
+        """True when another open file holds the claim on this copy."""
+        path = Path(directory) / (identity + ".lock")
+        if not path.exists():
+            return False
+        try:
+            with path.open("a+b") as stream:
+                lock_exclusive(stream)
+        except OSError:
+            return True
+        return False
 
 
 def save_existing(source, expected, write):
