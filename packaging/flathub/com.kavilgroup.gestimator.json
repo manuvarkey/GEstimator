@@ -1,0 +1,86 @@
+{
+    "id": "com.kavilgroup.gestimator",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "51",
+    "sdk": "org.gnome.Sdk",
+    "sdk-extensions": [
+        "org.freedesktop.Sdk.Extension.rust-stable",
+        "org.freedesktop.Sdk.Extension.node24"
+    ],
+    "command": "gestimator",
+    "finish-args": [
+        "--socket=wayland",
+        "--socket=fallback-x11",
+        "--device=dri",
+        "--share=ipc",
+        "--share=network",
+        "--filesystem=home"
+    ],
+    "modules": [
+        {
+            "name": "python-dependencies",
+            "buildsystem": "simple",
+            "build-options": {
+                "env": {
+                    "NO_SQLITE": "1"
+                }
+            },
+            "build-commands": [
+                "pip3 install --no-index --find-links=python-packages --prefix=${FLATPAK_DEST} --no-build-isolation python-packages/*"
+            ],
+            "cleanup": [
+                "/bin"
+            ],
+            "sources": [
+                "python-sources.json"
+            ]
+        },
+        {
+            "name": "gestimator",
+            "buildsystem": "simple",
+            "build-options": {
+                "append-path": "/usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin",
+                "env": {
+                    "CARGO_HOME": "/run/build/gestimator/cargo",
+                    "CARGO_NET_OFFLINE": "true",
+                    "npm_config_cache": "/run/build/gestimator/npm-cache",
+                    "npm_config_offline": "true"
+                }
+            },
+            "build-commands": [
+                "for tarball in npm-tarballs/*; do npm cache add \"$PWD/$tarball\"; done",
+                "cd modern && npm ci --no-audit --no-fund",
+                "cd modern && npx vite build",
+                "install -Dm755 packaging/flathub/gestimator-backend modern/src-tauri/binaries/gestimator-backend-$(rustc -vV | sed -n 's/^host: //p')",
+                "cd modern/src-tauri && cargo build --offline --release --features custom-protocol",
+                "install -Dm755 modern/src-tauri/target/release/gestimator -t ${FLATPAK_DEST}/bin/",
+                "install -Dm755 packaging/flathub/gestimator-backend -t ${FLATPAK_DEST}/bin/",
+                "mkdir -p ${FLATPAK_DEST}/share/gestimator/modern",
+                "cp -r estimator ${FLATPAK_DEST}/share/gestimator/",
+                "cp -r modern/backend ${FLATPAK_DEST}/share/gestimator/modern/",
+                "find ${FLATPAK_DEST}/share/gestimator -name __pycache__ -prune -exec rm -rf {} +",
+                "python3 -m compileall -q ${FLATPAK_DEST}/share/gestimator",
+                "install -Dm644 packaging/linux/applications/${FLATPAK_ID}.desktop -t ${FLATPAK_DEST}/share/applications/",
+                "install -Dm644 packaging/linux/metainfo/${FLATPAK_ID}.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/",
+                "install -Dm644 packaging/linux/mime/${FLATPAK_ID}.xml -t ${FLATPAK_DEST}/share/mime/packages/",
+                "install -Dm644 packaging/linux/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg -t ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/",
+                "install -Dm644 modern/src-tauri/icons/128x128.png ${FLATPAK_DEST}/share/icons/hicolor/128x128/apps/${FLATPAK_ID}.png",
+                "install -Dm644 modern/src-tauri/icons/icon.png ${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/manuvarkey/GEstimator.git",
+                    "tag": "v3.0.0",
+                    "commit": "COMMIT_OF_THE_v3.0.0_TAG",
+                    "x-checker-data": {
+                        "type": "git",
+                        "tag-pattern": "^v([\\d.]+)$"
+                    }
+                },
+                "cargo-sources.json",
+                "node-sources.json"
+            ]
+        }
+    ]
+}

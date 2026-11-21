@@ -85,25 +85,31 @@ jobs:
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
+      # Publish tagged builds to the edge channel; promote to stable from the
+      # Snap Store dashboard after testing. Needs the SNAPCRAFT_STORE_CREDENTIALS
+      # secret (snapcraft export-login --snaps=gestimator --acls=package_upload -).
+      - uses: snapcore/action-publish@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.snap.outputs.snap }}
+          release: edge
 
   flatpak:
-    needs: desktop
+    # Same build as Flathub (from source, offline), using this checkout.
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
       options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: bundles-Linux
-          path: modern/src-tauri/target/release/bundle
-      - name: Stage the .deb
-        run: cp modern/src-tauri/target/release/bundle/deb/GEstimator_*_amd64.deb packaging/flatpak/gestimator.deb
+      - name: Local manifest
+        run: packaging/flathub/build-local.sh --manifest-only
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: gestimator.flatpak
-          manifest-path: packaging/flatpak/com.kavilgroup.gestimator.yml
+          manifest-path: packaging/flathub/local.json
 
   release:
     needs: [desktop, snap, flatpak]

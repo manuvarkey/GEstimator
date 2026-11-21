@@ -26,6 +26,8 @@
     </ul>
   </description>
   <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
+  <url type="bugtracker">https://github.com/manuvarkey/GEstimator/issues</url>
+  <url type="vcs-browser">https://github.com/manuvarkey/GEstimator</url>
   <screenshots>
     <screenshot type="default">
       <image>https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png</image>

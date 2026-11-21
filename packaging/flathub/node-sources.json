@@ -1,0 +1,891 @@
+[
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@babel/helper-string-parser/-/helper-string-parser-7.29.14.tgz",
+        "sha512": "097bca305bccf348a123b568c7d8dbfa44239f28c449034f33ebc1ed4d19cfa4d6b9903e67f14bd103cc1f7d34877dea26d231f9111e0615ea58e3d6e3c4dc01",
+        "dest": "npm-tarballs",
+        "dest-filename": "_babel_helper-string-parser-helper-string-parser-7.29.14.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.29.7.tgz",
+        "sha512": "a9e8711a4463e7987f7dff0431a27e71887268a947231a980e7ebcdb0403ed1369f54ba3390b07a20dae4b4af6bf3af8a56fac5dff7435e79aca370d697ddf16",
+        "dest": "npm-tarballs",
+        "dest-filename": "_babel_helper-validator-identifier-helper-validator-identifier-7.29.7.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@babel/parser/-/parser-7.29.14.tgz",
+        "sha512": "54bdb6d2f5eec8edb3deb34843063b7ed8fd530a6a3adfb7dec1feb015a439e91bb1247683b1043273b1db8665087d31380dc333fdf74a27d51466e7243f2bff",
+        "dest": "npm-tarballs",
+        "dest-filename": "_babel_parser-parser-7.29.14.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@babel/types/-/types-7.29.14.tgz",
+        "sha512": "52323f74a9b02704fda4eb33262b6ad86e8439b64f9ec6547dd0abf76cf64e51771192bd27711d7ce294ac2cc797ac05b616f3c21ce5d52a1cfd4230c518aaeb",
+        "dest": "npm-tarballs",
+        "dest-filename": "_babel_types-types-7.29.14.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz",
+        "sha512": "5c4c5c3be76f2cabd5b4d4e26d24c17a3d4d0806da1a15a7f56c3564fc7cd2ab1a8613c57bff238163f421c84d7b41771f0914ee7f1e8e11fc6e3a27aa1b7c99",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_aix-ppc64-aix-ppc64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz",
+        "sha512": "9175e888f55519072721818e79aa2fc0e511a678830694aae00d37aa443e04c42ab461ba1d86a9df19def42d4ed72a384d1deac65097e48aaa997e9f168d8baa",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_android-arm-android-arm-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz",
+        "sha512": "e587ca79e23ca967c16485febb6c590b76656f73acfe02d2dac6c428cf88e1939cb169874b658bcac09c4190c0151b250d45393a2ab8e207fa3d8375bc6c06e4",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_android-arm64-android-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz",
+        "sha512": "3b7f3b8ad7bb4b353209ccb72505f83f86cbb4403b6cb2e4c7e7acbdee491e7c987cd4f1715a57668f6385d07495328de38833b442d3754ee74bc36bd7a16cd5",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_android-x64-android-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz",
+        "sha512": "9f82aa90e42badac4725c82333546fc1b8a07d028828956933bc69f8ab318b2512ad17485e7b7bdd586b3c0c747d5e388607e62152a3c4c37d275b798f249593",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_darwin-arm64-darwin-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz",
+        "sha512": "baaeacb885983f7eeacc675d04a3f0e501103e2e8788b1ac3bb5269297f2698350dc3fab37ac3a59fc07fa7baa7065d6bdac06c31384ae83b86069c587de5acf",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_darwin-x64-darwin-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz",
+        "sha512": "9fe234053491228cbe77a44f2a7115c2a979530049a25cadbd8e2600e204268aca96a80f208f22c7ab25555adf6794e78fb825219be5a3295b07f1093cc5845f",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_freebsd-arm64-freebsd-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz",
+        "sha512": "efc5c94c992f3ecd24cf6c3ad77d353c98d797883bab726a898319fccff2548ef710706b0914e0921bbda2a1bbbcfaaaf9aff269d116f1a0fe6a02a5939c6b9a",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_freebsd-x64-freebsd-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz",
+        "sha512": "5e50e7bb6ab9ca8a9e9acfb16b2eb0480720f430c3ecaf512ca64404e3199b7724369241bce5f6d2d49f6f2f0a7ebae120d0f2bfd57661564a63f4a9a06248f3",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-arm-linux-arm-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz",
+        "sha512": "a56e000b43f78adf1cedda3d315338a79d45cc7cdd33f4d9adeaeeae045c1c9d964dad55435088ab5f319dc7e9049c38a23922659aca5b6c8805604ff768fa52",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-arm64-linux-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz",
+        "sha512": "0986e78fbf07b08780f8386050a80509fbcdb131c584c32b8a752b319a435c95ca37c4f75d589367ffb0b47795c44598f1ec12cd314dfa74664b03b6b5968b51",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-ia32-linux-ia32-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz",
+        "sha512": "6eec2477c9eca61e11f9a8d1bf0d2a3391e36bf4d7428c37a6dcd63b611b1bf72a70890796846b76506d425b21c98193345bdf91f279b693cb5646380edb0f7d",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-loong64-linux-loong64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz",
+        "sha512": "655ca46c3ca4ef9d7d57088d6fd2dc8fd9bc5cceafe55f6e28fbeb10c92411e7557b07fed22b6485a869e070e98044578702d1a56172a6c19b1bf27cb3442324",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-mips64el-linux-mips64el-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz",
+        "sha512": "0805e5f83b5df5452e25df2928a77087a30b9b7314322a8c3e6859ded4d25cfa9fc90def0e5e91e6165d67f918a232b8a1f5ed75f4afd6d16af17cd6c7785e35",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-ppc64-linux-ppc64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz",
+        "sha512": "19e5c27a3e0842d53507e4250d5f16fd146f6f32373bf4adb2cfbf6c25efe25665b3958646dbb66bedc9900de2e2a21494c5e970779b5a917c024261013a30b8",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-riscv64-linux-riscv64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz",
+        "sha512": "dc7d707936193f1b7f58e841caccd06726d2f70e652b3527d450ccb2010285b1d64301d841045f071802719bcf8631df2b22632227afbcc98451ac09add63d0e",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-s390x-linux-s390x-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz",
+        "sha512": "e314d9af5154992a105b85c85a68addedcd0ad44d933e3773f45d5f3144e298179d177c8ef178ef74fb56d9bcdc3122e7d0f610d0551247e588603d517c03f1d",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_linux-x64-linux-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz",
+        "sha512": "b120134633de0c1837a5d807a107e8601a1bd752a4d4519af65ba2e51207642a029096bd40a96f977fef2b3daeb02998623b3bca6251ff6367b2a7be1e3b799f",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_netbsd-arm64-netbsd-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz",
+        "sha512": "96a9f3095fa633480800368a8a188283a89f81f5362f7879137deb35004dd58e0c6951a7cebcb39afbdfed41f1a6ba50744f21a6a2e8949f5197e4a42110e9cb",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_netbsd-x64-netbsd-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz",
+        "sha512": "00bdaa2482c7ee5363ac3982403bddc4c7c0508bfc28c3593afaf0010f22f3ffe7b4bf457e584ec8c27c39948c05bf3f0165dedffe6fe52db4cb7cc2a1958aa1",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_openbsd-arm64-openbsd-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz",
+        "sha512": "42d8ae3f2b5c851c82e2bc142a17b125d40abc3b99ea15a5a22de282a3d03542424b5feff4488edd44ce5d1e80dc5a0ca387e700a6d625da9a23084ece1f2a13",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_openbsd-x64-openbsd-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz",
+        "sha512": "5a48580e6a538cbbc6952700d6bc234549a197893ca174777086eda969842e053f7457871e51259710ef75670d255f6b6f309ec41e6fcfc82d35ec162e0093ed",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_openharmony-arm64-openharmony-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz",
+        "sha512": "18f3129133ad327bf653617c8317b8228eaa995b3e60aca9f37d84b6aab1af48459e0997437af3c32b5e966dc6227ed3e15be245495fdec3a004e89376f69fee",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_sunos-x64-sunos-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz",
+        "sha512": "3c886112413db8f06579106b404269527ecc06789b6736c6cd858f998df1f98a1583ff79cdb8c1e02c4f3ce43c979b5860ce2631a0ad845f3fd4321f05043259",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_win32-arm64-win32-arm64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz",
+        "sha512": "62625b7d396f53b49d9fd041fb83d1112e2807aa71812dfb30038d8fe841aff7295d2d5a04f297c4d9c36eef900963e3d28f5d832c5eabbf60e9ce4ff0a7ae60",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_win32-ia32-win32-ia32-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz",
+        "sha512": "e5e6e9c6bde758cceb2ffae7508ef9e4992e79ed1b1cbfc6ab459317d96f729bfbdf0029e5ebbc31f0548162bd6e15af6638fbc97f1eb5fffcb48f0d7b2ebde6",
+        "dest": "npm-tarballs",
+        "dest-filename": "_esbuild_win32-x64-win32-x64-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.6.0.tgz",
+        "sha512": "4fb8dffb9ce0b191f0349e25bd0eff69ecdbca4d27357fb32555a998703b558b04c7b6bbaabe5183921bb4916a920cdee58dacaeeab545463c43cdfb39dee217",
+        "dest": "npm-tarballs",
+        "dest-filename": "_jridgewell_sourcemap-codec-sourcemap-codec-1.6.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@playwright/test/-/test-1.65.0.tgz",
+        "sha512": "8865112c6b8a0cb6a448497b3e07eff21edff972d3f95f3ad567e1cf4ce5125e67c85b8a528a5d90504f2aa4e5953529d3a68ec0fb87f22b9411bdf2a773296d",
+        "dest": "npm-tarballs",
+        "dest-filename": "_playwright_test-test-1.65.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primeuix/styled/-/styled-0.7.4.tgz",
+        "sha512": "4123bf36939083c7bd04e356441c7dcbc546302318cf427fb8a7cd244c9afd1184bbb011c74a185b4ba0235377fca075000bf21b1cca07318899bc20d0a52239",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primeuix_styled-styled-0.7.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primeuix/styles/-/styles-2.0.3.tgz",
+        "sha512": "db290007a05a1f347fe93c05f12869253b19ae277a715204055968a2449dbce766956b9ebc6bb9bd6392720230a96c2565cbe415800647f49457738709304c77",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primeuix_styles-styles-2.0.3.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primeuix/themes/-/themes-1.2.5.tgz",
+        "sha512": "9f7624c09ac741a10449cfc3fc0fe20fcd79b31a7c70a9e6cec700e9af139bc62f32d614df67826a1c0b2deea1e6bcb0821570c40496b86dfa5c18084983888d",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primeuix_themes-themes-1.2.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primeuix/utils/-/utils-0.6.4.tgz",
+        "sha512": "a59e5ffaf8fbc12cd1842ecaa044115397ef6007be44ff7e9b7f424ec719dd4cb0083d58da8e857b5ad182494c3d293351cb72da3ce4034ccc624889043d6182",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primeuix_utils-utils-0.6.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primevue/core/-/core-4.5.5.tgz",
+        "sha512": "26991786ad5d75cef425db02dc20b874cf946de796b825bff03a52f5d3417eb3a4f36e132d295194c10617254aa91327e563d0bd82e2cb7c577cb41e35d4aa85",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primevue_core-core-4.5.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@primevue/icons/-/icons-4.5.5.tgz",
+        "sha512": "7ad78e85374039711813da96d403ab041803c50daccc72714a410ad5755d5764cac463391507f4dcebe6b34543c994dcd7a5c1220bf06235c9412d013db84f68",
+        "dest": "npm-tarballs",
+        "dest-filename": "_primevue_icons-icons-4.5.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rolldown/pluginutils/-/pluginutils-1.1.0.tgz",
+        "sha512": "2be354d870c211e9b8b029601c7e19657c1d25e345909a3e851938efd0c8c1d22f8803cdda11491f52871f083c0b11d05ef8b43395d8e1d7935c835f222486eb",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rolldown_pluginutils-pluginutils-1.1.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-android-arm-eabi/-/rollup-android-arm-eabi-4.68.2.tgz",
+        "sha512": "22d2ab34c9042f7872f3990b057c01d3e33a09659523cbebed157e11bee80e54083172da8848467dd6a3e6301469d627dafde7c3302121197f9cbca302a57dbd",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-android-arm-eabi-rollup-android-arm-eabi-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-android-arm64/-/rollup-android-arm64-4.68.2.tgz",
+        "sha512": "742913f0130f2e8e97e8608556dbb3ae7afdf353e925278ae193bf77f999749fdaa3ad506b552c77f387210ebd310830e2a41c951fd7eae45150e3625b00fc73",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-android-arm64-rollup-android-arm64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-android-x64/-/rollup-android-x64-4.68.2.tgz",
+        "sha512": "a768e42a2b1ca903869b22faaaef8abc972dbc17374904ddf978b6950627e50bc52c45b3f9023c67d888fb17088decfabca46c4a758fe7a637129ee0dd2b62ba",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-android-x64-rollup-android-x64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.68.2.tgz",
+        "sha512": "69521f3ad7a8e73a17f1a2fbe361ff4b742cc8de9aa243588ddceb2e74012b18115688787226d312ba62eb54734a6aefda10730c1d62ef9d61c3075cf102b4bd",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-darwin-arm64-rollup-darwin-arm64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.68.2.tgz",
+        "sha512": "f96b9fe131531e213f5a78ca807d5290d7fff43e5d76879dd54474a778f18cd0067a675e79044bfabd5b2752e567285ad152830582c1d94fdaf5af4a952c382b",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-darwin-x64-rollup-darwin-x64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-freebsd-arm64/-/rollup-freebsd-arm64-4.68.2.tgz",
+        "sha512": "7de28ad9d735de3ffa0fd980a7b5ca84133f554aa7d0dff14603faad3eff99d45554951a799e25b09f6137dd1a4e2d24dce0fe9a48e570dd35bd0f7a01cf55cd",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-freebsd-arm64-rollup-freebsd-arm64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-freebsd-x64/-/rollup-freebsd-x64-4.68.2.tgz",
+        "sha512": "b35a065cf197d4f36a762f532d60fe470b4f1187ff04e4db09cab86a7241a8d6f3ca3b9cb62f3a95d607dfb78abecc933fb065e7f1dff1799b2310b3fe269f4c",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-freebsd-x64-rollup-freebsd-x64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm-gnueabihf/-/rollup-linux-arm-gnueabihf-4.68.2.tgz",
+        "sha512": "92c477666cc7ae6e873943fc5250c1cb984d4dc1bd70421adc4c869f19f9063a2b2d18c1878b9cc61c23c305449b476a70837812073f5e30d488f43037589cf4",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-arm-gnueabihf-rollup-linux-arm-gnueabihf-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm-musleabihf/-/rollup-linux-arm-musleabihf-4.68.2.tgz",
+        "sha512": "493655541337e7050b56c41a874c4a7c205030fa4796239f8e745a50d4f7e63adba5f6a952b0fc8b1e98865eed2c75b4c50496a2d5d24a0863522fc3725c114b",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-arm-musleabihf-rollup-linux-arm-musleabihf-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-gnu/-/rollup-linux-arm64-gnu-4.68.2.tgz",
+        "sha512": "166fc63c2d91d33949610229f5a63d2f594edb3f8ff94adcbd71ba7e1b9b7e8fc16cc38b6652d7b219db102393aabde9c5f6456fa9cd9f44200c44c3b6b5fb4d",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-arm64-gnu-rollup-linux-arm64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-arm64-musl/-/rollup-linux-arm64-musl-4.68.2.tgz",
+        "sha512": "568aa572459cc0d1775aab1490b660f75cd816006fac2dfb2dce5ef0053e04a7425050cc3e837446c8a7fcbbc5fab055179dbb816a39293d281e468065a2f518",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-arm64-musl-rollup-linux-arm64-musl-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-gnu/-/rollup-linux-loong64-gnu-4.68.2.tgz",
+        "sha512": "66bf17fd251fec98f0c6df7d06a3c317f5aafaccf8a140483fa1c1685416c1bf303b59d5e8b048a43ea307d70cc9b2e1a3ddd9f81f2bacdd2e5c42faa0d39425",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-loong64-gnu-rollup-linux-loong64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-loong64-musl/-/rollup-linux-loong64-musl-4.68.2.tgz",
+        "sha512": "d8486b60424d5c8ca1499112c26fe40a47b5b621fb4003ce537bf732c2ccf49f8d7e7d900837bfa4644e500bd814ad012f63046f33607ebaab6e71390855e42f",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-loong64-musl-rollup-linux-loong64-musl-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-gnu/-/rollup-linux-ppc64-gnu-4.68.2.tgz",
+        "sha512": "202d1d62e110927c349b615804d04a95bae0049047e4e31189a45f09ce02152a589e60e7a93a4d4aff93817fa5a1ecc64dd46304d66e6198b7b7e39ce4dc4d62",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-ppc64-gnu-rollup-linux-ppc64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-ppc64-musl/-/rollup-linux-ppc64-musl-4.68.2.tgz",
+        "sha512": "665ce6e9f1ae0efb40a8c125d3bd7f835eefc6aeaed98daffeb38dfe00d8e0dbf358b278d41180970845dd0b80cf0ab4e7320fa382d8cddab0871de88ac60253",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-ppc64-musl-rollup-linux-ppc64-musl-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-gnu/-/rollup-linux-riscv64-gnu-4.68.2.tgz",
+        "sha512": "2a1129611b476772a3e2c85abe35de1fe2b56d0940e946cfe8c278e6b30f17fd7526565bd5244d2deb9609d8a0504a0c31a14ee3e2f0c1c4be7b0d52a0b26efe",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-riscv64-gnu-rollup-linux-riscv64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-riscv64-musl/-/rollup-linux-riscv64-musl-4.68.2.tgz",
+        "sha512": "2cf9fdaaf3ec33f39f77a124ab78a6ea707c4e4d6bb89853777c7fd9b2644d1f26fd74ec7f103e114d11276dd626a809835db7922b4702a6c42bb07870bd6e3e",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-riscv64-musl-rollup-linux-riscv64-musl-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-s390x-gnu/-/rollup-linux-s390x-gnu-4.68.2.tgz",
+        "sha512": "435f84fa9cd23fe1625ee219b71291fa92bb976290f60b0cf956853efd4b476efb929ee5eb572b1b8e9618b28b2dacb726ce5cbf253d29ea9dcf16b511c14efa",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-s390x-gnu-rollup-linux-s390x-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.68.2.tgz",
+        "sha512": "dc1b69e0b71afd6cec99b68abbd2e1f5dfd7c3244321e81dff9921441bac1c6c3f2e5e92a05e52867eb73ab8cf7642dca4d8b63c60c0a57ccd9b1ae24711988c",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-x64-gnu-rollup-linux-x64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-linux-x64-musl/-/rollup-linux-x64-musl-4.68.2.tgz",
+        "sha512": "e52295694895b35f3e0c6067a60d263911b182aff4b9d7339e01b157fbdfda7bcad5d8eaa4e288c58ffef2b056c406d61911384679f0c5669b0f024dde90b021",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-linux-x64-musl-rollup-linux-x64-musl-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-openbsd-x64/-/rollup-openbsd-x64-4.68.2.tgz",
+        "sha512": "281a66e3cfe5112b0781677e75195ccb5f003c16215d4e096fa565268a9ba563707e9ced157c0fdb6a95bfd687777935aae4ab98b789c182dceeba50f81159af",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-openbsd-x64-rollup-openbsd-x64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-openharmony-arm64/-/rollup-openharmony-arm64-4.68.2.tgz",
+        "sha512": "a340f46df456f10180d4f87a3b3a951ccab92d1bb5c64af588ceea4085d4485b91eb475d5de0e137d511e1b5013cb62cad3e3ab19c308106b9d535ad055debe6",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-openharmony-arm64-rollup-openharmony-arm64-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-arm64-msvc/-/rollup-win32-arm64-msvc-4.68.2.tgz",
+        "sha512": "af5ee472ee6499de96430a246267c19dfc0cfe272eade09608f8e925500b72b4afe4b7f2e86824f5acf15e8afa8482e10876dcff821f122bfe2f945768e1e29c",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-win32-arm64-msvc-rollup-win32-arm64-msvc-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-ia32-msvc/-/rollup-win32-ia32-msvc-4.68.2.tgz",
+        "sha512": "c94b4eaaaed9ad0a19dd6887491e9019374e978620307a97218481614eac888702d18174a44c31eda1ac3d39b6991c2b996e92309931cc47459bac2a5e999b37",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-win32-ia32-msvc-rollup-win32-ia32-msvc-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-x64-gnu/-/rollup-win32-x64-gnu-4.68.2.tgz",
+        "sha512": "e486285b1406a3958409b25b22621fdb0df7b821c934bbf8a3f150b52c9e60379dec00bacf1f3836c11c19871ca08da078311892bc545dcb182bfe8487055222",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-win32-x64-gnu-rollup-win32-x64-gnu-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.68.2.tgz",
+        "sha512": "79ef9cd7882052233b960e0fb428d205853d3bd747a781457aca519dde728fb4a295404908bdf1dda1e507eb08a9b1a370fa37a44c8e0c04a77ca26e676e9807",
+        "dest": "npm-tarballs",
+        "dest-filename": "_rollup_rollup-win32-x64-msvc-rollup-win32-x64-msvc-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/api/-/api-2.12.4.tgz",
+        "sha512": "a5599f8acfb8cd3f07d10869df13d9c7d26eee4a73bc0eabaff3d224fcaec1fbee71343cb15b7ad4d614f4a3242bbd3750595869d1668ca0381e1c9b3ad37482",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_api-api-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli/-/cli-2.12.4.tgz",
+        "sha512": "248f5b1dfb9d4912629063ab8db5c49ba463cf3be62ae2dcf898b1075344f21373424365082202de94c44b7bb2a6447d9711ebb1bc737274b0848d88c4142987",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-cli-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-darwin-arm64/-/cli-darwin-arm64-2.12.4.tgz",
+        "sha512": "3b1a8a49c90892827abd7d808e27c82694dab050b41db768a3b8048829808dab8004edd4f26d8c46c2d67be413881c03c75988aef800fabbc8eedbc39db9c756",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-darwin-arm64-cli-darwin-arm64-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-darwin-x64/-/cli-darwin-x64-2.12.4.tgz",
+        "sha512": "7f3efaffbef030c24e69a50dea7dc2c9b446d0ffcc4c48e3a9893cd6618fca18bd9ba51ee53f8b5819c93ff0243e8a0d6ad04f236bedba51aaa26c8c278e2509",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-darwin-x64-cli-darwin-x64-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-arm-gnueabihf/-/cli-linux-arm-gnueabihf-2.12.4.tgz",
+        "sha512": "2b4c3c0687fa2edf1028b018851cb4cb2dfa647e6203fdf956e48ebe7c728ef09467e03724ab144e500bbe21ffb15800962b1a3f3ce6789487f173a7e10d8704",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-arm-gnueabihf-cli-linux-arm-gnueabihf-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-2.12.4.tgz",
+        "sha512": "8f9ace9e39915305ab9b5a28b1fd330589780fe7eac9d81444e14293486f299c6f6d34fc48e1117acd1007bac157f5d6372fa433aa422b36f7a129b6b11825ce",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-arm64-gnu-cli-linux-arm64-gnu-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-2.12.4.tgz",
+        "sha512": "68eb9edc5cba25befea1671f01552c5477de4f26d20add82668534e9a3b88efe1dd8ab3f2a76933f03002b708b11db863af04b63595b041ac8ca89aa2cb1f94a",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-arm64-musl-cli-linux-arm64-musl-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-riscv64-gnu/-/cli-linux-riscv64-gnu-2.12.4.tgz",
+        "sha512": "171e864a163f46f493fade8b3254c703077aebed6d11a0001ab9d4edccac55f6a244fd412a7839565eab5663baad22ce0354a9d5d4733583387f43964066fba8",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-riscv64-gnu-cli-linux-riscv64-gnu-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-2.12.4.tgz",
+        "sha512": "b4dcd949aefd6759d1a47c44a50dfc96c005a4a945958be85f38d357e951467ff349fdf0add502df09cb72ad9711a75c84fbb8b6d2b4ce2be1633afe5c60f5f5",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-x64-gnu-cli-linux-x64-gnu-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-2.12.4.tgz",
+        "sha512": "8e6675a6bd3112a521b84bac5adb7d62df8617a9429c61d49882fe288927a5b8cafd7436aa48430616b12bf24c1ccd80f1d01a7155c2c57264d845e9c214147c",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-linux-x64-musl-cli-linux-x64-musl-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-win32-arm64-msvc/-/cli-win32-arm64-msvc-2.12.4.tgz",
+        "sha512": "7c6a3ca6010767175262067f27df26d6eb09ecd1ca98a6eaee4eae4f4c75ae93aae81836615cf3a5a01b95693bd747f92c76012482f9408152e48ac3fb88264e",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-win32-arm64-msvc-cli-win32-arm64-msvc-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-win32-ia32-msvc/-/cli-win32-ia32-msvc-2.12.4.tgz",
+        "sha512": "7b397cb1021c8d8b327b74d49d31f955c5a65b371c6404a5426ee1959b74758ca3d570f4aa9556e3bbb6c5856b20aba2d05f2e42fffb406662c5d5a20a506c6e",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-win32-ia32-msvc-cli-win32-ia32-msvc-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-2.12.4.tgz",
+        "sha512": "0c9843782aa32c334c598172ed94bc71f7801d7d912b445b40c2e20376cc5559174432783416221eb886aac521b2bf621b8d5a4dbf9d2469053e63f0d605b057",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_cli-win32-x64-msvc-cli-win32-x64-msvc-2.12.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/plugin-clipboard-manager/-/plugin-clipboard-manager-2.5.0.tgz",
+        "sha512": "7626d4cb59ca5116035d132f8cd93875e01b4d9e633d0f30084e27a25b79c678abc96817438b0ad869055e85e51db45d3f37d9a6d663f790512df6a503b9bfd9",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_plugin-clipboard-manager-plugin-clipboard-manager-2.5.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@tauri-apps/plugin-dialog/-/plugin-dialog-2.8.4.tgz",
+        "sha512": "fba64e8977a739ac57c1bf2a09b04f753da35f67053da5551c622c92ba6624ba665a3faa2914c3e97ff3f71ee14dd4909fb35e75ca170a45867a3e1aedd0b897",
+        "dest": "npm-tarballs",
+        "dest-filename": "_tauri-apps_plugin-dialog-plugin-dialog-2.8.4.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@types/estree/-/estree-1.0.10.tgz",
+        "sha512": "953c8e32739c991073742bfaff8cd4642ac4855d31aea422519059b5571b98b1c15ca2e737cabcf6fff029117f4341dbc15b2a6c81b7a391c3a0597db1db8cfa",
+        "dest": "npm-tarballs",
+        "dest-filename": "_types_estree-estree-1.0.10.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@types/tabulator-tables/-/tabulator-tables-6.3.6.tgz",
+        "sha512": "1f8c6d625f03cbf8384ab367671fa810afcde7e14b2c4193b94dcc33b6e951493782d632e5a62a4a3c50d69a884e743f3ca1ea575683e19779c5e96cf409cf48",
+        "dest": "npm-tarballs",
+        "dest-filename": "_types_tabulator-tables-tabulator-tables-6.3.6.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vitejs/plugin-vue/-/plugin-vue-6.0.11.tgz",
+        "sha512": "9b8f25b24214246941eaa5226210cc23c9ddda781e89dcf65389ca4e3a88d7770532ee6b1fc25e1082cf903b4af4593f4e3040da9923f0095b7a7a8368abbec3",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vitejs_plugin-vue-plugin-vue-6.0.11.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@volar/language-core/-/language-core-2.4.30.tgz",
+        "sha512": "ef77e3c0457cc1ab7a68e67a53fcbf86ab44df4a1cac85840a0ebb6f4b7119ccce30dc3e31f7cb9af2797e715f37d76b5541186732dd68da3a540cba1ba6af33",
+        "dest": "npm-tarballs",
+        "dest-filename": "_volar_language-core-language-core-2.4.30.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@volar/language-service/-/language-service-2.4.30.tgz",
+        "sha512": "c3fc43b004a2a82ef582008e9bbb130d70cd93f97bd97129b6875e442ebcb606747b940ce21337cc0a81182ee605cb6f86ba58c0a7cc1beb7dc5c528da1105b4",
+        "dest": "npm-tarballs",
+        "dest-filename": "_volar_language-service-language-service-2.4.30.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@volar/source-map/-/source-map-2.4.30.tgz",
+        "sha512": "cf29b5a1bfcac030f237ed23195b71c1bc4949146752fbf91eca42b73df211f5557421b8fddcf1264b4c18f0207a6a91b95b3cd4ed28ff2d2adea39412b47c92",
+        "dest": "npm-tarballs",
+        "dest-filename": "_volar_source-map-source-map-2.4.30.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@volar/typescript/-/typescript-2.4.30.tgz",
+        "sha512": "fc3800e6d81814f7eb2c5b928c83173061e4d4b42fdbe3fc7a7cbaf8184637314910b5885bb51995ce7a64b2111612ec3e931f205c4cf3f1ef38f06082b8d366",
+        "dest": "npm-tarballs",
+        "dest-filename": "_volar_typescript-typescript-2.4.30.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/compiler-core/-/compiler-core-3.5.45.tgz",
+        "sha512": "5c61c9acceae7d901101cff0fadc8eb304adc3db5d2a2a8228149c23880668dc43f9a686bbf1d05a0289f8922d8d12cfa9e9d0ee213b1bc0090bb4f97b0d69fa",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_compiler-core-compiler-core-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/compiler-dom/-/compiler-dom-3.5.45.tgz",
+        "sha512": "2db3f6775f4648e6063e6bcc04109525596fed32ad8ccd427decaeddc6226bbdb4a649d93fed5c2d7ec7e4c55ab6faee4fa32e26188fb8d6d0056fcc0e7fc4c0",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_compiler-dom-compiler-dom-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/compiler-sfc/-/compiler-sfc-3.5.45.tgz",
+        "sha512": "30a1636f6517d0cfe5fe385fcea30bac8f15338a5fbc5286de9a8566449914744bb4d95dfcee11b543d91564b086ba3fd78a8ff3c5101245b31f1019010d2db3",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_compiler-sfc-compiler-sfc-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/compiler-ssr/-/compiler-ssr-3.5.45.tgz",
+        "sha512": "445e6c6d939f633e402b4d2d389527d8fc055d1d9f4b5bb61d5cc8f03f5517dac6005c6e181aa0d9b075909dd91cca6ba9296d5e74fd31913522caa348cf287b",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_compiler-ssr-compiler-ssr-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/language-core/-/language-core-3.3.14.tgz",
+        "sha512": "91107ede11e0d1cf81743d572c0bf08d5310779a42d39ce28d294f0d1237111bc2fecd3826546ce6ea72d8a8de320ffd9bda03e73b8c561f7256f90a7d9aa826",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_language-core-language-core-3.3.14.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/reactivity/-/reactivity-3.5.45.tgz",
+        "sha512": "5aa932b9b356a48e0e6013a2a52ae322cb0c7493bc2b58bd66db3f5a6f04af5d3fd26b0e1300b25965af667008ed65b7910b13a2783a0c9a7c09b6febdde1c3c",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_reactivity-reactivity-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/runtime-core/-/runtime-core-3.5.45.tgz",
+        "sha512": "6f320edfe140063a63f39b8829273e4278f7ebfb310cd237b5c1fd8bac3ac4a03593a7b47a3bf41b48cc09f78906f2b7c862f95db2770cc663f8296ac821c563",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_runtime-core-runtime-core-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/runtime-dom/-/runtime-dom-3.5.45.tgz",
+        "sha512": "66f45314c0e07ea4c3616bc97e8569413271d5137933a97b3f277ac1f758d8d697cdb3d0561f5ecde41815b34f3fa6c8711567d92a92491db937f8d25baf4117",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_runtime-dom-runtime-dom-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/server-renderer/-/server-renderer-3.5.45.tgz",
+        "sha512": "d5f357507861b167f81152f85e2c5b18153998a76221724007cd9f787453c8f3e8e99504616209b8479497799557a403069e741c9397e286cb87161796b8ebcc",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_server-renderer-server-renderer-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/@vue/shared/-/shared-3.5.45.tgz",
+        "sha512": "b9ef5f80799534f94fee25b7f9cc68057fc29e5c39ddd1e5552c3424a198eb3d6539b83ca47a23f76f0cda7cc6e3fc95b0c67735a459dacdb3eb5b82d7a343c1",
+        "dest": "npm-tarballs",
+        "dest-filename": "_vue_shared-shared-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/alien-signals/-/alien-signals-3.2.1.tgz",
+        "sha512": "23c1639a5b6b7e70c5a1979d8b9086f03821558361cdbfc88e5bb3eed092247d31a5dd38f382a8c216dbd570d83b17c9a54d69e709ccd97e78740f887c6c83d6",
+        "dest": "npm-tarballs",
+        "dest-filename": "alien-signals-alien-signals-3.2.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz",
+        "sha512": "cf51c629c632db103c00641fc2b9f43c0cbe3c1ed7fc64a3dd45495bda8aca7e37c566be825e675e6538aaa2cc4735952c50bc2aeb145fc4ffd240a2398a4021",
+        "dest": "npm-tarballs",
+        "dest-filename": "csstype-csstype-3.2.3.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/entities/-/entities-7.0.1.tgz",
+        "sha512": "4d6ae02ce1544131fdf78614ca5d724f8bb26af6399cd0799ae7dff91b566aa3550802b8d3c6f96679db34050458b4c2a6e9bdc3a6ab4fbd22d57750e1478e3c",
+        "dest": "npm-tarballs",
+        "dest-filename": "entities-entities-7.0.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
+        "sha512": "1ca54b4bc76f208fb1a0a5bd926ab16d12ab9d61177c926bfc56618499a2a880747b4e7740d605a8e068b9330efe4e6c203e0cbc28940afbfc6fd338877db020",
+        "dest": "npm-tarballs",
+        "dest-filename": "esbuild-esbuild-0.28.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/estree-walker/-/estree-walker-2.0.2.tgz",
+        "sha512": "45f924fcca7f0cbec95637b7bb5f05c45ba34254cd476aba41f312301ec0bc2071f753468ff6dade409fcdad1fe9d5436f0ed89517ff9c3ae7ee942b082c90ff",
+        "dest": "npm-tarballs",
+        "dest-filename": "estree-walker-estree-walker-2.0.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/fdir/-/fdir-6.5.0.tgz",
+        "sha512": "b486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e",
+        "dest": "npm-tarballs",
+        "dest-filename": "fdir-fdir-6.5.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+        "sha512": "e71a037d7f9f2fb7da0139da82658fa5b16dc21fd1efb5a630caaa1c64bae42defbc1d181eb805f81d58999df8e35b4c8f99fade4d36d765cda09c339617df43",
+        "dest": "npm-tarballs",
+        "dest-filename": "fsevents-fsevents-2.3.3.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz",
+        "sha512": "bddd85e1853211728670b1e8abe4c4c828f1b9e49e1e7171cb28cda7cd328345d5e2f5219c37abfe5bef96a33f6ab0796d740de4adbfde88a7c82472c7c4f609",
+        "dest": "npm-tarballs",
+        "dest-filename": "magic-string-magic-string-0.30.21.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/muggle-string/-/muggle-string-0.4.1.tgz",
+        "sha512": "54d4eb01a93f2a13b68bc76aaa7aa700739addc601c171197bd87e0f987fd59a854931051dd33ae6547b46822aab7b410586afb0e5d5f383681d76740243f2a9",
+        "dest": "npm-tarballs",
+        "dest-filename": "muggle-string-muggle-string-0.4.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.20.tgz",
+        "sha512": "b8a760d86dc63422909fd6f260ea716c6aab4f67c63b9291b7927ff1bde9a24f2b4faab119617a871332262118b407fe155c98b83f6145a0ea5f9b8f15827865",
+        "dest": "npm-tarballs",
+        "dest-filename": "nanoid-nanoid-3.3.20.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/path-browserify/-/path-browserify-1.0.1.tgz",
+        "sha512": "6fbba8d9409439865c9c5ff7203d25ba53898bf6da7f16b5c4f7bb64fb1a9a6052a634964248cdc65b7adf96064b632247d1a3bee5c2b73d9e9abde36eccfdf2",
+        "dest": "npm-tarballs",
+        "dest-filename": "path-browserify-path-browserify-1.0.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+        "sha512": "c5c787dac9e1b5be4cf658aa0ec984c39ea57b7efa993664117fe311bfd1c4d1727a036e97b78db250973fd1438ff2dcbb45fc284c8c71e3f69eda5a1eb0c454",
+        "dest": "npm-tarballs",
+        "dest-filename": "picocolors-picocolors-1.1.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.7.tgz",
+        "sha512": "a9c26ef3c436216a89b030f9dbd24a31dc069bf76f2275b81ef427470887f49b62849bf318eb1c0ed1c4df1d6904a794393cac43c91598b9c9da426eef285c18",
+        "dest": "npm-tarballs",
+        "dest-filename": "picomatch-picomatch-4.0.7.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/playwright/-/playwright-1.65.0.tgz",
+        "sha512": "17700c59c478e2a301b7892afba29bea65fb6e3197b2192d28538f50b77bade103e992567af8db351ab2b0feeaf8001313d91d3c464189b7b1d4162cbe956878",
+        "dest": "npm-tarballs",
+        "dest-filename": "playwright-playwright-1.65.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.65.0.tgz",
+        "sha512": "bcd48a807e98aad37b71d4ff2f7df8ce8d1af98c24ae989ccab1c995658f226fd0f8d9f64962278a5d35a13d266eef7a5381a0a11b426100fd0b3250823bbe94",
+        "dest": "npm-tarballs",
+        "dest-filename": "playwright-core-playwright-core-1.65.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/postcss/-/postcss-8.5.32.tgz",
+        "sha512": "2c994a08201414a3ae6718a951d630d4dcc821312c3dc832386f4b92f449bee2a3fdb4736ee458d00457bcbd29586a6c66f9fc8e4bbe2cc7a9d9e534b1e1e9f2",
+        "dest": "npm-tarballs",
+        "dest-filename": "postcss-postcss-8.5.32.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/primevue/-/primevue-4.5.5.tgz",
+        "sha512": "2afe511087b009d3fcd3a41aa14fb89c15df9a9cce1852a467da87e0ab0be8c8e201055ce0f533ca9b7c7ab978af75738779ebdda59923193161146c2c6897d8",
+        "dest": "npm-tarballs",
+        "dest-filename": "primevue-primevue-4.5.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/rollup/-/rollup-4.68.2.tgz",
+        "sha512": "c73b78e6b28ec7312eaa34dd9064c811a78f72af714442e5148d6ea1ace529aa7c4fa6c434990e35209f84ae753fa5c54e2c5ae2ba2c3dc0c78a149d76e5e775",
+        "dest": "npm-tarballs",
+        "dest-filename": "rollup-rollup-4.68.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
+        "sha512": "2868fff18e37c77e5a6550edb7e27898ad61a0b18750b3187d290e0c93508cd0c2de85b53ea3e8c4cc28d292d4b1633f5041b338dfcdc5e1f2c047cd5cd3f757",
+        "dest": "npm-tarballs",
+        "dest-filename": "source-map-js-source-map-js-1.2.2.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/tabulator-tables/-/tabulator-tables-6.7.1.tgz",
+        "sha512": "e82332d7b5dd7a641a21d83504ea83e4aea7cc5db1a03e3b7913620582412be42b2d68e2eec82e9323e329762b8d17562f06c610d754b2201826b352dd77947f",
+        "dest": "npm-tarballs",
+        "dest-filename": "tabulator-tables-tabulator-tables-6.7.1.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+        "sha512": "c1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada",
+        "dest": "npm-tarballs",
+        "dest-filename": "tinyglobby-tinyglobby-0.2.17.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "sha512": "8e5d6f6733c38a72ebf5e52ddc9feded5e8580d130f508ef04f772b33f4a7d00c3e357d0ac2d98e2f290762694a454f86d795bd511e12e9a7cc2d9ba3394e04b",
+        "dest": "npm-tarballs",
+        "dest-filename": "typescript-typescript-5.9.3.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vite/-/vite-7.3.8.tgz",
+        "sha512": "ded4e2efc3002a1564f61f986555cc43c3ce9a7789b84f7b4143c05ad260847ce11fb040ca2a90382d8a661d4358eb2efd4481d9c4578739cf07269a6ef6177f",
+        "dest": "npm-tarballs",
+        "dest-filename": "vite-vite-7.3.8.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-10.0.0.tgz",
+        "sha512": "51249fc60d2f0c8a5342a950046c45de6040472a12f1c53b2c72e96d8361e9d389b77d9d96c9313d607422bae1e539654e6c9fee834b02fa83ab39256f0c27a4",
+        "dest": "npm-tarballs",
+        "dest-filename": "vscode-jsonrpc-vscode-jsonrpc-10.0.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.18.5.tgz",
+        "sha512": "156e1f04ccd9f7d37cc5ea1be29cb4974e74c200a84604e912ae5772c6fd94cd5b736f5428647fc1257ee249daa85c6cb051da8f2ececcd88a3ff9b7535644b8",
+        "dest": "npm-tarballs",
+        "dest-filename": "vscode-languageserver-protocol-vscode-languageserver-protocol-3.18.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vscode-languageserver-textdocument/-/vscode-languageserver-textdocument-1.0.16.tgz",
+        "sha512": "a9e344b8e8bd6b7aa4a917fb19f7b3d962f65709414cb08d7a41c118ef64c4f554a7d5ee635e727d327d8f0bcec0a2342363215147d9abde4d4a9f8b2b508b42",
+        "dest": "npm-tarballs",
+        "dest-filename": "vscode-languageserver-textdocument-vscode-languageserver-textdocument-1.0.16.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vscode-languageserver-types/-/vscode-languageserver-types-3.18.5.tgz",
+        "sha512": "90f77af8940dcf71cc26f8ca96a5311114a5647027b65fda1a9b24ec89b0221d1ec0328372380013255261c88f88e243ddfb5b2bd22b7e2a9479364b49b0a2cf",
+        "dest": "npm-tarballs",
+        "dest-filename": "vscode-languageserver-types-vscode-languageserver-types-3.18.5.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vscode-uri/-/vscode-uri-3.2.0.tgz",
+        "sha512": "9b6817a376e7d06d644fd227ccc7f4edf4dba8c6c6b727248f76c7e64b4b3bed52b2ffb28804d9e1d870690bfd5195b1261e84f481469d0ca3816543595043ae",
+        "dest": "npm-tarballs",
+        "dest-filename": "vscode-uri-vscode-uri-3.2.0.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vue/-/vue-3.5.45.tgz",
+        "sha512": "ddcbec89bf26f5cd2f076e3e3032ac81c5b8f836b8c5a065f59ff94db9b6a66488b113f172297871d5e35e556c989da0eb85c9a3987e21177baec7464fda596b",
+        "dest": "npm-tarballs",
+        "dest-filename": "vue-vue-3.5.45.tgz"
+    },
+    {
+        "type": "file",
+        "url": "https://registry.npmjs.org/vue-tsc/-/vue-tsc-3.3.14.tgz",
+        "sha512": "51102ed87f40b8c64c83d182827a9b6871c777ca41651030355d9edb2612f150eca135571e2392a3aeb7392e83904bdab90db28b19f94cf149f5657d408b2990",
+        "dest": "npm-tarballs",
+        "dest-filename": "vue-tsc-vue-tsc-3.3.14.tgz"
+    }
+]

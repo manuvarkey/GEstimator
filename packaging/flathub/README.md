@@ -1,0 +1,18 @@
+# Flathub
+
+Files for the Flathub repository [flathub/com.kavilgroup.gestimator](https://github.com/flathub/com.kavilgroup.gestimator). The manifest builds GEstimator from source without network access:
+
+- `cargo-sources.json`, `node-sources.json` and `python-sources.json` list every Rust crate, npm package and Python package with its checksum. Regenerate them with `python3 packaging/flathub/generate-sources.py` after changing `modern/src-tauri/Cargo.lock`, `modern/package-lock.json` or `requirements.txt`.
+- The frontend is built with Vite and the Tauri binary with `cargo build --offline`. The backend runs from source on the runtime's Python (`gestimator-backend` wrapper) instead of the PyInstaller executable used by the other packages.
+- peewee is installed without its optional C extensions (`NO_SQLITE=1`); they do not build with the SDK's Cython and GEstimator does not use them.
+
+Test the manifest with the working tree: `packaging/flathub/build-local.sh` (writes `local.json`, builds `gestimator.flatpak`). The Release workflow runs the same build.
+
+For a release:
+
+1. Tag `vX.Y.Z` and push the tag.
+2. In the manifest, set the git source `tag` and `commit` (`git rev-parse vX.Y.Z^{commit}`).
+3. In the Flathub repository, replace `com.kavilgroup.gestimator.json` and add `cargo-sources.json`, `node-sources.json`, `python-sources.json`; delete `python3-requirements.yaml` and `requirements.txt` (used by the GTK application).
+4. Open a pull request there. The Flathub test build must pass before merging.
+
+After 3.0.0, the Flathub external data checker opens update pull requests from `x-checker-data` when a new tag is pushed; regenerate the source lists in that pull request when the lock files changed.

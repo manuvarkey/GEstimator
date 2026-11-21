@@ -27,6 +27,16 @@ apps:
       # Local MCP server for AI assistants on the same machine.
       - network
       - network-bind
+    slots:
+      - single-instance
+
+slots:
+  # A second launch hands its files to the running window over this D-Bus name
+  # (tauri-plugin-single-instance: "<identifier>.SingleInstance").
+  single-instance:
+    interface: dbus
+    bus: session
+    name: com.kavilgroup.gestimator.SingleInstance
 
 parts:
   gestimator:

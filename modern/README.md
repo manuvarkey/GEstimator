@@ -18,7 +18,7 @@ Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.taur
 
 ## Linux packages
 
-`npm run tauri -- build --bundles deb,appimage` writes the `.deb` and `.AppImage` under `src-tauri/target/release/bundle/`. Build them on Ubuntu 22.04 for releases: the binaries need a glibc at least as old as the target systems. `packaging/flatpak/build.sh` repackages the `.deb` as a Flatpak (GNOME 51 runtime). `snapcraft.yaml` repackages it as a core22 snap, so its `.deb` must come from Ubuntu 22.04. The [Release workflow](../.github/workflows/release.yml) builds all packages on a version tag. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
+`npm run tauri -- build --bundles deb,appimage` writes the `.deb` and `.AppImage` under `src-tauri/target/release/bundle/`. Build them on Ubuntu 22.04 for releases: the binaries need a glibc at least as old as the target systems. `packaging/flathub/build-local.sh` builds the Flatpak from source with the Flathub manifest (GNOME 51 runtime; the backend runs on the runtime's Python instead of the PyInstaller executable). `snapcraft.yaml` repackages it as a core22 snap, so its `.deb` must come from Ubuntu 22.04. The [Release workflow](../.github/workflows/release.yml) builds all packages on a version tag. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
 
 ## Windows development and builds
 

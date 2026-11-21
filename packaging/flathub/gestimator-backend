@@ -1,0 +1,5 @@
+#!/bin/sh
+# Flatpak backend: run the Python service from source with the runtime's Python
+# (other packages use the PyInstaller executable of the same name).
+export PYTHONPATH=/app/share/gestimator${PYTHONPATH:+:$PYTHONPATH}
+exec python3 -u -m modern.backend "$@"

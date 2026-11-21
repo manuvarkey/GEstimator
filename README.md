@@ -10,7 +10,7 @@
 
 
 <a href="https://github.com/manuvarkey/GEstimator/releases/latest"><img height="51" alt="Download for Windows" src="https://raw.githubusercontent.com/manuvarkey/GElectrical/master/source/artwork/windows_badge.svg"/> </a>
-<a href="https://beta.flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
+<a href="https://flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
 <a href="https://snapcraft.io/gestimator"><img height="51" alt="Download on Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg"/> </a> 
 
 GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2021 (Civil)** and **DSR (E&M) 2025**.
@@ -55,4 +55,4 @@ npm run --prefix modern bundle:backend
 npm run --prefix modern tauri -- build
 ```
 
-Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. Flatpak and Snap recipes are in `packaging/flatpak` and `snapcraft.yaml`; both repackage the Linux `.deb`.
+Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. The Flatpak builds from source (`packaging/flathub`, the manifest used by Flathub); the Snap (`snapcraft.yaml`) repackages the Linux `.deb`.
