@@ -34,7 +34,6 @@ spreadsheets/DSR2023/reference/
 
 # DSR 2025 Horticulture: published book and intermediate sheet (kept locally)
 spreadsheets/DSR2025HORTI/*.pdf
-spreadsheets/DSR2025HORTI/schedule.xlsx
 tools/build_dsr2025horti.py
 
 # OE rev 2026 build inputs (kept locally)
