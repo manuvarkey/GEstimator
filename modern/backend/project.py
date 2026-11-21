@@ -277,6 +277,11 @@ class ProjectEditor:
 
     def relocate_schedule(self, row, parent, category_id):
         table = self.db.ScheduleTable
+        # The schedule has two levels (order, suborder): items and their subitems.
+        if parent and parent.parent_id:
+            raise ValueError(f"Subitem {parent.code} cannot have subitems; choose a main item as the parent")
+        if parent and table.select().where(table.parent == row.id).exists():
+            raise ValueError(f"Item {row.code} has subitems and cannot become a subitem")
         if parent:
             category_id = parent.category_id
         if row.category_id == category_id and row.parent_id == (parent.id if parent else None):

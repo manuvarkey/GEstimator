@@ -1005,7 +1005,7 @@ watch(
               <AppIcon name="plus" :size="15" /><span class="ribbon-label">Add item</span>
             </button>
             <button v-if="view === 'schedule'" class="ribbon-action" aria-label="Add subitem"
-              title="Create a child of the selected schedule item. Its category follows the parent; the parent code is filled in for you (Ctrl+Shift+I)."
+              title="Create a subitem of the selected item; with a subitem selected, add another subitem under the same item. Its category follows the parent; the parent code is filled in for you (Ctrl+Shift+I)."
               :disabled="busy || !one || one.rowtype === 'Category'" @click="showSubitem">
               <AppIcon name="child" /><span class="ribbon-label">Add subitem</span>
             </button>

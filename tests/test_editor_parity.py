@@ -48,6 +48,30 @@ class EditorParity(unittest.TestCase):
         root = self.call("schedule.editor.defaults", category="New category")
         self.assertEqual(root["code"], self.service.db.get_next_item_code(str(self.service.db.ScheduleCategoryTable.select().count() + 1), nextlevel=True))
 
+    def test_schedule_keeps_two_levels(self):
+        # The schedule stores items and subitems only (order, suborder).
+        self.add("1", unit="m")
+        first = self.add("1.1", parent="1")
+        self.add("1.3", parent="1")
+        other = self.add("2")
+        self.add("2.1", parent="2")
+        defaults = self.call("schedule.editor.defaults", ids=[first], child=True)
+        self.assertEqual((defaults["code"], defaults["parent"]), ("1.2", "1"))
+        self.call("schedule.editor.add", id=first, ids=[first], data=defaults)
+        table = self.service.db.ScheduleTable
+        parent = table.get(code="1")
+        self.assertEqual([row.code for row in table.select().where(table.parent == parent.id).order_by(table.suborder)], ["1.1", "1.2", "1.3"])
+        self.assertFalse(table.select().where(table.parent.in_(table.select(table.id).where(table.parent.is_null(False)))).exists())
+        with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
+            self.add("9", parent="1.1")
+        with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
+            self.call("schedule.editor.defaults", parent="1.1")
+        with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
+            self.call("schedule.editor.edit_many", edits=[dict(id=str(table.get(code="1.3").id), field="parent", value="1.1")])
+        with self.assertRaisesRegex(ValueError, "Item 2 has subitems and cannot become a subitem"):
+            self.call("schedule.editor.edit_many", edits=[dict(id=other, field="parent", value="1")])
+        self.assertIsNone(table.get(code="2").parent)
+
     def test_children_duplicate_and_paste_keep_sibling_positions(self):
         parent = self.add("1", unit="m")
         self.add("2")

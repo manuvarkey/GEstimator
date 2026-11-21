@@ -1310,6 +1310,16 @@ test("GTK insertion shortcuts retain schedule parents and target the active edit
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await expect(add).not.toBeVisible();
   await expect(main.locator('.tabulator-tree-level-2 [tabulator-field="description"]')).toContainText("Child work");
+  // Two levels: Add subitem on a subitem adds a sibling under the same item.
+  await main.locator('[tabulator-field="description"]').filter({ hasText: "Child work" }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+i");
+  await expect(add.getByLabel("Parent code (optional)")).toHaveValue("A");
+  await expect(add.getByLabel("New code", { exact: true })).toHaveValue("A.2");
+  await add.getByLabel("Description", { exact: true }).fill("Second child");
+  await add.getByRole("button", { name: "Add item", exact: true }).click();
+  await expect(add).not.toBeVisible();
+  await expect(main.locator('.tabulator-tree-level-2 [tabulator-field="description"]').filter({ hasText: "Second child" })).toBeVisible();
+  await expect(main.locator(".tabulator-tree-level-3")).toHaveCount(0);
   await main.locator('[tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
   await page.keyboard.press("ControlOrMeta+m");
   const colour = page.getByRole("dialog", { name: "Schedule row colour" });
@@ -4106,7 +4116,7 @@ test('draft headerbars use dropdowns and manual and About stay available offline
   await page.getByRole('button', { name: 'Application menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'About GEstimator', exact: true }).click();
   const about = page.getByRole('dialog', { name: 'About GEstimator', exact: true });
-  await expect(about).toContainText('Modern workspace version 0.1.0');
+  await expect(about).toContainText('Version 3.0.0');
   await about.getByText('GNU General Public License', { exact: true }).click();
   await expect(about.locator('pre')).toContainText('Version 3, 29 June 2007');
 });

@@ -228,7 +228,7 @@ class ProjectEditors(unittest.TestCase):
         self.call("schedule.editor.edit", id=str(a.id), field="parent", value="B")
         self.assertEqual(table.get_by_id(a.id).category.description, "Second")
         self.assertEqual(table.get_by_id(a.id).parent_id, b.id)
-        with self.assertRaisesRegex(ValueError, "cycle"):
+        with self.assertRaisesRegex(ValueError, "Subitem A cannot have subitems"):
             self.call("schedule.editor.edit", id=str(b.id), field="parent", value="A")
         self.call("schedule.editor.add", data=dict(
             code="LIB:SUB", description="Sub-analysis", category="SUB ANALYSIS",

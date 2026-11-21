@@ -194,15 +194,17 @@ class MCPEditingTests(MCPFixture):
     def test_move_subtree_reparent_cycle_rollback_and_measurement_links(self):
         self.writable()
         self.agent("project", action="new")
-        self.agent("upsert_items", kind="schedule", items=[dict(code="P", category="Work"), dict(code="Q", category="Work"), dict(code="C", parent="P", unit="m", category="Work"), dict(code="G", parent="C", unit="m", category="Work")])
+        self.agent("upsert_items", kind="schedule", items=[dict(code="P", category="Work"), dict(code="Q", category="Work"), dict(code="C", parent="P", unit="m", category="Work")])
         identity = self.agent("edit_measurements", ops=[dict(action="create", template="_1_NLBH", links=[dict(code="C")], records=[{"L":"7"}])])["data"]["results"][0]["id"]
         self.agent("move_items", kind="schedule", codes=["P", "C"], position=dict(after="Q"))
-        rows = self.agent("get_items", kind="schedule", codes=["C", "G"])["data"]["items"]
-        self.assertEqual([r["parent_code"] for r in rows], ["P", "C"])
+        rows = self.agent("get_items", kind="schedule", codes=["C"])["data"]["items"]
+        self.assertEqual([r["parent_code"] for r in rows], ["P"])
+        # Two levels only: a subitem cannot take subitems.
+        self.assertTrue(self.tool("upsert_items", dict(kind="schedule", items=[dict(code="G", parent="C", unit="m", category="Work")]))["isError"])
         self.agent("move_items", kind="schedule", codes=["C"], position=dict(parent="Q", index=0))
         self.assertEqual(self.agent("get_items", kind="schedule", codes=["C"])["data"]["items"][0]["parent_code"], "Q")
         before = self.runtime.call("state")
-        self.assertTrue(self.tool("move_items", dict(kind="schedule", codes=["Q"], position=dict(parent="G", index=0)))["isError"])
+        self.assertTrue(self.tool("move_items", dict(kind="schedule", codes=["P"], position=dict(parent="C", index=0)))["isError"])
         self.assertEqual(self.runtime.call("state"), before)
         detail = self.agent("get_measurements", id=identity)["data"]
         self.assertEqual(detail["links"][0]["code"], "C")

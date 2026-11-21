@@ -726,3 +726,9 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - Local build with the working tree (`build-local.sh`): bundle 6.1 MB (19 MB when repackaging the `.deb`). In the build sandbox, `unittest` 184 tests OK on Python 3.14.9 with the Flatpak's Python packages; the desktop window started and the backend answered its start-up requests. aarch64 was not built locally.
 - Snap: D-Bus slot for `com.kavilgroup.gestimator.SingleInstance` (tauri-plugin-single-instance), so a second launch hands its files to the running window under strict confinement; the Release workflow publishes tagged snaps to `edge` (secret `SNAPCRAFT_STORE_CREDENTIALS`). Not built locally.
 - Metainfo: bug tracker and source code URLs.
+
+## 2026-11-21 — Schedule keeps two levels; About text
+
+- The schedule model has two levels: items (`order`) and subitems (`suborder`); the workbook export and the GTK tree read only those. **Add subitem** with a subitem selected made it a parent, creating a third level that the export leaves out. It now adds a sibling under the same item, numbered from the selected subitem (1.1 selected: 1.2), placed after it. `relocate_schedule` rejects a subitem as parent and an item with subitems becoming a subitem, which covers adding, editing the parent, MCP `upsert_items`/`move_items` and paste. Two tests that built three levels were changed to expect the error. Projects that already hold a third level are not repaired.
+- About showed "Modern workspace version 0.1.0" (the browser test still expected it after the 3.0.0 change); it now shows "Version 3.0.0", and the help text no longer mentions the modern workspace.
+- Tests: `test_schedule_keeps_two_levels`; browser workflow "GTK insertion shortcuts retain schedule parents and target the active editor" (Add subitem on a subitem). `unittest` 185 tests OK; `vue-tsc` passes; browser suite 84 passed, 1 skipped, 1 failed (the About text, fixed and rerun).

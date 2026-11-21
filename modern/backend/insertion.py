@@ -35,6 +35,7 @@ def defaults(editor, kind, params):
     selected, category = last_selected(editor, kind, params)
     had_selection = selected is not None
     parent = None
+    sibling = False
     near = None
     category_name = params.get("category") or "UNCATEGORISED"
     if not isinstance(category_name, str):
@@ -55,7 +56,10 @@ def defaults(editor, kind, params):
         near = str(selected.order + 1) if category else selected.code
         if kind == "schedule" and not category:
             if params.get("child"):
-                parent = selected
+                # Schedules have two levels: a subitem's new subitem is its sibling,
+                # numbered from the selected subitem.
+                parent = selected.parent if selected.parent_id else selected
+                sibling = selected.parent_id is not None
             else:
                 while selected.parent_id:
                     selected = selected.parent
@@ -64,11 +68,14 @@ def defaults(editor, kind, params):
         parent = table.get_or_none(table.code == params["parent"])
         if parent is None:
             raise ValueError("Parent schedule item not found")
+        if parent.parent_id:
+            raise ValueError(f"Subitem {parent.code} cannot have subitems; choose a main item as the parent")
         near = parent.code
+        sibling = False
     if kind == "resources":
         code = editor.db.get_new_resource_code(near_item_code=near if had_selection and near and ":" not in near and not category else None)
     else:
-        code = editor.db.get_next_item_code(near_item_code=near, nextlevel=bool(parent) or category)
+        code = editor.db.get_next_item_code(near_item_code=near, nextlevel=(bool(parent) and not sibling) or category)
     return dict(code=code, category=parent.category.description if parent else (selected.description if category else selected.category.description) if selected else category_name,
                 parent=parent.code if parent else "")
 
