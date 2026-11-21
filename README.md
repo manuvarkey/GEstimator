@@ -45,6 +45,8 @@ DSR 2023 (Civil), DSR (E&M) 2025 and DSR 2025 Horticulture are bundled. Older sc
 
 Installers for Windows (`.exe`) and Linux (`.deb`, `.AppImage`, Flatpak and Snap) are published under [Releases](https://github.com/manuvarkey/GEstimator/releases/latest).
 
+On Windows, uninstall any 2.x version of GEstimator (Settings → Apps) before installing 3.0. The new installer does not remove it.
+
 Version 2.7, the last release of the earlier GTK application, remains available under [Releases](https://github.com/manuvarkey/GEstimator/releases/tag/v2.7); its source is on the [`archive/gtk`](https://github.com/manuvarkey/GEstimator/tree/archive/gtk) branch.
 
 ## Building from source
