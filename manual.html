@@ -36,6 +36,7 @@
 <li><strong>Title bar:</strong> application menu, back and forward, new, open and save, undo and redo, the project name, theme and keyboard shortcuts.</li>
 <li><strong>View tabs:</strong> Schedule, Analysis, Resources, Measurements, Databases and MCP. The ribbon below the tabs shows the tools of the current view.</li>
 <li><strong>Project rail</strong> (left edge): one tile for each open project. Click a tile to switch projects; <code>+</code> opens a new tab.</li>
+<li><strong>Type-ahead:</strong> type while a table has focus (Schedule, Resources, database picker) to jump to the first row containing every word you type. Rows are not filtered; <strong>Up</strong>/<strong>Down</strong> move between matches and <strong>Esc</strong> closes the find box. From the search field, <strong>Up</strong>/<strong>Down</strong> move through the listed rows.</li>
 <li><strong>Table:</strong> the rows of the current view. A search field and category filter sit above it; the estimate total and page controls sit below it.</li>
 <li><strong>Status bar:</strong> calculation status, unsaved drafts and hints.</li>
 </ul>
@@ -59,15 +60,15 @@
 <li><strong>DSR 2025 Horticulture</strong> – CPWD Horticulture and Landscaping 2025.</li>
 </ul>
 <p>Databases are opened read-only: nothing you do in an estimate changes them. Older schedules (DSR 2016–2021, DSR (E&amp;M) 2016–2022 and others) can be downloaded from <a href="https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases" rel="noopener">Other databases</a>.</p>
-<p>To attach a database:</p>
+<p>The bundled databases and every <code>.eproj</code> file in your database folder are attached automatically each time a project opens. Use <strong>Attach database…</strong> only for other databases:</p>
 <ol>
 <li>Open the <strong>Databases</strong> tab and click <strong>Attach database…</strong>.</li>
-<li>Choose a database from <strong>Available databases</strong>, or enter or browse to any <code>.eproj</code> file under <strong>Library project</strong>.</li>
+<li>Enter or browse to a <code>.eproj</code> file under <strong>Library project</strong>.</li>
 <li>Keep <strong>Remember for future projects</strong> ticked to attach it automatically next time.</li>
 <li>Click <strong>Attach library</strong>.</li>
 </ol>
 <figure><img src="images/attach-database.png" alt="Attach a database" loading="lazy"><figcaption>Attach a database</figcaption></figure>
-<p><strong>Database folder</strong> opens the folder for your own databases. A <code>.eproj</code> file placed there appears in <strong>Available databases</strong>.</p>
+<p><strong>Database folder</strong> opens the folder for your own databases. A <code>.eproj</code> file placed there is attached the next time a project opens, or use <strong>Rescan database folder</strong> in the dialog.</p>
 <h2 id="4-build-the-schedule">4. Build the schedule</h2>
 <p>The Schedule holds the items of the estimate: code, description, unit, rate, quantity, amount and remarks. Items are grouped in categories; an item can have subitems, and a heading row carries the common description of its subitems.</p>
 <h3 id="add-items-from-a-database">Add items from a database</h3>

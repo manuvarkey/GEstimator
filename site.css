@@ -48,7 +48,8 @@ nav a:hover { color: var(--accent); }
 .buttons { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
 .button { display: inline-block; padding: .7rem 1.3rem; border-radius: 6px; font-weight: 600; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
 .button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent); }
-.shot { margin: 2.5rem auto 0; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 40px rgb(0 0 0 / .12); display: block; }
+/* Screenshots carry their own window frame and drop shadow. */
+.shot { margin: 2.5rem auto 0; display: block; }
 section { padding: 3rem 0; }
 section h2 { font-size: 1.8rem; margin: 0 0 1.5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
@@ -57,7 +58,7 @@ section h2 { font-size: 1.8rem; margin: 0 0 1.5rem; }
 .card p { margin: 0; color: var(--muted); }
 .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; }
 .gallery figure, .manual figure { margin: 0; }
-.gallery img, .manual figure img { border: 1px solid var(--line); border-radius: 8px; display: block; }
+.gallery img, .manual figure img { display: block; }
 figcaption { color: var(--muted); font-size: .9rem; margin-top: .4rem; text-align: center; }
 .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .downloads a { text-decoration: none; color: var(--text); }
