@@ -309,6 +309,12 @@ test("project tabs keep separate projects in a vertical rail", async ({ page }) 
   nativeDialogResults.push(project);
   await landing.getByRole("button", { name: /Open project/ }).click();
   await expect(grid).toContainText("Foundation");
+  // Search text and the selected row of a tab survive switching tabs.
+  const search = page.locator(".project-view:visible").getByLabel("Search project table");
+  await search.fill("Foundation");
+  await search.press("Enter");
+  await grid.locator(".tabulator-row", { hasText: "Foundation" }).first().click();
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Foundation");
   // New project while a project is open: a second tab, the first stays open.
   await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
   await expect(tabs).toHaveCount(2);
@@ -321,6 +327,8 @@ test("project tabs keep separate projects in a vertical rail", async ({ page }) 
   await tabs.nth(0).click();
   await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
   await expect(grid).toContainText("Foundation");
+  await expect(search).toHaveValue("Foundation");
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Foundation");
   // Opening the already open project switches to its tab instead of duplicating it.
   await tabs.nth(1).click();
   await expect(grid).not.toContainText("Foundation");

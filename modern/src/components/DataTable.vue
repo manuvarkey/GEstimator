@@ -112,6 +112,37 @@ defineExpose({
     savedPosition = { ...savedPosition, top: 0 };
   },
   clearSelection: async () => { await ready; if (alive) { table.deselectRow(); resetTablePosition(table); } },
+  /** Selected row ids and scroll position, to restore the view after a remount. */
+  viewState: () => {
+    const viewport = element.value?.querySelector<HTMLElement>(".tabulator-tableholder");
+    const position = props.active !== false && viewport?.getClientRects().length ? { top: viewport.scrollTop, left: viewport.scrollLeft } : { ...savedPosition };
+    return { ids: table ? table.getSelectedData().map(row => row.id as string) : [], position };
+  },
+  /** Select the saved rows (expanding their parents) and return to the saved scroll position. */
+  restoreViewState: async (view: { ids: string[]; position: { top: number; left: number } }) => {
+    // Let a pending row update start first, then wait for it.
+    await nextTick();
+    await ready;
+    await replacement;
+    if (!alive) return;
+    const ids = new Set(view.ids);
+    const visit = (rows: RowComponent[]) => {
+      for (const row of rows) {
+        if (ids.has(row.getData().id)) {
+          row.select();
+          let parent = props.tree ? row.getTreeParent() : false;
+          while (parent) { if (!parent.isTreeExpanded()) parent.treeExpand(); parent = parent.getTreeParent(); }
+        }
+        if (props.tree) visit(row.getTreeChildren() || []);
+      }
+    };
+    if (ids.size) visit(table.getRows());
+    savedPosition = { ...view.position };
+    await nextTick();
+    restorePosition();
+    requestAnimationFrame(() => { if (alive) restorePosition(); });
+    emit("selection", table.getSelectedData());
+  },
 });
 function editorColumns(columns: ColumnDefinition[]) {
   return columns.map(column => ({ ...column,

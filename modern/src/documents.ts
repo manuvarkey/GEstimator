@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { request, setBackendSession } from "./backend";
+import { forgetTabState } from "./tabMemory";
 
 /** One open project tab. Each tab owns a backend session (an independent
  * project, undo history, drafts and recovery copy). Only the active tab's
@@ -74,6 +75,7 @@ export async function closeDocument(id: string) {
   await request("session.close", { session: id }, id);
   documents.value = documents.value.filter(tab => tab.id !== id);
   closeConfirmed.delete(id);
+  forgetTabState(id);
 }
 const palette = ["#d97706", "#2563eb", "#16a34a", "#7c3aed", "#db2777", "#0891b2", "#ca8a04", "#0d9488"];
 export function documentColour(seed: string) {

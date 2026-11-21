@@ -19,6 +19,8 @@ import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 import { notify } from "../statusNotice";
+import { activeDocument } from "../documents";
+import { recallTabState, rememberTabState } from "../tabMemory";
 
 type View = "schedule" | "resources" | "measurement";
 interface GridRow {
@@ -96,9 +98,18 @@ defineExpose({
 const busy = ref(false);
 watch(busy, (value) => emit("busy", value));
 onBeforeUnmount(() => emit("busy", false));
+onBeforeUnmount(() => {
+  const table = mainTable.value?.viewState();
+  if (table && !source.value) rememberTabState(documentId, memoryKey, { query: query.value, categoryFilters: categoryFilters.value, page: page.value, table } satisfies ViewMemory);
+});
 const error = ref("");
-const query = ref("");
-const categoryFilters = ref<string[]>([]);
+// View state saved when this project tab was switched away (see tabMemory.ts).
+type ViewMemory = { query: string; categoryFilters: string[]; page: number; table: { ids: string[]; position: { top: number; left: number } } };
+const documentId = activeDocument.value;
+const memoryKey = "view:" + props.view;
+const remembered = recallTabState<ViewMemory>(memoryKey);
+const query = ref(remembered?.query ?? "");
+const categoryFilters = ref<string[]>(remembered?.categoryFilters ?? []);
 watch(categoryFilters, () => { void search(); });
 let searchedQuery = "";
 const liveSearch = useLiveSearch(query, () => searchedQuery, () => isMeasurement.value ? Promise.resolve(true) : search());
@@ -107,7 +118,7 @@ watch([() => state.value?.revision, source, () => props.view], () => { discrepan
 const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
 const usageCode = ref<string>();
-const page = ref(0);
+const page = ref(remembered?.page ?? 0);
 const selected = ref<GridRow[]>([]);
 const selectedRecord = ref<GridRow>();
 const selectedRecords = ref<GridRow[]>([]);
@@ -595,8 +606,16 @@ async function refreshChanges() {
   else await run(update);
 }
 watch(() => props.active, async active => { if (active) { await refreshChanges(); await focusTable(); } else cancelFocus?.(); });
+let pendingView = remembered?.table;
 async function load() {
-  return run(refresh);
+  const result = await run(refresh);
+  // The first load with the project open restores the remembered rows and scroll.
+  if (pendingView && mainTable.value && state.value) {
+    const view = pendingView;
+    pendingView = undefined;
+    await mainTable.value.restoreViewState(view);
+  }
+  return result;
 }
 /** Load the first page of results for the current search and filters. */
 async function search() {

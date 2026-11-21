@@ -34,6 +34,7 @@ import ProjectLanding from "./components/ProjectLanding.vue";
 import DocumentRail from "./components/DocumentRail.vue";
 import { activeDocument, activeTab as currentDocument, closeConfirmed, documentForPath, documents, pendingPaths, startup, takeDocumentAction, updateDocument, type DocumentAction } from "./documents";
 import { useDocumentTabs } from "./useDocumentTabs";
+import { forgetTabState, recallTabState, rememberTabState } from "./tabMemory";
 import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
@@ -136,11 +137,15 @@ const settingsOpen = ref(false);
 const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
   currentDocument.value.view,
 );
-const activeTab = ref<(typeof allViews)[number]["key"]>(currentDocument.value.view);
+type NavigationEntry = { view: typeof activeView.value; tab: (typeof allViews)[number]["key"]; code?: string; measurement?: string };
+type WorkspaceMemory = { tab: NavigationEntry["tab"]; measurementEntry?: string; navigation: NavigationEntry[]; navigationIndex: number };
+// View state saved when this tab was switched away (see tabMemory.ts).
+const remembered = recallTabState<WorkspaceMemory>("workspace");
+const activeTab = ref<NavigationEntry["tab"]>(remembered?.tab ?? currentDocument.value.view);
 watch(() => programSettings.value?.mcp_enabled, enabled => { if (!enabled && activeTab.value === "mcp") activeTab.value = activeView.value; });
 const documentId = activeDocument.value;
 watch(activeView, view => updateDocument(documentId, { view }));
-const measurementEntry = ref<string>();
+const measurementEntry = ref<string | undefined>(remembered?.measurementEntry);
 // Project views show the landing page (and no ribbon tools) until a project is open.
 const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
 const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
@@ -158,9 +163,8 @@ watch(projectSession, () => { visitedViews.value = activeView.value === "analysi
 function bindProjectView(view: ProjectView, instance: unknown) { projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined; }
 
 watch(activeTab, tab => { if (tab === "mcp") void refreshMCP(); });
-type NavigationEntry = { view: typeof activeView.value; tab: typeof activeTab.value; code?: string; measurement?: string };
-const navigation = ref<NavigationEntry[]>([]);
-const navigationIndex = ref(-1);
+const navigation = ref<NavigationEntry[]>(remembered?.navigation ?? []);
+const navigationIndex = ref(remembered?.navigationIndex ?? -1);
 let restoringNavigation = false;
 watch([activeView, activeTab, measurementEntry, () => activeView.value === "analysis" ? state.value?.code : undefined], () => {
   if (restoringNavigation) return;
@@ -170,7 +174,7 @@ watch([activeView, activeTab, measurementEntry, () => activeView.value === "anal
   navigation.value.push(entry);
   navigationIndex.value = navigation.value.length - 1;
 }, { immediate: true, flush: "post" });
-watch(projectSession, () => { navigation.value = [{ view: activeView.value, tab: activeTab.value }]; navigationIndex.value = 0; measurementEntry.value = undefined; });
+watch(projectSession, () => { forgetTabState(documentId); navigation.value = [{ view: activeView.value, tab: activeTab.value }]; navigationIndex.value = 0; measurementEntry.value = undefined; });
 async function travelNavigation(delta: number) {
   const index = navigationIndex.value + delta;
   const entry = navigation.value[index];
@@ -896,6 +900,8 @@ onMounted(async () => {
     await w.reconnect();
     unsubscribers.push(await installProjectOpening(openOsProject, message => { error.value = message; }));
     await initializeMCP();
+    // Changes made before this workspace mounted are already in its state.
+    if (mcpStatus.value) { observedMCPChange = mcpStatus.value.change_seq; observedMCPProject = mcpStatus.value.project_epoch; }
     mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
     const action = takeDocumentAction();
     if (!startup.done) {
@@ -932,6 +938,7 @@ async function runDocumentAction(action: DocumentAction) {
   while (pendingPaths.length && !switchingAway) await openOsProject(pendingPaths.shift()!);
 }
 onBeforeUnmount(() => {
+  rememberTabState(documentId, "workspace", { tab: activeTab.value, measurementEntry: measurementEntry.value, navigation: navigation.value, navigationIndex: navigationIndex.value } satisfies WorkspaceMemory);
   if (mcpPoll) clearInterval(mcpPoll);
   window.removeEventListener("keydown", keyboard);
   window.removeEventListener("beforeunload", beforeUnload);
