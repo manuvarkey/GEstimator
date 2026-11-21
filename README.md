@@ -13,35 +13,39 @@
 <a href="https://flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
 <a href="https://snapcraft.io/gestimator"><img height="51" alt="Download on Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg"/> </a> 
 
-GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2023 (Civil)** and **DSR (E&M) 2025**.
+GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes bundled with **DSR 2023 (Civil)**, **DSR (E&M) 2025** and **DSR 2025 Horticulture**, and works with any number of your own databases.
 
-The program is organised in Schedule, Resources and Measurements views. Schedule holds the estimate items, entered directly, added from a database or imported from a .xlsx file; opening an item's analysis shows the rate analysis editor. Measurements records the details of measurements against schedule items. Resources holds the materials, labour and tools/plants on which the rate analyses are framed. Several projects can be open in tabs, and unsaved work is recovered after a crash.
+![Schedule of an estimate](docs/manual/images/schedule.png)
 
-The estimate can be exported to a .xlsx workbook containing the schedule of rates, schedule of resources, details of measurements, resource usage and the analysis of rates for each item. An optional local MCP server lets AI assistants read and prepare estimates.
+## Features
 
-The earlier GTK application (version 2.x) is kept on the [`archive/gtk`](https://github.com/manuvarkey/GEstimator/tree/archive/gtk) branch.
+- **Schedule** of estimate items, added from a database, entered directly or imported from a `.xlsx` workbook. Items keep their rate analysis, so every rate stays traceable.
+- **Rate analysis** editor with resource groups, subtotals, weighted additions (CP&OH, GST, cess), multipliers and rounding. Changing a resource rate updates every dependent item. Bulk edit rules change many analyses at once with a preview.
+- **Resources** (materials, labour, plant) shared by all analyses, with usage reports and rate refresh from a newer database.
+- **Measurements** recorded against schedule items with templates (NLBH, steel reinforcement, electrical points, ducting), expressions in cells and automatic quantity update.
+- **Databases** attached read-only, with notes on how each is organised and what its rates include.
+- **Export** of the whole estimate to a `.xlsx` workbook: schedule of rates, schedule of resources, details of measurements, resource usage and analysis of rates.
+- **Several projects in tabs**, unlimited undo, light and dark themes, and recovery of unsaved work after a crash.
+- **AI assistants** (optional): a local [MCP](https://modelcontextprotocol.io) server lets Claude or any MCP client read and prepare estimates in the open project.
 
+## User manual
 
-## Tutorials
+The [user manual](docs/manual/README.md) walks through the whole workflow with screenshots, using a sample estimate priced from DSR 2023.
 
-[![Simple Usage](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/screenshot1.png)](https://youtu.be/B3ycfivex-E)
+| | |
+|---|---|
+| ![Rate analysis](docs/manual/images/analysis.png) | ![Add items from a database](docs/manual/images/add-from-database.png) |
+| ![Measurement records](docs/manual/images/measurement-records.png) | ![Dark theme](docs/manual/images/schedule-dark.png) |
 
-[![Advanced Usage](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/screenshot2.png)](https://youtu.be/lo3-QIPtyI8)
+## Databases
 
-## Screenshots
-
-![Image 1](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/schedule.png)
-![Image 2](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/resource.png)
-![Image 3](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/analysis.png)
-![Image 4](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/addlibrary.png)
-![Image 5](https://raw.githubusercontent.com/manuvarkey/GEstimator/master/screenshots/measurements.png)
-
-## Resources
-Additional libraries and other resources can be downloaded from [GEstimator Other Databases](https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases).
+DSR 2023 (Civil), DSR (E&M) 2025 and DSR 2025 Horticulture are bundled. Older schedules and other databases (DSR 2016–2021, DSR (E&M) 2016–2022, market rate databases) can be downloaded from [Other databases](https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases). Any GEstimator project (`.eproj`) can be attached as a database.
 
 ## Installation
 
 Installers for Windows (`.exe`) and Linux (`.deb`, `.AppImage`, Flatpak and Snap) are published under [Releases](https://github.com/manuvarkey/GEstimator/releases/latest).
+
+Version 2.7, the last release of the earlier GTK application, remains available under [Releases](https://github.com/manuvarkey/GEstimator/releases/tag/v2.7); its source is on the [`archive/gtk`](https://github.com/manuvarkey/GEstimator/tree/archive/gtk) branch.
 
 ## Building from source
 
