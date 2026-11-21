@@ -11,7 +11,7 @@ Read this before choosing items from this database. The general part says what t
 - **Rates:** schedule rates are complete: material, labour, taxes and duties (Delhi), T&P, overheads and profit, and GST on works contracts. They apply to a working height up to 4.5 m from floor level unless the item says otherwise. Rates are indicative; actual rates are governed by the market.
 - **Appendix I and II (resources):** basic rates of labour and materials. These **exclude** contractor's profit, overheads, carriage and taxes; the analyses add them.
 - **Guardrail:** do not add GST, cartage, labour cess or contractor's overheads and profit on top of schedule rates, and do not use raw Appendix I/II resource rates directly as BOQ items: a resource enters an estimate only through a rate analysis.
-- **Source data:** the CPWD workbook "DSR EandM 2025 3 09 2025", with the schedule's numbering, text and rates taken from the printed book. Where the printed rate disagrees with the printed analysis, the analysis rate is kept and the item's remarks say so. Full build notes: `spreadsheets/DSREM2025/README.md` in the GEstimator repository.
+- **Rates as printed:** numbering, text and rates are those of the printed book. Where the printed rate disagrees with the printed analysis, the analysis rate is kept and the item's remarks say so.
 
 ## How the items are built
 
@@ -21,7 +21,7 @@ Read this before choosing items from this database. The general part says what t
 - **Analysis structure.** Labour-and-material items: materials, cartage 1 % of materials, labour, overheads and profit 15 %, labour cess 1 %, GST 18 %. Equipment items (transformers, DG sets, UPS, chillers, LED fittings and most SITC equipment): material (A), cartage 1 %, "ITC @ 4 % of A" in place of labour, overheads and profit 15 %, labour cess 1 %, GST 18 %. Some analyses price a lot (10 sq m, 100 m) and divide.
 - **Resource codes.** Four-digit ICD codes from the book: 1001–1021 labour and hire charges (Appendix I; 1001 wireman, 1007 khallasi, 1021 technician), 1101 onward materials (Appendix II). Resources in the category RESOURCES FROM ANALYSES are lump sums the book prices only inside an analysis (battery racks, pump controllers, tanks); their rate is the book amount ÷ quantity. "X – Unit item" (unit Rs, rate 1) carries a lump sum the book adds without a quantity.
 - **Units:** Point, Metre/Meter, Each, Set, sq. m, cum, kg, kWp, Per HP, Per TR. A "Per TR" or "Per HP" item is priced per unit of capacity: quantity = capacity × number of units.
-- **Book inconsistencies** kept as published: 17 analyses differ from their rate by ₹1 and about 190 by a fraction of a rupee (unrounded intermediate amounts). The printed schedule disagrees with the printed analysis in 197 items; the analysis rate is used. 6.12 (testing joint) has no printed analysis; the workbook's (₹140) is used against a printed rate of ₹3614.
+- **Book inconsistencies** kept as published: 17 analyses differ from their rate by ₹1 and about 190 by a fraction of a rupee (unrounded intermediate amounts). The printed schedule disagrees with the printed analysis in 197 items; the analysis rate is used. 6.12 (testing joint) has no printed analysis; its rate is ₹140 against a printed rate of ₹3614.
 
 ## Category: WIRING
 

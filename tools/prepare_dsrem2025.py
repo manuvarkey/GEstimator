@@ -633,7 +633,6 @@ def overlay_printed(schedule_rows, analysis_rows):
         if code != row[0]:
             renamed[row[0]] = code
             differences.append(dict(code=code, workbook_code=row[0], field="code", workbook=row[0], printed=code, used="printed"))
-            note(row, f"Numbered {row[0]} in the workbook")
         if normal(row[1]) != normal(other[1]):
             differences.append(dict(code=code, workbook_code=row[0], field="description", workbook=row[1][:200],
                                     printed=other[1][:200], used="printed"))
@@ -645,10 +644,9 @@ def overlay_printed(schedule_rows, analysis_rows):
             found = results.get(row[0], [])
             if any(abs(value - new) < 1 for value in found) or not any(abs(value - old) < 1 for value in found):
                 rate, used_rate = other[3], "printed"
-                note(row, f"Printed rate {other[3]} (workbook {row[3]})")
             else:
                 used_rate = "workbook"
-                note(row, f"Printed rate {other[3]} disagrees with the analysis ({found[0]:g}); workbook rate {row[3]} kept")
+                note(row, f"Printed rate {other[3]} disagrees with the analysis ({found[0]:g}); analysis rate {row[3]} used")
             differences.append(dict(code=code, workbook_code=row[0], field="rate", workbook=row[3], printed=other[3], used=used_rate))
         elif new is not None and (old is not None or not str(row[3]).strip()):
             rate = other[3]  # the printed figure (whole rupees where the workbook keeps 1930.0383)
@@ -674,7 +672,7 @@ def overlay_printed(schedule_rows, analysis_rows):
         if not other[0] or id(other) in used or last is None:
             continue
         category = schedule_rows[last + added][4]
-        schedule_rows.insert(last + added + 1, [other[0], other[1], other[2], other[3], category, "Not in the workbook"])
+        schedule_rows.insert(last + added + 1, [other[0], other[1], other[2], other[3], category, ""])
         differences.append(dict(code=other[0], workbook_code="", field="item", workbook="", printed=other[1][:80], used="printed"))
         added += 1
     # Analyses follow renumbered items (all at once: codes may swap).
