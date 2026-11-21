@@ -15,7 +15,7 @@
   <summary>Cost estimates with rate analysis for civil and electrical works</summary>
   <description>
     <p>
-      GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2021 (Civil) and DSR (E and M) 2025 and can use other databases of items.
+      GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2023 (Civil), DSR (E and M) 2025 and DSR 2025 (Horticulture and Landscaping) and can use other databases of items.
     </p>
     <ul>
       <li>Schedule of items, resources and details of measurements in tables with keyboard navigation</li>
@@ -58,17 +58,19 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
-    <release date="2026-11-20" version="3.0.0">
+    <release date="2026-11-22" version="3.0.0">
       <description>
         <p>New desktop application with a redesigned interface.</p>
         <ul>
-          <li>Ribbon commands, light and dark themes, project tabs</li>
-          <li>DSR (E and M) 2025 with Correction Slip No. 1 and database notes</li>
-          <li>Bulk analysis editing, mapped imports and local MCP server</li>
+          <li>Ribbon commands, light and dark themes, project tabs with recovery of unsaved work</li>
+          <li>Bundled DSR 2023 (Civil), DSR (E and M) 2025 with Correction Slip No. 1 and DSR 2025 (Horticulture and Landscaping), each with database notes</li>
+          <li>Type-ahead search when adding items from a database</li>
+          <li>Bulk analysis editing, mapped Excel imports and local MCP server for AI assistants</li>
+          <li>User manual with screenshots</li>
         </ul>
       </description>
     </release>
-	<release date="2025-01-23" version="2.7.0">
+    <release date="2025-01-23" version="2.7.0">
       <description>
         <p>Changelog:</p>
           <ul>
