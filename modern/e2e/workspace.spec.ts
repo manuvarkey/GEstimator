@@ -30,6 +30,7 @@ function createBackend() {
   let sequence = 0;
   const process = spawn(python, ["-m", "modern.backend"], {
     cwd: resolve(".."),
+    env: { ...globalThis.process.env, GESTIMATOR_AUTO_DATABASES: "0" },
   });
   createInterface({ input: process.stdout }).on("line", (line) => {
     const message = JSON.parse(line);
@@ -3884,13 +3885,10 @@ test('repeated bundled database attachment keeps regular weight and stable smoot
   const sourceBytes = await Promise.all(['DSR2023.eproj', 'DSREM2025.eproj'].map(name => readFile(resolve('../estimator/database', name))));
   const manager = await openDatabaseManager(page);
   const fields = [manager.locator('.dialog-intro'), manager.getByLabel('Library project', { exact: true }), manager.locator('.library-remember')];
-  const selected = manager.getByLabel('Available databases');
   const seen = new Set<string>();
   for (const [index, entry] of [catalog[0], catalog[1], catalog[0], catalog[1]].entries()) {
     if (index === 2) await page.locator('body').evaluate(el => { el.style.fontWeight = '700'; });
-    await selected.locator(`option[value="${entry.path}"]`).waitFor({ state: 'attached' });
-    await selected.selectOption(entry.path);
-    await expect(manager.getByLabel('Library project', { exact: true })).toHaveValue(entry.path);
+    await manager.getByLabel('Library project', { exact: true }).fill(entry.path);
     await manager.getByRole('button', { name: 'Attach library', exact: true }).click();
     seen.add(entry.path);
     await expect(manager.locator('.attached-database')).toHaveCount(seen.size);
@@ -4592,4 +4590,28 @@ test("perf: everyday operations on a large project", async ({ page }) => {
   });
   await measure("switch to schedule", async () => { await page.locator("#view-schedule").click(); });
   console.log("PERF\n" + results.join("\n"));
+});
+
+test("type-ahead selects matching rows without filtering and Up/Down step between matches", async ({ page }) => {
+  const { execFileSync } = await import("node:child_process");
+  const project = resolve(directory, "typeahead.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+  await openFixture(page, project);
+  await page.locator("#view-schedule").click();
+  const grid = page.locator(".project-view:visible .project-main-grid");
+  const rows = grid.locator(".tabulator-row");
+  await expect(rows.first()).toBeVisible();
+  const total = await rows.count();
+  await rows.first().locator('[tabulator-field="code"]').click();
+  await page.keyboard.type("foundation");
+  await expect(grid.locator(".type-ahead")).toHaveText("foundation");
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Foundation");
+  expect(await rows.count()).toBe(total);
+  await page.keyboard.press("Escape");
+  await expect(grid.locator(".type-ahead")).toHaveCount(0);
+  // From the search box, Down moves the selection through the loaded rows.
+  const search = page.locator(".project-view:visible").getByLabel("Search project table");
+  await search.focus();
+  await search.press("ArrowDown");
+  await expect(grid.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
 });

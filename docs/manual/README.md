@@ -22,6 +22,7 @@ GEstimator prepares cost and quantity estimates of civil and electrical works wi
 - **Title bar:** application menu, back and forward, new, open and save, undo and redo, the project name, theme and keyboard shortcuts.
 - **View tabs:** Schedule, Analysis, Resources, Measurements, Databases and MCP. The ribbon below the tabs shows the tools of the current view.
 - **Project rail** (left edge): one tile for each open project. Click a tile to switch projects; `+` opens a new tab.
+- **Type-ahead:** type while a table has focus (Schedule, Resources, database picker) to jump to the first row containing every word you type. Rows are not filtered; **Up**/**Down** move between matches and **Esc** closes the find box. From the search field, **Up**/**Down** move through the listed rows.
 - **Table:** the rows of the current view. A search field and category filter sit above it; the estimate total and page controls sit below it.
 - **Status bar:** calculation status, unsaved drafts and hints.
 
@@ -54,16 +55,16 @@ A database is any `.eproj` file whose items and resources you copy into your est
 
 Databases are opened read-only: nothing you do in an estimate changes them. Older schedules (DSR 2016–2021, DSR (E&M) 2016–2022 and others) can be downloaded from [Other databases](https://github.com/manuvarkey/GEstimator/tree/master/Other%20databases).
 
-To attach a database:
+The bundled databases and every `.eproj` file in your database folder are attached automatically each time a project opens. Use **Attach database…** only for other databases:
 
 1. Open the **Databases** tab and click **Attach database…**.
-2. Choose a database from **Available databases**, or enter or browse to any `.eproj` file under **Library project**.
+2. Enter or browse to a `.eproj` file under **Library project**.
 3. Keep **Remember for future projects** ticked to attach it automatically next time.
 4. Click **Attach library**.
 
 ![Attach a database](images/attach-database.png)
 
-**Database folder** opens the folder for your own databases. A `.eproj` file placed there appears in **Available databases**.
+**Database folder** opens the folder for your own databases. A `.eproj` file placed there is attached the next time a project opens, or use **Rescan database folder** in the dialog.
 
 ## 4. Build the schedule
 

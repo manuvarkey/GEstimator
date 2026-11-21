@@ -68,7 +68,11 @@ export async function attachLibrary(path: string, remember = true) {
   }
   return source;
 }
+/** Bundled databases and the user database folder are attached automatically. */
+export const catalogWarnings = ref<string[]>([]);
 export async function restoreLibraries() {
+  try { catalogWarnings.value = (await request<{ warnings: string[] }>("library.attach_catalog")).warnings; }
+  catch (error) { catalogWarnings.value = [String(error)]; }
   for (const library of savedLibraries.value) {
     try { await attachLibrary(library.path, false); }
     catch (error) { library.error = error instanceof Error ? error.message : String(error); }

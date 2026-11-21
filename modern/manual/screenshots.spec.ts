@@ -45,7 +45,7 @@ async function connect(page: Page, theme: "light" | "dark" = "light") {
       metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
       transformCallback: () => ++callbackId,
       invoke: (method: string, args: any) => {
-        if (method === "desktop_font") return Promise.resolve({ family: "Noto Sans", size: "10pt" });
+        if (method === "desktop_font") return Promise.resolve({ family: "Iosevka", size: "11pt" });
         if (method === "take_project_open_requests") return Promise.resolve([]);
         if (method.startsWith("plugin:event|")) return Promise.resolve(1);
         if (method === "backend_request") return (window as any).backendTransport(args.request);
@@ -60,10 +60,19 @@ async function connect(page: Page, theme: "light" | "dark" = "light") {
   await expect(page.getByText("Calculation engine connected")).toBeVisible();
 }
 
+/** The window is shown on a transparent canvas with a soft drop shadow, as a desktop window would be. */
 async function shot(page: Page, name: string) {
   await page.mouse.move(1, 1);
   await page.waitForTimeout(400);
-  await page.screenshot({ path: resolve(images, name + ".png"), animations: "disabled" });
+  const window = await page.screenshot({ animations: "disabled" });
+  const frame = await page.context().newPage();
+  const size = page.viewportSize()!;
+  const margin = 48;
+  await frame.setViewportSize({ width: size.width + margin * 2, height: size.height + margin * 2 });
+  await frame.setContent(`<body style="margin:0;background:transparent"><img src="data:image/png;base64,${window.toString("base64")}" style="position:absolute;left:${margin}px;top:${margin}px;width:${size.width}px;height:${size.height}px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.25),0 12px 40px rgba(0,0,0,.35)"></body>`);
+  await frame.waitForFunction(() => (document.images[0] as HTMLImageElement).complete);
+  await frame.screenshot({ path: resolve(images, name + ".png"), omitBackground: true });
+  await frame.close();
 }
 
 async function openSample(page: Page) {
@@ -97,11 +106,9 @@ test("manual screenshots", async ({ page }) => {
   await page.locator("#view-databases").click();
   await page.locator(".ribbon").getByRole("button", { name: "Attach database…", exact: true }).click();
   const manager = page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
-  const available = manager.getByLabel("Available databases");
-  await available.selectOption("bundled:DSR2023.eproj");
-  await shot(page, "attach-database");
-  await manager.getByRole("button", { name: "Attach library", exact: true }).click();
+  // Bundled databases attach themselves.
   await expect(manager.locator(".attached-database").first()).toBeVisible();
+  await shot(page, "attach-database");
   await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
   await expect(manager).not.toBeVisible();
   await page.locator("#view-schedule").click();
@@ -109,6 +116,7 @@ test("manual screenshots", async ({ page }) => {
   // Add from database.
   await page.locator(".ribbon").getByRole("button", { name: "Add item from database", exact: true }).click();
   const picker = page.getByRole("dialog", { name: "Add item from database", exact: true });
+  await picker.getByLabel("Database", { exact: true }).selectOption({ label: await picker.locator("option", { hasText: /DSR.*2023/ }).first().innerText() });
   await expect(picker.locator(".tabulator-row", { hasText: "1.1.1" }).first()).toBeVisible();
   await picker.getByLabel("Find database items").fill("cement plaster");
   await picker.getByRole("button", { name: "Search", exact: true }).click();

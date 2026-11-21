@@ -16,6 +16,12 @@ class DatabaseWorkflows(unittest.TestCase):
     def call(self, method, **params):
         return self.service.call(method, dict(revision=self.service.revision, **params))
 
+    def test_catalog_attaches_bundled_databases_once(self):
+        result = self.call("library.attach_catalog")
+        names = {source["name"] for source in result["sources"]}
+        self.assertTrue({"DSR 2023", "DSR E&M 2025"} <= names)
+        self.assertEqual(self.call("library.attach_catalog")["sources"], result["sources"])
+
     def test_selected_schedule_database_rates_preview_undo_and_source_preservation(self):
         first = self.call("schedule.editor.add", data=dict(code="A", description="Project description", rate="20", category="Work"))["selected"][0]
         other = self.call("schedule.editor.add", data=dict(code="B", rate="7", category="Work"))["selected"][0]

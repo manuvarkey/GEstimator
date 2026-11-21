@@ -14,6 +14,7 @@ import { guardVirtualRenderer, revealRow } from "../virtualRows";
 import { isRowClipboard } from "../rowClipboard";
 import { formatMoney, moneyFormatKey } from "../numberFormatting";
 import { overflowTooltip } from "../cellTooltip";
+import { useTypeAhead } from "../typeAhead";
 const props = defineProps<{
   rows: { id: string; [key: string]: any }[];
   columns: ColumnDefinition[];
@@ -22,6 +23,8 @@ const props = defineProps<{
   tree?: boolean;
   dragSelectRows?: boolean;
   rowOnlySelection?: boolean;
+  /** GTK3-style find popup: typing selects matching rows. */
+  typeAhead?: boolean;
   activateOnDoubleClick?: boolean;
   label?: string;
   selectIds?: string[];
@@ -38,6 +41,16 @@ const emit = defineEmits<{
 }>();
 const element = ref<HTMLDivElement>();
 let table: Tabulator;
+// Tabulator owns the table element's children, so the popup is added after it builds.
+let popup: HTMLOutputElement | undefined;
+function showTypeAhead() {
+  if (!element.value) return;
+  if (!typeAhead.text.value) { popup?.remove(); popup = undefined; return; }
+  if (!popup) { popup = document.createElement("output"); popup.className = "type-ahead"; popup.setAttribute("role", "status"); element.value.appendChild(popup); }
+  popup.textContent = typeAhead.text.value;
+  popup.classList.toggle("missing", typeAhead.missing.value);
+}
+const typeAhead = useTypeAhead(() => table, () => ["code", "description", "unit"].filter(field => props.columns.some(column => column.field === field)), () => !!props.tree);
 let ready: Promise<void>;
 let alive = true;
 let replacingRows = false;
@@ -104,6 +117,11 @@ defineExpose({
     }
   },
   redraw,
+  /** Move the row selection from a search box: Arrow Up/Down step through the rows. */
+  step: async (event: KeyboardEvent) => {
+    await ready;
+    if (alive && table) tableSelection(event, table, props.busy, !!props.tree, true);
+  },
   /** Show the first rows, e.g. before loading new search results. */
   scrollToTop: async () => {
     await ready;
@@ -162,7 +180,9 @@ watch(moneyFormatKey, async () => {
   reformat(table.getRows());
   await redraw();
 });
+watch([typeAhead.text, typeAhead.missing], showTypeAhead, { flush: "post" });
 function keyboard(event: KeyboardEvent) {
+  if (props.typeAhead && table && !props.busy && typeAhead.key(event)) return;
   if (!props.rowOnlySelection && navigation?.keyboard(event)) return;
   if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
   if (tableSelection(event, table, props.busy, !!props.tree)) return;
@@ -420,5 +440,6 @@ onBeforeUnmount(() => {
     :aria-busy="busy"
     :aria-label="label || 'Project table'"
     @keydown.capture="keyboard"
+    @focusout="typeAhead.close"
   />
 </template>

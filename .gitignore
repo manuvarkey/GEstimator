@@ -27,3 +27,18 @@ spreadsheets/DSREM2025/reference/
 
 # Published books for the DSR 2023 build (large; kept locally)
 spreadsheets/DSR2023/reference/
+
+# Project backups written next to databases
+*.eproj.bak
+*.eproj.*.bak
+
+# DSR 2025 Horticulture: published book and intermediate sheet (kept locally)
+spreadsheets/DSR2025HORTI/*.pdf
+spreadsheets/DSR2025HORTI/schedule.xlsx
+tools/build_dsr2025horti.py
+
+# OE rev 2026 build inputs (kept locally)
+spreadsheets/OE2025/decisions.csv
+spreadsheets/OE2025/postedit.py
+spreadsheets/OE2025/tax_standardisation.csv
+tools/build_oe2026.py

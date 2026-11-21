@@ -10,7 +10,7 @@
 
 
 <a href="https://github.com/manuvarkey/GEstimator/releases/latest"><img height="51" alt="Download for Windows" src="https://raw.githubusercontent.com/manuvarkey/GElectrical/master/source/artwork/windows_badge.svg"/> </a>
-<a href="https://flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
+<a href="https://flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/api/badge?svg&locale=en"/> </a>
 <a href="https://snapcraft.io/gestimator"><img height="51" alt="Download on Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg"/> </a> 
 
 GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes bundled with **DSR 2023 (Civil)**, **DSR (E&M) 2025** and **DSR 2025 Horticulture**, and works with any number of your own databases.

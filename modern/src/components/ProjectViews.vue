@@ -1275,6 +1275,7 @@ watch(
         <AppIcon name="search" :size="16" /><input
           v-model="query"
           aria-label="Search project table"
+          @keydown.up.down="mainTable?.step($event)"
           placeholder="Search codes and descriptions…"
         /><button class="button small secondary" :disabled="busy">
           Search
@@ -1283,6 +1284,7 @@ watch(
       <div v-show="!entryId" class="table-panel project-main-grid">
         <DataTable
           ref="mainTable"
+          :type-ahead="!isMeasurement"
           :active="active && !entryId"
           :key="source"
           :label="title"

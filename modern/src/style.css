@@ -2153,7 +2153,7 @@ textarea.measurement-entry-title {
 .window-close { --toolbar-hover-border: var(--window-close); }
 
 /* Dialog body text must not inherit a bold native menu/application font. */
-.library-manager-dialog { font-weight: 400; }
+.library-manager-dialog, .workspace-dialog .p-dialog-content { font-weight: 400; }
 
 /* WebKitGTK can embolden composited scroll content despite an unchanged weight.
    Keep its text rasterization consistent before and after overflow appears. */
@@ -2358,3 +2358,8 @@ button:disabled .app-icon, [aria-disabled="true"] .app-icon,
   font-size: var(--text-size-table);
   padding: 4px 8px;
 }
+
+/* GTK3-style type-ahead popup */
+.project-grid { position: relative; }
+.type-ahead { position: absolute; right: 12px; bottom: 12px; z-index: 20; min-width: 160px; max-width: 60%; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--control-radius); background: var(--panel); color: var(--text); box-shadow: var(--shadow); overflow-wrap: anywhere; }
+.type-ahead.missing { border-color: var(--danger); color: var(--danger); }

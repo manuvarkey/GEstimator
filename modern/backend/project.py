@@ -5,6 +5,7 @@ import copy
 from decimal import Decimal
 from pathlib import Path
 import re
+import os
 import sqlite3
 from uuid import uuid4
 from peewee import fn
@@ -680,6 +681,20 @@ class ProjectEditor:
         self.library_paths[source] = identity
         return [dict(item, attached=item["id"] == identity) for item in self.sources()]
 
+    def attach_catalog(self):
+        """Attach the bundled databases and the database folder; one failure does not stop the rest."""
+        from .program_settings import library_catalog
+        if os.environ.get("GESTIMATOR_AUTO_DATABASES") == "0":  # browser tests attach only their fixtures
+            return dict(sources=self.sources(), warnings=[])
+        catalog = library_catalog()
+        warnings = list(catalog["warnings"])
+        for row in catalog["rows"]:
+            try:
+                self.attach_library(row["path"])
+            except Exception as error:
+                warnings.append(f"{row['name']}: {error}")
+        return dict(sources=self.sources(), warnings=warnings)
+
     def sources(self):
         return [dict(id=key, name=value[0], notes=bool((value[1].get_project_settings().get("project_metadata") or "").strip()))
                 for key, value in self.libraries.items()]
@@ -1202,6 +1217,8 @@ class ProjectEditor:
             return self.rate_discrepancies()
         if method == "library.attach":
             return self.attach_library(p["path"])
+        if method == "library.attach_catalog":
+            return self.attach_catalog()
         if method == "library.list":
             return self.sources()
         if method == "library.notes":

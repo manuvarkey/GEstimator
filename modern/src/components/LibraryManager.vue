@@ -4,7 +4,7 @@ import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import DatabaseNotes from "./DatabaseNotes.vue";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attachLibrary, forgetLibrary, savedLibraries, libraryStorageError } from "../libraryPreferences";
+import { attachLibrary, forgetLibrary, restoreLibraries, savedLibraries, libraryStorageError, catalogWarnings } from "../libraryPreferences";
 import { request } from "../backend";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -15,26 +15,16 @@ const path = ref("");
 const remember = ref(true);
 const busy = ref(false);
 const error = ref("");
-const available = ref<{ name: string; path: string; bundled: boolean }[]>([]);
-const availablePath = ref("");
-const catalogWarnings = ref<string[]>([]);
 const attached = ref<{ id: string; name: string; notes?: boolean }[]>([]);
 const message = ref("");
 async function refresh() {
-  await discover();
+  if (props.projectOpen) await restoreLibraries();
   attached.value = props.projectOpen ? await request("library.list") : [];
 }
 defineExpose({ openDirectory });
 async function openDirectory() {
   try { await invoke("open_library_directory", { path: await request("program.library_directory") }); }
   catch (failure) { error.value = String(failure); visible.value = true; }
-}
-async function discover() {
-  try {
-    const result = await request<{ rows: typeof available.value; warnings: string[] }>("program.libraries");
-    available.value = result.rows;
-    catalogWarnings.value = result.warnings;
-  } catch (failure) { error.value = String(failure); }
 }
 async function attach(value = path.value) {
   if (busy.value) return;
@@ -58,9 +48,8 @@ async function browse() {
 
 <template>
   <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog library-manager-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
-    <p class="dialog-intro">Browse an external project as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
-    <label class="field">Available databases<select v-model="availablePath" :disabled="busy" @change="path = availablePath"><option value="">Choose a bundled or custom database…</option><option v-for="database in available" :key="database.path" :value="database.path">{{ database.name }} ({{ database.bundled ? 'bundled' : 'custom' }})</option></select></label>
-    <button class="text-button" :disabled="busy" @click="discover">Refresh available databases</button>
+    <p class="dialog-intro">Bundled databases and every database in the database folder are attached automatically. Attach another .eproj file here to browse it as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
+    <button class="text-button" :disabled="busy || !projectOpen" @click="refresh">Rescan database folder</button>
     <p v-for="warning in catalogWarnings" :key="warning" class="dialog-error" role="status">{{ warning }}</p>
     <label class="field">Library project
       <div class="file-input"><input v-model="path" data-primary-input autofocus aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" @keydown.enter.prevent="attach()" />

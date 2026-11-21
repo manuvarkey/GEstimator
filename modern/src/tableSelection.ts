@@ -8,8 +8,8 @@ export function resetTablePosition(table: Tabulator, row?: RowComponent) {
   if (row) positions.set(table, { anchor: id(row), focus: id(row) });
   else positions.delete(table);
 }
-export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boolean, tree = true) {
-  if (busy || event.defaultPrevented || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return false;
+export function tableSelection(event: KeyboardEvent, table: Tabulator, busy: boolean, tree = true, fromSearch = false) {
+  if (busy || event.defaultPrevented || (!fromSearch && (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]"))) return false;
   const selectAll = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a";
   if (!tree && ["ArrowLeft", "ArrowRight"].includes(event.key)) return false;
   if (!selectAll && !["Escape", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return false;
