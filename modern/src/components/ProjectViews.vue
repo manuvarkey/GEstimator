@@ -100,11 +100,14 @@ watch(busy, (value) => emit("busy", value));
 onBeforeUnmount(() => emit("busy", false));
 onBeforeUnmount(() => {
   const table = mainTable.value?.viewState();
-  if (table && !source.value) rememberTabState(documentId, memoryKey, { query: query.value, categoryFilters: categoryFilters.value, page: page.value, table } satisfies ViewMemory);
+  const recordView = props.entryId ? recordTable.value?.viewState() : undefined;
+  const records = recordView && props.entryId ? { entryId: props.entryId, page: recordPage.value, table: recordView } : undefined;
+  if (table && !source.value) rememberTabState(documentId, memoryKey, { query: query.value, categoryFilters: categoryFilters.value, page: page.value, table, records } satisfies ViewMemory);
 });
 const error = ref("");
 // View state saved when this project tab was switched away (see tabMemory.ts).
-type ViewMemory = { query: string; categoryFilters: string[]; page: number; table: { ids: string[]; position: { top: number; left: number } } };
+type TableView = { ids: string[]; position: { top: number; left: number } };
+type ViewMemory = { query: string; categoryFilters: string[]; page: number; table: TableView; records?: { entryId: string; page: number; table: TableView } };
 const documentId = activeDocument.value;
 const memoryKey = "view:" + props.view;
 const remembered = recallTabState<ViewMemory>(memoryKey);
@@ -125,7 +128,9 @@ const selectedRecords = ref<GridRow[]>([]);
 const recordSelectionIds = ref<string[]>();
 const templates = ref<{ code: string; name: string; label: string; group: string; summary: string; note: string; inputs: string[]; outputs: number }[]>([]);
 const templateInfo = computed(() => templates.value.find(template => template.code === form.value.template));
-const recordPage = ref(0);
+// The open measurement's record page, selection and scroll come back with the tab.
+let pendingRecords = remembered?.records?.entryId === props.entryId ? remembered?.records : undefined;
+const recordPage = ref(pendingRecords?.page ?? 0);
 const recordCount = ref(10);
 const recordsOpen = ref(false);
 const propertiesOpen = ref(false);
@@ -626,6 +631,11 @@ async function load() {
     const view = pendingView;
     pendingView = undefined;
     await mainTable.value.restoreViewState(view);
+  }
+  if (pendingRecords && state.value?.detail) {
+    const view = pendingRecords;
+    pendingRecords = undefined;
+    if (props.entryId === view.entryId) { await nextTick(); await recordTable.value?.restoreViewState(view.table); }
   }
   return result;
 }

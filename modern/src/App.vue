@@ -138,7 +138,7 @@ const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
   currentDocument.value.view,
 );
 type NavigationEntry = { view: typeof activeView.value; tab: (typeof allViews)[number]["key"]; code?: string; measurement?: string };
-type WorkspaceMemory = { tab: NavigationEntry["tab"]; measurementEntry?: string; navigation: NavigationEntry[]; navigationIndex: number };
+type WorkspaceMemory = { tab: NavigationEntry["tab"]; measurementEntry?: string; navigation: NavigationEntry[]; navigationIndex: number; inspector: boolean };
 // View state saved when this tab was switched away (see tabMemory.ts).
 const remembered = recallTabState<WorkspaceMemory>("workspace");
 const activeTab = ref<NavigationEntry["tab"]>(remembered?.tab ?? currentDocument.value.view);
@@ -238,7 +238,7 @@ const importAnalysisOpen = ref(false);
 const exportAnalysisPath = ref("");
 const explorer = ref("schedule");
 const sidebar = ref(true);
-const inspector = ref(true);
+const inspector = ref(remembered?.inspector ?? true);
 const helpOpen = ref(false);
 const manualOpen = ref(false);
 const aboutOpen = ref(false);
@@ -938,7 +938,7 @@ async function runDocumentAction(action: DocumentAction) {
   while (pendingPaths.length && !switchingAway) await openOsProject(pendingPaths.shift()!);
 }
 onBeforeUnmount(() => {
-  rememberTabState(documentId, "workspace", { tab: activeTab.value, measurementEntry: measurementEntry.value, navigation: navigation.value, navigationIndex: navigationIndex.value } satisfies WorkspaceMemory);
+  rememberTabState(documentId, "workspace", { tab: activeTab.value, measurementEntry: measurementEntry.value, navigation: navigation.value, navigationIndex: navigationIndex.value, inspector: inspector.value } satisfies WorkspaceMemory);
   if (mcpPoll) clearInterval(mcpPoll);
   window.removeEventListener("keydown", keyboard);
   window.removeEventListener("beforeunload", beforeUnload);

@@ -4637,3 +4637,50 @@ test("type-ahead continues on other pages of a paged table", async ({ page }) =>
   await page.keyboard.type("x");
   await expect(grid.locator(".type-ahead")).toHaveClass(/missing/);
 });
+
+test("project tabs keep the analysis inspector and measurement record view", async ({ page }) => {
+  const rail = page.getByRole("navigation", { name: "Open projects" });
+  const tabs = rail.getByRole("tab");
+  await refinementFixture(page);
+  async function edit(method: string, params = {}) {
+    return (await call(method, { revision: (await call("state")).result.revision, ...params })).result;
+  }
+  // Analysis: a hidden inspector stays hidden after switching tabs.
+  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
+  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+  await expect(page.locator(".inspector")).toBeVisible();
+  await page.locator(".ribbon").getByRole("button", { name: "Hide analysis inspector", exact: true }).click();
+  await expect(page.locator(".inspector")).toBeHidden();
+  await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
+  await expect(tabs).toHaveCount(2);
+  await tabs.nth(0).click();
+  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".ribbon").getByRole("button", { name: "Show analysis inspector", exact: true })).toBeVisible();
+  await expect(page.locator(".inspector")).toBeHidden();
+  // Measurement records: page, selected record and scroll come back.
+  const added = await edit("measurement.add", { template: "_1_NLBH", description: "Tab memory" });
+  const id = added.selected[0];
+  await edit("measurement.draft.open", { id });
+  await edit("measurement.record_add", { id, count: 160 });
+  await edit("measurement.draft.apply");
+  await page.locator("#view-measurement").click();
+  await page.getByRole("grid", { name: "Measurements", exact: true }).getByText("Tab memory", { exact: true }).dblclick();
+  await page.getByRole("button", { name: "Next records", exact: true }).click();
+  await expect(page.getByText("160 records · Page 2", { exact: true })).toBeVisible();
+  const records = page.locator(".measurement-record-grid");
+  const holder = records.locator(".tabulator-tableholder");
+  await holder.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const row = records.locator(".tabulator-row").last();
+  await row.locator('[tabulator-field="c2"]').click();
+  await expect(records.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
+  const selectedText = await records.locator(".tabulator-row.tabulator-selected").innerText();
+  const top = await holder.evaluate(element => element.scrollTop);
+  expect(top).toBeGreaterThan(0);
+  await tabs.nth(1).click();
+  await expect(records).toBeHidden();
+  await tabs.nth(0).click();
+  await expect(page.getByText("160 records · Page 2", { exact: true })).toBeVisible();
+  await expect(records.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
+  await expect.poll(() => records.locator(".tabulator-row.tabulator-selected").innerText()).toBe(selectedText);
+  await expect.poll(() => holder.evaluate(element => element.scrollTop)).toBeGreaterThan(top - 40);
+});

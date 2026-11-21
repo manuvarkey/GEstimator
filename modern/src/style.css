@@ -1608,7 +1608,7 @@ kbd {
 .library-remember input { width: 16px; height: 16px; }
 .saved-libraries { max-height: 280px; overflow: auto; }
 .saved-library { padding: 10px 0; border-top: 1px solid var(--line); }
-.saved-library code { display: block; overflow-wrap: anywhere; margin-block: 5px; }
+.saved-library code { display: block; overflow-wrap: anywhere; margin-block: 5px; font: inherit; font-size: var(--text-size-small); color: var(--muted); }
 .measurement-derived { background: var(--accent-soft); color: var(--muted); }
 .batch-dialog { width: 860px; max-width: 94vw; }
 .workspace-dialog.program-settings-dialog { width: min(94vw, 960px); }
