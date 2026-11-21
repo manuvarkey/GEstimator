@@ -9,6 +9,7 @@ The project settings now hold **Database notes** (`project_metadata`, Markdown),
 Notes are written for AI agents choosing items for an estimate or analysis: basic metadata (issuer, edition, corrections, specifications, rate basis, codes, units) and, per category, what the items cover, how they are arranged and how to pick the right one. A level-2 heading `## Category: <name>` starts the notes of that category; `describe_source` returns the general part in its overview and each category's notes with `section=category:<name>`, and `get_state` and `search_items` point agents to them.
 
 - [x] DSR E&M 2025 (`spreadsheets/DSREM2025/database_notes.md`, loaded by the build).
+- [x] DSR 2023 (`spreadsheets/DSR2023/database_notes.md`).
 - Older databases (DSR 2021, DSR E&M 2022, DSR 2016, DSR E&M 2016, DSR BLDC 2019) are kept for reference only and get no notes. New databases get notes when built.
 - [x] Decide the heading structure for notes (general part, then `## Category:` sections).
 - [x] Show notes in the database picker and the attach dialog (read-only, rendered Markdown, expanded on demand).
@@ -38,3 +39,4 @@ The desktop application replaces the GTK application on `master`; GTK is kept on
 - [x] Decide the DSR E&M 2025 items whose printed schedule rate disagrees with the printed analysis (the analysis rate is kept) and the printed Appendix I/II (the workbook's is kept).
 - [x] Finish DSR E&M 2025: analyses under the wrong heading attached, orphan analyses removed, chapter 19 category, Appendix II sub-headings and section heading, 1020/1021, whole-rupee rates, two-level headings 30.7/30.11 (remaining gaps in `spreadsheets/DSREM2025/README.md`).
 - [x] Make DSR E&M 2025 the bundled E&M database (`estimator/database/DSREM2025.eproj`); DSR E&M 2022 moved to `Other databases/`, where the tests that need its fixed figures read it.
+- [x] Make DSR 2023 the bundled civil database (`estimator/database/DSR2023.eproj`); DSR 2021 moved to `Other databases/`.

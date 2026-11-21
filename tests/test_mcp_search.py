@@ -145,5 +145,5 @@ class MCPSearchTests(unittest.TestCase):
 
     def test_evaluation_has_thirty_queries_per_bundled_database(self):
         data = json.loads((Path(__file__).parent / "data/search_eval.json").read_text())
-        self.assertEqual(set(data["databases"]), {"DSREM2025.eproj", "DSR2021.eproj"})
+        self.assertEqual(set(data["databases"]), {"DSREM2025.eproj", "DSR2023.eproj"})
         self.assertTrue(all(len(cases) >= 30 for cases in data["databases"].values()))

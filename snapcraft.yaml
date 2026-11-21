@@ -3,7 +3,7 @@ title: GEstimator
 version: '3.0.0'
 summary: Cost estimates with rate analysis for civil and electrical works
 description: |
-  GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2021 (Civil) and DSR (E&M) 2025 and can use other databases of items.
+  GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2023 (Civil) and DSR (E&M) 2025 and can use other databases of items.
 
   Schedule items, resources and details of measurements are edited in tables. The rate analysis editor supports undo, bulk editing of analyses and rate updates from databases. Estimates import from and export to Excel workbooks. An optional local MCP server lets AI assistants read and prepare estimates.
 license: GPL-3.0-or-later

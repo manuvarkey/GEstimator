@@ -2115,7 +2115,7 @@ test("real project navigation protects unsaved drafts and save-copy clears dirty
   dialog = page.getByRole("dialog", { name: "Open project", exact: true });
   await dialog
     .getByLabel("Project file")
-    .fill(resolve("../estimator/database/DSR2021.eproj"));
+    .fill(resolve("../Other databases/DSR2021.eproj"));
   await dialog
     .getByRole("button", { name: "Open project", exact: true })
     .click();
@@ -3873,7 +3873,7 @@ test('repeated bundled database attachment keeps regular weight and stable smoot
   await page.setViewportSize({ width: 1280, height: 900 });
   const catalog = (await call('program.libraries')).result.rows.filter((entry: any) => entry.bundled);
   expect(catalog.length).toBeGreaterThanOrEqual(2);
-  const sourceBytes = await Promise.all(['DSR2021.eproj', 'DSREM2025.eproj'].map(name => readFile(resolve('../estimator/database', name))));
+  const sourceBytes = await Promise.all(['DSR2023.eproj', 'DSREM2025.eproj'].map(name => readFile(resolve('../estimator/database', name))));
   const manager = await openDatabaseManager(page);
   const fields = [manager.locator('.dialog-intro'), manager.getByLabel('Library project', { exact: true }), manager.locator('.library-remember')];
   const selected = manager.getByLabel('Available databases');
@@ -3900,7 +3900,7 @@ test('repeated bundled database attachment keeps regular weight and stable smoot
   await expect(manager.locator('.saved-library strong').first()).toHaveCSS('font-weight', '700');
   await page.screenshot({ path: 'test-results/repeated-bundled-attachment.png', animations: 'disabled' });
   await page.locator('body').evaluate(el => { el.style.removeProperty('font-weight'); });
-  expect(await readFile(resolve('../estimator/database/DSR2021.eproj'))).toEqual(sourceBytes[0]);
+  expect(await readFile(resolve('../estimator/database/DSR2023.eproj'))).toEqual(sourceBytes[0]);
   expect(await readFile(resolve('../estimator/database/DSREM2025.eproj'))).toEqual(sourceBytes[1]);
 });
 
@@ -4561,7 +4561,7 @@ test("perf: everyday operations on a large project", async ({ page }) => {
     const cell = grid.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="remarks"]').nth(2);
     await cell.dblclick(); await page.keyboard.type("perf"); await page.keyboard.press("Enter");
   });
-  await attachDatabase(page, resolve("../estimator/database/DSR2021.eproj"));
+  await attachDatabase(page, resolve("../Other databases/DSR2021.eproj"));
   await row(8).click();
   await measure("open database picker", async () => { await ribbon.getByRole("button", { name: "Add item from database", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Add item from database" }).locator(".tabulator-row").first()).toBeVisible(); });
   const picker = page.getByRole("dialog", { name: "Add item from database" });

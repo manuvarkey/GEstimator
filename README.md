@@ -13,7 +13,7 @@
 <a href="https://flathub.org/apps/com.kavilgroup.gestimator"><img height="51" alt="Download on Flathub" src="https://flathub.org/assets/badges/flathub-badge-en.svg"/> </a>
 <a href="https://snapcraft.io/gestimator"><img height="51" alt="Download on Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg"/> </a> 
 
-GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2021 (Civil)** and **DSR (E&M) 2025**.
+GEstimator is a civil estimation software for preparing cost and quantity estimates of civil/electrical works along with detailed rate analysis. It supports multiple user databases and comes bundled with **DSR 2023 (Civil)** and **DSR (E&M) 2025**.
 
 The program is organised in Schedule, Resources and Measurements views. Schedule holds the estimate items, entered directly, added from a database or imported from a .xlsx file; opening an item's analysis shows the rate analysis editor. Measurements records the details of measurements against schedule items. Resources holds the materials, labour and tools/plants on which the rate analyses are framed. Several projects can be open in tabs, and unsaved work is recovered after a crash.
 

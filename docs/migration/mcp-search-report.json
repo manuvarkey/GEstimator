@@ -15,18 +15,18 @@
       "mrr_at_5": 0.7667
     },
     {
-      "database": "DSR2021.eproj",
+      "database": "DSR2023.eproj",
       "setup": "FTS5",
       "queries": 30,
-      "recall_at_5": 0.9,
-      "mrr_at_5": 0.6761
+      "recall_at_5": 0.8333,
+      "mrr_at_5": 0.6144
     },
     {
-      "database": "DSR2021.eproj",
+      "database": "DSR2023.eproj",
       "setup": "FTS5 + dictionary",
       "queries": 30,
-      "recall_at_5": 0.9,
-      "mrr_at_5": 0.6744
+      "recall_at_5": 0.8333,
+      "mrr_at_5": 0.6144
     }
   ],
   "embeddings": "Not installed/evaluated. Require a measured improvement before adding ONNX or enriched bundles."

@@ -34,7 +34,7 @@
       {"query":"1200 mm BLDC ceiling fan BEE 5 star","expected":["9.1.3","9.2.3"]},
       {"query":"1.10.2","expected":["1.10.2"]}
     ],
-    "DSR2021.eproj": [
+    "DSR2023.eproj": [
       {"query":"lime moorum building rubbish carriage 5 km","expected":["1.1.1"]},
       {"query":"earth carriage lead 5 km","expected":["1.1.2"]},
       {"query":"earth work excavation all kinds soil","expected":["2.1.1","2.2.1"]},
