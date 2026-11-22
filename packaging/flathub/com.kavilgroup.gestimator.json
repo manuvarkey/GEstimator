@@ -72,8 +72,8 @@
                 {
                     "type": "git",
                     "url": "https://github.com/manuvarkey/GEstimator.git",
-                    "tag": "v3.0.0",
-                    "commit": "4ac8a82030b4936906e16a89687ef7b7d92fbf45",
+                    "tag": "v3.0.1",
+                    "commit": "13a44273138c9815a6366caf274244eb7cb7b596",
                     "x-checker-data": {
                         "type": "git",
                         "tag-pattern": "^v([\\d.]+)$"
