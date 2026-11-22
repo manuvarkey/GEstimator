@@ -58,6 +58,15 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2026-11-22" version="3.0.1">
+      <description>
+        <p>Bug fix release.</p>
+        <ul>
+          <li>Snap: fix start failure "libEGL fatal: did not find extension DRI_Mesa version 1" on systems with newer graphics drivers</li>
+          <li>Flatpak: fix the window not opening on systems with WOFF fonts installed (such as fonts-ebgaramond-extra)</li>
+        </ul>
+      </description>
+    </release>
     <release date="2026-11-22" version="3.0.0">
       <description>
         <p>New desktop application with a redesigned interface.</p>

@@ -1,4 +1,4 @@
-# Builds the release packages on a version tag (v3.0.0) or on demand.
+# Builds the release packages on a version tag (v3.0.1) or on demand.
 # The Python sidecar is built with PyInstaller, which cannot cross-compile,
 # so every platform builds on its own runner.
 name: Release

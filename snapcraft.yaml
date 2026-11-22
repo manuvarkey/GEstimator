@@ -1,6 +1,6 @@
 name: gestimator
 title: GEstimator
-version: '3.0.0'
+version: '3.0.1'
 summary: Cost estimates with rate analysis for civil and electrical works
 description: |
   GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. It comes with DSR 2023 (Civil) and DSR (E&M) 2025 and can use other databases of items.
@@ -34,7 +34,7 @@ apps:
 parts:
   gestimator:
     plugin: dump
-    source: modern/src-tauri/target/release/bundle/deb/GEstimator_3.0.0_amd64.deb
+    source: modern/src-tauri/target/release/bundle/deb/GEstimator_3.0.1_amd64.deb
     source-type: deb
     # No stage-packages: the gnome extension's gnome-42-2204 runtime already
     # ships libwebkit2gtk-4.1. Staging it from the 22.04 archive also pulled in
