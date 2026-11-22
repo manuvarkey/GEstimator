@@ -10,8 +10,8 @@ This is the breaking migration described in [MCP efficiency](mcp-efficiency.md).
 
 | Reads | Purpose |
 |---|---|
-| `get_state` | Project settings/path, dirty flags, counts, attached and available sources |
-| `describe_source` | Overview, category summaries, dictionary, documented SQL view columns |
+| `get_state` | `start_here` estimating steps, the estimation `skills`, project settings/path, dirty flags, counts, attached and available sources |
+| `describe_source` | Overview (notes first), category summaries and notes, dictionary, documented SQL view columns; `section=skills`, `skill:<id>[/<path>]` or a `gestimator://skills/...` link reads the estimation skills |
 | `search_items` | Ranked keyword/abbreviation search, up to 50 matches. Children are indexed with their heading text (parent, and unpriced title headings above by code); `headings` gives the heading text of returned children (≤ 600 characters each) |
 | `browse` | Paged category or parent hierarchy |
 | `get_items` | Full definitions by code, with optional analysis/resources/relationships |
@@ -33,9 +33,44 @@ This is the breaking migration described in [MCP efficiency](mcp-efficiency.md).
 | `batch` | Related writes in one transaction and project undo step |
 | `history` | Project undo/redo |
 
-`tools/list` is authoritative for input schemas and enums. Every tool declares an output schema. Successful tool results contain `structuredContent: {data, revision, warnings: []}` and one short text summary. The JSON payload is not repeated in text. Errors have `isError: true` and `structuredContent: {error: {code, message, field?, allowed?, hint?}}`. Validation, stale writes and failed compound operations leave project data unchanged. A recovery-checkpoint failure instead returns the committed result with a `recovery_failed` warning: do not repeat that write.
+`tools/list` is authoritative for input schemas and enums. Every tool declares an output schema. Successful tool results contain `structuredContent: {data, revision, warnings: []}` and one short text summary. The JSON payload is not repeated in text. Errors have `isError: true` and `structuredContent: {error: {code, message, field?, allowed?, hint?}}`. The text content repeats the field, up to 12 allowed values and the hint in one line, because many clients show only the text. Validation, stale writes and failed compound operations leave project data unchanged. A recovery-checkpoint failure instead returns the committed result with a `recovery_failed` warning: do not repeat that write.
 
 All writes accept optional integer `if_revision`. Supplying it rejects a stale write; omitting it applies to the latest state on the serialized owner thread. Each response returns the current revision, so clients can chain writes without additional state requests. Desktop stale-edit guards remain mandatory. Numeric inputs are decimal/arithmetic **strings**, never Python code or JSON floats. Integers such as offsets and revisions must be nonnegative. The default array bound is 500, default text bound 10,000 characters; specialized smaller/larger bounds appear in the schemas.
+
+## Estimation skills (resources)
+
+The server also declares the `resources` capability and serves estimation skills as read-only Markdown resources. They are packaged files, so they are readable in both access modes and without an open project. `resources/list` and `resources/read` run on the HTTP thread and never touch the project or the owner thread. `resources/templates/list` returns an empty list. The server instructions tell clients to read the skill that fits the work before using the project and rate tools.
+
+**Reaching clients that ignore instructions and resources.** Many clients never show server instructions or resources to the model, and an agent may even call the endpoint from its own script. The skills are therefore also reachable through tools, without adding a tool (the discovery payload is at its 16 KB budget):
+
+- `get_state`, the documented first call, starts with `start_here` (read the skill, read the notes before choosing items, record quantities as measurements rather than in a separate spreadsheet, present a draft first) and `skills` (id, description and the `describe_source` call that reads it). It works without a project.
+- `describe_source section=skills` lists skills with their reference paths; `section=skill:<id>` returns `SKILL.md` and its references; `section=skill:<id>/<path>` or the `gestimator://skills/...` link from a skill returns a reference. These sections need no project or source.
+- `describe_source` overview returns the notes (`metadata`) first, so a client that truncates a long response still keeps them.
+- `import_items` adds a `notes_not_read` warning naming the overview and `category:<name>` sections of the source whose notes were not read since the server started, so the agent checks its choices against them. Reads are tracked per source name on the running server.
+
+| Resource | Purpose |
+|---|---|
+| `gestimator://skills/civil-measurement-estimation` | Civil takeoff to IS 1200, the project specification and the adopted item; design inputs and checks; record format; item matching; apply on request |
+| `gestimator://skills/electrical-measurement-estimation` | Electrical takeoff: points, equipment and ratings, wiring and cable runs; DSR (E&M) counting rules; design inputs and checks |
+| `gestimator://skills/preliminary-lighting-design` | Lumen-method preliminary design when explicitly requested; provisional handoff to electrical measurement |
+| `gestimator://skills/<skill>/references/<file>.md` | Supporting references linked from each skill (masonry, concrete, finishes, earthwork, wiring, distribution, luminaires, worked example, standards registers) |
+
+Each listing entry has `uri`, `name`, `title` (first heading), `description` (from front matter), `mimeType: text/markdown`, `size` and `annotations` (`audience: ["assistant"]`; priority 1.0 for a skill, 0.5 for a reference). A read returns `{contents: [{uri, mimeType, text}]}`. An unknown or invalid URI returns JSON-RPC error `-32002` (resource not found) with `data.uri`; a missing or non-string `uri` returns `-32602`.
+
+**Adding a skill package.** Add a directory `modern/backend/data/skills/<skill-id>/` (lowercase letters, digits and hyphens) with a `SKILL.md` and, optionally, Markdown references in subfolders such as `references/`. Every file starts with front matter:
+
+```markdown
+---
+name: <skill-id>
+description: <one line telling a client when to read this file>
+---
+```
+
+`name` appears in `SKILL.md` only and must equal the directory name. References need only `description`.
+
+Link references from `SKILL.md` by their full `gestimator://skills/<skill-id>/<path>` URIs. No code changes are needed: the listing scans the directory, and only files it finds can be read. Names must be lowercase with hyphens and end in `.md`, at most three levels deep. Files without a description, packages whose `name` differs from the directory, and symlinks that leave the skills directory are skipped. `tests/test_mcp_skills.py` checks that every link resolves and every reference is linked. The PyInstaller sidecar bundles all of `modern/backend/data`, and the Flatpak copies `modern/backend`, so a new package ships with the next build.
+
+The measurement record format is independent of where quantities come from (drawings, schedules, user statements or, later, IFC model quantities); each line records its source. IFC input is deferred.
 
 ## Sources and placement
 

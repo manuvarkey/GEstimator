@@ -194,6 +194,19 @@ class Writes:
         params = dict(ids=ids, policy=args.get("policy", "protect"))
         return self.app(prefix + ".editor." + ("delete_preview" if args.get("preview") else "delete_many"), params)
 
+    def warn_unread_notes(self, source_id, db, rows, warnings):
+        """Name the note sections of the imported items' categories that were
+        not read, so the client checks its choice against them."""
+        from . import metadata
+        general, category_notes = metadata.notes(db)
+        read = self.notes_read()
+        name = self.source_name(source_id)
+        unread = sorted({row.category.description for row in rows if row.category.description in category_notes and (name, "category:" + row.category.description) not in read})
+        sections = (["overview"] if general and (name, "overview") not in read else []) + ["category:" + category for category in unread]
+        if sections:
+            warnings.append(dict(code="notes_not_read", sections=sections,
+                                 message="Imported without reading these database notes; read describe_source for each section and check the items against them: " + ", ".join(sections)))
+
     def import_items(self, args, warnings):
         self.service.guard_draft({})
         source_id, db = self.source(args["source"])
@@ -203,6 +216,7 @@ class Writes:
         rows = [self.row(kind, code, db) for code in args["codes"]]
         if not rows:
             raise ToolError("invalid_arguments", "Select at least one code", "codes")
+        self.warn_unread_notes(source_id, db, rows, warnings)
         prefix = "resources" if kind == "resource" else "schedule"
         params = dict(source=source_id, ids=[str(r.id) for r in rows], include_parents=args.get("include_parents", True), on_conflict=args.get("on_conflict", "rename"),
                       recalculate=kind == "schedule" and args.get("rate_mode", "recalculate") == "recalculate")
@@ -444,7 +458,7 @@ class Writes:
         template = self.service.db.get_measurement().items[self.editor.ids.index(identity)]
         editable = [col["field"] for col in columns if col["editable"]]
         edits = []
-        for record in records:
+        for index, record in enumerate(records):
             if "id" not in record:
                 raise ToolError("invalid_arguments", "Record edit requires an id", "records.id")
             for title, value in record.items():
@@ -456,6 +470,12 @@ class Writes:
                 column = matches[0]
                 if not column["editable"]:
                     raise ToolError("not_editable", "This measurement column is computed", column["field"], editable, column["title"] + " is computed")
+                if column.get("numeric") and isinstance(value, str) and value.strip():
+                    try:
+                        decimal(value)
+                    except (ValueError, ArithmeticError) as error:
+                        raise ToolError("invalid_number", str(error), f"records[{index}].{column['field']}",
+                                        hint=f"{column['title']} = {value!r}; give a number or arithmetic, or leave the column out (empty).") from None
                 edits.append(dict(id=record["id"], field=column["field"], value=value))
         if edits:
             self.app("measurement.record_edit_many", dict(id=identity, edits=edits))

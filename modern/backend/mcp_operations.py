@@ -58,7 +58,7 @@ def operation(name, description, properties=None, required=(), write=False):
 
 
 operation("get_state", "Project state/sources.")
-operation("describe_source", "Source notes; read first. Schema.", dict(source=S, section=S))
+operation("describe_source", "Read first: skills, notes, schema.", dict(source=S, section=S))
 operation("search_items", "Ranked item search.", dict(source=S, query=dict(type="string", maxLength=500), kind=KINDS, category=S, limit=dict(type="integer", minimum=1, maximum=50)), ("query", "kind"))
 operation("browse", "Paged category/parent hierarchy.", dict(source=S, kind=KINDS, under=S, depth=dict(type="integer", minimum=1, maximum=10), offset=N, limit=dict(type="integer", minimum=1, maximum=200), fields=FIELDS), ("kind",))
 operation("get_items", "Definitions/relations by code.", dict(source=S, kind=KINDS, codes=CODES, include=array(enum("analysis", "resources", "children", "parent", "usage", "dependents"), 6)), ("kind", "codes"))
@@ -129,9 +129,10 @@ def validate(value, schema, path="arguments", depth=0, root=None):
         for i, item in enumerate(value):
             validate(item, schema["items"], f"{path}[{i}]", depth + 1, root)
     elif actual == "string" and len(value) > schema.get("maxLength", 10000):
-        raise ToolError("invalid_arguments", "Text is too long", path)
+        raise ToolError("invalid_arguments", "Text is too long", path, hint=f"At most {schema.get('maxLength', 10000)} characters.")
     elif actual in ("integer", "number") and not schema.get("minimum", 0) <= value <= schema.get("maximum", float("inf")):
-        raise ToolError("invalid_arguments", "Number is outside the allowed range", path)
+        maximum = schema.get("maximum")
+        raise ToolError("invalid_arguments", "Number is outside the allowed range", path, hint=f"Use {schema.get('minimum', 0)} to {maximum}." if maximum is not None else f"Use {schema.get('minimum', 0)} or more.")
 
 
 def is_preview(name, args):

@@ -11,6 +11,7 @@ import json
 import secrets
 from threading import Thread, Lock
 from .mcp_operations import OPERATIONS, execute, ToolError
+from .mcp_skills import ResourceNotFound, list_resources, read_resource
 
 VERSION = "2025-11-25"
 log = logging.getLogger("gestimator.actions")
@@ -24,6 +25,7 @@ INSTRUCTIONS = """GEstimator estimate workspace. Items use codes within a source
 6. Verify with get_summary. query is a read-only fallback over documented views when no typed read fits.
 7. Errors contain code, field, allowed values and a hint. Fix the field instead of retrying blindly.
 Analysis ops use r0/r0:0 positional IDs or ref labels. Stored reads exclude unsaved desktop drafts; edits protect them.
+Estimates: first read the skill fitting the work (describe_source section=skill:<id>, or resource gestimator://skills/<id>) and its references. Record quantities as measurements, not external sheets.
 """
 
 
@@ -40,7 +42,22 @@ def error_result(error):
         message = str(error)
         code = "draft_conflict" if "Unsaved analysis" in message or "unsaved measurement records" in message.lower() else "not_found" if isinstance(error, FileNotFoundError) else "invalid_arguments" if isinstance(error, (ValueError, TypeError)) else "operation_failed"
         detail = dict(code=code, message=message)
-    return dict(content=[dict(type="text", text=detail["message"].replace("\n", " ")[:300])], structuredContent=dict(error=detail), isError=True)
+    return dict(content=[dict(type="text", text=error_text(detail))], structuredContent=dict(error=detail), isError=True)
+
+
+def error_text(detail):
+    """One line with the field, allowed values and hint: many clients show
+    only the text content, not structuredContent."""
+    parts = [detail["message"].replace("\n", " ")[:300].rstrip(".") + "."]
+    if detail.get("field"):
+        parts.append(f"Field: {detail['field']}.")
+    allowed = detail.get("allowed")
+    if allowed:
+        values = [str(value) for value in allowed] if isinstance(allowed, (list, tuple)) else [str(allowed)]
+        parts.append("Allowed: " + ", ".join(values[:12]) + (", …" if len(values) > 12 else "") + ".")
+    if detail.get("hint"):
+        parts.append("Hint: " + str(detail["hint"]).replace("\n", " ")[:200])
+    return " ".join(parts)[:700]
 
 
 def success_result(name, value):
@@ -188,16 +205,29 @@ class MCPServer:
                     self.reply(200, dict(jsonrpc="2.0", id=identity, error=dict(code=-32602, message="Invalid params"))); return
                 with owner.lock:
                     owner.requests += 1
-                    owner.last_activity = method if method != "tools/call" else "Tool: " + str(params.get("name", ""))[:100]
+                    owner.last_activity = "Tool: " + str(params.get("name", ""))[:100] if method == "tools/call" else "Resource: " + str(params.get("uri", ""))[:100] if method == "resources/read" else method
                 log.debug("mcp.request method=%s tool=%s access=%s", method, str(params.get("name", ""))[:64], owner.access)
                 if method == "initialize":
                     result = dict(protocolVersion=params.get("protocolVersion") if params.get("protocolVersion") in VERSIONS else VERSION,
-                                  capabilities=dict(tools=dict(listChanged=False)), serverInfo=dict(name="GEstimator", version="0.1.0"),
+                                  capabilities=dict(tools=dict(listChanged=False), resources=dict(listChanged=False)), serverInfo=dict(name="GEstimator", version="0.1.0"),
                                   instructions=INSTRUCTIONS + "Access mode: " + owner.access)
                 elif method == "ping":
                     result = {}
                 elif method == "tools/list":
                     result = dict(tools=owner.tools())
+                elif method == "resources/list":
+                    # Packaged skill files: static, read-only and independent
+                    # of the project, so they bypass the owner thread.
+                    result = dict(resources=list_resources())
+                elif method == "resources/templates/list":
+                    result = dict(resourceTemplates=[])
+                elif method == "resources/read":
+                    if not isinstance(params.get("uri"), str):
+                        self.reply(200, dict(jsonrpc="2.0", id=identity, error=dict(code=-32602, message="Invalid params: uri must be a string"))); return
+                    try:
+                        result = read_resource(params["uri"])
+                    except ResourceNotFound as exc:
+                        self.reply(200, dict(jsonrpc="2.0", id=identity, error=dict(code=-32002, message=str(exc)[:300], data=dict(uri=params["uri"][:300])))); return
                 elif method == "tools/call":
                     try:
                         # Stamp the accepted listener, never a client-supplied

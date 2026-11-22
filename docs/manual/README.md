@@ -182,6 +182,20 @@ GEstimator can run a local [Model Context Protocol](https://modelcontextprotocol
 
 The assistant reads database notes before choosing items, searches databases, imports items, edits analyses and records measurements. Every change it makes appears in the open project at once and is one undo step, so you can review it like your own edits. The server listens only on your computer, and only clients with the connection token can use it.
 
+### Ask for an estimate
+
+GEstimator gives the assistant estimation guides (skills) for civil measurement, electrical measurement and preliminary lighting design. The assistant reads the guide that fits your request before it measures and chooses items. Ask in plain words, for example:
+
+- "Using DSR 2023, take off the brickwork and plaster for the ground floor from plan A-101 and propose BOQ items. Show me the draft first."
+- "Count the light and fan points for the first floor from this layout and match them to DSR (E&M) 2025 items."
+- "There is no lighting layout yet. Prepare a preliminary lighting design for these offices and draft the electrical estimate."
+
+The assistant first shows draft measurements and proposed items. Each line lists the location, dimensions or count, calculation, source and assumptions. It also flags missing inputs and items that need your decision. It writes to the project only when you ask it to apply the estimate. Lighting design results are marked provisional.
+
+To choose a guide yourself in Claude Code, type `@` and pick the resource, for example `@gestimator:gestimator://skills/civil-measurement-estimation`. The guides are available whenever the server runs, even with no project open.
+
+After adding the server to an AI client, **start a new session** in that client so it loads GEstimator's tools. If the assistant writes its own script to talk to the server, or builds the estimate in a spreadsheet, the server is not loaded in that session: restart the client and check that GEstimator appears in its MCP server list (for example `claude mcp list` or `codex mcp list`). It also helps to name the guide in the request, for example "use the GEstimator civil measurement skill". Treat the connection token like a password: do not paste it into conversations you share, and use **Rotate token** if it has been exposed.
+
 ## 12. Keyboard shortcuts
 
 The full list is under **Keyboard shortcuts** (the `?` icon in the title bar). The most used:

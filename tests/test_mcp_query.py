@@ -3,7 +3,7 @@ import re
 import time
 import unittest
 from modern.backend.mcp_operations import execute, ToolError
-from modern.backend.mcp_server import MCPServer, INSTRUCTIONS
+from modern.backend.mcp_server import MCPServer, INSTRUCTIONS, error_result
 from modern.backend.service import Service
 
 
@@ -28,6 +28,18 @@ class MCPQueryTests(unittest.TestCase):
         self.assertLess(len(INSTRUCTIONS.split()), 230)
         server.access = "read"
         self.assertEqual(len(server.tools()), 8)
+
+    def test_error_text_carries_field_allowed_values_and_hint(self):
+        # Clients that show only text content still see how to fix the call.
+        def text(name, args):
+            with self.assertRaises(ToolError) as error:
+                execute(self.s, name, args)
+            return error_result(error.exception)["content"][0]["text"]
+        self.assertEqual(text("browse", dict(kind="schedule", limit=300)), "Number is outside the allowed range. Field: arguments.limit. Hint: Use 1 to 200.")
+        computed = text("edit_measurements", dict(ops=[dict(action="create", template="_1_NLBH", records=[{"c1": "6"}])]))
+        self.assertIn("Field: c1. Allowed: c0, c2, c3, c4, c5.", computed)
+        invalid = text("edit_measurements", dict(ops=[dict(action="create", template="_1_NLBH", records=[{"c0": "x", "c2": "2", "c5": "null"}])]))
+        self.assertIn("Field: records[0].c5. Hint: H = 'null'", invalid)
 
     def test_query_views_parameters_joins_and_read_only_access(self):
         before = self.s.state()

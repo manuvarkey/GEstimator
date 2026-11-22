@@ -16,6 +16,12 @@ from .mcp_writes import Writes
 READ_NOTES = ("This source has database notes. Read describe_source (overview) and describe_source "
               "section=category:<name> for each category you take items from before choosing items: "
               "they explain what the items include and how to pick the right one.")
+START_HERE = ("For an estimate: 1. Read the skill for the work (describe_source section=skill:<id>, see skills) and the references it links. "
+              "2. Read describe_source overview and the category notes of each category before choosing items from it. "
+              "3. Record quantities as GEstimator measurements (dimensions, deductions, location, source) linked to the items; "
+              "do not compute totals elsewhere or keep the estimate in a separate spreadsheet. The saved GEstimator project is the deliverable "
+              "(project save_copy for a new project); make a workbook only when asked, with project export_xlsx, and do not edit it. "
+              "4. Present draft measurements and item matches for review before writing.")
 
 
 def item_rows(db, kind):
@@ -144,8 +150,38 @@ class Workspace(Writes):
         method = getattr(self, name)
         return method(args, warnings)
 
+    def notes_read(self):
+        """Note sections read since the server started, as (source name, section)."""
+        mcp = self.service.mcp
+        if not hasattr(mcp, "notes_read"):
+            mcp.notes_read = set()
+        return mcp.notes_read
+
+    def source_name(self, identity):
+        return self.editor.libraries[identity][0] if identity in self.editor.libraries else None
+
+    def skill(self, section):
+        """describe_source section=skills | skill:<id>[/<path>] | gestimator://skills/...:
+        packaged estimation skills, readable without a project or source."""
+        from . import mcp_skills
+        skills = mcp_skills.catalog()
+        if section == "skills":
+            return dict(skills=skills, hint="Read the skill whose description fits the work with section=skill:<skill>, then its references with section=skill:<skill>/<path>.")
+        uri = section if section.startswith(mcp_skills.SCHEME) else mcp_skills.SCHEME + section.partition(":")[2]
+        try:
+            text = mcp_skills.read_resource(uri)["contents"][0]["text"]
+        except mcp_skills.ResourceNotFound:
+            raise ToolError("not_found", "Unknown skill or skill file", "section", ["skill:" + skill["skill"] for skill in skills],
+                            hint="Use section=skills to list skills and their reference paths.") from None
+        result = dict(uri=uri, text=text)
+        entry = next((skill for skill in skills if skill["uri"] == uri), None)
+        if entry:
+            result["references"] = [dict(section="skill:" + entry["skill"] + "/" + ref["path"], title=ref["title"], description=ref["description"]) for ref in entry["references"]]
+        return result
+
     def get_state(self, args, warnings):
         from .program_settings import library_catalog, defaults
+        from . import mcp_skills
         service = self.service
         sources = []
         for identity, (name, db) in self.editor.libraries.items():
@@ -155,7 +191,8 @@ class Workspace(Writes):
             sources.append(dict(id=identity, name=name, counts=counts,
                 summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources",
                 **({"metadata": notes[:600] + ("…" if len(notes) > 600 else ""), "read_first": READ_NOTES} if notes or category_notes else {})))
-        state = dict(project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
+        skills = [dict(skill=skill["skill"], description=skill["description"], read=f"describe_source section=skill:{skill['skill']}") for skill in mcp_skills.catalog()]
+        state = dict(start_here=START_HERE, skills=skills, project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
         if service.db:
             db = service.db
             state.update(settings={k: v for k, v in db.get_project_settings().items() if k not in ("project_measurement", "project_metadata")},
@@ -163,9 +200,13 @@ class Workspace(Writes):
         return state
 
     def describe_source(self, args, warnings):
-        _, db = self.source(args.get("source", "project"))
-        enrichment = metadata.read(db)
         section = args.get("section", "overview")
+        if section == "skills" or section.startswith(("skill:", "gestimator://skills/")):
+            return self.skill(section)
+        identity, db = self.source(args.get("source", "project"))
+        enrichment = metadata.read(db)
+        if identity is not None:
+            self.notes_read().add((self.source_name(identity), section))
         if section == "schema":
             from .mcp_query import SCHEMA
             return dict(views=SCHEMA, draft_policy="Stored working-project data; excludes unsaved desktop analysis and measurement records drafts.", numeric_policy="Decimal values are exact text; CAST(column AS REAL) for numeric SQL comparisons and aggregations. get_summary uses original decimal calculations.")
@@ -186,11 +227,12 @@ class Workspace(Writes):
                 result["notes"] = category_notes[name]
             return result
         if section != "overview":
-            raise ToolError("invalid_arguments", "Unknown source section", "section", ["overview", "categories", "category:<name>", "dictionary", "schema"])
+            raise ToolError("invalid_arguments", "Unknown source section", "section", ["overview", "categories", "category:<name>", "dictionary", "schema", "skills", "skill:<id>"])
         settings = db.get_project_settings()
         # Author-maintained notes (Markdown): scope, rate basis, revision, conventions.
-        result = dict(settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
-                      metadata=general, categories={kind: [dict(name=c["name"], count=c["count"], **({"notes": True} if c["name"] in category_notes else {})) for c in rows] for kind, rows in groups.items()})
+        # Notes first: clients that truncate a long response keep them.
+        result = dict(metadata=general, settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
+                      categories={kind: [dict(name=c["name"], count=c["count"], **({"notes": True} if c["name"] in category_notes else {})) for c in rows] for kind, rows in groups.items()})
         if category_notes:
             result["category_notes"] = "Each category marked notes=true has its own notes: read describe_source section=category:<name> before choosing items from it."
         if enrichment:

@@ -41,3 +41,6 @@ spreadsheets/OE2025/decisions.csv
 spreadsheets/OE2025/postedit.py
 spreadsheets/OE2025/tax_standardisation.csv
 tools/build_oe2026.py
+
+# Licensed standards and codes used to review skill content (kept locally)
+/references/

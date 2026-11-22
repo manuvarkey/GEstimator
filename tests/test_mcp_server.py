@@ -69,7 +69,7 @@ class MCPServerTests(MCPFixture):
         status, message = self.http(message=dict(jsonrpc="2.0", id=1, method="initialize", params=dict(protocolVersion="2025-11-25", capabilities={}, clientInfo=dict(name="test", version="1"))))
         self.assertEqual(status, 200)
         self.assertEqual(message["result"]["protocolVersion"], "2025-11-25")
-        self.assertEqual(message["result"]["capabilities"], dict(tools=dict(listChanged=False)))
+        self.assertEqual(message["result"]["capabilities"], dict(tools=dict(listChanged=False), resources=dict(listChanged=False)))
         self.assertEqual(self.http(message=dict(jsonrpc="2.0", method="notifications/initialized")), (202, None))
         tools = self.http(message=dict(jsonrpc="2.0", id=2, method="tools/list"))[1]["result"]["tools"]
         self.assertGreater(len(tools), 7)

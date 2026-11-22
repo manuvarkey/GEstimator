@@ -41,8 +41,9 @@ subprocess.run(
             for database in (root / "estimator/database").glob("*.eproj")
             for argument in ("--add-data", str(database) + ":estimator/database")
         ],
+        # Search dictionaries and estimation skills (served as MCP resources).
         "--add-data",
-        str(modern / "backend/data/dictionary") + ":modern/backend/data/dictionary",
+        str(modern / "backend/data") + ":modern/backend/data",
         str(modern / "backend/entry.py"),
     ],
     cwd=root,
