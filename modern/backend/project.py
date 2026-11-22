@@ -13,6 +13,7 @@ from estimator import misc
 from estimator.data import measurement
 from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
 from .numbers import decimal, tax_text
+from .insertion import keep_sub_analysis_last
 from estimator.data.schedule import ScheduleDatabase
 from estimator.undo import Stack
 
@@ -170,6 +171,7 @@ class ProjectEditor:
         try:
             with self.db.database.atomic():
                 result = action()
+                keep_sub_analysis_last(self.db)
         except Exception:
             self.ids, self.record_ids = before[1:]
             before[0].unlink()
@@ -215,6 +217,7 @@ class ProjectEditor:
             try:
                 with self.db.database.atomic():
                     result = action()
+                    keep_sub_analysis_last(self.db)
                     if preview:
                         raise PreviewRollback()
             except PreviewRollback:
@@ -1080,6 +1083,7 @@ class ProjectEditor:
                 else:
                     dependencies.append(item)
                 renamed[code] = item.code
+            sub_analysis_codes = set(renamed.values())
             self.insert_schedule_items(dependencies)
         imported = 0
         modified_rates = {}
@@ -1132,9 +1136,9 @@ class ProjectEditor:
                 additions.append(item)
                 reserved.add(item.code)
             else:
-                if row.code in dependency_codes:
-                    imported += 1
-                    continue
+                # A selected item that another selected item's analysis uses
+                # is imported as a schedule item too; the analyses reference
+                # its prefixed SUB ANALYSIS copy, as when imported separately.
                 item = source.get_item(row.code, modify_res_code=True)
                 subitem[id(item)] = item.parent is not None
                 if modify:
@@ -1218,7 +1222,7 @@ class ProjectEditor:
         if kind == "resources" and updated_resources:
             self.owner.update_dependent_rates(self.db, resources=updated_resources)
         if renamed and recalculate:
-            self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()))
+            self.owner.update_dependent_rates(self.db, schedules=set(renamed.values()) | (sub_analysis_codes if kind == "schedule" else set()))
         # GTK Modify & Add retains the selected library item's multiplied stored rate,
         # even when its replacement calculation rows produce a different analysis rate.
         for code, rate in modified_rates.items():

@@ -359,6 +359,9 @@ class Service:
                 if not result[0]:
                     raise ValueError(result[1])
             new.open_database(str(target))
+            # Display order only: earlier projects can hold SUB ANALYSIS first.
+            from .insertion import keep_sub_analysis_last
+            keep_sub_analysis_last(new)
             if p.get("discard") is True:
                 self.clear_recovery()
             self.clear_mcp_indexes()

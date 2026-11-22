@@ -1,5 +1,27 @@
 """Selection-aware placement; numbering stays with the original database helpers."""
 
+from estimator import misc
+
+
+def keep_sub_analysis_last(db):
+    """Keep the SUB ANALYSIS category (analysis dependencies imported or pasted
+    with items) after every other category, so the schedule view, resources
+    and workbook export list it last. Returns True when an order changed."""
+    changed = False
+    for category in (db.ScheduleCategoryTable, db.ResourceCategoryTable):
+        row = category.get_or_none(category.description == misc.SUB_ANA_TITLE)
+        if row is None:
+            continue
+        others = list(category.select().where(category.id != row.id).order_by(category.order, category.id))
+        if all(other.order < row.order for other in others) and [o.order for o in others] == list(range(len(others))):
+            continue
+        for index, other in enumerate(others):
+            if other.order != index:
+                category.update(order=index).where(category.id == other.id).execute()
+        category.update(order=len(others)).where(category.id == row.id).execute()
+        changed = True
+    return changed
+
 
 def tables(editor, kind):
     db = editor.db

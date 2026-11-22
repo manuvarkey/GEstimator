@@ -772,3 +772,10 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   - Points in one building used Group B (dormitory) and Group C (office); the wiring reference now says the group belongs to the building.
   - Codex "corrected" the exported workbook, believing the SUB ANALYSIS dependency rows inflated the total. A fresh `export_xlsx` of its project totals 1,772,031.03 against `get_summary` 1,772,031.04 (rounding); the zero-quantity dependency rows add nothing. The skills now say not to edit the export and to report any difference.
 - Tests: `test_error_text_carries_field_allowed_values_and_hint`. `unittest` full suite OK.
+
+## 2026-11-23 — SUB ANALYSIS last; selected dependencies imported
+
+- Import placed the SUB ANALYSIS category (analysis dependencies, zero quantity) before the categories of the selected items, so it led the schedule view and the Schedule sheet of the workbook export; Codex took those rows for part of the total and edited the export. `insertion.keep_sub_analysis_last` now moves it after every other category (schedule and resource categories) after each mutation or compound write and when a project is opened (display order only; the project is not marked changed).
+- Import bug: an item selected together with an item whose analysis uses it (6.1.1 with 19.7.1.1 in DSR 2023) was skipped. Only its `DC23:` copy reached SUB ANALYSIS, `code_map` had no entry and its heading stayed empty, which is how the first Codex run ended up measuring sub-analysis copies. Selected items are now always imported; the analyses keep referencing the prefixed copy, as when the two are imported separately. Rates are unchanged (19.7.1.1: 12770.55).
+- The skills and `start_here` now name the saved project as the deliverable and allow a workbook only on request, unedited.
+- Tests: `tests/test_sub_analysis_order.py`. `unittest` full suite OK.
