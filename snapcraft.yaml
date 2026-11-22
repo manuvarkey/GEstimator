@@ -36,8 +36,11 @@ parts:
     plugin: dump
     source: modern/src-tauri/target/release/bundle/deb/GEstimator_3.0.0_amd64.deb
     source-type: deb
-    stage-packages:
-      - libwebkit2gtk-4.1-0
+    # No stage-packages: the gnome extension's gnome-42-2204 runtime already
+    # ships libwebkit2gtk-4.1. Staging it from the 22.04 archive also pulled in
+    # Mesa 22 (libEGL_mesa, dri drivers), which shadowed the runtime's newer
+    # Mesa and failed at start with "libEGL fatal: did not find extension
+    # DRI_Mesa version 1".
     override-build: |
       craftctl default
       install -Dm644 "$CRAFT_PROJECT_DIR/packaging/linux/applications/com.kavilgroup.gestimator.desktop" \
