@@ -141,7 +141,9 @@ The Python result is the final authority, including numeric strings, totals,
 draft flags and history availability.
 
 Refresh should reconcile selections by stable ID and preserve scroll/focus where
-valid. Do not use a visible row index as an item identity. Hidden category
+valid. Before a refresh replaces a focused grid cell, keyboard focus moves to
+the grid so navigation can resume from the reconciled selection after a row
+paste. Do not use a visible row index as an item identity. Hidden category
 contents and off-page rows are resolved by backend selection expansion; frontend
 filtering cannot define deletion, import or total scope.
 
@@ -203,6 +205,8 @@ creation. It uses Python's selection-aware defaults for schedule and resource
 insertion. The view supplies the selection, category options and measurement
 templates, routes ribbon and keyboard actions, and runs the shared commands
 that handle errors, grid refresh and undo.
+Measurement insertion passes the selected row IDs directly. An explicit
+destination in the item form supplies the category ID as the selection instead.
 
 `ProjectImportDialogs` opens the mapped schedule/resource workbook dialog and
 the range dialogs for multiple analyses and measurement records. The view
@@ -215,6 +219,9 @@ Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,
 clipboard, tooltip and virtual-row helpers instead of making view-specific copies.
 Confine unavoidable access to third-party internals to a documented adapter.
+The Schedule renders its entire paged result, including category headers and
+parent rows. Wrapped rows therefore keep their actual heights during rapid
+scrolling, and pagination limits the number of items in the table.
 
 Raw editable numeric strings may be expressions. Keep them distinct from
 rendered results; send validation to Python. Derived cells remain read-only.

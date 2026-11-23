@@ -23,6 +23,8 @@ const props = defineProps<{
   busy: boolean;
   active?: boolean;
   tree?: boolean;
+  /** Render a bounded page of wrapped rows without approximate virtual padding. */
+  renderAllRows?: boolean;
   dragSelectRows?: boolean;
   rowOnlySelection?: boolean;
   /** GTK3-style find popup: typing selects matching rows. */
@@ -374,6 +376,7 @@ watch(
     replacingRows = true;
     try {
       const columnsChanged = JSON.stringify(columns) !== JSON.stringify(previousColumns);
+      if (rows !== previousRows || columnsChanged) navigation?.beforeReplace();
       if (columnsChanged) table.setColumns(editorColumns(columns));
       if (selectIds !== previousIds) table.deselectRow();
       if (rows !== previousRows || columnsChanged) {
@@ -429,6 +432,7 @@ watch(
 onMounted(() => {
   table = new Tabulator(element.value!, {
     height: "100%",
+    renderVertical: props.renderAllRows ? "basic" : "virtual",
     layout: "fitColumns",
     index: "id",
     dataTree: props.tree,

@@ -31,6 +31,7 @@ const isMeasurement = computed(() => props.view === "measurement");
 const formOpen = ref(false);
 const formMode = ref<ProjectItemMode>("add");
 const form = ref<Record<string, string>>({});
+const measurementDestination = ref("");
 const templateInfo = computed(() => props.templates.find((template) => template.code === form.value.template));
 const categoryOpen = ref(false);
 const categoryName = ref("");
@@ -57,11 +58,7 @@ async function showItem(mode: ProjectItemMode, item: GridRow | undefined, ids: s
   };
 
   if (isMeasurement.value) {
-    form.value.category =
-      item?.rowtype === "Category"
-        ? item.description
-        : props.measurementCategories.find((category) => category._children.some((row) => row.id === item?.id))
-            ?.description || "";
+    measurementDestination.value = "";
   } else if (mode === "add") {
     const ok = await props.run(async () => {
       const defaults = await request<{ code: string; category: string; parent: string }>(
@@ -91,9 +88,7 @@ async function submit() {
     ? {
         template: form.value.template,
         description: form.value.description,
-        id: props.measurementCategories.find(
-          (category) => category.description === form.value.category && category.id !== "measurement:uncategorised",
-        )?.id,
+        ...(measurementDestination.value ? { ids: [measurementDestination.value] } : {}),
       }
     : { data: form.value };
   if (await props.command(operation, params)) formOpen.value = false;
@@ -112,7 +107,6 @@ async function submitCategory() {
   if (
     await props.command(isMeasurement.value ? "add" : "category_add", {
       description,
-      ...(isMeasurement.value ? { category: true } : {}),
     })
   )
     categoryOpen.value = false;
@@ -145,12 +139,13 @@ defineExpose({ showItem, showCategory });
             {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? "quantity" : "quantities" }}</small
           ></label
         ><label class="field"
-          >Category<select v-model="form.category">
-            <option value="">Uncategorised</option>
+          >Category<select v-model="measurementDestination">
+            <option value="">At selection</option>
+            <option value="measurement:uncategorised">Uncategorised</option>
             <option
               v-for="category in measurementCategories.filter((row) => row.id !== 'measurement:uncategorised')"
               :key="category.id"
-              :value="category.description"
+              :value="category.id"
             >
               {{ category.description }}
             </option>

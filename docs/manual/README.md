@@ -28,9 +28,9 @@ GEstimator prepares cost and quantity estimates of civil and electrical works wi
 - **Table:** the rows of the current view. A search field and category filter sit above it; the estimate total and page controls sit below it.
 - **Status bar:** calculation status, unsaved drafts and hints.
 
-Tables work like a spreadsheet. Click a cell to select it, double-click (or press Enter or F2) to edit, Tab to accept and move to the next cell, Escape to cancel. Ctrl+click and Shift+click select several rows. Right-click a row for its context menu.
+Click a cell to select it and double-click or press Enter or F2 to edit it. While editing, press Enter to save the current cell, Tab to save and edit the next cell, or Escape to cancel. Ctrl+click and Shift+click select several rows. Right-click a row for its context menu.
 
-A dark theme is available from the moon icon in the title bar.
+Light is the default theme. Use the moon icon in the title bar to switch to dark.
 
 ![Dark theme](images/schedule-dark.png)
 
@@ -97,7 +97,7 @@ GEstimator copies each item with its rate analysis, the resources the analysis u
 ### Enter items directly
 
 - **Add item** (Ctrl+I) adds an item in the selected category; **Add subitem** (Ctrl+Shift+I) adds a child of the selected item.
-- **Add category** groups items; **Duplicate**, **Copy**, **Paste**, **Delete**, **Move up** and **Move down** rearrange rows. Rows copied in one GEstimator window paste into another.
+- **Add category** inserts after the category containing the last selected row. With no selection, it creates the first category. This also applies in Resources and Measurements. Use **Duplicate**, **Copy**, **Paste**, **Delete**, **Move up** and **Move down** to rearrange rows. Rows copied in one GEstimator window paste into another.
 - Edit any cell in place. Type quantities directly, or let measurements fill them (see [section 7](#7-record-measurements)).
 - **Renumber schedule…** renumbers item codes in order; **Row colour** highlights rows; **Rate discrepancies** lists items whose stored rate differs from their analysis.
 
@@ -146,7 +146,7 @@ Measurements record the detailed dimensions behind each quantity.
 
 ![Measurements](images/measurements.png)
 
-1. In **Measurements**, click **Add item** and choose a template. **NLBH (numbers, length, area, volume)** suits most civil items. Other templates cover several linked quantities, steel reinforcement, electrical points and round or rectangular ducting.
+1. In **Measurements**, click **Add measurement** and choose a template. The new item goes after the last selected measurement, first within a selected category, or at the top without a selection. **NLBH (numbers, length, area, volume)** suits most civil items. Other templates cover several linked quantities, steel reinforcement, electrical points and round or rectangular ducting.
 2. Double-click the measurement (or click **Edit records**) to open its records.
 3. Link the measurement to a schedule item under **Measured quantity**: type or search the item code.
 4. Add records with **Add record** (Ctrl+I) or **Add multiple records**, and fill in the dimensions. Cells accept arithmetic such as `2*3.5+1.2`. A negative number deducts, for example a door opening.
@@ -201,7 +201,7 @@ For **Save project copy**, choose a new filename.
 
 ## 10. Settings
 
-- **Program settings** (application menu): number format and currency symbol, live search and the MCP server (General); theme, fonts and table typography (Appearance); the rows inserted by **Default rows** (Default analysis template); and the settings used by **Modify & Add** (Library Modify & Add).
+- **Program settings** (application menu) controls number and currency formatting, live search, the MCP server and whether Enter opens the cell below. It also controls appearance, default analysis rows and the settings for **Modify & Add**.
 - **Project settings**: project name, code prefixes for items and resources, and project notes.
 
 ## 11. Use an AI assistant (MCP)

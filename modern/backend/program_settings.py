@@ -3,21 +3,34 @@
 import copy
 import re
 from pathlib import Path
+
 import appdirs
+
 from estimator import misc
 from estimator.data.schedule import Currency, ScheduleItemModel
+
 from .numbers import decimal
 
 KINDS = ("Group", "Subtotal", "Weight", "Multiply", "Round")
 
 
 def template_rows(items):
-    return [dict(kind=KINDS[row["itemtype"]], description=row["description"],
-                 code=row.get("code", ""), value=str(row.get("value", ""))) for row in items]
+    return [
+        dict(
+            kind=KINDS[row["itemtype"]],
+            description=row["description"],
+            code=row.get("code", ""),
+            value=str(row.get("value", "")),
+        )
+        for row in items
+    ]
 
 
 def library_directory():
-    return Path(appdirs.AppDirs(misc.PROGRAM_NAME, misc.PROGRAM_AUTHOR, version=misc.PROGRAM_VER).user_data_dir) / "database"
+    return (
+        Path(appdirs.AppDirs(misc.PROGRAM_NAME, misc.PROGRAM_AUTHOR, version=misc.PROGRAM_VER).user_data_dir)
+        / "database"
+    )
 
 
 def library_catalog():
@@ -28,16 +41,32 @@ def library_catalog():
                 continue
             for path in sorted(folder.iterdir()):
                 if path.is_file() and path.suffix.lower() == ".eproj":
-                    rows.append(dict(name=path.stem, path="bundled:" + path.name if bundled else str(path.resolve()), bundled=bundled))
+                    rows.append(
+                        dict(
+                            name=path.stem,
+                            path="bundled:" + path.name if bundled else str(path.resolve()),
+                            bundled=bundled,
+                        )
+                    )
         except OSError as error:
             warnings.append(str(error))
     return dict(rows=rows, warnings=warnings)
 
 
 def defaults():
-    return dict(export_break_items=True, live_search=False, sch_rate_mult_factor="1", ana_copy_delete_rows=0,
-                number_locale="", currency_code="INR", show_currency_symbol=False, mcp_enabled=False,
-                ana_default_rows=template_rows(misc.ana_default_add_items), ana_copy_rows=[])
+    return dict(
+        export_break_items=True,
+        live_search=False,
+        enter_edits_next_cell=False,
+        sch_rate_mult_factor="1",
+        ana_copy_delete_rows=0,
+        number_locale="",
+        currency_code="INR",
+        show_currency_symbol=False,
+        mcp_enabled=False,
+        ana_default_rows=template_rows(misc.ana_default_add_items),
+        ana_copy_rows=[],
+    )
 
 
 def text(value):
@@ -46,7 +75,7 @@ def text(value):
     return value
 
 
-def validate_rows(rows):
+def validate_rows(rows, *, parse_number=decimal):
     if not isinstance(rows, list) or len(rows) > 100:
         raise ValueError("Use at most 100 template rows")
     result = []
@@ -58,8 +87,10 @@ def validate_rows(rows):
         code = text(row.get("code", "")) if kind == "Group" else ""
         value = ""
         if kind in ("Weight", "Multiply", "Round"):
-            number = decimal(row.get("value", ""))
-            if kind == "Round" and (abs(number) > 12 or (number != int(number) and int((number - int(number)) * 10) == 0)):
+            number = parse_number(row.get("value", ""))
+            if kind == "Round" and (
+                abs(number) > 12 or (number != int(number) and int((number - int(number)) * 10) == 0)
+            ):
                 raise ValueError("Unsupported template rounding places")
             value = str(number)
         result.append(dict(kind=kind, description=description, code=code, value=value))
@@ -75,6 +106,8 @@ def validate(settings):
         raise ValueError("Choose whether exported descriptions should be split")
     if type(base["live_search"]) is not bool:
         raise ValueError("Choose whether to search as you type")
+    if type(base["enter_edits_next_cell"]) is not bool:
+        raise ValueError("Choose whether Enter edits the next cell")
     if type(base["mcp_enabled"]) is not bool:
         raise ValueError("Choose whether the MCP server is enabled")
     locale = base["number_locale"]
@@ -94,15 +127,15 @@ def validate(settings):
     return base
 
 
-def legacy_rows(rows):
+def legacy_rows(rows, *, parse_number=decimal):
     result = []
-    for row in validate_rows(rows):
+    for row in validate_rows(rows, parse_number=parse_number):
         kind = KINDS.index(row["kind"])
         value = dict(itemtype=kind, description=row["description"])
         if kind == 0:
             value.update(code=row["code"], resource_list=[])
         elif kind in (2, 3, 4):
-            value["value"] = decimal(row["value"])
+            value["value"] = parse_number(row["value"])
         result.append(value)
     # Exercise the original engine, including interval rounding, without a project.
     model = ScheduleItemModel("", "")

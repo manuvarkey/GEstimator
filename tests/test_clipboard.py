@@ -5,9 +5,10 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch
+
 from estimator import misc
 from estimator.data.measurement import MeasurementItemCustom
-from estimator.data.schedule import ScheduleDatabase, ScheduleItemModel, ResourceItemModel
+from estimator.data.schedule import ResourceItemModel, ScheduleDatabase, ScheduleItemModel
 from estimator.undo import Stack
 from modern.backend.service import Service
 
@@ -22,7 +23,17 @@ class ClipboardTests(unittest.TestCase):
         resource = ResourceItemModel("R", "Material\nDescription", "kg", Decimal("10"), category="Materials")
         db.insert_resource(resource)
         for code, parent, quantity in [("A", None, "2"), ("A.1", "A", "1")]:
-            item = ScheduleItemModel(code, code + " work", "m", Decimal(quantity) * 10, Decimal("1"), category="Work", parent=parent, remarks="Schedule note", colour="#AABBCC")
+            item = ScheduleItemModel(
+                code,
+                code + " work",
+                "m",
+                Decimal(quantity) * 10,
+                Decimal("1"),
+                category="Work",
+                parent=parent,
+                remarks="Schedule note",
+                colour="#AABBCC",
+            )
             item.resources = {"R": resource}
             item.add_ana_group("Materials", code=None if code == "A" else "M")
             item.add_ana_res(["R", Decimal(quantity), "Entry note"], 0)
@@ -65,7 +76,11 @@ class ClipboardTests(unittest.TestCase):
         return data
 
     def add_destination_item(self, code):
-        self.call(self.b, "schedule.editor.add", data=dict(code=code, description=code, unit="m", rate="0", qty="0", category="Work"))
+        self.call(
+            self.b,
+            "schedule.editor.add",
+            data=dict(code=code, description=code, unit="m", rate="0", qty="0", category="Work"),
+        )
 
     def source_measurement(self):
         self.call(self.a, "measurement.add", description="Heading")
@@ -74,7 +89,16 @@ class ClipboardTests(unittest.TestCase):
         identity = self.call(self.a, "measurement.state")["rows"][1]["id"]
         self.call(self.a, "measurement.record_add", id=identity)
         record = self.call(self.a, "measurement.state", id=identity)["detail"]["rows"][0]["id"]
-        self.call(self.a, "measurement.record_edit_many", id=identity, edits=[dict(id=record, field="c0", value="Row note"), dict(id=record, field="c2", value="2*3"), dict(id=record, field="c3", value="4")])
+        self.call(
+            self.a,
+            "measurement.record_edit_many",
+            id=identity,
+            edits=[
+                dict(id=record, field="c0", value="Row note"),
+                dict(id=record, field="c2", value="2*3"),
+                dict(id=record, field="c3", value="4"),
+            ],
+        )
         self.call(self.a, "measurement.link", id=identity, slot=0, code="A", remark="Linked remark")
         return heading, identity, record
 
@@ -82,14 +106,20 @@ class ClipboardTests(unittest.TestCase):
         source = self.load_root()
         ids = [row["id"] for row in source["rows"]] + [source["rows"][0]["_children"][0]["id"]]
         data = self.transfer("analysis", ids=ids)
-        self.call(self.b, "resources.editor.add", data=dict(code="R", description="Destination", unit="kg", rate="20", category="Materials"))
+        self.call(
+            self.b,
+            "resources.editor.add",
+            data=dict(code="R", description="Destination", unit="kg", rate="20", category="Materials"),
+        )
         self.add_destination_item("TARGET")
         self.call(self.b, "analysis.load", code="TARGET")
         before = self.b.state()
         state = self.call(self.b, "clipboard.paste", kind="analysis", data=data)
         self.assertEqual(state["rate"], "40.00")
         resource = state["rows"][0]["_children"][0]
-        self.assertEqual((resource["description"], resource["remarks"], resource["value"]), ("Destination", "Entry note", "2"))
+        self.assertEqual(
+            (resource["description"], resource["remarks"], resource["value"]), ("Destination", "Entry note", "2")
+        )
         self.assertNotIn(state["rows"][0]["id"], ids)
         self.call(self.b, "undo")
         self.assertEqual(self.b.state()["rows"], before["rows"])
@@ -126,10 +156,20 @@ class ClipboardTests(unittest.TestCase):
         self.assertTrue(code.startswith("MR."))
         self.call(self.a, "schedule.editor.category_add", description="Empty")
         empty = self.a.db.ScheduleCategoryTable.get(description="Empty")
-        self.call(self.b, "clipboard.paste", kind="schedule", data=self.transfer("schedule", ids=["cat:" + str(empty.id)]))
-        self.assertTrue(self.b.db.ScheduleCategoryTable.select().where(self.b.db.ScheduleCategoryTable.description == "Empty").exists())
+        self.call(
+            self.b, "clipboard.paste", kind="schedule", data=self.transfer("schedule", ids=["cat:" + str(empty.id)])
+        )
+        self.assertTrue(
+            self.b.db.ScheduleCategoryTable.select()
+            .where(self.b.db.ScheduleCategoryTable.description == "Empty")
+            .exists()
+        )
         self.call(self.b, "project.undo")
-        self.assertFalse(self.b.db.ScheduleCategoryTable.select().where(self.b.db.ScheduleCategoryTable.description == "Empty").exists())
+        self.assertFalse(
+            self.b.db.ScheduleCategoryTable.select()
+            .where(self.b.db.ScheduleCategoryTable.description == "Empty")
+            .exists()
+        )
 
     def test_measurement_links_remap_by_code_and_missing_links_do_not_reuse_ids(self):
         heading, identity, _ = self.source_measurement()
@@ -155,6 +195,20 @@ class ClipboardTests(unittest.TestCase):
         self.assertEqual(copied.itemnos, [None])
         self.assertEqual(copied.item_remarks, ["Linked remark"])
         self.assertEqual(copied.records[0].data_string[2], "2*3")
+
+    def test_dsr_carriage_preserves_stored_analysis_precision_on_paste(self):
+        source = Path(misc.abs_path("database", "DSR2023.eproj"))
+        self.call(self.a, "project.open", path=str(source), discard=True)
+        row = self.a.db.ScheduleTable.get(code="1.1.18")
+        data = self.call(self.a, "clipboard.export", kind="schedule", ids=[str(row.id)])
+        expected = self.a.db.get_item(row.code, modify_res_code=False)
+        self.assertEqual(expected.ana_items[-2]["value"], Decimal("0.041666666666666664"))
+        self.call(self.b, "clipboard.paste", kind="schedule", data=data)
+        pasted = self.b.db.get_item(row.code, modify_res_code=False)
+        self.assertEqual(pasted.ana_items[-2]["value"], expected.ana_items[-2]["value"])
+        self.assertEqual(pasted.get_ana_rate(), expected.get_ana_rate())
+        self.call(self.b, "project.undo")
+        self.assertIsNone(self.b.db.get_item(row.code))
 
     def test_record_template_guard_and_untrusted_arithmetic_never_executes(self):
         _, identity, record = self.source_measurement()
@@ -186,7 +240,12 @@ class ClipboardTests(unittest.TestCase):
         original = json.loads(data)
         before = self.b.state()
         samples = ["not JSON", "cos\nsystem\n(S'bad'\ntR.", "x" * 500001]
-        for update in [dict(version=2), dict(version=True), dict(kind="resources"), dict(items=[dict(type="row", row=dict(kind="Round", value="2.01", description="Bad"))])]:
+        for update in [
+            dict(version=2),
+            dict(version=True),
+            dict(kind="resources"),
+            dict(items=[dict(type="row", row=dict(kind="Round", value="2.01", description="Bad"))]),
+        ]:
             samples.append(json.dumps(dict(original, **update)))
         for sample in samples:
             with self.assertRaises(ValueError):
@@ -198,13 +257,21 @@ class ClipboardTests(unittest.TestCase):
             self.call(self.b, "clipboard.paste", kind="schedule", data=data, source="library")
 
     def test_sub_analysis_definitions_transfer_and_conflicts_roll_back(self):
-        self.call(self.a, "schedule.editor.add", data=dict(code="SUB", description="Sub-analysis", unit="m", rate="0", qty="0", category=misc.SUB_ANA_TITLE))
+        self.call(
+            self.a,
+            "schedule.editor.add",
+            data=dict(code="SUB", description="Sub-analysis", unit="m", rate="0", qty="0", category=misc.SUB_ANA_TITLE),
+        )
         state = self.call(self.a, "analysis.load", code="SUB")
         self.call(self.a, "add", kind="Group")
         group = self.a.state()["rows"][0]["id"]
         self.call(self.a, "resource.add", id=group, library=True, code="R", qty="3")
         self.call(self.a, "analysis.apply")
-        self.call(self.a, "resources.editor.add", data=dict(code="SUB", description="Sub-analysis", unit="m", rate="30", category=misc.SUB_ANA_TITLE))
+        self.call(
+            self.a,
+            "resources.editor.add",
+            data=dict(code="SUB", description="Sub-analysis", unit="m", rate="30", category=misc.SUB_ANA_TITLE),
+        )
         state = self.load_root()
         self.call(self.a, "edit", id=state["rows"][0]["_children"][0]["id"], field="code", value="SUB")
         self.call(self.a, "analysis.apply")
@@ -237,8 +304,15 @@ class ClipboardTests(unittest.TestCase):
             identity = self.call(self.a, "measurement.state")["rows"][0]["id"]
             self.call(self.a, "measurement.record_add", id=identity)
             record = self.call(self.a, "measurement.state", id=identity)["detail"]["rows"][0]["id"]
-            edits = [dict(id=record, field="c" + str(index), value="2*3" if kind in (misc.MEAS_L, misc.MEAS_NO) else "Copied note")
-                     for index, kind in enumerate(expected.columntypes) if kind != misc.MEAS_CUST]
+            edits = [
+                dict(
+                    id=record,
+                    field="c" + str(index),
+                    value="2*3" if kind in (misc.MEAS_L, misc.MEAS_NO) else "Copied note",
+                )
+                for index, kind in enumerate(expected.columntypes)
+                if kind != misc.MEAS_CUST
+            ]
             self.call(self.a, "measurement.record_edit_many", id=identity, edits=edits)
         rows = self.call(self.a, "measurement.state")["rows"]
         data = self.transfer("measurement", ids=[row["id"] for row in rows])
@@ -256,13 +330,18 @@ class ClipboardTests(unittest.TestCase):
         self.b.project_editor.clipboard = old_clipboard
         insert = self.b.project_editor.insert_schedule_item
         count = 0
+
         def fail_second(item, *args):
             nonlocal count
             count += 1
             if count == 2:
                 raise ValueError("Injected insertion failure")
             return insert(item, *args)
-        with patch.object(self.b.project_editor, "insert_schedule_item", side_effect=fail_second), self.assertRaisesRegex(ValueError, "Injected"):
+
+        with (
+            patch.object(self.b.project_editor, "insert_schedule_item", side_effect=fail_second),
+            self.assertRaisesRegex(ValueError, "Injected"),
+        ):
             self.call(self.b, "clipboard.paste", kind="schedule", data=data)
         self.assertEqual(count, 2)
         self.assertEqual(self.call(self.b, "schedule.editor.state"), before)
@@ -299,7 +378,11 @@ class ResourceCutTests(unittest.TestCase):
         call(a, "project.new")
         call(b, "project.new")
         for code, category in [("R1", "Materials"), ("R2", "Materials"), ("L1", "Labour"), ("L2", "Labour")]:
-            call(a, "resources.editor.add", data=dict(code=code, description=code, unit="kg", rate="1", category=category))
+            call(
+                a,
+                "resources.editor.add",
+                data=dict(code=code, description=code, unit="kg", rate="1", category=category),
+            )
         table = a.db.ResourceTable
         ident = lambda code: str(table.get(code=code).id)
         data = call(a, "clipboard.export", kind="resources", ids=[ident("R1")], cut=True)
@@ -308,7 +391,10 @@ class ResourceCutTests(unittest.TestCase):
         result = call(a, "clipboard.paste", kind="resources", data=data, ids=[ident("L1")])
         self.assertTrue(result["moved"])
         labour = table.get(code="L1").category_id
-        self.assertEqual([row.code for row in table.select().where(table.category == labour).order_by(table.order)], ["L1", "R1", "L2"])
+        self.assertEqual(
+            [row.code for row in table.select().where(table.category == labour).order_by(table.order)],
+            ["L1", "R1", "L2"],
+        )
         self.assertEqual(table.get(code="R2").order, 0)
         self.assertEqual(table.select().count(), 4)
         call(a, "project.undo")

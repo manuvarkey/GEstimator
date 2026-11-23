@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, nextTick, watch, ref } from "vue";
-import {
-  TabulatorFull as Tabulator,
-  type CellComponent,
-  type RowComponent,
-} from "tabulator-tables";
+import { TabulatorFull as Tabulator, type CellComponent, type RowComponent } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import type { AnalysisRow } from "../backend";
 import { tableTextEditor, tableInputEditor } from "../tableTextEditor";
@@ -49,28 +45,46 @@ async function fitVisibleTable(force = false) {
       const remarks = table.getColumn("remarks");
       const showRemarks = scrollable.value || element.value.clientWidth >= 720;
       if (remarks && remarks.isVisible() !== showRemarks) showRemarks ? remarks.show() : remarks.hide();
-      table.redraw(force && !element.value.querySelector('.tabulator-editing'));
+      table.redraw(force && !element.value.querySelector(".tabulator-editing"));
     }
   });
 }
-watch(() => props.active, () => fitVisibleTable(true), { flush: "post" });
+watch(
+  () => props.active,
+  () => fitVisibleTable(true),
+  { flush: "post" },
+);
 watch(moneyFormatKey, async () => {
   await built;
   if (!active) return;
-  for (const row of table.getRows()) { row.reformat(); for (const child of row.getTreeChildren() || []) child.reformat(); }
+  for (const row of table.getRows()) {
+    row.reformat();
+    for (const child of row.getTreeChildren() || []) child.reformat();
+  }
   void fitVisibleTable();
 });
 const isResource = (cell: CellComponent) => cell.getData().kind === "Resource";
 const isTotal = (cell: CellComponent) => cell.getData().kind === "GroupTotal";
 /** A group's total is shown on a "TOTAL of …" line after its resources, not on the heading. */
 function displayRows(rows: AnalysisRow[]): AnalysisRow[] {
-  return rows.map(row => row.kind !== "Group" ? row : {
-    ...row,
-    _children: [...(row._children || []), {
-      id: row.id + ":total", kind: "GroupTotal", description: "TOTAL of " + (row.code || row.description || "group"),
-      value: "", amount: row.amount, _displayOnly: true,
-    } as AnalysisRow],
-  });
+  return rows.map((row) =>
+    row.kind !== "Group"
+      ? row
+      : {
+          ...row,
+          _children: [
+            ...(row._children || []),
+            {
+              id: row.id + ":total",
+              kind: "GroupTotal",
+              description: "TOTAL of " + (row.code || row.description || "group"),
+              value: "",
+              amount: row.amount,
+              _displayOnly: true,
+            } as AnalysisRow,
+          ],
+        },
+  );
 }
 function amountCell(cell: CellComponent) {
   return cell.getData().kind === "Group" ? "" : moneyCell(cell);
@@ -79,17 +93,18 @@ function kindBadge(cell: CellComponent) {
   const row = cell.getData() as AnalysisRow;
   const label = document.createElement("span");
   label.className = `row-badge kind-${row.kind.toLowerCase()}`;
-  label.textContent =
-    row.kind === "Resource" ? row.code || "Resource" : row.kind === "GroupTotal" ? "Total" : row.kind;
+  label.textContent = row.kind === "Resource" ? row.code || "Resource" : row.kind === "GroupTotal" ? "Total" : row.kind;
   label.title = row.kind === "Resource" ? `Resource ${row.code}` : row.kind === "GroupTotal" ? "Group total" : row.kind;
   return label;
 }
 function keyboard(event: KeyboardEvent) {
   if (navigation?.keyboard(event)) return;
-  if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
+  if (!table || props.busy || (event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]"))
+    return;
   if (tableSelection(event, table, props.busy)) return;
   if (event.key === "F2" && table.getSelectedRows().length === 1) {
-    event.preventDefault(); event.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
     table.getSelectedRows()[0]!.getCell("description").edit();
   }
 }
@@ -99,13 +114,13 @@ watch(
     await built;
     if (!active) return;
     const selected = table.getSelectedData().map((r) => r.id);
+    navigation?.beforeReplace();
     replacement = table.replaceData(displayRows(rows));
     await replacement;
     table.selectRow(selected.filter((id) => rows.some((r) => r.id === id)));
     // Resource rows are children; select them using their row components.
     for (const row of table.getRows())
-      for (const child of row.getTreeChildren() || [])
-        if (selected.includes(child.getData().id)) child.select();
+      for (const child of row.getTreeChildren() || []) if (selected.includes(child.getData().id)) child.select();
     for (const row of table.getRows()) {
       row.treeExpand();
     }
@@ -129,10 +144,20 @@ onMounted(() => {
     dataTreeSelectPropagate: false,
     selectableRows: true,
     selectableRowsRangeMode: "click",
-    selectableRowsCheck: row => !row.getData()._displayOnly,
+    selectableRowsCheck: (row) => !row.getData()._displayOnly,
     clipboard: false,
     placeholder: "Add a resource group to begin your analysis.",
-    columnDefaults: { headerSort: false, resizable: true, vertAlign: "middle", editorParams: () => ({ enterSubmit: true, shiftEnterNewLine: true, ctrlEnterNewLine: true, metaEnterNewLine: true }) },
+    columnDefaults: {
+      headerSort: false,
+      resizable: true,
+      vertAlign: "middle",
+      editorParams: () => ({
+        enterSubmit: true,
+        shiftEnterNewLine: true,
+        ctrlEnterNewLine: true,
+        metaEnterNewLine: true,
+      }),
+    },
     rowFormatter: (row) => {
       row.getElement().dataset.kind = row.getData().kind;
     },
@@ -163,7 +188,7 @@ onMounted(() => {
         field: "description",
         editor: tableTextEditor,
         editorParams: () => ({ grow: false }),
-        editable: cell => !isResource(cell) && !isTotal(cell),
+        editable: (cell) => !isResource(cell) && !isTotal(cell),
         formatter: "textarea",
         variableHeight: true,
         minWidth: 80,
@@ -175,7 +200,7 @@ onMounted(() => {
         cssClass: "analysis-line-remarks",
         editor: tableTextEditor,
         editorParams: () => ({ grow: false }),
-        editable: cell => isResource(cell),
+        editable: (cell) => isResource(cell),
         formatter: "textarea",
         variableHeight: true,
         // Shares the free width with the description, so narrow panes still fit.
@@ -199,10 +224,18 @@ onMounted(() => {
         minWidth: 56,
         widthShrink: 1,
         tooltip: overflowTooltip(),
-        editable: (cell) =>
-          !["Group", "Subtotal", "GroupTotal"].includes(cell.getData().kind),
+        editable: (cell) => !["Group", "Subtotal", "GroupTotal"].includes(cell.getData().kind),
       },
-      { title: "RATE", field: "effective_rate", formatter: moneyCell, hozAlign: "right", width: 110, minWidth: 56, widthShrink: 1, tooltip: overflowTooltip(moneyCell) },
+      {
+        title: "RATE",
+        field: "effective_rate",
+        formatter: moneyCell,
+        hozAlign: "right",
+        width: 110,
+        minWidth: 56,
+        widthShrink: 1,
+        tooltip: overflowTooltip(moneyCell),
+      },
       {
         title: "AMOUNT",
         field: "amount",
@@ -217,13 +250,19 @@ onMounted(() => {
     ],
   });
   navigation = cellNavigation(table, element.value!, {
-    busy: () => props.busy, tree: true, settled: () => replacement,
-    position: id => { anchorId = id; },
-    save: cell => props.saveCell(cell.getData() as AnalysisRow, cell.getField(), String(cell.getValue())),
+    busy: () => props.busy,
+    tree: true,
+    settled: () => replacement,
+    position: (id) => {
+      anchorId = id;
+    },
+    save: (cell) => props.saveCell(cell.getData() as AnalysisRow, cell.getField(), String(cell.getValue())),
   });
   stopDragSelection = rowDragSelection(table, element.value!, {
-    tree: true, busy: () => props.busy, anchor: () => anchorId,
-    position: cell => navigation.clicked(cell),
+    tree: true,
+    busy: () => props.busy,
+    anchor: () => anchorId,
+    position: (cell) => navigation.clicked(cell),
   });
   built = new Promise<void>((resolve) => table.on("tableBuilt", resolve));
   resizeObserver = new ResizeObserver(() => void fitVisibleTable());
@@ -234,10 +273,12 @@ onMounted(() => {
       row.select();
     }
   });
-  table.on("rowSelectionChanged", (data) =>
-    emit("selection", data as AnalysisRow[]),
-  );
-  table.on("cellClick", (event, cell) => { if (isTotal(cell)) return; navigation.clicked(cell); if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow()); });
+  table.on("rowSelectionChanged", (data) => emit("selection", data as AnalysisRow[]));
+  table.on("cellClick", (event, cell) => {
+    if (isTotal(cell)) return;
+    navigation.clicked(cell);
+    if (!(event as MouseEvent).shiftKey) resetTablePosition(table, cell.getRow());
+  });
   void fitVisibleTable();
 });
 defineExpose({
@@ -247,7 +288,11 @@ defineExpose({
     cancelAnimationFrame(fitFrame);
     table.redraw(true);
   },
-  focus: async () => { await built; await replacement; element.value?.focus({ preventScroll: true }); },
+  focus: async () => {
+    await built;
+    await replacement;
+    element.value?.focus({ preventScroll: true });
+  },
   clearSelection: () => table?.deselectRow(),
 });
 onBeforeUnmount(() => {

@@ -181,6 +181,34 @@ def record_import_preview(editor, p):
     return dict(columns=[column_title(item, i) for i in fields], count=len(rows), rows=rows[:200])
 
 
+def _insertion_index(meas, identities, params, *, category=False):
+    """Insert after the last selected item, or after its whole group for a heading."""
+    ids = params.get("ids") or ([params["id"]] if params.get("id") else [])
+    positions = {identity: index for index, identity in enumerate(identities)}
+    # The synthetic header is before the first stored item.
+    positions["measurement:uncategorised"] = -1
+    if not isinstance(ids, list) or any(not isinstance(identity, str) or identity not in positions for identity in ids):
+        raise ValueError("Invalid measurement insertion selection")
+    index = max((positions[identity] for identity in ids), default=-1) + 1
+    if category:
+        # A heading starts a group in the saved flat list. Insert at the next
+        # boundary so existing items keep their current category.
+        while index < len(meas.items) and not isinstance(meas.items[index], measurement.MeasurementItemHeading):
+            index += 1
+    return index
+
+
+def _insert_items(editor, meas, params, items):
+    """Insert rows with new stable identities inside the caller's mutation."""
+    category = any(isinstance(item, measurement.MeasurementItemHeading) for item in items)
+    pos = _insertion_index(meas, editor.ids, params, category=category)
+    identities = [uuid4().hex for _ in items]
+    for offset, (item, identity) in enumerate(zip(items, identities)):
+        meas.insert_item(pos + offset, item)
+        editor.ids.insert(pos + offset, identity)
+    return dict(selected=identities)
+
+
 def edit(editor, op, p):
     """Edit measurement items without owning their transaction or undo history."""
     # Step 1: resolve the current item from the draft-aware measurement model.
@@ -204,11 +232,8 @@ def edit(editor, op, p):
             editor.clipboard = ("measurement", [copy.deepcopy(meas.items[i]) for i in indexes])
             return
         if op == "duplicate":
-            pos = indexes[-1] + 1
             items = [copy.deepcopy(meas.items[i]) for i in indexes]
-            for offset, new in enumerate(items):
-                meas.insert_item(pos + offset, new)
-                editor.ids.insert(pos + offset, uuid4().hex)
+            result = _insert_items(editor, meas, p, items)
         elif op == "delete":
             for position in reversed(indexes):
                 meas.remove_item(position)
@@ -236,15 +261,12 @@ def edit(editor, op, p):
                         editor.ids[position], editor.ids[other] = editor.ids[other], editor.ids[position]
         editor.set_measurement(meas)
         editor.ensure_ids(meas)
-        return
+        return result
     if op == "paste":
         if not editor.clipboard or editor.clipboard[0] != "measurement":
             raise ValueError("Copy a measurement item first")
-        pos = index + 1 if index is not None else 0
-        for offset, copied in enumerate(editor.clipboard[1]):
-            meas.insert_item(pos + offset, copy.deepcopy(copied))
-            editor.ids.insert(pos + offset, uuid4().hex)
-        result = dict(selected=editor.ids[pos : pos + len(editor.clipboard[1])])
+        items = copy.deepcopy(editor.clipboard[1])
+        result = _insert_items(editor, meas, p, items)
     elif op == "caption":
         meas.caption = text(p["value"])
     elif op == "add":
@@ -255,19 +277,7 @@ def edit(editor, op, p):
             new.remark = text(p.get("description", ""))
         else:
             new = measurement.MeasurementItemHeading([text(p.get("description", "Heading"))])
-        pos = index + 1 if index is not None else 0
-        if p.get("category"):
-            pos = next(
-                (
-                    i
-                    for i in range(pos, len(meas.items))
-                    if isinstance(meas.items[i], measurement.MeasurementItemHeading)
-                ),
-                len(meas.items),
-            )
-        meas.insert_item(pos, new)
-        editor.ids.insert(pos, uuid4().hex)
-        result = dict(selected=[editor.ids[pos]])
+        result = _insert_items(editor, meas, p, [new])
     elif op == "properties":
         if item is None:
             raise ValueError("Select a measurement item")

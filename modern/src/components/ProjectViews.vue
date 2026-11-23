@@ -342,10 +342,14 @@ function selectedItemIds() {
 }
 async function command(operation: string, params: Record<string, unknown> = {}) {
   return run(async () => {
+    const ids =
+      isMeasurement.value && (operation === "add" || operation === "paste")
+        ? selected.value.map((row) => row.id)
+        : selectedItemIds();
     const clipboardParams = {
       revision: state.value?.revision,
       id: one.value?.id,
-      ids: selectedItemIds(),
+      ids,
       source: source.value,
       ...params,
     };
@@ -384,7 +388,7 @@ async function command(operation: string, params: Record<string, unknown> = {}) 
         {
           revision: state.value?.revision,
           id: one.value?.id,
-          ids: selectedItemIds(),
+          ids,
           source: source.value,
           target_ids: workingSelection.value,
           ...(isMeasurement.value && operation === "move" && one.value?.rowtype === "Category"
@@ -403,7 +407,10 @@ async function command(operation: string, params: Record<string, unknown> = {}) 
       categoryFilters.value = [];
     }
     if (!isMeasurement.value && !result?.selected && state.value?.view_seq !== undefined) await refreshChanges();
-    else await refresh(!isMeasurement.value ? result?.selected?.[0] : undefined);
+    else {
+      const first = result?.selected?.[0];
+      await refresh(!isMeasurement.value && !first?.startsWith("cat:") ? first : undefined);
+    }
     if (result?.selected) selectionIds.value = result.selected;
     if (result?.selected_records) recordSelectionIds.value = result.selected_records;
     if (operation === "delete") {
@@ -724,6 +731,7 @@ watch(
           :active="active && !entryId"
           :key="source"
           :label="title"
+          :render-all-rows="view === 'schedule'"
           :rows="mainRows"
           :columns="columns"
           :busy="busy"

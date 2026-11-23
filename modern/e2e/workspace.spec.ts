@@ -238,6 +238,7 @@ async function refinementFixture(page: Page) {
 }
 
 test("compact contrast, category filters, expanded trees and client window controls", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   await refinementFixture(page);
   const grid = page.locator(".project-view:visible .project-main-grid");
   await expect(
@@ -248,7 +249,7 @@ test("compact contrast, category filters, expanded trees and client window contr
     "font-weight",
     "700",
   );
-  await page.getByRole("button", { name: "Switch to light theme", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(grid.locator('.tabulator-row [tabulator-field="code"]').filter({ hasText: /^A$/ })).toHaveCSS(
     "color",
     "rgb(42, 42, 49)",
@@ -574,7 +575,9 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await active().press("Shift+Tab");
   await field("qty");
   await active().press("Enter");
-  await expect(row("B").locator('[tabulator-field="qty"] input')).toBeFocused();
+  await expect(row("A").locator('[tabulator-field="qty"]')).toBeFocused();
+  await expect(active()).toHaveCount(0);
+  await row("B").locator('[tabulator-field="qty"]').dblclick();
   await active().fill("4");
   await active().press("Tab");
   await active().press("Escape");
@@ -602,8 +605,8 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await active().press("Shift+Tab");
   await field("rate");
   await active().press("Enter");
-  await expect(row("L").locator('[tabulator-field="rate"] input')).toBeFocused();
-  await active().press("Escape");
+  await expect(row("R").locator('[tabulator-field="rate"]')).toBeFocused();
+  await expect(active()).toHaveCount(0);
   await applyRecordsIfDirty(page);
   await page.locator("#view-measurement").click();
   await page.getByRole("button", { name: "Add measurement", exact: true }).click();
@@ -625,7 +628,9 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await field("c3", records);
   await active(records).fill("2+2");
   await active(records).press("Enter");
-  await field("c3", records);
+  await expect(records.locator('.tabulator-row [tabulator-field="c3"]').first()).toBeFocused();
+  await expect(active(records)).toHaveCount(0);
+  await records.locator('.tabulator-row [tabulator-field="c3"]').nth(1).dblclick();
   await active(records).fill("2");
   await active(records).press("Shift+Tab");
   await field("c2", records);
@@ -639,9 +644,8 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await active(records).press("Shift+Enter");
   await active(records).pressSequentially("Second line");
   await active(records).press("Enter");
-  await field("c0", records);
+  await expect(active(records)).toHaveCount(0);
   await expect(records.locator('.tabulator-row [tabulator-field="c0"]').first()).toHaveText("Record\nSecond line");
-  await active(records).press("Escape");
   await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   await row("A").locator('[tabulator-field="description"]').click();
@@ -663,6 +667,18 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.keyboard.press("Enter");
   await active(analysis).press("Enter");
+  await expect(analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]')).toBeFocused();
+  await expect(active(analysis)).toHaveCount(0);
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Program settings/ }).click();
+  const settings = page.getByRole("dialog", { name: /Program settings/ });
+  const advance = settings.getByRole("checkbox", { name: "Edit the cell below after pressing Enter" });
+  await expect(advance).not.toBeChecked();
+  await advance.check();
+  await settings.getByRole("button", { name: /^Save/ }).click();
+  await expect(settings).not.toBeVisible();
+  await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').dblclick();
+  await active(analysis).press("Enter");
   await expect(analysis.locator('.tabulator-row[data-kind="Round"] [tabulator-field="value"] input')).toBeFocused();
   await active(analysis).press("Escape");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
@@ -675,7 +691,7 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await page.keyboard.press("Enter");
   const editorBounds = (await active(analysis).boundingBox())!;
   const fixedHeader = analysis.locator('.tabulator-col[tabulator-field="amount"]');
-  await expect(fixedHeader).toHaveCSS("background-color", "rgb(59, 59, 69)");
+  await expect(fixedHeader).toHaveCSS("background-color", "rgb(255, 255, 255)");
   expect(editorBounds.x + editorBounds.width).toBeLessThanOrEqual((await fixedHeader.boundingBox())!.x + 1);
 });
 
@@ -1513,6 +1529,42 @@ test("themed template groups and Enter editing retain measurement eval and origi
   await page.screenshot({ path: "test-results/measurement-eval-breakup.png", animations: "disabled" });
 });
 
+for (const [view, description] of [
+  ["schedule", "Foundation"],
+  ["resources", "Material"],
+  ["analysis", "Materials"],
+] as const) {
+  test(`keyboard row paste keeps focus in ${view}`, async ({ page }) => {
+    const { execFileSync } = await import("node:child_process");
+    const project = resolve(directory, "paste-focus.eproj");
+    execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
+    await openFixture(page, project);
+    await page.locator(`#view-${view === "analysis" ? "schedule" : view}`).click();
+    if (view === "analysis") {
+      await page.getByRole("gridcell", { name: "Foundation", exact: true }).click();
+      await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
+    }
+    const grid =
+      view === "analysis" ? ".analysis-table.fit-table" : ".project-view:visible .project-main-grid .project-grid";
+    const table = page.locator(grid);
+    const rows = table.locator('.tabulator-row [tabulator-field="description"]').filter({
+      hasText: new RegExp(`^${description}$`),
+    });
+    await rows.click();
+    await page.keyboard.press("ControlOrMeta+c");
+    await expect.poll(() => systemClipboard && JSON.parse(systemClipboard).kind).toBe(view);
+    await page.keyboard.press("ArrowRight");
+    await expect(table.locator(".cell-focused")).toBeFocused();
+    // The desktop bridge mocks native clipboard access. Project tables receive a paste event.
+    if (view === "analysis") await page.keyboard.press("ControlOrMeta+v");
+    else await pasteDocument(page, `${grid} .cell-focused`, systemClipboard);
+    await expect(rows).toHaveCount(2);
+    await expect(table).toHaveAttribute("aria-busy", "false");
+    await page.keyboard.press("ArrowLeft");
+    await expect(table.locator(".cell-focused")).toBeFocused();
+  });
+}
+
 test("system row clipboard transfers schedule, resources and analysis between independent processes", async ({
   page,
   browser,
@@ -1677,17 +1729,35 @@ test("measurement clipboard transfers whole items and template records with expl
     await connectDesktop(destination, other.call);
     await destination.locator("#view-measurement").click();
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
-    await destination
-      .locator('.project-main-grid [tabulator-field="description"]')
-      .filter({ hasText: "Copied dimensions" })
-      .dblclick();
+    const itemsGrid = ".project-view:visible .project-main-grid .project-grid";
+    const items = destination.locator(`${itemsGrid} [tabulator-field="description"]`).filter({
+      hasText: "Copied dimensions",
+    });
+    await items.click();
+    await destination.keyboard.press("ArrowRight");
+    await expect(destination.locator(`${itemsGrid} .cell-focused`)).toBeFocused();
+    await pasteDocument(destination, `${itemsGrid} .cell-focused`, systemClipboard);
+    await expect(items).toHaveCount(2);
+    await expect(destination.locator(itemsGrid)).toHaveAttribute("aria-busy", "false");
+    await destination.keyboard.press("ArrowLeft");
+    await expect(destination.locator(`${itemsGrid} .cell-focused`)).toBeFocused();
+    await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(items).toHaveCount(1);
+    await items.dblclick();
     await expect(destination.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]')).toHaveText("6");
     await openMeasurementEntry(page);
     await page.locator('.measurement-record-grid .tabulator-row [tabulator-field="c2"]').click();
     await page.keyboard.press("ControlOrMeta+c");
     await expect.poll(() => JSON.parse(systemClipboard).kind).toBe("records");
-    await pasteDocument(destination, ".measurement-record-grid .project-grid", systemClipboard);
-    await expect(destination.locator(".measurement-record-grid .tabulator-row")).toHaveCount(2);
+    const recordsGrid = ".measurement-record-grid .project-grid";
+    await destination.locator(`${recordsGrid} .tabulator-row [tabulator-field="c2"]`).click();
+    await destination.keyboard.press("ArrowRight");
+    await expect(destination.locator(`${recordsGrid} .cell-focused`)).toBeFocused();
+    await pasteDocument(destination, `${recordsGrid} .cell-focused`, systemClipboard);
+    await expect(destination.locator(`${recordsGrid} .tabulator-row`)).toHaveCount(2);
+    await expect(destination.locator(recordsGrid)).toHaveAttribute("aria-busy", "false");
+    await destination.keyboard.press("ArrowLeft");
+    await expect(destination.locator(`${recordsGrid} .cell-focused`)).toBeFocused();
     await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
     await expect(destination.locator(".measurement-record-grid .tabulator-row")).toHaveCount(1);
     clipboardUnavailable = true;
@@ -2426,6 +2496,8 @@ test("resource editing, authoritative calculations, undo and workspace presentat
     .locator(".tabulator-col")
     .evaluateAll((cols) => cols.map((c) => c.getBoundingClientRect().y));
   expect(new Set(headers).size).toBe(1);
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.screenshot({ path: "test-results/workspace-dark.png" });
   await page.getByRole("button", { name: "Switch to light theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
@@ -2462,8 +2534,13 @@ test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by
   const box = (await holder.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   const gaps: string[] = [];
+  await page.setViewportSize({ width: 1100, height: 660 });
   for (let step = 0; step < 120; step++) {
-    await page.mouse.wheel(0, (step % 7 < 4 ? 1 : -1) * (300 + ((step * 997) % 3000)));
+    if (step % 10 < 2) {
+      await holder.evaluate((element, end) => (element.scrollTop = end ? element.scrollHeight : 0), step % 10 === 0);
+    } else {
+      await page.mouse.wheel(0, (step % 7 < 4 ? 1 : -1) * (300 + ((step * 997) % 3000)));
+    }
     await frames();
     const gap = await holder.evaluate((element: HTMLElement) => {
       const view = element.getBoundingClientRect();
@@ -2473,13 +2550,24 @@ test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by
       const top = Math.min(...rows.map((row) => row.top)),
         bottom = Math.max(...rows.map((row) => row.bottom));
       const atEnd = element.scrollTop + element.clientHeight >= element.scrollHeight - 2;
-      return !rows.length || top > view.top + 1 || (bottom < view.bottom - 1 && !atEnd)
+      const missingCells = Array.from(element.querySelectorAll(".tabulator-row")).some((row) => {
+        const bounds = row.getBoundingClientRect();
+        if (bounds.bottom <= view.top || bounds.top >= view.bottom) return false;
+        return ["code", "description", "rate"].some(
+          (field) => !row.querySelector(`[tabulator-field="${field}"]`)?.getBoundingClientRect().height,
+        );
+      });
+      return missingCells ||
+        !rows.length ||
+        top > view.top + 1 ||
+        (bottom < view.top + element.clientHeight - 1 && !atEnd)
         ? `scrollTop ${element.scrollTop}`
         : "";
     });
     if (gap) gaps.push(gap);
   }
   expect(gaps).toEqual([]);
+  await page.setViewportSize({ width: 1600, height: 1000 });
   await holder.evaluate((element: HTMLElement) => {
     element.scrollTop = 0;
   });
@@ -3284,6 +3372,51 @@ test("feedback: measurements use categories and a separate reusable entry view",
   await page.screenshot({ path: "test-results/feedback-measurement-entry.png", animations: "disabled" });
 });
 
+test("adding categories and measurements follows the selected row", async ({ page }) => {
+  await refinementFixture(page);
+  const list = page.locator(".project-view:visible .project-main-grid");
+  const ribbon = page.locator(".ribbon");
+  const select = (description: string) => list.getByText(description, { exact: true }).click();
+  const addCategory = async (name: string) => {
+    await ribbon.getByRole("button", { name: "Add category", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Add category", exact: true });
+    await dialog.getByLabel("Category name").fill(name);
+    await dialog.getByRole("button", { name: "Add category", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(list.locator(".tabulator-selected")).toContainText(name);
+  };
+  const categoryNames = list.locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]');
+  await select("Foundation");
+  await addCategory("Next schedule category");
+  await expect(categoryNames).toHaveText(["Empty", "Work", "Next schedule category", "Other"]);
+  await page.locator("#view-resources").click();
+  await select("Worker");
+  await addCategory("Next resource category");
+  await expect(categoryNames).toHaveText(["Materials", "Labour", "Next resource category"]);
+  await page.locator("#view-measurement").click();
+  const addMeasurement = async (name: string) => {
+    await ribbon.getByRole("button", { name: "Add measurement", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Add item", exact: true });
+    await dialog.getByLabel("Description / remarks").fill(name);
+    await dialog.getByRole("button", { name: "Add item", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(list.locator(".tabulator-selected")).toContainText(name);
+  };
+  await addCategory("Ground floor");
+  await addMeasurement("First room");
+  await addMeasurement("Third room");
+  await select("First room");
+  await addMeasurement("Second room");
+  await addCategory("First floor");
+  await expect(list.locator('.tabulator-row [tabulator-field="description"]')).toHaveText([
+    "Ground floor",
+    "First room",
+    "Second room",
+    "Third room",
+    "First floor",
+  ]);
+});
+
 test("feedback: scroll position, zero formatting, palette and native save/export", async ({ page }) => {
   const { execFileSync } = await import("node:child_process");
   const path = resolve(directory, "scroll.eproj");
@@ -3509,7 +3642,7 @@ test("feedback 2: shared alignment, pane icons, resource actions and dialog focu
   await expect(ribbon.getByRole("button", { name: "Hide analysis inspector", exact: true })).not.toHaveClass(
     /ribbon-icon/,
   );
-  await expect(ribbon.getByRole("button", { name: "Delete", exact: true })).toHaveCSS("color", "rgb(252, 165, 165)");
+  await expect(ribbon.getByRole("button", { name: "Delete", exact: true })).toHaveCSS("color", "rgb(185, 28, 28)");
 });
 
 test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return", async ({ page }) => {
@@ -3553,7 +3686,7 @@ test("feedback 2: contextual measurement ribbon, hierarchy and keyboard return",
   await expect(page.locator("#view-measurement")).toHaveClass(/record-context/);
   await expect(ribbon.getByRole("button", { name: "Delete record", exact: true })).toHaveCSS(
     "color",
-    "rgb(252, 165, 165)",
+    "rgb(185, 28, 28)",
   );
   await page.keyboard.press("ControlOrMeta+i");
   await expect(records.locator(".tabulator-row")).toHaveCount(1);

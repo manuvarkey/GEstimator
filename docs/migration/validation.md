@@ -1575,3 +1575,46 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   profile by default. The separate `GESTIMATOR_PERF=1` large-project profile
   passed against a disposable copy of DSR2021_12GST. Ruff, Prettier,
   documentation checks and `git diff --check` passed.
+
+## 2026-11-23 — Selection-aware insertion and table editing
+
+- Compared category and item placement with the original GTK views.
+  Schedule and Resources now place a new category after the selected
+  category block. Measurement add and paste use the same row anchor,
+  and new headings preserve the boundaries of existing groups. The existing
+  ProjectViews command boundary continues to pass selection and restore it
+  after the authoritative refresh. The insertion rules remain in Python.
+- Light is the default for new preferences. Enter keeps focus on the
+  committed cell unless the user enables vertical editing in Program
+  Settings. The Schedule renders a full page of rows to avoid gaps from
+  estimated heights during rapid scrolling.
+- `python -m unittest discover -s tests` passed 229 tests. The bundled
+  DSR 2023 carriage item 1.1.18 retained its stored multiplier and
+  calculated rate through clipboard transfer. Undo removed the transferred
+  item. Formatting, documentation and diff checks passed. The production
+  build passed with the existing Vite large-chunk warning.
+- The full Chromium run passed 91 workflows and skipped the opt-in
+  performance profile. The new insertion test initially expected the
+  fixture's existing empty category at the end. After correcting that
+  expectation to match the fixture's top insertion, the targeted test
+  passed across all three views. The fast-scroll test covered wide and
+  narrow layouts, jumps between both ends and row-by-row keyboard
+  navigation. The separate large-project performance profile also passed.
+  Browser verification used the Python bridge. Installed WebView
+  scrolling and native clipboard behavior remain unverified.
+
+## 2026-11-23 — Keyboard focus after row paste
+
+- A successful row paste replaced the focused cell during table refresh,
+  leaving subsequent arrow keys outside the grid. The shared navigation
+  controller now moves focus from that cell to the grid before replacement.
+  The existing refresh logic restores the cell coordinates and selection.
+- Focused Chromium coverage passed for Schedule, Resources, Analysis,
+  Measurements and measurement records. The new assertions reproduced the
+  focus loss in the first four views before the fix. The browser tests use the
+  Python bridge and simulate native clipboard delivery for project grids.
+- The Python suite passed 229 tests. Formatting, documentation and diff checks
+  passed. The production build passed with the existing Vite chunk-size warning.
+- The full Chromium suite passed 95 tests and skipped the opt-in performance
+  profile. Native clipboard behavior in the installed WebView remains
+  unverified.

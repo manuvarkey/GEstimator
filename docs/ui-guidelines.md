@@ -15,7 +15,7 @@ These rules apply to the modern desktop workspace. Keep design decisions in shar
 - `modern/src/theme.css` owns semantic colours, typography, spacing-related tokens, focus treatment and theme variants. Use tokens instead of literal colours in components.
 - `modern/src/style.css` owns shared control, dialog, headerbar, ribbon, table and summary classes. Change the shared rule before adding a local override.
 - Reuse `RibbonToolbar`, `AppIcon`, `DataTable`, `PersistentDialog` and the standard dialog/button classes. Add a shared component when multiple callers need the same behavior; do not duplicate editor-specific copies.
-- Interface and table fonts independently follow platform defaults unless explicitly overridden. Keep light and dark themes equally usable.
+- Light is the default theme. Honor saved light, dark and system preferences, and keep light and dark equally usable. Interface and table fonts independently follow platform defaults unless explicitly overridden.
 
 ## Dropdowns and menus
 
@@ -52,6 +52,11 @@ Open projects are tabs in the vertical `DocumentRail` at the left edge of the wo
 ## Text entry
 
 In dialogs, Enter in a single-line field or short text area applies the dialog (Shift/Ctrl+Enter inserts a line break). Free-text editors where line breaks are the content, such as Database notes, opt out with `data-multiline`: Enter inserts a line and the dialog is applied with its button.
+
+In a table cell editor, Enter commits the current value and leaves focus on
+that cell by default. The General program setting **Edit the cell below after
+pressing Enter** enables vertical editing. Tab and Shift+Tab commit and move
+across editable cells.
 
 ## Dialogs, accessibility and validation
 

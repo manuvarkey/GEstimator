@@ -3,10 +3,12 @@
 import json
 import re
 from pathlib import Path
+
 from estimator import misc
 from estimator.data import measurement
 from estimator.data.schedule import ResourceItemModel, ScheduleItemModel
-from .numbers import decimal
+
+from .numbers import decimal, stored_decimal
 from .program_settings import legacy_rows, template_rows
 
 FORMAT = "org.gestimator.rows"
@@ -33,8 +35,10 @@ def obj(value):
 
 
 def resource_data(resource):
-    return {key: str(getattr(resource, key) or ("0" if key in ("rate", "vat", "discount") else ""))
-            for key in ("code", "description", "unit", "rate", "vat", "discount", "reference", "category")}
+    return {
+        key: str(getattr(resource, key) or ("0" if key in ("rate", "vat", "discount") else ""))
+        for key in ("code", "description", "unit", "rate", "vat", "discount", "reference", "category")
+    }
 
 
 def resource_model(data):
@@ -42,9 +46,16 @@ def resource_model(data):
     code = text(data.get("code"))
     if not code:
         raise ValueError("A copied resource must have a code")
-    return ResourceItemModel(code, text(data.get("description", "")), text(data.get("unit", "")),
-        decimal(data.get("rate", "0")), decimal(data.get("vat", "0")), decimal(data.get("discount", "0")),
-        text(data.get("reference", "")), text(data.get("category", "")))
+    return ResourceItemModel(
+        code,
+        text(data.get("description", "")),
+        text(data.get("unit", "")),
+        stored_decimal(data.get("rate", "0")),
+        stored_decimal(data.get("vat", "0")),
+        stored_decimal(data.get("discount", "0")),
+        text(data.get("reference", "")),
+        text(data.get("category", "")),
+    )
 
 
 def analysis_data(item):
@@ -58,12 +69,12 @@ def analysis_data(item):
 
 def analysis_model(data, resources):
     data = obj(data)
-    row = legacy_rows([data])[0]
+    row = legacy_rows([data], parse_number=stored_decimal)[0]
     if row["itemtype"] == 0:
         for entry in array(data.get("resources", [])):
             if not isinstance(entry, list) or len(entry) != 3:
                 raise ValueError("Invalid copied resource entry")
-            code, quantity, remarks = text(entry[0]), decimal(entry[1]), text(entry[2])
+            code, quantity, remarks = text(entry[0]), stored_decimal(entry[1]), text(entry[2])
             if code not in resources:
                 raise ValueError("Copied analysis is missing a resource definition")
             row["resource_list"].append([code, quantity, remarks])
@@ -71,10 +82,26 @@ def analysis_model(data, resources):
 
 
 def schedule_data(item):
-    fields = {key: str(getattr(item, key) or ("0" if key in ("rate", "qty") else ""))
-              for key in ("code", "description", "unit", "rate", "qty", "category", "parent", "remarks", "ana_remarks", "colour")}
-    return dict(**fields, analysis=[analysis_data(row) for row in item.ana_items],
-                resources=[resource_data(resource) for resource in item.resources.values()])
+    fields = {
+        key: str(getattr(item, key) or ("0" if key in ("rate", "qty") else ""))
+        for key in (
+            "code",
+            "description",
+            "unit",
+            "rate",
+            "qty",
+            "category",
+            "parent",
+            "remarks",
+            "ana_remarks",
+            "colour",
+        )
+    }
+    return dict(
+        **fields,
+        analysis=[analysis_data(row) for row in item.ana_items],
+        resources=[resource_data(resource) for resource in item.resources.values()],
+    )
 
 
 def schedule_model(data):
@@ -85,10 +112,18 @@ def schedule_model(data):
     colour = text(data.get("colour", ""))
     if colour and not re.fullmatch(r"#[0-9a-fA-F]{6}", colour):
         raise ValueError("Invalid copied row colour")
-    model = ScheduleItemModel(code, text(data.get("description", "")), text(data.get("unit", "")),
-        decimal(data.get("rate", "0")), decimal(data.get("qty", "0")),
-        category=text(data.get("category", "")), parent=text(data.get("parent", "")) or None,
-        remarks=text(data.get("remarks", "")), ana_remarks=text(data.get("ana_remarks", "")), colour=colour or None)
+    model = ScheduleItemModel(
+        code,
+        text(data.get("description", "")),
+        text(data.get("unit", "")),
+        stored_decimal(data.get("rate", "0")),
+        stored_decimal(data.get("qty", "0")),
+        category=text(data.get("category", "")),
+        parent=text(data.get("parent", "")) or None,
+        remarks=text(data.get("remarks", "")),
+        ana_remarks=text(data.get("ana_remarks", "")),
+        colour=colour or None,
+    )
     resources = [resource_model(value) for value in array(data.get("resources", []))]
     model.resources = {value.code: value for value in resources}
     if len(model.resources) != len(resources):
@@ -122,10 +157,15 @@ def record_values(values, item):
 def measurement_data(item, db):
     if isinstance(item, measurement.MeasurementItemHeading):
         return dict(heading=True, description=item.remark)
-    return dict(heading=False, template=item.itemtype, description=item.remark,
+    return dict(
+        heading=False,
+        template=item.itemtype,
+        description=item.remark,
         links=[db.get_item_code(key) or "" if key is not None else "" for key in item.itemnos],
-        remarks=item.item_remarks, user_data=[str(value) for value in item.user_data],
-        records=[record.data_string for record in item.records])
+        remarks=item.item_remarks,
+        user_data=[str(value) for value in item.user_data],
+        records=[record.data_string for record in item.records],
+    )
 
 
 def measurement_model(data, db):
@@ -136,7 +176,11 @@ def measurement_model(data, db):
         return measurement.MeasurementItemHeading([text(data.get("description", ""))]), 0
     item = custom_template(data.get("template"))
     links, remarks, user_data = (array(data.get(key), 100) for key in ("links", "remarks", "user_data"))
-    if len(links) != len(item.itemnos) or len(remarks) != len(item.item_remarks) or len(user_data) != len(item.user_data):
+    if (
+        len(links) != len(item.itemnos)
+        or len(remarks) != len(item.item_remarks)
+        or len(user_data) != len(item.user_data)
+    ):
         raise ValueError("Clipboard measurement metadata does not match its template")
     item.remark = text(data.get("description", ""))
     links = [text(code) for code in links]
@@ -147,7 +191,11 @@ def measurement_model(data, db):
         if kind in (misc.MEAS_L, misc.MEAS_NO):
             decimal(value)
     for values in array(data.get("records", [])):
-        item.append_record(measurement.RecordCustom(record_values(values, item), item.cust_funcs, item.total_func_item, item.columntypes))
+        item.append_record(
+            measurement.RecordCustom(
+                record_values(values, item), item.cust_funcs, item.total_func_item, item.columntypes
+            )
+        )
     return item, sum(bool(code) and key is None for code, key in zip(links, item.itemnos))
 
 
@@ -174,7 +222,13 @@ def export(service, params):
             if entry[0] == "ana_item":
                 items.append(dict(type="row", row=analysis_data(entry[1])))
             else:
-                items.append(dict(type="resource", entry=[entry[1][0], str(entry[1][1]), entry[1][2] or ""], resource=resource_data(entry[2])))
+                items.append(
+                    dict(
+                        type="resource",
+                        entry=[entry[1][0], str(entry[1][1]), entry[1][2] or ""],
+                        resource=resource_data(entry[2]),
+                    )
+                )
     else:
         if not service.db:
             raise ValueError("Open a project first")
@@ -185,7 +239,14 @@ def export(service, params):
             cats, records = editor.selection(kind, params.get("ids"), include_descendants=False)
             categories = [cat.description for cat in cats]
             records.sort(key=order if kind == "schedule" else lambda row: (row.category.order, row.order, row.id))
-            models = [(service.db.get_item(row.code, modify_res_code=False) if kind == "schedule" else service.db.get_resource(row.code)) for row in records]
+            models = [
+                (
+                    service.db.get_item(row.code, modify_res_code=False)
+                    if kind == "schedule"
+                    else service.db.get_resource(row.code)
+                )
+                for row in records
+            ]
             items = [schedule_data(model) if kind == "schedule" else resource_data(model) for model in models]
             if kind == "schedule":
                 visited = {model.code for model in models}
@@ -208,7 +269,11 @@ def export(service, params):
                 ids = array(params.get("ids"))
                 if any(identity not in editor.ids for identity in ids):
                     raise ValueError("Select existing measurement items")
-                items = [measurement_data(item, service.db) for identity, item in zip(editor.ids, measurement_items) if identity in ids]
+                items = [
+                    measurement_data(item, service.db)
+                    for identity, item in zip(editor.ids, measurement_items)
+                    if identity in ids
+                ]
             else:
                 if params.get("id") not in editor.ids:
                     raise ValueError("Select a measurement item")
@@ -217,7 +282,11 @@ def export(service, params):
                 selected = params.get("record_ids") or [params.get("record_id")]
                 if not isinstance(selected, list) or not selected or any(identity not in ids for identity in selected):
                     raise ValueError("Select a measurement record")
-                items = [dict(template=item.itemtype, values=record.data_string) for identity, record in zip(ids, item.records) if identity in selected]
+                items = [
+                    dict(template=item.itemtype, values=record.data_string)
+                    for identity, record in zip(ids, item.records)
+                    if identity in selected
+                ]
     if len(items) > 1000 or len(dependencies) > 1000:
         raise ValueError("Selection is too large for the system clipboard; copy fewer rows")
     if not items and not categories:
@@ -243,7 +312,9 @@ def decode(data, expected, service):
     if not isinstance(data, str) or len(data) > MAX_TEXT:
         raise ValueError("Clipboard data exceeds the supported size")
     try:
-        document = json.loads(data, parse_constant=lambda _: (_ for _ in ()).throw(ValueError("Invalid clipboard number")))
+        document = json.loads(
+            data, parse_constant=lambda _: (_ for _ in ()).throw(ValueError("Invalid clipboard number"))
+        )
     except (ValueError, RecursionError) as error:
         raise ValueError("Clipboard does not contain valid GEstimator rows") from error
     document = obj(document)
@@ -272,7 +343,7 @@ def decode(data, expected, service):
                 entry = array(value.get("entry"), 3)
                 if len(entry) != 3 or text(entry[0]) != resource.code:
                     raise ValueError("Invalid clipboard resource entry")
-                items.append(["resource_item", [resource.code, decimal(entry[1]), text(entry[2])], resource])
+                items.append(["resource_item", [resource.code, stored_decimal(entry[1]), text(entry[2])], resource])
             else:
                 raise ValueError("Unknown clipboard analysis row")
     elif kind == "resources":
@@ -344,10 +415,15 @@ def paste(service, params):
     service.guard_draft(params, records=not service.project_editor.records_operation("clipboard.paste", params))
     editor = service.project_editor
     previous = editor.clipboard
+
     def apply():
         if kind in ("schedule", "resources"):
             table = service.db.ScheduleCategoryTable if kind == "schedule" else service.db.ResourceCategoryTable
-            insert = service.db.insert_schedule_category_atomic if kind == "schedule" else service.db.insert_resource_category_atomic
+            insert = (
+                service.db.insert_schedule_category_atomic
+                if kind == "schedule"
+                else service.db.insert_resource_category_atomic
+            )
             for category in categories:
                 if not table.select().where(table.description == category).exists() and insert(category, [-1]) is False:
                     raise ValueError("Unable to paste category")
@@ -366,15 +442,20 @@ def paste(service, params):
                         raise ValueError("Unable to paste referenced sub-analysis")
             editor.clipboard = (kind, items)
             if items:
-                return editor.edit(kind, "paste", dict(params, preserve_categories=bool(categories), _local_res_code=local))
+                return editor.edit(
+                    kind, "paste", dict(params, preserve_categories=bool(categories), _local_res_code=local)
+                )
         elif kind == "measurement":
             editor.clipboard = (kind, items)
             return editor.measurement_edit("paste", params)
         else:
             editor.clipboard = ("records", *items, "batch")
             return editor.measurement_edit("record_paste", params)
+
     try:
-        result = (editor.records_mutate if editor.records_operation("clipboard.paste", params) else editor.mutate)(apply)
+        result = (editor.records_mutate if editor.records_operation("clipboard.paste", params) else editor.mutate)(
+            apply
+        )
     except Exception:
         editor.clipboard = previous
         raise

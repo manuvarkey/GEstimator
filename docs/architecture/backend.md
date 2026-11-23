@@ -48,6 +48,16 @@ and clipboard lifetime remain with the editor. Edit handlers reuse its
 selection, deletion and numbering operations and share insertion placement
 with other project workflows.
 
+Category creation in Schedule and Resources uses the tree's last selected
+row in project order. It inserts after that row's category, or first when
+there is no selection. The reserved SUB ANALYSIS category stays last.
+Measurements use the same rule for stored headings,
+placing them between category blocks so existing measurements retain their
+category. An item inserted or pasted into Measurements goes after the last
+selected item, at the start of a selected category, or at the top without a
+selection. A pasted or duplicated block containing a heading starts at a
+category boundary.
+
 `ProjectEditor.state` forwards read-only table presentation to
 `project_tables`. The editor retains its working and attached database
 handles and provides the history and change sequence used in the response.
@@ -160,6 +170,9 @@ and rounds computed entries to six places. `evaluate_number` retains legacy
 integer/float arithmetic for measurement templates and worksheet helpers.
 Trigonometric approximations are converted back to Decimal in modern entry;
 ordinary Decimal arithmetic and native Decimal math remain Decimal.
+The row clipboard decodes stored financial and analysis numbers with the same
+expression bounds and enough literal precision for SQLite values, including
+DSR 2023 carriage factors.
 
 Supported functions, constants, positional arguments, angle units and limits
 are maintained once in the [numeric-expression guide](../manual/README.md#numeric-expressions).
