@@ -1215,3 +1215,26 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - The full browser suite passed 91 tests and skipped the opt-in performance
   test. It used installed Chrome and the temporary Vite source copy on the
   alternate port described above.
+
+## 2026-11-23 — Item and category forms
+
+- After `2b28581`, moved item creation, editing, duplication and category
+  creation into `ProjectItemDialogs.vue`. The view retains action routing,
+  selection, measurement templates, command execution, refresh and undo.
+  The dialog still requests insertion defaults from Python.
+  `ProjectViews.vue` decreased from 1,962 to 1,823 lines.
+- Compared both Vue template trees before and after extraction. The markup,
+  labels and bindings matched after substituting the new category bindings and
+  submit handler.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`, documentation
+  checks across 36 Markdown files and `git diff --check` passed. The Python suite
+  ran 224 tests with 222 passing and two skipped. Strict frontend type checking
+  and production build passed. Vite retained the large-chunk warning (1.26 MB,
+  326 KB gzip).
+- Five focused browser tests passed, covering schedule insertion shortcuts and
+  subitem placement, resource editing, measurement categories, and editable
+  category suggestions. A temporary scenario in the focused run also verified
+  the proposed codes, submission and undo for schedule and resource duplication.
+- The full browser suite passed 91 tests and skipped the opt-in performance
+  test. It used installed Chrome and the same temporary Vite source copy and
+  alternate port as the deletion confirmation checks.

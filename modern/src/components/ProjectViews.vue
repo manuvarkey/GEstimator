@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ThemedAutocomplete from "./ThemedAutocomplete.vue";
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import PersistentDialog from "./PersistentDialog.vue";
@@ -12,6 +11,7 @@ import MappedImport from "./MappedImport.vue";
 import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
 import ScheduleEditingDialogs from "./ScheduleEditingDialogs.vue";
 import ProjectDeletionDialog from "./ProjectDeletionDialog.vue";
+import ProjectItemDialogs from "./ProjectItemDialogs.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
@@ -22,6 +22,7 @@ import type {
   ViewMemory,
   MeasurementTemplate,
   ProjectDatabaseSelection,
+  ProjectItemMode,
 } from "../projectViewTypes";
 import { useMeasurementRecords } from "../useMeasurementRecords";
 import { useMeasurementProperties } from "../useMeasurementProperties";
@@ -124,18 +125,13 @@ const usageCode = ref<string>();
 const page = ref(remembered?.page ?? 0);
 const selected = ref<GridRow[]>([]);
 const templates = ref<MeasurementTemplate[]>([]);
-const templateInfo = computed(() => templates.value.find((template) => template.code === form.value.template));
 const mainTable = ref<InstanceType<typeof DataTable>>();
 const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>();
 const scheduleEditingDialogs = ref<InstanceType<typeof ScheduleEditingDialogs>>();
 const projectDeletionDialog = ref<InstanceType<typeof ProjectDeletionDialog>>();
+const projectItemDialogs = ref<InstanceType<typeof ProjectItemDialogs>>();
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
-const formOpen = ref(false);
-const formMode = ref("add");
-const form = ref<Record<string, string>>({});
-const categoryOpen = ref(false);
-const categoryName = ref("");
 const importOpen = ref(false);
 const recordImportOpen = ref(false);
 const multiAnalysisImportOpen = ref(false);
@@ -622,73 +618,18 @@ async function select(rows: GridRow[]) {
     if (props.entryId) await loadDetail();
   }
 }
-async function showForm(mode = "add", child = false) {
-  formMode.value = mode;
-  form.value = {
-    code: "",
-    description: "",
-    unit: "",
-    rate: "0",
-    qty: "0",
-    vat: "0",
-    discount: "0",
-    category: one.value?.category || (one.value?.rowtype === "Category" ? one.value.description : ""),
-    parent: "",
-    reference: "",
-    template: isMeasurement.value ? "_1_NLBH" : "",
-    ...(mode === "duplicate" ? { code: one.value?.code + "-copy" } : {}),
-    ...(mode === "edit"
-      ? Object.fromEntries(importFields.value.map((field) => [field, String(one.value?.[field] ?? "")]))
-      : {}),
-  };
-  if (isMeasurement.value) {
-    form.value.category =
-      one.value?.rowtype === "Category"
-        ? one.value.description
-        : mainRows.value.find((category) => category._children?.some((row: GridRow) => row.id === one.value?.id))
-            ?.description || "";
-  }
-  if (mode === "add" && !isMeasurement.value) {
-    if (
-      !(await run(async () => {
-        Object.assign(
-          form.value,
-          await request(props.view + ".editor.defaults", { ids: selected.value.map((row) => row.id), child }),
-        );
-      }))
-    )
-      return;
-  }
-  formOpen.value = true;
+function showForm(mode: ProjectItemMode = "add", child = false) {
+  return projectItemDialogs.value?.showItem(
+    mode,
+    one.value,
+    selected.value.map((row) => row.id),
+    child,
+  );
 }
-async function showSubitem() {
+
+function showSubitem() {
   if (props.view !== "schedule" || !one.value || one.value.rowtype === "Category") return;
-  await showForm("add", true);
-}
-async function submit() {
-  if (formMode.value === "edit") {
-    const edits = Object.entries(form.value)
-      .filter(([field, value]) => importFields.value.includes(field) && value !== String(one.value?.[field] ?? ""))
-      .map(([field, value]) => ({ id: one.value!.id, field, value }));
-    if (!edits.length || (await command("edit_many", { edits }))) formOpen.value = false;
-    return;
-  }
-  const op = isMeasurement.value ? (formMode.value === "duplicate" ? "duplicate" : "add") : formMode.value;
-  if (
-    await command(
-      op,
-      isMeasurement.value
-        ? {
-            template: form.value.template,
-            description: form.value.description,
-            id: mainRows.value.find(
-              (category) => category.description === form.value.category && category.id !== "measurement:uncategorised",
-            )?.id,
-          }
-        : { data: form.value },
-    )
-  )
-    formOpen.value = false;
+  return showForm("add", true);
 }
 function activateRow(row: GridRow) {
   if (source.value) return;
@@ -1049,7 +990,7 @@ watch(
                     aria-label="Add category"
                     title="Create an empty category to organize items in the current project table."
                     :disabled="busy"
-                    @click="categoryOpen = true"
+                    @click="projectItemDialogs?.showCategory()"
                   >
                     <AppIcon name="category" /><span class="ribbon-label">Add category</span>
                   </button>
@@ -1811,80 +1752,19 @@ watch(
         </button>
       </div>
     </PersistentDialog>
-    <Dialog
-      v-model:visible="formOpen"
-      modal
-      :header="formMode === 'duplicate' ? 'Duplicate item' : formMode === 'edit' ? 'Edit item' : 'Add item'"
-      class="workspace-dialog resource-dialog"
-      ><form @submit.prevent="submit">
-        <template v-if="isMeasurement"
-          ><label v-if="formMode === 'add'" class="field"
-            >Measurement template<select v-model="form.template">
-              <optgroup v-for="group in ['General', 'Civil', 'E&M']" :key="group" :label="group">
-                <option
-                  v-for="template in templates.filter((item) => item.group === group)"
-                  :key="template.code"
-                  :value="template.code"
-                >
-                  {{ template.label }}
-                </option>
-              </optgroup></select
-            ><small v-if="templateInfo"
-              >{{ templateInfo.summary }} {{ templateInfo.note }}<br />Inputs: {{ templateInfo.inputs.join(", ") }} ·
-              {{ templateInfo.outputs }} linked {{ templateInfo.outputs === 1 ? "quantity" : "quantities" }}</small
-            ></label
-          ><label class="field"
-            >Category<select v-model="form.category">
-              <option value="">Uncategorised</option>
-              <option
-                v-for="category in mainRows.filter((row) => row.id !== 'measurement:uncategorised')"
-                :key="category.id"
-                :value="category.description"
-              >
-                {{ category.description }}
-              </option>
-            </select></label
-          ><label class="field"
-            >Description / remarks<textarea data-primary-input autofocus v-model="form.description" rows="3" /></label
-        ></template>
-        <template v-else
-          ><label class="field"
-            >New code<input v-model="form.code" aria-label="New code" :required="formMode !== 'add'" /><small
-              v-if="formMode === 'add'"
-              >Suggested from the current numbering pattern. Edit it, or leave blank to generate a code when
-              inserting.</small
-            ></label
-          ><template v-if="formMode !== 'duplicate'"
-            ><label class="field"
-              >Description<textarea data-primary-input autofocus v-model="form.description" rows="3" />
-            </label>
-            <div class="field-pair">
-              <label class="field">Unit<input v-model="form.unit" /></label
-              ><label class="field">Rate<input v-model="form.rate" required /></label>
-            </div>
-            <label class="field"
-              >Category<ThemedAutocomplete
-                v-model="form.category"
-                label="Category"
-                :suggestions="state?.categories || []"
-                :disabled="busy" /></label
-            ><template v-if="view === 'schedule'"
-              ><label class="field">Quantity<input v-model="form.qty" /></label
-              ><label class="field">Parent code (optional)<input v-model="form.parent" /></label
-            ></template>
-            <div v-else class="field-pair">
-              <label class="field">Tax %<input v-model="form.vat" /></label
-              ><label class="field">Discount %<input v-model="form.discount" /></label></div></template
-        ></template>
-        <div v-if="error" class="dialog-error">{{ error }}</div>
-        <div class="dialog-footer">
-          <button type="button" class="button secondary" @click="formOpen = false">Cancel</button
-          ><button class="button primary" :disabled="busy">
-            {{ formMode === "duplicate" ? "Duplicate" : formMode === "edit" ? "Save item" : "Add item" }}
-          </button>
-        </div>
-      </form></Dialog
-    >
+    <ProjectItemDialogs
+      ref="projectItemDialogs"
+      :view="view"
+      :categories="state?.categories"
+      :measurement-categories="isMeasurement ? mainRows : emptyRows"
+      :templates="templates"
+      :editable-fields="importFields"
+      :selected-item="one"
+      :busy="busy"
+      :error="error"
+      :run="run"
+      :command="command"
+    />
     <ProjectDeletionDialog
       ref="projectDeletionDialog"
       :view="view"
@@ -1893,25 +1773,6 @@ watch(
       :run="run"
       :command="command"
     />
-    <Dialog v-model:visible="categoryOpen" modal header="Add category" class="workspace-dialog file-dialog"
-      ><label class="field">Category name<input v-model="categoryName" data-primary-input autofocus /></label>
-      <div class="dialog-footer">
-        <button
-          class="button primary"
-          :disabled="busy || !categoryName"
-          @click="
-            command(isMeasurement ? 'add' : 'category_add', {
-              description: categoryName,
-              ...(isMeasurement ? { category: true } : {}),
-            }).then((ok) => {
-              if (ok) categoryOpen = false;
-            })
-          "
-        >
-          Add category
-        </button>
-      </div></Dialog
-    >
     <MappedImport
       v-if="importOpen"
       v-model="importOpen"

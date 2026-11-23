@@ -27,6 +27,7 @@ formatting is presentation; the currency option does not convert prices.
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
+| Item and category forms | [`ProjectItemDialogs.vue`](../../modern/src/components/ProjectItemDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
 | Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
@@ -143,6 +144,12 @@ preview, and also confirms deletion of selected measurement categories.
 It submits the original row IDs and revision through the view's shared
 command. The view owns selection, keyboard and menu routing, and refresh.
 The preview determines when schedule and resource deletion needs a dialog.
+
+`ProjectItemDialogs` stages item creation, editing, duplication and category
+creation. It uses Python's selection-aware defaults for schedule and resource
+insertion. The view supplies the selection, category options and measurement
+templates, routes ribbon and keyboard actions, and runs the shared commands
+that handle errors, grid refresh and undo.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,

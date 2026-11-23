@@ -2,6 +2,7 @@
  * calculated display strings, totals and template metadata come from Python.
  */
 export type View = "schedule" | "resources" | "measurement";
+export type ProjectItemMode = "add" | "edit" | "duplicate";
 export type ViewCommand = (operation: string, params?: Record<string, unknown>) => Promise<boolean>;
 
 /** Project selection and revision captured when a database picker opens. */
