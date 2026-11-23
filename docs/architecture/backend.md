@@ -15,10 +15,12 @@ and MCP adapters reuse the same service/editor operations.
 | JSON Lines transport and error envelopes | [`__main__.py`](../../modern/backend/__main__.py) |
 | Owner thread, bounded queue and document routing | [`runtime.py`](../../modern/backend/runtime.py) |
 | Project lifecycle, analysis draft history, revisions and orchestration | [`service.py`](../../modern/backend/service.py) |
+| Project file open, close, save, canonical paths and recovery open | [`project_files.py`](../../modern/backend/project_files.py) |
 | Draft analysis row edits, resource insertion and worksheet import | [`analysis_edits.py`](../../modern/backend/analysis_edits.py) |
 | Project transactions, compound operations and snapshot undo | [`project.py`](../../modern/backend/project.py) |
 | Schedule and resource edit dispatch and row operations | [`project_edits.py`](../../modern/backend/project_edits.py) |
 | Schedule and resource table pages, type-ahead, row deltas and totals | [`project_tables.py`](../../modern/backend/project_tables.py) |
+| Rate discrepancies, resource usage and dependent analyses | [`project_reports.py`](../../modern/backend/project_reports.py) |
 | Read-only library attachment, catalog and notes | [`libraries.py`](../../modern/backend/libraries.py) |
 | Library import policies, staging and dependencies | [`library_import.py`](../../modern/backend/library_import.py) |
 | Measurement list/detail and item operations | [`measurements.py`](../../modern/backend/measurements.py) |
@@ -61,6 +63,9 @@ category boundary.
 `ProjectEditor.state` forwards read-only table presentation to
 `project_tables`. The editor retains its working and attached database
 handles and provides the history and change sequence used in the response.
+Read-only rate and resource reports use the editor's current database and
+revision. File operations use the same service through `project_files`, with
+project draft guards and working snapshot acceptance still owned by `Service`.
 `Service.edit` forwards draft model changes to `analysis_edits`. The service
 still owns revision validation, preview restoration, rollback, acceptance and
 draft undo.

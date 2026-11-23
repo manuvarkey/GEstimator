@@ -1,241 +1,32 @@
 import { test, expect, type Page } from "@playwright/test";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createInterface } from "node:readline";
+import { readFile, copyFile, rename } from "node:fs/promises";
 import { resolve } from "node:path";
-import { mkdtemp, readFile, rm, copyFile, rename } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import {
+  python,
+  child,
+  directory,
+  systemClipboard,
+  frontendRequests,
+  frontendCalls,
+  nativeDialogResults,
+  requestTimings,
+  call,
+  createBackend,
+  startBackend,
+  connectDesktop,
+  openFixture,
+  applyRecordsIfDirty,
+  finishMeasurementEntry,
+  openMeasurementEntry,
+  pasteDocument,
+  openDatabaseManager,
+  attachDatabase,
+  refinementFixture,
+  useWorkspaceHarness,
+  desktopControls,
+} from "./workspaceHarness";
 
-const python = resolve(process.platform === "win32" ? "../.venv/Scripts/python.exe" : "../.venv/bin/python");
-
-// Only the Tauri transport is replaced. Every analysis command runs in real Python.
-let child: ChildProcessWithoutNullStreams;
-let directory: string;
-let measurementDelay = 0;
-let systemClipboard = "";
-let clipboardUnavailable = false;
-let frontendRequests: string[] = [];
-let frontendCalls: { method: string; params: Record<string, any> }[] = [];
-let nativeDialogResults: (string | null)[] = [];
-let backend: ReturnType<typeof createBackend>;
-let requestTimings: { method: string; start: number; end: number }[] = [];
-function call(method: string, params: Record<string, unknown> = {}, session?: string) {
-  return backend.call(method, params, session);
-}
-function createBackend() {
-  const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
-  let sequence = 0;
-  const process = spawn(python, ["-m", "modern.backend"], {
-    cwd: resolve(".."),
-    env: { ...globalThis.process.env, GESTIMATOR_AUTO_DATABASES: "0" },
-  });
-  createInterface({ input: process.stdout }).on("line", (line) => {
-    const message = JSON.parse(line);
-    if (message.event) return;
-    pending.get(message.id)?.resolve(message);
-    pending.delete(message.id);
-  });
-  process.stderr.on("data", (data) => console.error(String(data)));
-  process.on("close", () => {
-    for (const request of pending.values()) request.reject(new Error("Backend closed"));
-    pending.clear();
-  });
-  return {
-    child: process,
-    call(method: string, params: Record<string, unknown> = {}, session?: string) {
-      const id = String(++sequence);
-      return new Promise<any>((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        process.stdin.write(JSON.stringify({ id, method, params, session }) + "\n");
-      });
-    },
-  };
-}
-function startBackend() {
-  backend = createBackend();
-  child = backend.child;
-}
-async function connectDesktop(page: Page, transport = call) {
-  await page.exposeBinding("backendTransport", async (_source, request) => {
-    frontendCalls.push(request);
-    const timing = { method: request.method, start: performance.now(), end: 0 };
-    requestTimings.push(timing);
-    try {
-      return await transportCall(request);
-    } finally {
-      timing.end = performance.now();
-    }
-  });
-  async function transportCall(request: any) {
-    frontendRequests.push(request.method + (request.params?.source ? ":library" : ""));
-    if (request.method === "measurement.state" && measurementDelay)
-      await new Promise((resolve) => setTimeout(resolve, measurementDelay));
-    return transport(request.method, request.params, request.session);
-  }
-  await page.exposeBinding("nativeDialogTransport", () => nativeDialogResults.shift() ?? null);
-  await page.exposeBinding("clipboardTransport", (_source, method, text) => {
-    if (clipboardUnavailable) throw new Error("Clipboard unavailable");
-    if (method === "write_text") systemClipboard = text;
-    return systemClipboard;
-  });
-  await page.addInitScript(() => {
-    // The MCP server is off by default (Program Settings). Most scenarios use it, so it is
-    // enabled here unless a test asks for the shipped default (window.name "mcp-default").
-    if (window.name !== "mcp-default" && !localStorage.getItem("gestimator.program-settings.v1"))
-      localStorage.setItem(
-        "gestimator.program-settings.v1",
-        JSON.stringify({ version: 1, settings: { mcp_enabled: true } }),
-      );
-    (window as any).isTauri = true;
-    let callbackId = 0;
-    (window as any).__TAURI_EVENT_PLUGIN_INTERNALS__ = {
-      unregisterListener: () => {},
-    };
-    (window as any).__TAURI_INTERNALS__ = {
-      metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
-      transformCallback: (callback: (event: any) => void) => {
-        ((window as any).tauriCallbacks ||= {})[++callbackId] = callback;
-        return callbackId;
-      },
-      invoke: (method: string, args: any) => {
-        if (method === "desktop_font")
-          return (window as any).startupFontGate || Promise.resolve({ family: "Iosevka", size: "11pt" });
-        if (method === "take_project_open_requests")
-          return Promise.resolve((window as any).osOpenRequests?.splice(0) || []);
-        if (method === "plugin:event|listen") {
-          ((window as any).tauriListeners ||= {})[args.event] = args.handler;
-          return Promise.resolve(1);
-        }
-        if (method.startsWith("plugin:event|")) return Promise.resolve(1);
-        if (method === "backend_request")
-          return (window as any).backendTransport(args.request).then((response: any) => {
-            if (args.request.method === "project.open" && response.result)
-              (window as any).openedProjectPath = args.request.params.path;
-            return response;
-          });
-        if (method.startsWith("plugin:clipboard-manager|"))
-          return (window as any).clipboardTransport(method.split("|")[1], args?.text);
-        if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
-        if (method.startsWith("plugin:window|")) {
-          ((window as any).windowCommands ||= []).push(method);
-          if (method === "plugin:window|show")
-            (window as any).startupAtShow = {
-              theme: document.documentElement.dataset.theme,
-              family: getComputedStyle(document.documentElement).fontFamily,
-              size: getComputedStyle(document.documentElement).fontSize,
-              fonts: document.fonts.status,
-              landing: !!document.querySelector(".project-landing .landing-action"),
-              ribbonSized: !!document.querySelector('.ribbon-action[style*="--ribbon-button-width"]'),
-            };
-          return Promise.resolve();
-        }
-        throw new Error("Unexpected desktop command: " + method);
-      },
-    };
-  });
-  await page.goto("/");
-  await expect(page.getByText("Calculation engine connected")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain("plugin:window|show");
-  // The app starts on the landing page (Schedule); most scenarios begin in the scratch analysis.
-  await page.locator("#view-analysis").click();
-}
-test.beforeEach(async ({ page }) => {
-  directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
-  measurementDelay = 0;
-  systemClipboard = "";
-  clipboardUnavailable = false;
-  frontendRequests = [];
-  frontendCalls = [];
-  nativeDialogResults = [];
-  startBackend();
-  await connectDesktop(page);
-});
-test.afterEach(async () => {
-  child.stdin.end();
-  await new Promise<void>((resolve) => child.once("close", () => resolve()));
-  await rm(directory, { recursive: true, force: true });
-});
-
-async function openFixture(page: Page, path: string) {
-  const hasRecent = await page.evaluate(
-    () => JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]").length > 0,
-  );
-  if (!hasRecent) nativeDialogResults.push(path);
-  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
-  if (hasRecent) {
-    const dialog = page.getByRole("dialog", { name: "Open project", exact: true });
-    await dialog.getByLabel("Project file").fill(path);
-    await dialog.getByRole("button", { name: "Open project", exact: true }).click();
-    await expect(dialog).not.toBeVisible();
-  }
-  await expect.poll(() => page.evaluate(() => (window as any).openedProjectPath)).toBe(path);
-}
-async function applyRecordsIfDirty(page: Page) {
-  const apply = page.locator(".draft-headerbar").getByRole("button", { name: "Apply records", exact: true });
-  if (await apply.isVisible()) {
-    await expect(page.locator(".measurement-record-grid .project-grid")).toHaveAttribute("aria-busy", "false");
-    if ((await call("state")).result.measurement_draft?.dirty) {
-      await apply.click();
-      await expect(page.getByRole("grid", { name: "Measurements", exact: true })).toBeVisible();
-      await openMeasurementEntry(page);
-    }
-  }
-}
-async function finishMeasurementEntry(page: Page) {
-  const discard = page.getByRole("button", { name: "Discard records", exact: true });
-  if (await discard.isVisible()) await discard.click();
-}
-async function openMeasurementEntry(page: Page) {
-  if (await page.locator(".measurement-record-grid").isVisible()) return;
-  if ((await page.locator("#view-measurement").getAttribute("aria-selected")) !== "true") return;
-  const list = page.getByRole("grid", { name: "Measurements", exact: true });
-  const selected = list.locator('.tabulator-row.tabulator-selected[data-kind="Resource"]');
-  const row = (await selected.count()) ? selected.first() : list.locator('.tabulator-row[data-kind="Resource"]').last();
-  await row.locator('[tabulator-field="description"]').dblclick();
-  await expect(page.locator(".measurement-record-grid")).toBeVisible();
-}
-async function pasteDocument(page: Page, selector: string, data: string) {
-  await page.locator(selector).evaluate((table, text) => {
-    const clipboardData = new DataTransfer();
-    clipboardData.setData("text/plain", text);
-    table.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData }));
-  }, data);
-}
-async function openDatabaseManager(page: Page) {
-  await applyRecordsIfDirty(page);
-  await page.locator("#view-databases").click();
-  await page.locator(".ribbon").getByRole("button", { name: "Attach database…", exact: true }).click();
-  return page.getByRole("dialog", { name: "Attach resource / schedule library", exact: true });
-}
-async function attachDatabase(page: Page, path: string, returnView = "schedule") {
-  const manager = await openDatabaseManager(page);
-  await manager.getByLabel("Library project", { exact: true }).fill(path);
-  await manager.getByRole("button", { name: "Attach library", exact: true }).click();
-  await expect(manager.locator(".attached-database").first()).toBeVisible();
-  await expect(manager).toBeVisible();
-  await manager.getByRole("button", { name: "Close database manager", exact: true }).click();
-  await expect(manager).not.toBeVisible();
-  await applyRecordsIfDirty(page);
-  await page.locator("#view-" + returnView).click();
-}
-
-async function refinementFixture(page: Page) {
-  const { execFileSync } = await import("node:child_process");
-  const path = resolve(directory, "refinements.eproj");
-  execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
-  execFileSync(
-    python,
-    [
-      "-c",
-      "import sys;from estimator.data.schedule import ScheduleDatabase,ScheduleItemModel,ResourceItemModel;from estimator.undo import Stack;d=ScheduleDatabase(Stack());d.open_database(sys.argv[1]);d.insert_item_atomic(ScheduleItemModel('B','Masonry','m2',rate=5,qty=1,category='Other'));d.insert_schedule_category_atomic('Empty');d.insert_resource(ResourceItemModel('L','Worker','day',5,category='Labour'));d.close_database()",
-      path,
-    ],
-    { cwd: resolve("..") },
-  );
-  await openFixture(page, path);
-  await applyRecordsIfDirty(page);
-  await page.locator("#view-schedule").click();
-  return path;
-}
+useWorkspaceHarness();
 
 test("compact contrast, category filters, expanded trees and client window controls", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "dark" });
@@ -292,9 +83,17 @@ test("compact contrast, category filters, expanded trees and client window contr
     .locator(".ribbon-action:visible")
     .filter({ has: page.locator(".ribbon-label").filter({ hasText: /^Add from database$/ }) });
   expect((await full.boundingBox())!.width).toBeLessThan(80);
-  expect(
-    await full.locator(".ribbon-label").evaluate((element) => element.scrollHeight <= element.clientHeight + 1),
-  ).toBe(true);
+  // Measure wrapped text lines directly. Font ink or rounding can extend scrollHeight
+  // beyond the two line boxes even when Chromium displays the complete caption.
+  await expect
+    .poll(() =>
+      full.locator(".ribbon-label").evaluate((element) => {
+        const text = document.createRange();
+        text.selectNodeContents(element);
+        return new Set(Array.from(text.getClientRects(), (line) => line.top)).size;
+      }),
+    )
+    .toBe(2);
   await expect(page.locator(".titlebar-project")).toHaveAttribute("data-tauri-drag-region", "");
   for (const name of ["Minimize window", "Maximize or restore window", "Close window"])
     await page.locator(".window-controls").getByRole("button", { name, exact: true }).click();
@@ -302,102 +101,6 @@ test("compact contrast, category filters, expanded trees and client window contr
     expect.arrayContaining(["plugin:window|minimize", "plugin:window|toggle_maximize", "plugin:window|close"]),
   );
   await page.screenshot({ path: "test-results/compact-light-categories.png", animations: "disabled" });
-});
-
-test("landing page starts, opens and reopens recent projects when none is open", async ({ page }) => {
-  const landing = page.getByRole("region", { name: "Start an estimate" });
-  // Analysis keeps its scratch workspace; project views show the landing page.
-  await expect(landing).not.toBeVisible();
-  await page.locator("#view-schedule").click();
-  await expect(landing).toBeVisible();
-  await expect(landing).toContainText("Projects you open or save appear here.");
-  await expect(page.getByText("Open a project to use this editor.")).not.toBeVisible();
-  const { execFileSync } = await import("node:child_process");
-  const project = resolve(directory, "landing.eproj");
-  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
-  // Open… goes straight to the system picker.
-  nativeDialogResults.push(project);
-  await landing.getByRole("button", { name: /Open project/ }).click();
-  await expect(landing).not.toBeVisible();
-  await expect(page.locator(".project-view:visible .project-main-grid")).toContainText("Foundation");
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]"))).toContain(
-    project,
-  );
-  // A fresh session without an open project lists the recent project.
-  child.stdin.end();
-  await new Promise<void>((resolve) => child.once("close", () => resolve()));
-  startBackend();
-  await page.reload();
-  await expect(page.getByText("Calculation engine connected")).toBeVisible();
-  // Startup shows the landing page directly.
-  const recent = landing.getByRole("list", { name: "Recent projects" });
-  await expect(recent.getByRole("button", { name: /landing/ })).toBeVisible();
-  await recent.getByRole("button", { name: /landing/ }).click();
-  await expect(landing).not.toBeVisible();
-  await expect(page.locator(".project-view:visible .project-main-grid .tabulator-row").first()).toBeVisible();
-});
-
-test("project tabs keep separate projects in a vertical rail", async ({ page }) => {
-  const landing = page.getByRole("region", { name: "Start an estimate" });
-  const rail = page.getByRole("navigation", { name: "Open projects" });
-  const tabs = rail.getByRole("tab");
-  const grid = page.locator(".project-view:visible .project-main-grid");
-  const { execFileSync } = await import("node:child_process");
-  const project = resolve(directory, "tabs.eproj");
-  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
-  await page.locator("#view-schedule").click();
-  await expect(tabs).toHaveCount(1);
-  nativeDialogResults.push(project);
-  await landing.getByRole("button", { name: /Open project/ }).click();
-  await expect(grid).toContainText("Foundation");
-  // Search text and the selected row of a tab survive switching tabs.
-  const search = page.locator(".project-view:visible").getByLabel("Search project table");
-  await search.fill("Foundation");
-  await search.press("Enter");
-  await grid.locator(".tabulator-row", { hasText: "Foundation" }).first().click();
-  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Foundation");
-  // New project while a project is open: a second tab, the first stays open.
-  await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
-  await expect(tabs).toHaveCount(2);
-  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-  await expect(grid).toBeVisible();
-  await expect(grid).not.toContainText("Foundation");
-  await page.mouse.move(1, 1);
-  await page.screenshot({ path: "test-results/project-tabs.png", animations: "disabled" });
-  // Switching back restores the first project from its own session.
-  await tabs.nth(0).click();
-  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-  await expect(grid).toContainText("Foundation");
-  await expect(search).toHaveValue("Foundation");
-  await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Foundation");
-  // Opening the already open project switches to its tab instead of duplicating it.
-  await tabs.nth(1).click();
-  await expect(grid).not.toContainText("Foundation");
-  await page.locator(".titlebar").getByRole("button", { name: "Open project", exact: true }).click();
-  const openDialog = page.getByRole("dialog", { name: /Open project/ });
-  await openDialog.getByLabel("Project file").fill(project);
-  await openDialog.getByLabel("Project file").press("Enter");
-  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
-  await expect(tabs).toHaveCount(2);
-  // The add tile opens an empty tab with the landing page; closing it keeps the others.
-  await rail.getByRole("button", { name: "New project tab", exact: true }).click();
-  await expect(tabs).toHaveCount(3);
-  await expect(landing).toBeVisible();
-  await tabs.nth(2).hover();
-  await rail.getByRole("button", { name: "Close Empty tab", exact: true }).click();
-  await expect(tabs).toHaveCount(2);
-  await expect(grid).toBeVisible();
-  // Ctrl+Tab cycles tabs; Ctrl+W closes a clean tab.
-  const selected = await tabs.evaluateAll((items) =>
-    items.findIndex((item) => item.getAttribute("aria-selected") === "true"),
-  );
-  await page.keyboard.press("Control+Tab");
-  await expect(tabs.nth(1 - selected)).toHaveAttribute("aria-selected", "true");
-  // Shortcuts wait until the remounted tab finished connecting.
-  await expect(async () => {
-    await page.keyboard.press("Control+o");
-    await expect(page.getByRole("dialog", { name: /Open project/ })).toBeVisible({ timeout: 500 });
-  }).toPass();
 });
 
 test("resources cut and paste moves them like GTK", async ({ page }) => {
@@ -446,28 +149,6 @@ test("resources cut and paste moves them like GTK", async ({ page }) => {
       return list[list.indexOf("L") + 1];
     })
     .not.toBe("R");
-});
-
-test("landing page creates a new project", async ({ page }) => {
-  const landing = page.getByRole("region", { name: "Start an estimate" });
-  await page.locator("#view-measurement").click();
-  await expect(landing).toBeVisible();
-  await page.screenshot({ path: "test-results/project-landing.png", animations: "disabled" });
-  await landing.getByRole("button", { name: /New project/ }).click();
-  await expect(landing).not.toBeVisible();
-  await expect(page.locator(".project-view:visible .project-main-grid")).toBeVisible();
-  // Close project from the application menu returns to the landing page.
-  await page.getByRole("button", { name: "Application menu", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Close project", exact: true }).click();
-  const guard = page.getByRole("dialog").filter({ hasText: "Discard changes" });
-  if (await guard.isVisible().catch(() => false))
-    await guard.getByRole("button", { name: "Discard changes", exact: true }).click();
-  await expect(landing).toBeVisible();
-  await page.getByRole("button", { name: "Application menu", exact: true }).click();
-  await expect(page.getByRole("menuitem", { name: "Close project", exact: true })).toHaveAttribute(
-    "aria-disabled",
-    "true",
-  );
 });
 
 test("numeric edits select the value, tax shows only entered decimals and clipboard feedback is transient", async ({
@@ -1641,7 +1322,7 @@ test("system row clipboard transfers schedule, resources and analysis between in
         .locator('.project-main-grid .tabulator-row [tabulator-field="description"]')
         .filter({ hasText: /^Material$/ }),
     ).toHaveCount(2);
-    systemClipboard = "ordinary text";
+    desktopControls.setClipboard("ordinary text");
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
     await expect(destination.getByRole("alert")).toContainText("valid GEstimator rows");
     expect((await other.call("resources.editor.state")).result.rows[0]._children).toHaveLength(2);
@@ -1760,7 +1441,7 @@ test("measurement clipboard transfers whole items and template records with expl
     await expect(destination.locator(`${recordsGrid} .cell-focused`)).toBeFocused();
     await destination.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
     await expect(destination.locator(".measurement-record-grid .tabulator-row")).toHaveCount(1);
-    clipboardUnavailable = true;
+    desktopControls.failClipboard();
     await page.getByRole("button", { name: "Copy record", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "within this window only" })).toBeVisible();
     await page.getByRole("button", { name: "Paste record", exact: true }).click();
@@ -2123,7 +1804,7 @@ test("inspector edits are atomic and custom templates persist without changing s
 
 test("keyboard table selection opens analysis and wide measurement templates retain their layout", async ({ page }) => {
   // Hold the first measurement response long enough to exercise the loading state.
-  measurementDelay = 150;
+  desktopControls.delayMeasurements(150);
   const errors: string[] = [];
   page.on("pageerror", (error) => {
     errors.push(error.message);
@@ -2591,47 +2272,6 @@ test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by
     expect(Math.abs(position.scrollTop - previous)).toBeLessThanOrEqual(position.height + 2);
     previous = position.scrollTop;
   }
-});
-
-test("real project navigation protects unsaved drafts and save-copy clears dirty state", async ({ page }) => {
-  await openFixture(page, resolve("../Other databases/DSREM2022.eproj"));
-  let dialog = page.getByRole("dialog", { name: "Open project", exact: true });
-  await expect(dialog).not.toBeVisible();
-  const search = page.getByRole("textbox", { name: "Find schedule items" });
-  await search.fill("1.1.1");
-  await search.press("Enter");
-  await expect(page.locator(".item-card").first().locator(".item-code")).toHaveText("1.1.1");
-  await page.locator(".item-card").first().click();
-  await expect(page.locator(".code-tag")).toBeVisible();
-  await page.locator('.tabulator-row[data-kind="Resource"]').first().locator('[tabulator-field="kind"]').click();
-  await expect(page.locator(".inspector-body")).toBeVisible();
-  await page.screenshot({ path: "test-results/workspace-project.png" });
-  await page.locator(".ribbon-tabs").getByRole("tab", { name: "Analysis", exact: true }).click();
-  await page.getByRole("button", { name: "Resource group", exact: true }).click();
-  await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
-  await page.getByRole("button", { name: "Open project", exact: true }).first().click();
-  dialog = page.getByRole("dialog", { name: "Open project", exact: true });
-  await dialog.getByLabel("Project file").fill(resolve("../Other databases/DSR2021.eproj"));
-  await dialog.getByRole("button", { name: "Open project", exact: true }).click();
-  // The other project opens in a new tab; this project and its draft stay open.
-  const projectTabs = page.getByRole("navigation", { name: "Open projects" }).getByRole("tab");
-  await expect(projectTabs).toHaveCount(2);
-  await expect(projectTabs.nth(1)).toHaveAttribute("aria-selected", "true");
-  await projectTabs.nth(0).click();
-  await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
-  const output = resolve(directory, "review.eproj");
-  nativeDialogResults.push(output);
-  await page.getByRole("button", { name: "Save copy", exact: true }).click();
-  await expect
-    .poll(
-      async () =>
-        readFile(output)
-          .then(() => true)
-          .catch(() => false),
-      { timeout: 45000 },
-    )
-    .toBe(true);
-  await expect(page.locator(".draft-badge")).toContainText("Up to date");
 });
 
 test("native typography and schedule, resource and measurement editing", async ({ page }) => {
@@ -3134,33 +2774,6 @@ test("schedule row colour is visible and undoable", async ({ page }) => {
   await expect(code).toHaveText("A");
 });
 
-test("in-place save keeps a backup and the project appears in recent projects", async ({ page }) => {
-  const { execFileSync } = await import("node:child_process");
-  const project = resolve(directory, "save.eproj");
-  execFileSync(python, ["-m", "modern.e2e.create_fixture", project], { cwd: resolve("..") });
-  const original = await readFile(project);
-  const header = page.locator(".titlebar");
-  await openFixture(page, project);
-  const open = page.getByRole("dialog", { name: "Open project" });
-  await expect(open).not.toBeVisible();
-  await page.locator(".ribbon-tabs").getByRole("tab", { name: "Schedule" }).click();
-  const quantity = page.locator('.project-main-grid .tabulator-row [tabulator-field="qty"]').last();
-  await expect(quantity).toHaveText("1");
-  await quantity.dblclick();
-  await quantity.locator("input,textarea").fill("8");
-  await page.locator(".tabulator-header:visible").click();
-  await expect(quantity).toHaveText("8");
-  await expect(page.locator(".statusbar")).toContainText("Unsaved draft");
-  await expect(header.getByRole("button", { name: "Save copy" })).toBeEnabled();
-  await page.keyboard.press("Control+s");
-  await expect(page.locator(".statusbar")).toContainText("Saved");
-  expect(await readFile(project + ".bak")).toEqual(original);
-  expect(await readFile(project)).not.toEqual(original);
-  await header.getByRole("button", { name: "Open project" }).click();
-  await open.getByLabel("Recent projects").selectOption({ label: project });
-  await expect(open.getByLabel("Project file")).toHaveValue(project);
-});
-
 test("Excel analysis import previews a calculated rate and can be undone", async ({ page }) => {
   const { execFileSync } = await import("node:child_process");
   const project = resolve(directory, "analysis-import.eproj");
@@ -3264,7 +2877,7 @@ test("feedback: native open, cached navigation, incremental refresh and analysis
   await quantity.dblclick();
   await quantity.locator("input").fill("3");
   await page.locator(".analysis-heading h1").click();
-  frontendCalls = [];
+  desktopControls.resetCalls();
   await page.locator(".draft-headerbar").getByRole("button", { name: "Apply analysis", exact: true }).click();
   await expect(grid.locator('[tabulator-field="rate"]').filter({ hasText: /^30$/ })).toBeVisible();
   await expect(grid).toHaveJSProperty("retained", true);
@@ -3813,7 +3426,8 @@ test("feedback 3: measurement category editing, record caption and list actions"
   await caption.press("Escape");
   await expect(heading).toHaveText("Room dimensions");
   await editDescription.click();
-  const description = "First floor dimensions. " + "Include all recesses and openings. ".repeat(22) + "End of remarks.";
+  // Make the title exceed five lines even with the Windows runner's narrower font.
+  const description = "First floor dimensions. " + "Include all recesses and openings. ".repeat(44) + "End of remarks.";
   await caption.fill(description);
   expect(await caption.evaluate((el) => el.clientHeight <= parseFloat(getComputedStyle(el).lineHeight) * 5 + 1)).toBe(
     true,
@@ -4019,9 +3633,7 @@ test("feedback 4: persistent tree geometry and focus rings in editable fields", 
   const editingBranch = cell.locator(".table-text-editor-shell .tabulator-data-tree-branch");
   const first = await editingBranch.boundingBox();
   expect(Math.abs(first!.x - positions[0].x)).toBeLessThan(1);
-  // Tabulator display cells use vertical centering whereas the editor shell aligns flex-start with top padding;
-  // with subpixel fonts (such as Segoe UI on Windows CI), the baseline offset can reach ~1.3px without visual shift.
-  expect(Math.abs(first!.y - positions[0].y)).toBeLessThan(2);
+  expect(Math.abs(first!.y - positions[0].y)).toBeLessThan(1);
   await editor.press("End");
   await editor.press("Shift+Enter");
   await page.keyboard.insertText("Additional description line");
@@ -4286,72 +3898,6 @@ test("keyboard shortcut help groups commands into accessible categories", async 
     await expect(group).toContainText(command);
   }
   await page.screenshot({ path: "test-results/grouped-shortcuts.png", animations: "disabled" });
-});
-
-test("native window is revealed after startup theme typography and UI are ready", async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "gestimator.program-settings.v1",
-      JSON.stringify({
-        version: 1,
-        appearance: { theme: "light", uiFamily: "Arial", uiSize: 16, tableFamily: "Arial", tableSize: 17 },
-      }),
-    );
-    (window as any).startupFontGate = new Promise((resolve) => {
-      (window as any).releaseStartupFont = () => resolve({ family: "Iosevka", size: "11pt" });
-    });
-  });
-  let releaseState!: () => void;
-  const stateGate = new Promise<void>((resolve) => {
-    releaseState = resolve;
-  });
-  let requestedState = false;
-  await page.exposeBinding("delayedStartupTransport", async (_source, request) => {
-    if (request.method === "state") {
-      requestedState = true;
-      await stateGate;
-    }
-    return call(request.method, request.params);
-  });
-  await page.addInitScript(() => {
-    (window as any).backendTransport = (window as any).delayedStartupTransport;
-  });
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => typeof (window as any).releaseStartupFont)).toBe("function");
-  expect(await page.evaluate(() => (window as any).windowCommands || [])).not.toContain("plugin:window|show");
-  await page.evaluate(() => (window as any).releaseStartupFont());
-  await expect.poll(() => requestedState).toBe(true);
-  expect(await page.evaluate(() => (window as any).windowCommands || [])).not.toContain("plugin:window|show");
-  releaseState();
-  await expect
-    .poll(() => page.evaluate(() => (window as any).startupAtShow))
-    .toEqual({
-      theme: "light",
-      family: "Arial, system-ui",
-      size: "16px",
-      fonts: "loaded",
-      landing: true,
-      ribbonSized: false,
-    });
-  expect(
-    (await page.evaluate(() => (window as any).windowCommands)).filter(
-      (command: string) => command === "plugin:window|show",
-    ),
-  ).toHaveLength(1);
-});
-
-test("native startup errors reveal the initialized window with an error message", async ({ page }) => {
-  await page.exposeBinding("failedStartupTransport", async (_source, request) =>
-    request.method === "program.settings"
-      ? { error: { code: "backend_error", message: "Startup backend unavailable" } }
-      : call(request.method, request.params),
-  );
-  await page.addInitScript(() => {
-    (window as any).backendTransport = (window as any).failedStartupTransport;
-  });
-  await page.reload();
-  await expect.poll(() => page.evaluate(() => (window as any).windowCommands || [])).toContain("plugin:window|show");
-  await expect(page.getByRole("alert")).toContainText("Startup backend unavailable");
 });
 
 test("long first-level items retain typography and indentation through Enter and library attachment", async ({
@@ -4936,50 +4482,6 @@ test("draft headerbars use dropdowns and manual and About stay available offline
   await expect(about).toContainText("Version 3.0.1");
   await about.getByText("GNU General Public License", { exact: true }).click();
   await expect(about.locator("pre")).toContainText("Version 3, 29 June 2007");
-});
-
-test("OS project requests serialize through the unsaved guard and reject invalid files", async ({ page }) => {
-  const project = await refinementFixture(page);
-  async function emitOs(paths: string[], drop = false) {
-    await page.evaluate(
-      ({ paths, drop }) => {
-        const w = window as any;
-        if (!drop) w.osOpenRequests = paths;
-        const event = drop ? "tauri://drag-drop" : "project-open-available";
-        const callback = w.tauriCallbacks[w.tauriListeners[event]];
-        callback({ event, payload: drop ? { paths, position: { x: 1, y: 1 } } : null });
-      },
-      { paths, drop },
-    );
-  }
-  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
-  await page.getByRole("button", { name: "Edit analysis", exact: true }).click();
-  const qty = page.locator('.analysis-table .tabulator-row[data-kind="Resource"] [tabulator-field="value"]');
-  await qty.dblclick();
-  await qty.locator("input").fill("3");
-  await qty.locator("input").press("Enter");
-  const before = frontendCalls.filter((call) => call.method === "project.open").length;
-  const tabs = page.getByRole("navigation", { name: "Open projects" }).getByRole("tab");
-  // The already open project keeps its tab and its unapplied analysis.
-  await emitOs([project]);
-  await expect(page.locator(".summary-value")).toContainText("30.00");
-  expect(frontendCalls.filter((call) => call.method === "project.open")).toHaveLength(before);
-  await expect(tabs).toHaveCount(1);
-  // Another project opens in a new tab without discarding this draft.
-  const second = resolve(directory, "second.eproj");
-  await copyFile(project, second);
-  await emitOs([second], true);
-  await expect.poll(() => frontendCalls.filter((call) => call.method === "project.open").length).toBe(before + 1);
-  await expect(tabs).toHaveCount(2);
-  await tabs.nth(0).click();
-  await expect(page.locator(".summary-value")).toContainText("30.00");
-  // The remounted tab registers its drop listener after connecting; retry until it does.
-  await expect(async () => {
-    await emitOs(["/tmp/not-a-project.txt"], true);
-    await expect(page.getByRole("alert").filter({ hasText: "Not a GEstimator project" })).toBeVisible({ timeout: 500 });
-  }).toPass();
-  await emitOs([resolve(directory, "missing file.eproj")]);
-  await expect(page.getByRole("alert")).toContainText(/not found|does not exist|No such|Cannot|exist/i);
 });
 
 test("remaining parity commands highlight rates renumber exclusions and synchronize selected resources", async ({
@@ -5568,99 +5070,4 @@ test("type-ahead continues on other pages of a paged table", async ({ page }) =>
   await expect(grid.locator(".tabulator-row.tabulator-selected")).toContainText("Gravel bedding");
   await page.keyboard.type("x");
   await expect(grid.locator(".type-ahead")).toHaveClass(/missing/);
-});
-
-test("project tabs keep the analysis inspector and measurement record view", async ({ page }) => {
-  const rail = page.getByRole("navigation", { name: "Open projects" });
-  const tabs = rail.getByRole("tab");
-  await refinementFixture(page);
-  async function edit(method: string, params = {}) {
-    return (await call(method, { revision: (await call("state")).result.revision, ...params })).result;
-  }
-  // Analysis: a hidden inspector stays hidden after switching tabs.
-  await page.locator('.project-main-grid [tabulator-field="description"]').filter({ hasText: "Foundation" }).click();
-  await page.locator(".ribbon").getByRole("button", { name: "Edit analysis", exact: true }).click();
-  await expect(page.locator(".inspector")).toBeVisible();
-  await page.locator(".ribbon").getByRole("button", { name: "Hide analysis inspector", exact: true }).click();
-  await expect(page.locator(".inspector")).toBeHidden();
-  await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
-  await expect(tabs).toHaveCount(2);
-  await tabs.nth(0).click();
-  await expect(page.locator("#view-analysis")).toHaveAttribute("aria-selected", "true");
-  await expect(
-    page.locator(".ribbon").getByRole("button", { name: "Show analysis inspector", exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".inspector")).toBeHidden();
-  // Measurement records: page, selected record and scroll come back.
-  const added = await edit("measurement.add", { template: "_1_NLBH", description: "Tab memory" });
-  const id = added.selected[0];
-  await edit("measurement.draft.open", { id });
-  await edit("measurement.record_add", { id, count: 160 });
-  await edit("measurement.draft.apply");
-  await page.locator("#view-measurement").click();
-  await page
-    .getByRole("grid", { name: "Measurements", exact: true })
-    .getByText("Tab memory", { exact: true })
-    .dblclick();
-  await page.getByRole("button", { name: "Next records", exact: true }).click();
-  await expect(page.getByText("160 records · Page 2", { exact: true })).toBeVisible();
-  const records = page.locator(".measurement-record-grid");
-  const holder = records.locator(".tabulator-tableholder");
-  await holder.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  const row = records.locator(".tabulator-row").last();
-  await row.locator('[tabulator-field="c2"]').click();
-  await expect(records.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
-  const selectedText = await records.locator(".tabulator-row.tabulator-selected").innerText();
-  const top = await holder.evaluate((element) => element.scrollTop);
-  expect(top).toBeGreaterThan(0);
-  await tabs.nth(1).click();
-  await expect(records).toBeHidden();
-  await tabs.nth(0).click();
-  await expect(page.getByText("160 records · Page 2", { exact: true })).toBeVisible();
-  await expect(records.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
-  await expect.poll(() => records.locator(".tabulator-row.tabulator-selected").innerText()).toBe(selectedText);
-  await expect.poll(() => holder.evaluate((element) => element.scrollTop)).toBeGreaterThan(top - 40);
-});
-
-test("in-place save waits for folder selection and keeps edits on cancellation", async ({ page }) => {
-  const project = await refinementFixture(page);
-  await page.evaluate(() => {
-    const internals = (window as any).__TAURI_INTERNALS__;
-    const invoke = internals.invoke;
-    internals.invoke = async (command: string, params: unknown) => {
-      const reply = await invoke(command, params);
-      if (command === "backend_request" && reply?.result?.source_path && "source_requires_folder" in reply.result) {
-        reply.result.source_requires_folder = true;
-      }
-      return reply;
-    };
-  });
-
-  const quantity = page
-    .locator(".project-view:visible .tabulator-row")
-    .filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) })
-    .locator('[tabulator-field="qty"]');
-  await quantity.dblclick();
-  await quantity.locator("input").fill("2");
-  await quantity.locator("input").press("Enter");
-  await expect(page.getByRole("status", { name: "Overall estimate total", exact: true })).toContainText("45.00");
-
-  async function saveProject() {
-    await page.getByRole("button", { name: "Application menu", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Save project", exact: true }).click();
-    await expect.poll(() => nativeDialogResults.length).toBe(0);
-  }
-
-  nativeDialogResults.push(null);
-  await saveProject();
-  expect(frontendCalls.some(({ method }) => method === "project.save")).toBe(false);
-  expect((await call("state")).result.workspace_dirty).toBe(true);
-
-  nativeDialogResults.push(directory);
-  await saveProject();
-  await expect.poll(() => frontendCalls.find(({ method }) => method === "project.save")?.params).toEqual({ directory });
-  await expect.poll(async () => (await call("state")).result.workspace_dirty).toBe(false);
-  expect(await readFile(project + ".bak")).not.toEqual(await readFile(project));
 });

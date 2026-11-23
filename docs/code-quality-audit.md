@@ -73,18 +73,34 @@ evaluation retains integer/float semantics. Trigonometric functions necessarily
 use standard math approximations. Custom installed templates should use
 `evaluate_number` for their inputs.
 
+## Follow-up on 2026-11-24
+
+- Document lookup now compares current canonical paths for open projects. The
+  same tab is reused for duplicate opens, its path clears on close, and later
+  requests resolve symlinks again.
+- Failed resource-category inserts roll back category ordering. A failed
+  resource edit or insert returns the rejection without recording an undo step.
+- The schedule view delegates rate discrepancy highlighting and its status
+  panel. The keyboard shortcuts dialog owns the reference and its styling.
+  Project reporting and file operations have dedicated Python modules. The
+  measurement selection handler reuses the existing editor transaction and
+  identity state.
+- Project file browser workflows moved to a separate spec and reuse the
+  existing real-backend harness. [The Windows failure evidence and validation](migration/validation.md)
+  record the three affected scenarios.
+
 ## Remaining work, in order
 
 | Priority | Area | Next bounded change and acceptance check |
 | --- | --- | --- |
-| P2 | `modern/src/components/ProjectViews.vue` — 994 formatted lines | Grid reads, paging, forms, the measurement record layout, both ribbons and shortcut recognition are extracted. The view coordinates project grid commands, focus and selection. Review the resource usage and rate discrepancy workflows for further extraction when next extended. |
-| P2 | `modern/src/App.vue` — 1,211 formatted lines | Navigation, MCP refresh, file workflows, project database pickers and the Analysis dialogs, inspector, ribbon and explorer are extracted. The shell coordinates the draft guard, active view, shared ribbon host and native lifecycle. Review dialog or editor presentation when next extended. |
-| P2 | `modern/backend/project.py` — 1,019 lines; `service.py` — 728 | Library snapshot/import handling, project table presentation, schedule/resource edit dispatch and analysis draft edits are extracted. Keep `call`, revision checks, transaction scopes and undo ownership easy to find. The service and persistence modules retain portal file operations. Split measurement dispatchers by operation family when extended. |
+| P2 | `modern/src/components/ProjectViews.vue` — 982 formatted lines | Rate discrepancies and resource usage have separate owners. Grid reads, paging, forms, the measurement record layout, both ribbons and shortcut recognition are extracted. Review the remaining grid command routing when extending an editor. |
+| P2 | `modern/src/App.vue` — 1,134 formatted lines | Navigation, MCP refresh, file workflows, keyboard-shortcut help, project database pickers and the Analysis dialogs, inspector, ribbon and explorer are extracted. The shell retains the draft guard, active view, shared ribbon host and native lifecycle. Review editor presentation when it next changes. |
+| P2 | `modern/backend/project.py` — 928 lines; `service.py` — 580 | Reporting, project file operations, library snapshot/import handling, project table presentation, schedule/resource edit dispatch and analysis edits are extracted. Keep revision checks, transaction scopes and undo ownership with the editor and service. Split further operation families when extended. |
 | P2 | `library_import.import_items` — 255 lines; navigation, project-file and measurement composable setup | The import coordinator retains coupled conflict, batch numbering and final rate policies so it does not publish per row; split policy families when next extended. Composable setup keeps one closure for related state/lifetimes and smaller nested operations. File workflows share dialog/open completion state; measurement owners share record/detail lifetimes or staged form/picker state. These owners exceed the function-size review trigger for an explicit ownership reason, not because the trigger was disabled. |
-| P2 | `modern/src/style.css` — 3,747 formatted lines | The repeated ribbon, table and dialog rules are consolidated and the document rail rules are already grouped. Keep consolidating feature-local overrides when editing a surface, with dark/light/narrow verification. |
+| P2 | `modern/src/style.css` — 3,715 formatted lines | The repeated ribbon, table and dialog rules are consolidated, the document rail rules are grouped, and the keyboard-shortcuts styles live with their dialog. Continue consolidating feature-local overrides when editing a surface, with dark/light/narrow verification. |
 | P2 | `estimator/data/schedule.py` — 3,318 formatted lines; broad legacy exception handlers | Workbook output and database lifecycle are extracted. The engine retains calculation, numbering and ORM operations. Narrow the remaining broad handlers when editing their owning operation, with fixed calculation baselines and real-data parity for engine changes. |
 | P3 | Production frontend entry — about 1.22 MB, 312 KB gzip | The optional help and settings dialogs load on demand. Further startup work needs a native WebView profile before splitting core editors. Keep Vite's large-chunk warning visible. |
-| P3 | `tools/` database builders and large test modules | Split by build phase or workflow when next edited. Preserve generated database results; avoid unrelated rewrites of occasional maintenance tools. |
+| P3 | `tools/` database builders and large test modules | Project file workflows have their own browser spec. Split further editor workflows and build phases when next edited. Preserve generated database results. |
 
 The remaining items are explicit follow-up debt, not completed refactors. A
 single broad rewrite of all large files would make behavior changes harder to

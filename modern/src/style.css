@@ -1389,16 +1389,6 @@ textarea::placeholder {
   color: var(--hint);
   text-align: center;
 }
-.shortcut-list > div {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--line-soft);
-  font-size: var(--text-size-ui);
-  color: var(--muted);
-}
 kbd {
   background: var(--well);
   border: 1px solid var(--line);
@@ -2671,29 +2661,6 @@ textarea.measurement-entry-title {
   color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
-.shortcut-group + .shortcut-group {
-  margin-top: 20px;
-}
-.shortcut-group h3 {
-  margin: 0;
-  padding-bottom: 6px;
-  color: var(--accent);
-  font-size: var(--text-size-ui);
-  border-bottom: 1px solid var(--line);
-}
-/* One row per shortcut: the label takes the free width, the keys never break. */
-.workspace-dialog.shortcuts-dialog {
-  width: min(94vw, 760px);
-}
-.shortcut-list > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 15px;
-}
-.shortcut-list kbd {
-  white-space: nowrap;
-}
-
 /* Ribbon SVGs are CSS-sized to 20–24 px: use the B2 24-grid weight (1.75 units). */
 .ribbon svg {
   stroke-width: 1.75;

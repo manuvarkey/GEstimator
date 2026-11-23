@@ -7,11 +7,38 @@ from contextlib import closing
 from pathlib import Path
 
 from estimator import misc
-from estimator.data.schedule import ScheduleDatabase
+from estimator.data.schedule import ResourceItemModel, ScheduleDatabase
 from estimator.undo import Stack
 
 
 class DatabaseLifecycleTests(unittest.TestCase):
+    def test_resource_category_insert_failure_leaves_resource_and_undo_intact(self):
+        owner = ScheduleDatabase(Stack())
+        owner.create_new_database()
+        self.addCleanup(owner.close_database)
+        owner.insert_resource(ResourceItemModel("R", "Original", "kg", 10, category="Materials"))
+        undo_count = owner.stack.undocount()
+        owner.database.execute_sql(
+            """
+            CREATE TRIGGER block_category BEFORE INSERT ON ResourceCategoryTable
+            WHEN NEW.description='Labour' BEGIN SELECT RAISE(ABORT, 'blocked category'); END
+            """
+        )
+
+        with self.assertLogs(level="ERROR"):
+            result = owner.update_resource("R", res_model=ResourceItemModel("R", "Edited", "kg", 10, category="Labour"))
+            inserted = owner.insert_resource(ResourceItemModel("L", "New", "hour", 20, category="Labour"))
+
+        self.assertFalse(result)
+        self.assertFalse(inserted)
+        resource = owner.get_resource("R")
+        self.assertEqual((resource.description, resource.category), ("Original", "Materials"))
+        self.assertEqual(owner.stack.undocount(), undo_count)
+        self.assertFalse(
+            owner.ResourceCategoryTable.select().where(owner.ResourceCategoryTable.description == "Labour").exists()
+        )
+        self.assertIsNone(owner.get_resource("L"))
+
     def test_failed_version_update_rolls_back_the_column_and_can_retry(self):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / "old.eproj")

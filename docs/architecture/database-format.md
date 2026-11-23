@@ -21,7 +21,7 @@ using SQLite backup, then validates/migrates the copy. Version 1 migration adds
 the schedule colour field and updates the marker in one transaction. If either
 step fails, the copy keeps its original column layout and version marker. Never
 invoke the engine's migration directly on an attached library or an original
-user file. Follow [`Service.call`](../../modern/backend/service.py) for the open
+user file. Follow [the project file commands](../../modern/backend/project_files.py) for the open
 sequence and [the database lifecycle module](../../estimator/data/database_lifecycle.py)
 for the engine transaction.
 

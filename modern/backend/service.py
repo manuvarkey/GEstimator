@@ -15,19 +15,9 @@ from estimator import misc
 from estimator.data.schedule import ScheduleDatabase, ScheduleItemModel
 from estimator.undo import Stack
 
-from . import analysis_edits
+from . import analysis_edits, project_files
 from .numbers import tax_text
-from .persistence import (
-    RecoveryClaim,
-    check_database_access,
-    export_output,
-    fingerprint,
-    flatpak_document,
-    resolve_input,
-    save_existing,
-    save_target,
-    write_recovery,
-)
+from .persistence import RecoveryClaim, export_output, flatpak_document, write_recovery
 from .validation import request_text as text
 
 
@@ -191,19 +181,7 @@ class Service:
                 return read_tool(self, p.get("name"), p.get("arguments", {}))
             raise ValueError("Unknown MCP operation")
         if method == "path.canonical":
-            target = text(p.get("path", ""))
-            if not target:
-                return dict(path="", canonical="", exists=False)
-            # Resolve canonical filesystem identity, normalizing Windows 8.3 short names and symlinks.
-            try:
-                resolved = resolve_input(target)
-                return dict(path=str(resolved), canonical=str(resolved), exists=True)
-            except (FileNotFoundError, OSError, ValueError):
-                try:
-                    resolved = Path(target).resolve()
-                    return dict(path=str(resolved), canonical=str(resolved), exists=False)
-                except (OSError, ValueError):
-                    return dict(path=target, canonical=target, exists=False)
+            return project_files.canonical_path(p)
         if method == "search.warm":
             # Build search indexes after opening so the first search is quick.
             if self.db:
@@ -263,82 +241,17 @@ class Service:
             self.clear_recovery()
             return True
         if method == "recovery.open":
-            if not self.recovery_dir or not isinstance(p.get("id"), str):
-                raise ValueError("Recovery copy unavailable")
-            if p["id"] not in {item["id"] for item in self.recovery_projects()}:
-                raise ValueError("Recovery copy unavailable")
-            recovery = self.recovery_dir / (p["id"] + ".eproj")
-            claim = RecoveryClaim(self.recovery_dir, p["id"])
-            if not claim.acquire():
-                raise ValueError("Recovery copy is open in another window")
-            try:
-                self.call("project.open", dict(path=str(recovery), discard=p.get("discard")))
-            except Exception:
-                claim.release()
-                raise
-            self.source_path = self.source_save_path = self.source_fingerprint = None
-            self.workspace_dirty = True
-            self.recovered_path = recovery
-            self.recovered_claim = claim
-            return self.state()
+            return project_files.open_recovery(self, p)
         if method.startswith("library."):
             if not self.db:
                 raise ValueError("Open a project first")
             return self.project_editor.call(method, p, progress)
         if method == "project.close":
-            # Close the working project; unsaved work must be saved or discarded first.
             self.guard_draft(p, project=True)
-            if p.get("discard") is True or not self.workspace_dirty:
-                self.clear_recovery()
-            self.clear_mcp_indexes()
-            if hasattr(self, "project_editor"):
-                self.project_editor.close()
-                del self.project_editor
-            if self.db:
-                self.db.close_database()
-            self.db = None
-            self.loaded = False
-            self.source_path = self.source_save_path = self.source_fingerprint = self.recovered_path = None
-            self.workspace_dirty = False
-            self.model = ScheduleItemModel("DEMO", "Untitled rate analysis", "m³")
-            self.model.add_ana_group("MATERIALS")
-            self.model.add_ana_sum("TOTAL")
-            self.model.add_ana_round("Say", Decimal("2"))
-            self.identify()
-            self.history.clear()
-            self.future.clear()
-            self.clipboard.clear()
-            self.revision += 1
-            self.saved_signature = copy.deepcopy(self.signature())
-            return self.state()
+            return project_files.close_project(self, p)
         if method == "project.new":
             self.guard_draft(p, project=True)
-            target = Path(self.temp.name) / (uuid4().hex + ".eproj")
-            new = ScheduleDatabase(Stack())
-            new.create_new_database(str(target))
-            if p.get("discard") is True:
-                self.clear_recovery()
-            self.clear_mcp_indexes()
-            if hasattr(self, "project_editor"):
-                self.project_editor.close()
-            if self.db:
-                self.db.close_database()
-            self.db = new
-            self.loaded = False
-            self.source_path = self.source_save_path = None
-            self.source_fingerprint = None
-            self.recovered_path = None
-            self.workspace_dirty = True
-            self.model = ScheduleItemModel("", "Select a schedule item")
-            self.history.clear()
-            self.future.clear()
-            self.clipboard.clear()
-            self.revision += 1
-            self.saved_signature = copy.deepcopy(self.signature())
-            from .project import ProjectEditor
-
-            self.project_editor = ProjectEditor(self)
-            return self.state()
+            return project_files.new_project(self, p)
         if method == "project.settings":
             if not self.db:
                 raise ValueError("Open a project first")
@@ -349,54 +262,7 @@ class Service:
             }
         if method == "project.open":
             self.guard_draft(p, project=True)
-            source = resolve_input(text(p["path"]))
-            check_database_access(source)
-            before = fingerprint(source)
-            progress("Copying project into isolated workspace")
-            target = Path(self.temp.name) / (uuid4().hex + ".eproj")
-            with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as src:
-                version = src.execute("SELECT value FROM ProjectTable WHERE key='file_version'").fetchone()
-                if version not in ((misc.PROJECT_FILE_VER,), ("GESTIMATOR_FILE_REFERENCE_VER_1",)):
-                    raise ValueError("Unsupported project file version")
-                with closing(sqlite3.connect(target)) as dst:
-                    src.backup(dst)
-            if fingerprint(source) != before:
-                target.unlink()
-                raise ValueError("Project changed while opening. Try opening it again.")
-            new = ScheduleDatabase(Stack())
-            if version == ("GESTIMATOR_FILE_REFERENCE_VER_1",):
-                result = new.validate_database(str(target))
-                if not result[0]:
-                    raise ValueError(result[1])
-            new.open_database(str(target))
-            # Display order only: earlier projects can hold SUB ANALYSIS first.
-            from .insertion import keep_sub_analysis_last
-
-            keep_sub_analysis_last(new)
-            if p.get("discard") is True:
-                self.clear_recovery()
-            self.clear_mcp_indexes()
-            if hasattr(self, "project_editor"):
-                self.project_editor.close()
-            if self.db:
-                self.db.close_database()
-            self.db = new
-            self.workspace_dirty = False
-            from .project import ProjectEditor
-
-            self.project_editor = ProjectEditor(self)
-            self.source_path = str(source)
-            self.source_save_path = None
-            self.source_fingerprint = before
-            self.recovered_path = None
-            self.loaded = False
-            self.model = ScheduleItemModel("", "Select a schedule item")
-            self.history.clear()
-            self.future.clear()
-            self.clipboard.clear()
-            self.revision += 1
-            self.saved_signature = copy.deepcopy(self.signature())
-            return dict(opened=str(source))
+            return project_files.open_project(self, p, progress)
         if method.startswith(
             (
                 "schedule.editor.",
@@ -478,37 +344,9 @@ class Service:
             self.saved_signature = copy.deepcopy(self.signature())
             return self.state()
         if method == "project.save":
-            if not self.source_path or not self.source_fingerprint:
-                raise ValueError("Choose a location with Save project copy first")
-            if not (self.workspace_dirty or (self.loaded and self.dirty) or self.records_dirty):
-                return dict(saved=self.source_path)
-            destination = Path(self.source_save_path or self.source_path)
-            expected = self.source_fingerprint
-            if flatpak_document(destination):
-                destination, expected = save_target(destination, expected, p.get("directory"))
-            progress("Saving project and preserving a backup")
-            backup = save_existing(destination, expected, self.write_project_snapshot)
-            self.source_fingerprint = fingerprint(destination)
-            self.source_save_path = str(destination)
-            self.finish_project_save()
-            return dict(saved=self.source_path, backup=str(backup))
+            return project_files.save_project(self, p, progress)
         if method == "project.save_copy":
-            if not self.db:
-                raise ValueError("Open a project first")
-            destination = Path(text(p["path"])).resolve()
-            try:
-                with export_output(destination) as output:
-                    progress("Saving analysis and updating dependent rates")
-                    self.write_project_snapshot(output)
-            except FileExistsError as error:
-                if flatpak_document(destination):
-                    raise FileExistsError("Save Copy needs a new filename. Choose another name.") from error
-                raise
-            self.finish_project_save()
-            if not self.source_path:
-                self.source_path = str(destination)
-                self.source_fingerprint = fingerprint(destination)
-            return dict(saved=str(destination))
+            return project_files.save_project_copy(self, p, progress)
         if p.get("revision") != self.revision:
             raise ValueError("Stale edit; reload analysis state")
         if method in ("clipboard.export", "clipboard.paste"):
