@@ -2,9 +2,11 @@
 
 import hashlib
 import importlib.util
+import re
 import sys
 from functools import lru_cache
 from pathlib import Path
+
 from .. import misc
 
 
@@ -20,8 +22,15 @@ def _load(filename, digest, source):
 
 
 def load_template(plugin):
-    # Key the cache on the content, not on mtime and size: two equal-length
-    # writes within one filesystem timestamp tick leave both unchanged.
-    path = Path(misc.abs_path('meas_templates', plugin + '.py')).resolve()
+    """Load a trusted installed template, using its contents as the cache key."""
+    # Step 1: project files choose templates by name, never by filesystem path.
+    if not isinstance(plugin, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", plugin):
+        raise ValueError("Invalid measurement template name")
+    directory = Path(misc.abs_path("meas_templates")).resolve()
+    candidate = directory / (plugin + ".py")
+    path = candidate.resolve()
+    if candidate.is_symlink() or path.parent != directory:
+        raise ValueError("Measurement template must be an installed file")
+    # Step 2: content keys also detect equal-length edits in the same clock tick.
     source = path.read_bytes()
     return _load(str(path), hashlib.sha256(source).hexdigest(), source)

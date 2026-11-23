@@ -22,10 +22,12 @@
 #
 #
 
-import copy, logging
+import copy
+import logging
 
 # local files import
 from .. import misc
+from ..arithmetic import evaluate_number
 from .template_loader import load_template
 
 # Get logger object
@@ -34,13 +36,12 @@ log = logging.getLogger()
 
 class Measurement:
     """Stores a Measurement groups"""
-    def __init__(self, model = None):
+
+    def __init__(self, model=None):
         if model is not None:
             self.caption = model[0]
             self.items = []
-            class_list = ['MeasurementItemHeading',
-                        'MeasurementItemCustom',
-                        'MeasurementItemAbstract']
+            class_list = ["MeasurementItemHeading", "MeasurementItemCustom", "MeasurementItemAbstract"]
             for item_model in model[1]:
                 if item_model[0] in class_list:
                     item_type = globals()[item_model[0]]
@@ -48,17 +49,17 @@ class Measurement:
                     item.set_model(item_model)
                     self.items.append(item)
         else:
-            self.caption = ''
+            self.caption = ""
             self.items = []
 
-    def append_item(self,item):
+    def append_item(self, item):
         self.items.append(item)
 
-    def insert_item(self,index,item):
-        self.items.insert(index,item)
+    def insert_item(self, index, item):
+        self.items.insert(index, item)
 
-    def remove_item(self,index):
-        del(self.items[index])
+    def remove_item(self, index):
+        del self.items[index]
 
     def __setitem__(self, index, value):
         self.items[index] = value
@@ -66,7 +67,7 @@ class Measurement:
     def __getitem__(self, index):
         return self.items[index]
 
-    def set_caption(self,caption):
+    def set_caption(self, caption):
         self.caption = caption
 
     def get_caption(self):
@@ -78,13 +79,13 @@ class Measurement:
     def get_model(self, clean=False):
         """Get data model
 
-            Arguments:
-                clean: Removes static items if True
+        Arguments:
+            clean: Removes static items if True
         """
         items_model = []
         for item in self.items:
             items_model.append(item.get_model(clean))
-        return ['Measurement', [self.caption, items_model]]
+        return ["Measurement", [self.caption, items_model]]
 
     def get_net_measurement(self):
         # Fill in values from measurement items
@@ -105,7 +106,7 @@ class Measurement:
 
     def set_model(self, model):
         """Set data model"""
-        if model[0] == 'Measurement':
+        if model[0] == "Measurement":
             self.__init__(model[1])
 
     def get_spreadsheet_buffer(self, schedule, codes, start_row):
@@ -113,7 +114,7 @@ class Measurement:
         row = start_row
         # Set datas of children
         for slno, item in enumerate(self.items):
-            item_sheet = item.get_spreadsheet_buffer([slno+1], schedule, codes, row)
+            item_sheet = item.get_spreadsheet_buffer([slno + 1], schedule, codes, row)
             spreadsheet.append(item_sheet)
             row = row + item_sheet.length()
         return spreadsheet
@@ -132,8 +133,10 @@ class Measurement:
         for item in self.items:
             item.print_item()
 
+
 class MeasurementItem:
     """Base class for storing Measurement items"""
+
     def __init__(self, itemnos=None, records=None, remark="", item_remarks=None):
         if itemnos is None:
             itemnos = []
@@ -147,20 +150,20 @@ class MeasurementItem:
         self.remark = remark
         self.item_remarks = item_remarks
 
-    def set_item(self,index,itemno):
+    def set_item(self, index, itemno):
         self.itemnos[index] = itemno
 
-    def get_item(self,index):
+    def get_item(self, index):
         return self.itemnos[index]
 
-    def append_record(self,record):
+    def append_record(self, record):
         self.records.append(record)
 
-    def insert_record(self,index,record):
-        self.records.insert(index,record)
+    def insert_record(self, index, record):
+        self.records.insert(index, record)
 
-    def remove_record(self,index):
-        del(self.records[index])
+    def remove_record(self, index):
+        del self.records[index]
 
     def __setitem__(self, index, value):
         self.records[index] = value
@@ -168,7 +171,7 @@ class MeasurementItem:
     def __getitem__(self, index):
         return self.records[index]
 
-    def set_remark(self,remark):
+    def set_remark(self, remark):
         self.remark = remark
 
     def get_remark(self):
@@ -180,29 +183,31 @@ class MeasurementItem:
     def clear(self):
         self.itemnos = []
         self.records = []
-        self.remark = ''
+        self.remark = ""
         self.item_remarks = []
+
 
 class MeasurementItemHeading(MeasurementItem):
     """Stores an item heading"""
+
     def __init__(self, model=None):
         if model is not None:
-            MeasurementItem.__init__(self,remark=model[0])
+            MeasurementItem.__init__(self, remark=model[0])
         else:
             MeasurementItem.__init__(self)
 
     def get_model(self, clean=False):
         """Get data model
 
-            Arguments:
-                clean: Dummy variable
+        Arguments:
+            clean: Dummy variable
         """
-        model = ['MeasurementItemHeading', [self.remark]]
+        model = ["MeasurementItemHeading", [self.remark]]
         return model
 
     def set_model(self, model):
         """Set data model"""
-        if model[0] == 'MeasurementItemHeading':
+        if model[0] == "MeasurementItemHeading":
             self.__init__(model[1])
 
     def get_spreadsheet_buffer(self, path, schedule, codes, row):
@@ -220,16 +225,18 @@ class MeasurementItemHeading(MeasurementItem):
     def print_item(self):
         print("    " + self.remark)
 
+
 class RecordCustom:
     """An individual record of a MeasurementItemCustom"""
+
     def __init__(self, items, cust_funcs, total_func, columntypes):
         self.data_string = items
         self.data = []
         # Populate Data
-        for x,columntype in zip(self.data_string,columntypes):
+        for x, columntype in zip(self.data_string, columntypes):
             if columntype not in [misc.MEAS_DESC, misc.MEAS_CUST]:
                 try:
-                    num = eval(x)
+                    num = evaluate_number(x)
                     self.data.append(num)
                 except:
                     self.data.append(0)
@@ -262,16 +269,16 @@ class RecordCustom:
                     if columntype == misc.MEAS_DESC:
                         rendered_item.append(item_elem)
                     elif columntype == misc.MEAS_NO:
-                        value = int(eval(item_elem)) if item_elem not in ['0','0.0'] else 0
+                        value = int(evaluate_number(item_elem)) if item_elem not in ["0", "0.0"] else 0
                         rendered_item.append(value)
                     elif columntype == misc.MEAS_L:
-                        value = round(eval(item_elem),3) if item_elem not in ['0','0.0'] else 0
+                        value = round(evaluate_number(item_elem), 3) if item_elem not in ["0", "0.0"] else 0
                         rendered_item.append(value)
                 else:
                     rendered_item.append(None)
-            except TypeError:
+            except (TypeError, ValueError):
                 rendered_item.append(None)
-                log.warning('RecordCustom - Wrong value loaded in item - ' + str(item_elem))
+                log.warning("RecordCustom - Wrong value loaded in item - " + str(item_elem))
         return rendered_item
 
     def set_model(self, items, cust_funcs, total_func, columntypes):
@@ -281,17 +288,18 @@ class RecordCustom:
     def find_total(self):
         return self.total_func(self.data)
 
-    def find_custom(self,index):
+    def find_custom(self, index):
         return self.cust_funcs[index](self.data)
 
     def print_item(self):
-        print("      " + str([self.data_string,self.total]))
+        print("      " + str([self.data_string, self.total]))
 
 
 class MeasurementItemCustom(MeasurementItem):
     """Stores a custom record set [As per plugin loaded]"""
-    def __init__(self, data = None, plugin=None):
-        self.name = ''
+
+    def __init__(self, data=None, plugin=None):
+        self.name = ""
         self.itemtype = None
         self.itemnos_mask = []
         self.itemnos_mapping = []
@@ -326,22 +334,20 @@ class MeasurementItemCustom(MeasurementItem):
                 self.user_data = self.custom_object.user_data_default
                 self.dimensions = self.custom_object.dimensions
             except ImportError:
-                log.error('Error Loading plugin - MeasurementItemCustom - ' + str(plugin))
+                log.error("Error Loading plugin - MeasurementItemCustom - " + str(plugin))
 
             if data != None:
                 itemnos = data[0]
                 records = []
                 for item_model in data[1]:
-                    item = RecordCustom(item_model, self.cust_funcs,
-                                        self.total_func_item, self.columntypes)
+                    item = RecordCustom(item_model, self.cust_funcs, self.total_func_item, self.columntypes)
                     records.append(item)
                 remark = data[2]
                 item_remarks = data[3]
                 self.user_data = data[4]
                 MeasurementItem.__init__(self, itemnos, records, remark, item_remarks)
             else:
-                MeasurementItem.__init__(self, [None]*self.item_width(), [],
-                                        '', ['']*self.item_width())
+                MeasurementItem.__init__(self, [None] * self.item_width(), [], "", [""] * self.item_width())
         else:
             MeasurementItem.__init__(self)
 
@@ -356,19 +362,18 @@ class MeasurementItemCustom(MeasurementItem):
     def get_model(self, clean=False):
         """Get data model
 
-            Arguments:
-                clean: Dummy variable
+        Arguments:
+            clean: Dummy variable
         """
         item_schedule = []
         for item in self.records:
             item_schedule.append(item.get_model())
-        data = [self.itemnos, item_schedule, self.remark, self.item_remarks,
-                self.user_data, self.itemtype]
-        return ['MeasurementItemCustom', data]
+        data = [self.itemnos, item_schedule, self.remark, self.item_remarks, self.user_data, self.itemtype]
+        return ["MeasurementItemCustom", data]
 
     def set_model(self, model):
         """Set data model"""
-        if model[0] == 'MeasurementItemCustom':
+        if model[0] == "MeasurementItemCustom":
             self.clear()
             self.__init__(model[1], model[1][5])
 
@@ -382,31 +387,33 @@ class MeasurementItemCustom(MeasurementItem):
             else:
                 itemno = None
             if itemno is not None:
-                spreadsheet.append_data([[str(path), 'Item No:' + itemno, self.item_remarks[slno]]], bold=True, wrap_text=True)
+                spreadsheet.append_data(
+                    [[str(path), "Item No:" + itemno, self.item_remarks[slno]]], bold=True, wrap_text=True
+                )
                 spreadsheet.append_data([[None, schedule[itemno][1]]])
                 row = row + 2
         # Remarks columns
-        if self.remark != '':
-            spreadsheet.append_data([[None, 'Remarks: ' + self.remark]], bold=True)
+        if self.remark != "":
+            spreadsheet.append_data([[None, "Remarks: " + self.remark]], bold=True)
             row = row + 1
         # Data rows
         captions = copy.copy(self.captions)
         for item_remark, itemno_mapping in zip(self.item_remarks, self.itemnos_mapping):
             if itemno_mapping:
-                captions[itemno_mapping] += ('\n' + item_remark)
+                captions[itemno_mapping] += "\n" + item_remark
         spreadsheet.append_data([[None], [None] + captions], bold=True)
         row = row + 1
-        for slno, record in enumerate(self.records,1):
+        for slno, record in enumerate(self.records, 1):
             values = record.get_model_rendered(slno)
             spreadsheet.append_data([[slno] + values])
             row = row + 1
         # User data
         if self.captions_udata:
-            spreadsheet.append_data([[None], [None, 'User Data Captions'] + self.captions_udata], bold=True)
-            spreadsheet.append_data([[None, 'User Datas'] + self.user_data])
+            spreadsheet.append_data([[None], [None, "User Data Captions"] + self.captions_udata], bold=True)
+            spreadsheet.append_data([[None, "User Datas"] + self.user_data])
             row = row + 2
         # Total values
-        spreadsheet.append_data([[None, 'TOTAL'] + self.get_total(), [None]], bold=True)
+        spreadsheet.append_data([[None, "TOTAL"] + self.get_total(), [None]], bold=True)
         row = row + 2
         return spreadsheet
 
@@ -418,14 +425,13 @@ class MeasurementItemCustom(MeasurementItem):
 
     def get_total(self):
         if self.total_func is not None:
-            return self.total_func(self.records,self.user_data)
+            return self.total_func(self.records, self.user_data)
         else:
             return []
 
     def get_text(self):
         total = self.get_total()
-        return self.name + ": "+ self.remark + ", #" + \
-            str(self.length()) + ", Σ " + str(total)
+        return self.name + ": " + self.remark + ", #" + str(self.length()) + ", Σ " + str(total)
 
     def get_tooltip(self):
         if self.remark != "":

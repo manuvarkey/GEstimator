@@ -1,0 +1,67 @@
+name: Code quality
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: modern/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: modern/src-tauri
+      - name: Development dependencies
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -r requirements-dev.txt pyinstaller==6.22.3
+          npm ci --prefix modern
+      - name: Changed source formatting
+        shell: pwsh
+        env:
+          QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ($env:QUALITY_BASE -and $env:QUALITY_BASE -notmatch '^0+$') {
+            .venv/Scripts/python tools/check_quality.py --base $env:QUALITY_BASE
+          } else {
+            .venv/Scripts/python tools/check_quality.py --base HEAD~1
+          }
+      - name: Backend regression tests
+        run: .venv/Scripts/python -m unittest discover -s tests
+      - name: Frontend types and production build
+        run: npm run --prefix modern build
+      - name: Browser workflows
+        working-directory: modern
+        run: |
+          npx playwright install chromium
+          npm run test:e2e
+      - name: Native sidecar and Rust checks
+        working-directory: modern
+        run: |
+          npm run bundle:backend
+          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+          cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings

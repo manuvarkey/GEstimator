@@ -109,12 +109,19 @@ struct Bridge(Mutex<Option<Backend>>);
 async fn backend_request(app: tauri::AppHandle, request: Value) -> Result<Value, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<Bridge>();
-        let mut backend = state.0.lock().map_err(|_|"Backend lock failed")?;
-        if backend.is_none(){*backend=Some(Backend::start(&app)?);}
-        let response = backend.as_mut().unwrap().request(&request,&app);
-        if response.is_err(){*backend=None;return Err("Backend disconnected. Reconnect to check for recoverable work.".into())}
+        let mut backend = state.0.lock().map_err(|_| "Backend lock failed")?;
+        if backend.is_none() {
+            *backend = Some(Backend::start(&app)?);
+        }
+        let response = backend.as_mut().unwrap().request(&request, &app);
+        if response.is_err() {
+            *backend = None;
+            return Err("Backend disconnected. Reconnect to check for recoverable work.".into());
+        }
         response
-    }).await.map_err(|e|e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 struct DesktopTypography(Mutex<Value>);
 #[tauri::command]
@@ -159,7 +166,10 @@ fn gtk_font(settings: &gtk::Settings) -> Value {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            project_open::enqueue(app, project_open::arguments(args.into_iter().skip(1), std::path::Path::new(&cwd)));
+            project_open::enqueue(
+                app,
+                project_open::arguments(args.into_iter().skip(1), std::path::Path::new(&cwd)),
+            );
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
                 let _ = window.show();
@@ -170,12 +180,13 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(Bridge::default())
-        .manage(DesktopTypography(Mutex::new(
-            json!({"family":null,"size":null}),
-        )))
+        .manage(DesktopTypography(Mutex::new(json!({"family":null,"size":null}))))
         .setup(|app| {
             app.remove_menu()?;
-            project_open::launch(app.handle(), project_open::arguments(std::env::args().skip(1), &std::env::current_dir()?));
+            project_open::launch(
+                app.handle(),
+                project_open::arguments(std::env::args().skip(1), &std::env::current_dir()?),
+            );
             #[cfg(target_os = "linux")]
             {
                 use gtk::prelude::*;
@@ -210,13 +221,24 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backend_request, desktop_font, open_library_directory, project_open::take_project_open_requests])
+        .invoke_handler(tauri::generate_handler![
+            backend_request,
+            desktop_font,
+            open_library_directory,
+            project_open::take_project_open_requests
+        ])
         .build(tauri::generate_context!())
         .expect("Unable to start GEstimator")
         .run(|app, event| {
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             if let tauri::RunEvent::Opened { ref urls } = event {
-                project_open::opened(app, urls.iter().filter_map(|url| url.to_file_path().ok()).map(|path| path.to_string_lossy().into_owned()).collect());
+                project_open::opened(
+                    app,
+                    urls.iter()
+                        .filter_map(|url| url.to_file_path().ok())
+                        .map(|path| path.to_string_lossy().into_owned())
+                        .collect(),
+                );
             }
             if let tauri::RunEvent::Exit = event {
                 if let Ok(mut backend) = app.state::<Bridge>().0.lock() {

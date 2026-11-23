@@ -1,32 +1,18 @@
 """Worksheet helpers (lenient numbers, cell previews, ranges) and mapped schedule/resource import."""
 
-from pathlib import Path
+import ast
 import re
+from pathlib import Path
+
 from openpyxl import load_workbook
-from estimator.data.schedule import Currency, ScheduleItemModel, ResourceItemModel
+
+from estimator.data.schedule import Currency, ResourceItemModel, ScheduleItemModel
+
 from .numbers import decimal
 
 FIELDS = {
-    "schedule": (
-        "code",
-        "description",
-        "unit",
-        "rate",
-        "qty",
-        "remarks",
-        "category",
-        "parent",
-    ),
-    "resources": (
-        "code",
-        "description",
-        "unit",
-        "rate",
-        "vat",
-        "discount",
-        "reference",
-        "category",
-    ),
+    "schedule": ("code", "description", "unit", "rate", "qty", "remarks", "category", "parent"),
+    "resources": ("code", "description", "unit", "rate", "vat", "discount", "reference", "category"),
 }
 
 
@@ -41,14 +27,22 @@ def loose_number(value):
         return decimal("0") if value is None else None
     if isinstance(value, (int, float)):
         from decimal import Decimal
+
         return Decimal(repr(value)) if isinstance(value, float) else Decimal(value)
-    text = str(value).strip().replace(",", "").replace("\u00a0", "")
+    text = str(value).strip().replace("\u00a0", "")
     text = _CURRENCY.sub("", text).rstrip("%").strip()
     if text in ("", "-", "–", "—", "nil", "Nil", "NIL"):
         return decimal("0")
     try:
+        if "," in text:
+            if len(text) > 200:
+                return None
+            # Function commas separate arguments; plain numbers may use grouping commas.
+            tree = ast.parse(text.lstrip("="), mode="eval")
+            if not any(isinstance(node, ast.Call) for node in ast.walk(tree)):
+                text = text.replace(",", "")
         return decimal(text.lstrip("="))
-    except ValueError:
+    except (ValueError, SyntaxError, RecursionError):
         return None
 
 
@@ -56,9 +50,13 @@ def selected_rows(params, width, *, cached=False):
     first = params.get("first_row", 1)
     last = params.get("last_row")
     column = params.get("first_column", 1)
-    if (type(first) is not int or first < 1 or type(column) is not int
-            or not 1 <= column <= 101 - width or (last is not None and
-            (type(last) is not int or not first <= last < first + 10000))):
+    if (
+        type(first) is not int
+        or first < 1
+        or type(column) is not int
+        or not 1 <= column <= 101 - width
+        or (last is not None and (type(last) is not int or not first <= last < first + 10000))
+    ):
         raise ValueError("Choose a valid spreadsheet range")
     path = Path(params["path"]).resolve(strict=True)
     book = load_workbook(path, read_only=True, data_only=cached)
@@ -70,10 +68,9 @@ def selected_rows(params, width, *, cached=False):
         end = min(last, sheet.max_row) if last and sheet.max_row else last or sheet.max_row
         if end is None or end >= first + 10000:
             raise ValueError("Select at most 10,000 rows")
-        return list(sheet.iter_rows(
-            min_row=first, max_row=end, min_col=column,
-            max_col=column + width - 1, values_only=True,
-        ))
+        return list(
+            sheet.iter_rows(min_row=first, max_row=end, min_col=column, max_col=column + width - 1, values_only=True)
+        )
     finally:
         book.close()
 
@@ -82,8 +79,13 @@ def data_range(params):
     start = params.get("header_row", 1)
     first = params.get("first_row", start + 1)
     last = params.get("last_row")
-    if (type(start) is not int or not 1 <= start <= 1_000_000 or type(first) is not int or first <= start
-            or (last is not None and (type(last) is not int or last < first))):
+    if (
+        type(start) is not int
+        or not 1 <= start <= 1_000_000
+        or type(first) is not int
+        or first <= start
+        or (last is not None and (type(last) is not int or last < first))
+    ):
         raise ValueError("Choose a header row followed by a valid data row range")
     return start, first, last
 
@@ -101,15 +103,39 @@ def rows(params, *, cached=False):
         if (sheet.max_column or 0) > 100 or end - first >= 10000:
             raise ValueError("Import at most 10,000 rows and 100 columns; narrow the row range")
         headers = [str(v or "") for v in next(sheet.iter_rows(min_row=start, max_row=start, values_only=True), ())]
-        records = list(sheet.iter_rows(min_row=first, max_row=max(end, first - 1), values_only=True)) if end >= first else []
+        records = (
+            list(sheet.iter_rows(min_row=first, max_row=max(end, first - 1), values_only=True)) if end >= first else []
+        )
         return book.sheetnames, headers, records
     finally:
         book.close()
 
 
 HEADER_ALIASES = {
-    "code": ("code", "item code", "item no", "item number", "sl no", "s no", "si no", "serial no", "no", "code no", "dsr code", "ref no"),
-    "description": ("description", "particulars", "item description", "description of item", "description of work", "item", "name", "work"),
+    "code": (
+        "code",
+        "item code",
+        "item no",
+        "item number",
+        "sl no",
+        "s no",
+        "si no",
+        "serial no",
+        "no",
+        "code no",
+        "dsr code",
+        "ref no",
+    ),
+    "description": (
+        "description",
+        "particulars",
+        "item description",
+        "description of item",
+        "description of work",
+        "item",
+        "name",
+        "work",
+    ),
     "unit": ("unit", "units", "uom"),
     "rate": ("rate", "basic rate", "unit rate", "price"),
     "qty": ("qty", "quantity", "qnty", "nos"),
@@ -130,9 +156,21 @@ def header_key(text):
 
 HEADER_LOOKUP = {alias: field for field, aliases in HEADER_ALIASES.items() for alias in aliases}
 # Prefixes tolerate misspelt or extended headers ("Descpription", "Quantity (cum)", "Sr. No.").
-HEADER_PREFIXES = (("desc", "description"), ("particul", "description"), ("quant", "qty"), ("qty", "qty"),
-                   ("sr no", "code"), ("sl no", "code"), ("s no", "code"), ("item no", "code"), ("code", "code"),
-                   ("remark", "remarks"), ("unit rate", "rate"), ("rate", "rate"), ("unit", "unit"))
+HEADER_PREFIXES = (
+    ("desc", "description"),
+    ("particul", "description"),
+    ("quant", "qty"),
+    ("qty", "qty"),
+    ("sr no", "code"),
+    ("sl no", "code"),
+    ("s no", "code"),
+    ("item no", "code"),
+    ("code", "code"),
+    ("remark", "remarks"),
+    ("unit rate", "rate"),
+    ("rate", "rate"),
+    ("unit", "unit"),
+)
 
 
 def header_field(text):
@@ -146,8 +184,11 @@ def is_header_row(values):
     """True for a row whose code (and description) cells are column names."""
     code = values.get("code", "")
     description = values.get("description")
-    return (bool(code.strip()) and header_field(code) == "code"
-            and (description is None or header_field(description) == "description"))
+    return (
+        bool(code.strip())
+        and header_field(code) == "code"
+        and (description is None or header_field(description) == "description")
+    )
 
 
 def preview(params):
@@ -160,7 +201,10 @@ def preview(params):
     return dict(
         sheets=sheets,
         headers=headers,
-        rows=[[("%.12g" % v if isinstance(v, float) else str(v)) if v is not None else "" for v in row] for row in records[:12]],
+        rows=[
+            [("%.12g" % v if isinstance(v, float) else str(v)) if v is not None else "" for v in row]
+            for row in records[:12]
+        ],
         mapping=mapping,
     )
 
@@ -172,6 +216,7 @@ def deduce_hierarchy(entries, mapped_category):
     rows continue them); a priced item whose code extends the heading's code
     (1.1.1 under 1.1) becomes its subitem. Headings are added with their first
     priced subitem, using the joined heading descriptions."""
+
     def text(values, field):
         return (values.get(field) or "").strip()
 
@@ -186,7 +231,13 @@ def deduce_hierarchy(entries, mapped_category):
     while index < len(entries):
         number, values, numbers = entries[index]
         code, description, unit = text(values, "code"), text(values, "description"), text(values, "unit")
-        if not code and description and not unit and description.upper() == description and any(ch.isalpha() for ch in description):
+        if (
+            not code
+            and description
+            and not unit
+            and description.upper() == description
+            and any(ch.isalpha() for ch in description)
+        ):
             category, parent = description, None
             codes.clear()
             descriptions.clear()
@@ -199,9 +250,12 @@ def deduce_hierarchy(entries, mapped_category):
         last = index
         if not unit and not numbers.get("rate"):
             # Multi-line description: following rows without a code (lowercase text).
-            while (last + 1 < len(entries) and not text(entries[last + 1][1], "code")
-                   and text(entries[last + 1][1], "description")
-                   and text(entries[last + 1][1], "description").upper() != text(entries[last + 1][1], "description")):
+            while (
+                last + 1 < len(entries)
+                and not text(entries[last + 1][1], "code")
+                and text(entries[last + 1][1], "description")
+                and text(entries[last + 1][1], "description").upper() != text(entries[last + 1][1], "description")
+            ):
                 last += 1
                 description += "\n" + text(entries[last][1], "description")
         final_number, final, final_numbers = entries[last]
@@ -209,12 +263,14 @@ def deduce_hierarchy(entries, mapped_category):
         # A priced row is an item even when the sheet leaves its unit blank.
         # A row with a unit but no rate followed by its own subitem code is a
         # heading (printed books sometimes put the unit on the heading: 1.14).
-        following = next((text(entry[1], "code") for entry in entries[last + 1:] if text(entry[1], "code")), "")
+        following = next((text(entry[1], "code") for entry in entries[last + 1 :] if text(entry[1], "code")), "")
         heads = following.split(".")[:-1] == code.split(".")
         priced = bool(final_numbers.get("rate")) or (bool(unit) and not heads)
 
         def item(item_code, item_description, item_unit, source, source_numbers, item_parent):
-            values = dict(source, code=item_code, description=item_description, unit=item_unit, parent=item_parent or "")
+            values = dict(
+                source, code=item_code, description=item_description, unit=item_unit, parent=item_parent or ""
+            )
             if not mapped_category or not text(source, "category"):
                 values["category"] = category
             return values, dict(source_numbers)
@@ -240,7 +296,9 @@ def deduce_hierarchy(entries, mapped_category):
                 for level, heading_code in enumerate(codes):
                     if heading_code in emitted:
                         continue
-                    heading, heading_numbers = item(heading_code, "\n".join(descriptions[:level + 1]), "", sources[level], {}, None)
+                    heading, heading_numbers = item(
+                        heading_code, "\n".join(descriptions[: level + 1]), "", sources[level], {}, None
+                    )
                     heading.update(rate="0", qty="0")
                     result.append((final_number, heading, dict(rate=decimal("0"), qty=decimal("0"))))
                     emitted.add(heading_code)
@@ -273,11 +331,7 @@ def apply(editor, params, progress):
     _, _, cached_records = rows(params, cached=True)
     warnings = []
     for field, index in mapping.items():
-        if (
-            field not in FIELDS[kind]
-            or type(index) is not int
-            or not 0 <= index < len(headers)
-        ):
+        if field not in FIELDS[kind] or type(index) is not int or not 0 <= index < len(headers):
             raise ValueError("Invalid mapped column")
     db = editor.db
     table = db.ResourceTable if kind == "resources" else db.ScheduleTable
@@ -290,7 +344,12 @@ def apply(editor, params, progress):
         values = {}
         for field, index in mapping.items():
             raw = row[index]
-            if isinstance(raw, str) and raw.startswith("=") and saved[index] is not None and field not in ("rate", "vat", "discount", "qty"):
+            if (
+                isinstance(raw, str)
+                and raw.startswith("=")
+                and saved[index] is not None
+                and field not in ("rate", "vat", "discount", "qty")
+            ):
                 raw = saved[index]
             values[field] = ("%.12g" % raw if isinstance(raw, float) else str(raw)) if raw is not None else ""
         if is_header_row(values):
@@ -305,7 +364,9 @@ def apply(editor, params, progress):
             parsed = loose_number(value) if formula and value is not None else loose_number(raw)
             if parsed is None:
                 if values.get("code", "").strip():
-                    warnings.append(f"Row {number} ({values.get('code', '').strip()}): {field} '{raw}' is not a number; imported as 0")
+                    warnings.append(
+                        f"Row {number} ({values.get('code', '').strip()}): {field} '{raw}' is not a number; imported as 0"
+                    )
                 parsed = decimal("0")
             numbers[field] = parsed
         entries.append((number, values, numbers))
@@ -327,16 +388,10 @@ def apply(editor, params, progress):
             raise ValueError(f"Row {number}: code {code} already exists")
         try:
             model = (
-                (
-                    db.get_resource(code)
-                    if kind == "resources"
-                    else db.get_item(code, modify_res_code=False)
-                )
+                (db.get_resource(code) if kind == "resources" else db.get_item(code, modify_res_code=False))
                 if existing
                 else (
-                    ResourceItemModel(
-                        code, "", "", Currency(0), Currency(0), Currency(0)
-                    )
+                    ResourceItemModel(code, "", "", Currency(0), Currency(0), Currency(0))
                     if kind == "resources"
                     else ScheduleItemModel(code, "", "", Currency(0), decimal("0"))
                 )
@@ -348,24 +403,13 @@ def apply(editor, params, progress):
                     value = round(numbers[field], 4)
                 elif field == "parent":
                     value = value or None
-                    if (
-                        value
-                        and not db.ScheduleTable.select()
-                        .where(db.ScheduleTable.code == value)
-                        .exists()
-                    ):
+                    if value and not db.ScheduleTable.select().where(db.ScheduleTable.code == value).exists():
                         raise ValueError("Parent code not found")
-                    ancestor = (
-                        db.ScheduleTable.get_or_none(db.ScheduleTable.code == value)
-                        if value
-                        else None
-                    )
+                    ancestor = db.ScheduleTable.get_or_none(db.ScheduleTable.code == value) if value else None
                     seen = {code}
                     while ancestor:
                         if ancestor.code in seen:
-                            raise ValueError(
-                                "Schedule hierarchy cannot contain a cycle"
-                            )
+                            raise ValueError("Schedule hierarchy cannot contain a cycle")
                         seen.add(ancestor.code)
                         ancestor = ancestor.parent
                 setattr(model, field, value)
@@ -379,25 +423,11 @@ def apply(editor, params, progress):
                     else:
                         result = True
                         for column, field in enumerate(
-                            (
-                                "description",
-                                "unit",
-                                "rate",
-                                "vat",
-                                "discount",
-                                "reference",
-                            ),
-                            1,
+                            ("description", "unit", "rate", "vat", "discount", "reference"), 1
                         ):
                             if getattr(old, field) != getattr(model, field):
                                 result = (
-                                    bool(
-                                        db.update_resource(
-                                            code,
-                                            newvalue=getattr(model, field),
-                                            column=column,
-                                        )
-                                    )
+                                    bool(db.update_resource(code, newvalue=getattr(model, field), column=column))
                                     and result
                                 )
                 else:
@@ -435,9 +465,14 @@ def sheet_preview(params):
         width = min(sheet.max_column or 1, 40)
         cells = []
         for row in sheet.iter_rows(min_row=1, max_row=min(sheet.max_row or 1, limit), max_col=width, values_only=True):
-            cells.append(["" if value is None else ("%.12g" % value if isinstance(value, float) else str(value)) for value in row])
-        return dict(sheets=book.sheetnames, sheet=name, rows=cells, max_row=sheet.max_row or 0, max_column=sheet.max_column or 0)
+            cells.append(
+                [
+                    "" if value is None else ("%.12g" % value if isinstance(value, float) else str(value))
+                    for value in row
+                ]
+            )
+        return dict(
+            sheets=book.sheetnames, sheet=name, rows=cells, max_row=sheet.max_row or 0, max_column=sheet.max_column or 0
+        )
     finally:
         book.close()
-
-

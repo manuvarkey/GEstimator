@@ -22,6 +22,8 @@
 #
 #
 
+from estimator.arithmetic import evaluate_number
+
 # Item codes for schedule dialog * DONT CHANGE *
 MEAS_NO = 1
 MEAS_L = 2
@@ -31,13 +33,13 @@ MEAS_CUST = 4
 
 class CustomItem:
     def __init__(self):
-        def callback_total_item(values,row=None):
+        def callback_total_item(values, row=None):
             # Populate data values
             data_str = values[1:6]
             data = []
             for x in data_str:
                 try:
-                    num = int(eval(x))
+                    num = int(evaluate_number(x))
                     data.append(num)
                 except:
                     data.append(0)
@@ -46,16 +48,16 @@ class CustomItem:
             for x in data:
                 total += x
             if len(data) == 0:
-                return '0'
+                return "0"
             else:
                 return str(total)
 
-        def total_func(item_list,userdata=None):
+        def total_func(item_list, userdata=None):
             total = [0]
             for item in item_list:
                 if item is not None:
                     total[0] += item.find_total()[0]
-            total[0] = round(total[0],3)
+            total[0] = round(total[0], 3)
             return total
 
         def total_func_item(values):
@@ -71,11 +73,11 @@ class CustomItem:
                 return [total]
 
         # Define your variables here
-        self.name = 'Elec: Table of Points'
+        self.name = "Elec: Table of Points"
         self.itemnos_mask = [None]
         self.itemnos_mapping = [None]
-        self.captions = ['Description','Lights','Fans','Ex.Fans','Call Bells','Other','Total']
-        self.columntypes = [MEAS_DESC,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_NO,MEAS_CUST]
+        self.captions = ["Description", "Lights", "Fans", "Ex.Fans", "Call Bells", "Other", "Total"]
+        self.columntypes = [MEAS_DESC, MEAS_NO, MEAS_NO, MEAS_NO, MEAS_NO, MEAS_NO, MEAS_CUST]
         self.captions_udata = []
         self.columntypes_udata = []
         self.user_data_default = []
@@ -83,4 +85,4 @@ class CustomItem:
         self.cust_funcs = [None, None, None, None, None, None, callback_total_item]
         self.total_func = total_func
         self.total_func_item = total_func_item
-        self.dimensions = [[200,80,80,80,80,80,100], [True,False,False,False,False,False,False]]
+        self.dimensions = [[200, 80, 80, 80, 80, 80, 100], [True, False, False, False, False, False, False]]

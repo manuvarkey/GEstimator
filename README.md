@@ -62,3 +62,9 @@ npm run --prefix modern tauri -- build
 ```
 
 Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. The Flatpak builds from source (`packaging/flathub`, the manifest used by Flathub); the Snap (`snapcraft.yaml`) repackages the Linux `.deb`.
+
+For contributions, follow [AGENTS.md](AGENTS.md), the
+[development guidelines](docs/development-guidelines.md) and the
+[repository quality audit](docs/code-quality-audit.md). The
+[Code quality workflow](.github/workflows/quality.yml) checks changed-file
+formatting, backend tests, frontend builds, browser workflows and native Rust code.

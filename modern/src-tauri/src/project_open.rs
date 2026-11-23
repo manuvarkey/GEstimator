@@ -36,21 +36,36 @@ impl Queue {
     }
 }
 pub fn launch(app: &tauri::AppHandle, paths: Vec<String>) {
-    if let Ok(mut queue) = app.state::<Pending>().0.lock() { queue.launch(paths); }
+    if let Ok(mut queue) = app.state::<Pending>().0.lock() {
+        queue.launch(paths);
+    }
 }
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub fn opened(app: &tauri::AppHandle, paths: Vec<String>) {
-    if let Ok(mut queue) = app.state::<Pending>().0.lock() { queue.opened(paths); }
+    if let Ok(mut queue) = app.state::<Pending>().0.lock() {
+        queue.opened(paths);
+    }
     let _ = app.emit("project-open-available", ());
 }
 
 pub fn arguments(args: impl IntoIterator<Item = String>, cwd: &Path) -> Vec<String> {
-    args.into_iter().filter(|arg| !arg.is_empty() && !arg.starts_with('-') && !arg.contains('\0') && Path::new(arg).extension().is_some_and(|ext| ext.eq_ignore_ascii_case("eproj")))
-        .map(|arg| cwd.join(arg).to_string_lossy().into_owned()).collect()
+    args.into_iter()
+        .filter(|arg| {
+            !arg.is_empty()
+                && !arg.starts_with('-')
+                && !arg.contains('\0')
+                && Path::new(arg)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("eproj"))
+        })
+        .map(|arg| cwd.join(arg).to_string_lossy().into_owned())
+        .collect()
 }
 
 pub fn enqueue(app: &tauri::AppHandle, paths: Vec<String>) {
-    if paths.is_empty() { return; }
+    if paths.is_empty() {
+        return;
+    }
     if let Ok(mut pending) = app.state::<Pending>().0.lock() {
         pending.paths.extend(paths);
     }
@@ -84,13 +99,23 @@ mod tests {
     }
     #[test]
     fn ignores_options_empty_nonprojects_and_nul() {
-        let args = ["", "--help", "-psn_0_123", "--project=a.eproj", "notes.txt", "bad\0.eproj"];
+        let args = [
+            "",
+            "--help",
+            "-psn_0_123",
+            "--project=a.eproj",
+            "notes.txt",
+            "bad\0.eproj",
+        ];
         assert!(arguments(args.map(str::to_owned), Path::new("/work")).is_empty());
     }
     #[test]
     fn accepts_missing_projects_for_backend_validation_and_uppercase_extension() {
         let cwd = std::env::current_dir().unwrap();
-        assert_eq!(arguments(["missing.EPROJ".to_owned()], &cwd), vec![cwd.join("missing.EPROJ").to_string_lossy().into_owned()]);
+        assert_eq!(
+            arguments(["missing.EPROJ".to_owned()], &cwd),
+            vec![cwd.join("missing.EPROJ").to_string_lossy().into_owned()]
+        );
     }
     #[test]
     fn preserves_spaces_and_resolves_sender_directory() {
@@ -98,8 +123,18 @@ mod tests {
         let absolute = cwd.join("other.eproj");
         assert!(absolute.is_absolute());
         assert_eq!(
-            arguments(vec!["--flag".into(), "My estimate.eproj".into(), absolute.to_string_lossy().into_owned()], &cwd),
-            vec![cwd.join("My estimate.eproj").to_string_lossy().into_owned(), absolute.to_string_lossy().into_owned()],
+            arguments(
+                vec![
+                    "--flag".into(),
+                    "My estimate.eproj".into(),
+                    absolute.to_string_lossy().into_owned()
+                ],
+                &cwd
+            ),
+            vec![
+                cwd.join("My estimate.eproj").to_string_lossy().into_owned(),
+                absolute.to_string_lossy().into_owned()
+            ],
         );
     }
 }

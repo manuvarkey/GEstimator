@@ -1,9 +1,10 @@
-import json
 import copy
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+
 from estimator import misc
 from estimator.data.measurement import MeasurementItemCustom
 from estimator.data.template_loader import _load, load_template
@@ -46,7 +47,12 @@ class EditorParity(unittest.TestCase):
         trailing = self.call("schedule.editor.defaults", category="Work")
         self.assertEqual(trailing["code"], self.service.db.get_next_item_code("1.3"))
         root = self.call("schedule.editor.defaults", category="New category")
-        self.assertEqual(root["code"], self.service.db.get_next_item_code(str(self.service.db.ScheduleCategoryTable.select().count() + 1), nextlevel=True))
+        self.assertEqual(
+            root["code"],
+            self.service.db.get_next_item_code(
+                str(self.service.db.ScheduleCategoryTable.select().count() + 1), nextlevel=True
+            ),
+        )
 
     def test_schedule_keeps_two_levels(self):
         # The schedule stores items and subitems only (order, suborder).
@@ -60,14 +66,21 @@ class EditorParity(unittest.TestCase):
         self.call("schedule.editor.add", id=first, ids=[first], data=defaults)
         table = self.service.db.ScheduleTable
         parent = table.get(code="1")
-        self.assertEqual([row.code for row in table.select().where(table.parent == parent.id).order_by(table.suborder)], ["1.1", "1.2", "1.3"])
-        self.assertFalse(table.select().where(table.parent.in_(table.select(table.id).where(table.parent.is_null(False)))).exists())
+        self.assertEqual(
+            [row.code for row in table.select().where(table.parent == parent.id).order_by(table.suborder)],
+            ["1.1", "1.2", "1.3"],
+        )
+        self.assertFalse(
+            table.select().where(table.parent.in_(table.select(table.id).where(table.parent.is_null(False)))).exists()
+        )
         with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
             self.add("9", parent="1.1")
         with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
             self.call("schedule.editor.defaults", parent="1.1")
         with self.assertRaisesRegex(ValueError, "Subitem 1.1 cannot have subitems"):
-            self.call("schedule.editor.edit_many", edits=[dict(id=str(table.get(code="1.3").id), field="parent", value="1.1")])
+            self.call(
+                "schedule.editor.edit_many", edits=[dict(id=str(table.get(code="1.3").id), field="parent", value="1.1")]
+            )
         with self.assertRaisesRegex(ValueError, "Item 2 has subitems and cannot become a subitem"):
             self.call("schedule.editor.edit_many", edits=[dict(id=other, field="parent", value="1")])
         self.assertIsNone(table.get(code="2").parent)
@@ -81,14 +94,19 @@ class EditorParity(unittest.TestCase):
         self.call("schedule.editor.add", id=parent, data=dict(code="1.0", parent="1"))
         self.call("schedule.editor.duplicate", id=first, data=dict(code="1.2"))
         table = self.service.db.ScheduleTable
-        self.assertEqual([row.code for row in table.select().where(table.parent == int(parent)).order_by(table.suborder)], ["1.0", "1.1", "1.2"])
+        self.assertEqual(
+            [row.code for row in table.select().where(table.parent == int(parent)).order_by(table.suborder)],
+            ["1.0", "1.1", "1.2"],
+        )
         state = self.call("schedule.editor.state")
         self.assertEqual([row["code"] for row in state["rows"][0]["_children"][0]["_children"]], ["1.0", "1.1", "1.2"])
         wire = self.call("clipboard.export", kind="schedule", ids=[first])
         self.call("clipboard.paste", kind="schedule", data=wire, id=parent)
         # GTK: a subitem pasted on a priced (non-heading) main item follows it as a
         # main item, numbered from the selection ("2" exists, so the "_" fallback).
-        self.assertEqual([row.code for row in table.select().where(table.parent.is_null()).order_by(table.order)], ["1", "_1", "2"])
+        self.assertEqual(
+            [row.code for row in table.select().where(table.parent.is_null()).order_by(table.order)], ["1", "_1", "2"]
+        )
         self.call("project.undo")
         self.assertFalse(table.select().where(table.code == "_1").exists())
 
@@ -130,13 +148,23 @@ class EditorParity(unittest.TestCase):
     def test_inserted_row_can_be_revealed_on_another_page_without_scanning_in_python(self):
         identity = None
         for index in range(105):
-            identity = self.call("resources.editor.add", data=dict(code="R" + str(index), category="Materials"))["selected"][0]
+            identity = self.call("resources.editor.add", data=dict(code="R" + str(index), category="Materials"))[
+                "selected"
+            ][0]
         state = self.call("resources.editor.state", reveal_id=identity)
         self.assertEqual((state["offset"], state["total"]), (100, 105))
         self.assertIn(identity, [row["id"] for category in state["rows"] for row in category["_children"]])
 
     def test_type_ahead_find_continues_on_other_pages_and_wraps(self):
-        ids = [self.call("resources.editor.add", data=dict(code="R" + str(index), category="Materials", description="Cement" if index in (3, 104) else "Sand"))["selected"][0] for index in range(105)]
+        ids = [
+            self.call(
+                "resources.editor.add",
+                data=dict(
+                    code="R" + str(index), category="Materials", description="Cement" if index in (3, 104) else "Sand"
+                ),
+            )["selected"][0]
+            for index in range(105)
+        ]
         state = self.call("resources.editor.state", find="cement", find_from=ids[99], find_direction=1)
         self.assertEqual((state["found_id"], state["offset"]), (ids[104], 100))
         self.assertIn(ids[104], [row["id"] for category in state["rows"] for row in category["_children"]])
@@ -155,9 +183,16 @@ class EditorParity(unittest.TestCase):
         self.call("measurement.record_add", id=identity, count=120)
         detail = self.call("measurement.state", id=identity)["detail"]
         self.assertEqual((len(detail["rows"]), detail["total_records"]), (100, 120))
-        edits = [dict(id=row["id"], field=field, value=value) for row in detail["rows"] for field, value in (("c2", "2*3"), ("c3", "4"))]
+        edits = [
+            dict(id=row["id"], field=field, value=value)
+            for row in detail["rows"]
+            for field, value in (("c2", "2*3"), ("c3", "4"))
+        ]
         db = self.service.db
-        with patch.object(db, "get_measurement", wraps=db.get_measurement) as get, patch.object(db, "set_measurement", wraps=db.set_measurement) as put:
+        with (
+            patch.object(db, "get_measurement", wraps=db.get_measurement) as get,
+            patch.object(db, "set_measurement", wraps=db.set_measurement) as put,
+        ):
             self.call("measurement.record_edit_many", id=identity, edits=edits)
         self.assertEqual((get.call_count, put.call_count), (1, 1))
         self.assertEqual(self.call("measurement.state", id=identity)["detail"]["totals"], ["2400"])
@@ -178,7 +213,11 @@ class EditorParity(unittest.TestCase):
         self.add("A", description="Linked work", unit="kg")
         identity = self.measure("civil_steel_table")
         state = self.call("measurement.state", id=identity)
-        properties = dict(description="Edited", links=[dict(code="A", remark="Rebar")], user_data=[field["value"] for field in state["detail"]["user_data"]])
+        properties = dict(
+            description="Edited",
+            links=[dict(code="A", remark="Rebar")],
+            user_data=[field["value"] for field in state["detail"]["user_data"]],
+        )
         properties["user_data"][0] = "Custom label <b>"
         properties["user_data"][6] = "2*3"
         bad = copy.deepcopy(properties)
@@ -214,7 +253,7 @@ class EditorParity(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             template = Path(folder) / "custom.py"
             template.write_text("VALUE = 1\n")
-            with patch("estimator.data.template_loader.misc.abs_path", return_value=str(template)):
+            with patch("estimator.data.template_loader.misc.abs_path", return_value=folder):
                 self.assertEqual(load_template("custom").VALUE, 1)
                 template.write_text("VALUE = 2\n")
                 self.assertEqual(load_template("custom").VALUE, 2)
@@ -225,9 +264,15 @@ class EditorParity(unittest.TestCase):
         identity = self.measure()
         self.call("measurement.record_add", id=identity, count=3)
         ids = [row["id"] for row in self.call("measurement.state", id=identity)["detail"]["rows"]]
-        self.call("measurement.record_edit_many", id=identity, edits=[dict(id=key, field="c0", value=value) for key, value in zip(ids, ("A", "B", "C"))])
+        self.call(
+            "measurement.record_edit_many",
+            id=identity,
+            edits=[dict(id=key, field="c0", value=value) for key, value in zip(ids, ("A", "B", "C"))],
+        )
+
         def descriptions():
             return [row["c0"] for row in self.call("measurement.state", id=identity)["detail"]["rows"]]
+
         wire = self.call("clipboard.export", kind="records", id=identity, record_ids=[ids[2], ids[0]])
         self.call("clipboard.paste", kind="records", id=identity, record_id=ids[1], data=wire)
         self.assertEqual(descriptions(), ["A", "B", "A", "C", "C"])
@@ -251,7 +296,10 @@ class EditorParity(unittest.TestCase):
         self.call("resources.editor.move_to", ids=[second, first], category="Moved")
         table = self.service.db.ResourceTable
         rows = list(table.select().order_by(table.order))
-        self.assertEqual([(str(row.id), row.code, row.category.description) for row in rows], [(first, "R1", "Moved"), (second, "R2", "Moved")])
+        self.assertEqual(
+            [(str(row.id), row.code, row.category.description) for row in rows],
+            [(first, "R1", "Moved"), (second, "R2", "Moved")],
+        )
         self.call("project.undo")
         self.assertEqual(self.call("resources.editor.state")["rows"], before["rows"])
 
@@ -259,7 +307,10 @@ class EditorParity(unittest.TestCase):
         source = Service()
         self.addCleanup(source.close)
         source.call("project.new", {})
-        source.call("schedule.editor.add", dict(revision=source.revision, data=dict(code="LIB", description="Library work", category="Library")))
+        source.call(
+            "schedule.editor.add",
+            dict(revision=source.revision, data=dict(code="LIB", description="Library work", category="Library")),
+        )
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "library.eproj"
             source.call("project.save_copy", dict(path=str(path)))

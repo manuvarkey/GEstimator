@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["E302", "E303", "I"]
+preview = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false

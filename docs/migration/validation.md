@@ -785,3 +785,105 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - New SUB ANALYSIS dependencies import with quantity zero. The libraries can store quantity one on the original item. The selected schedule item still retains its source quantity until measured or edited.
 - `get_state` reports the active MCP enable flag. Quantity recalculation reports the number of schedule quantities whose values actually changed.
 - In the security shed transcript, a duplicate-code error using `on_conflict=error` rolled back the whole batch. The retry with `rename` succeeded. Replaying the workflow over HTTP without the client's 21 quantity corrections reproduced the saved project total of 1,649,144.00, all 164 schedule codes, rates and quantities, and the 87 serialized measurements. SQLite integrity and foreign-key checks passed.
+
+## 2026-11-23 — Repository code quality audit and measurement extraction
+
+- Added the [repository audit](../code-quality-audit.md) with resolved findings,
+  explicit follow-up debt and review limits. Root `AGENTS.md` now records
+  layering, transaction/draft ownership, modularity review triggers, safe input
+  handling and explanatory comments in simple English. Ruff matches the supplied
+  FreeCAD-HVAC rules; Prettier, rustfmt, EditorConfig and Git attributes provide
+  compatible formatting for the other source languages.
+- Added pinned development tooling, `tools/check_quality.py` for changed-file
+  checks (including branch changes with `--base`) and a PR/master quality
+  workflow. The workflow definition is added as source for review; a hosted
+  GitHub Actions run has not been observed in this local task.
+- Extracted measurement views/item edits into `backend/measurements.py` and
+  record edits into `backend/measurement_records.py`. `ProjectEditor` retains
+  its public methods, transaction boundaries and draft-aware access. The state,
+  batch and import-preview extractions were also compared by normalized AST
+  with their original implementations; only documentation, names and import
+  placement differ.
+- Replaced direct `eval` in measurement loading, installed template callbacks
+  and worksheet numeric entry with bounded arithmetic. Legacy integer/float
+  semantics remain; financial entry still uses Decimal. Arbitrary Python,
+  non-finite numbers, excessive syntax/powers and intermediate magnitudes over
+  `1e12` are now rejected. Loaded invalid numeric cells keep their raw text and
+  use zero/blank fallback. Template loading now rejects path-like names and
+  symlink escapes before reading source.
+- Validation on Windows: `python -m unittest discover -s tests` ran **213 tests,
+  OK, two skipped** (symlink creation unavailable). Changed-file Ruff lint and
+  format checks, Prettier and `cargo fmt --check` passed. An additional unused
+  import/undefined-name check passed on the extracted/new backend code.
+  `npm run build` passed, including `vue-tsc`; Vite's existing 1.25 MB entry
+  chunk warning remains recorded as debt. `cargo test --locked` passed all five
+  tests; `cargo clippy --locked --all-targets -- -D warnings` passed.
+- Browser regression suite: **89 passed, one skipped**, in 8.0 minutes, using
+  the installed Chrome executable with
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE=C:\Program Files\Google\Chrome\Application\chrome.exe`.
+  The real Python transport, measurement drafts, table editing and project-tab
+  workflows all completed; native OS dialogs are outside this browser bridge.
+- Compared the pre-change engine and template sources from Git HEAD against
+  the new implementation: 24 expression records across all eight templates
+  matched rendered cells and totals; two additional duct records matched
+  nonzero areas. Fixed reference totals are retained in `test_arithmetic.py`.
+  Payload tests assert that unsafe record/worksheet text never calls `open`.
+  Existing tests cover drafts, undo/redo, imports, MCP and workbook signatures.
+- Rebuilt the native Python sidecar. From a temporary directory outside the
+  repository, the frozen executable listed eight templates, created/edited a
+  measurement, evaluated `2*3`, exported a workbook and shut down successfully.
+  PyInstaller still reports the platform-guarded macOS framework references
+  while building on Windows; this did not prevent the build or smoke test.
+- Native Linux/macOS window behavior and new installer installation were not
+  exercised. This audit does not claim exhaustive malformed-file coverage or
+  a clean whole-tree formatting baseline for untouched legacy sources.
+
+## 2026-11-23 — Mathematical functions and constants in numeric expressions
+
+- Extended the explicit expression function list with `abs`, `max`, `min`,
+  `sqrt`, `cbrt`, `ceil`, `floor`, `trunc`, `round`, `sin`, `cos`, `tan`,
+  `asin`, `acos`, `atan`, `exp`, `log`, `log10`, `degrees` and `radians`.
+  Constants `pi` and `e` are available directly. Powers (`**`) now also accept
+  fractional exponents when the result is real; the exponent bound remains
+  -12 through 12. Trigonometry uses radians. `log(x, base)` and
+  `round(x, digits)` accept their optional positional arguments; round digits
+  must be integers between -12 and 12. `min`/`max` accept numeric arguments,
+  not arbitrary Python iterables.
+- `NumericExpression` now shares AST parsing, function dispatch and limits
+  between `evaluate_number` and modern Decimal entry. Measurement calculations
+  retain integer/float semantics. Financial literals and ordinary arithmetic
+  stay Decimal; Decimal roots/logs/exp are used where available. Trigonometric
+  approximations are converted back to Decimal for six-place entry rounding.
+  Function names are explicitly listed; attributes, keywords, starred
+  arguments, arbitrary names and Python execution remain rejected. Invalid
+  domains and non-finite, complex or oversized results raise validation errors.
+- Worksheet normalization retains commas inside calls such as `max(1, 2)` and
+  `round(1.2345, 2)` while still accepting grouped literals (`1,234.50`,
+  `1,00,000`) and currency prefixes. This prevents silently merging arguments
+  when importing numeric expression strings.
+- Added `test_math_expressions.py`: every requested function/constant in both
+  numeric modes, nested calls, fractional powers, precision, domains, invalid
+  syntax, work limits, MCP measurement entry, worksheet comma handling and
+  measurement apply/save/reopen. Original template golden totals still pass.
+  Browser assertions now edit a named-function expression in a measurement
+  record and in a schedule quantity cell. The touched browser test file was
+  also formatted with the required Prettier configuration.
+- Validation: full Python suite **219 tests, OK, two skipped**; all 41 project
+  editor tests and the focused mathematical-expression tests passed.
+  `npm run build`, changed-file Ruff/Prettier/rustfmt checks and an additional
+  unused-import/undefined-name check passed. The production bundle warning is
+  unchanged. The rebuilt frozen backend, run outside the repository, evaluated
+  nested functions, `pi`/`e`, negative cube roots, logarithms and fractional
+  powers, then exported a workbook and shut down cleanly.
+- Updated the [numeric-expression manual](../manual/README.md#numeric-expressions),
+  development guidelines and repository audit to describe the supported syntax
+  and retained bounds.
+- Browser verification: the full run had **88 passed, one skipped, one failed**.
+  Both new math-entry assertions passed. The failure was the MCP test's final
+  token-rotation restart: it fetched the endpoint immediately after clicking
+  Start, before the asynchronous command completed (`ECONNREFUSED`). The test
+  now waits for the existing Stop control to become enabled, matching its
+  earlier startup assertion. The corrected test passed **five consecutive
+  isolated repetitions**. No production MCP logic or automatic retries were
+  changed; the other 88 passing workflows were not rerun after this wait-only
+  test correction.

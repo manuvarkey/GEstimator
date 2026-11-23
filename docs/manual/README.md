@@ -151,6 +151,29 @@ When the measurements are complete, click **Update quantities** in the Measureme
 
 **Import records** brings dimensions in from a spreadsheet range, and **Properties** changes the template constants and links of a measurement.
 
+### Numeric expressions
+
+Numeric fields accept `+`, `-`, `*`, `/`, `//`, `%` and `**` (powers), parentheses,
+and the constants `pi` and `e`. Functions are called directly, such as `sqrt(9)`:
+
+- `abs`, `max`, `min`, `sqrt`, `cbrt`, `ceil`, `floor`, `trunc`, `round`
+- `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `degrees`, `radians`
+- `exp`, `log`, `log10`
+
+For example, use `pi*(0.3**2)/4` for a circular area or
+`max(sqrt(9), abs(-4)) + sin(pi/2)` for a nested expression. Trigonometric
+functions use radians; use `sin(radians(30))` for a 30-degree angle. `log(x)` is
+the natural logarithm; `log(x, base)` chooses a base. `round(x)` rounds to an
+integer, and `round(x, digits)` chooses the number of decimal places.
+`min` and `max` take one or more numeric arguments separated by commas.
+
+Expressions allow up to 200 characters. Power exponents and `round` digits
+are limited to -12 through 12; round digits must be integers. Intermediate
+values must be finite, real and no greater than `1e12` in magnitude. Functions
+accept positional arguments only. Computed entries in rate and quantity fields
+round to six decimal places; measurement records retain their expressions and
+use their template's calculation and display rounding.
+
 ## 8. Import from and export to Excel
 
 - **Import workbook** (Schedule or Resources ribbon) imports items or resources from a `.xlsx` sheet. Choose the sheet and header row, map columns to fields and check the preview, which lists every row that cannot be used.
