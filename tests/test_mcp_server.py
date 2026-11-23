@@ -95,7 +95,9 @@ class MCPServerTests(MCPFixture):
 
     def test_live_project_and_measurements_are_read_only(self):
         self.start()
-        self.assertFalse(self.tool("get_state")["structuredContent"]["data"]["project_open"])
+        initial = self.tool("get_state")["structuredContent"]["data"]
+        self.assertFalse(initial["project_open"])
+        self.assertTrue(initial["program_settings"]["mcp_enabled"])
         self.assertTrue(self.tool("browse", dict(kind="schedule"))["isError"])
         state = self.runtime.call("project.new")
         self.runtime.call("schedule.editor.add", dict(revision=state["revision"], data=dict(code="A", description="Live item", rate="17", category="Work")))

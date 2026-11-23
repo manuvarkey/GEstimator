@@ -192,7 +192,9 @@ class Workspace(Writes):
                 summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources",
                 **({"metadata": notes[:600] + ("…" if len(notes) > 600 else ""), "read_first": READ_NOTES} if notes or category_notes else {})))
         skills = [dict(skill=skill["skill"], description=skill["description"], read=f"describe_source section=skill:{skill['skill']}") for skill in mcp_skills.catalog()]
-        state = dict(start_here=START_HERE, skills=skills, project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=defaults(), sources=sources, available_sources=library_catalog())
+        program_settings = defaults()
+        program_settings["mcp_enabled"] = service.mcp.enabled
+        state = dict(start_here=START_HERE, skills=skills, project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=program_settings, sources=sources, available_sources=library_catalog())
         if service.db:
             db = service.db
             state.update(settings={k: v for k, v in db.get_project_settings().items() if k not in ("project_measurement", "project_metadata")},

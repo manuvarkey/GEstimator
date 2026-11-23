@@ -504,12 +504,14 @@ class Writes:
             if not codes:
                 return dict(changed=0)
             ids = self.ids("schedule", codes)
-            before = {row.code: str(row.rate or 0) for row in db.ScheduleTable.select()}
-            if what == "rates":
-                self.app("schedule.editor.update_rates", dict(ids=ids))
-            else:
+            if what == "quantities":
+                table = db.ScheduleTable
+                before_qty = dict(table.select(table.id, table.qty).tuples())
                 self.app("schedule.editor.update_quantities", dict(ids=ids, rounding=args.get("rounding", "Round to .000")))
+                return dict(changed=sum(qty != before_qty[identity] for identity, qty in table.select(table.id, table.qty).tuples()))
+            before = {row.code: str(row.rate or 0) for row in db.ScheduleTable.select()}
+            self.app("schedule.editor.update_rates", dict(ids=ids))
             differences = [dict(code=row.code, stored=before[row.code], recalculated=str(row.rate or 0)) for row in db.ScheduleTable.select() if str(row.rate or 0) != before[row.code]]
             warnings.extend(differences)
-            result = dict(changed=len(differences) if what == "rates" else len(codes))
+            result = dict(changed=len(differences))
         return result

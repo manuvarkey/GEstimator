@@ -599,6 +599,16 @@ test("MCP server is off until enabled in Program Settings", async ({ page }) => 
   await expect(settings).not.toBeVisible();
   await expect(page.locator("#view-mcp")).toBeVisible();
   expect((await call("mcp.status")).result).toMatchObject({ enabled: true, running: false });
+  const { createServer } = await import("node:net");
+  const port = await new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const port = (server.address() as { port: number }).port;
+      server.close(error => error ? reject(error) : resolve(port));
+    });
+  });
+  expect((await call("mcp.configure", { port })).result).toMatchObject({ port });
   await page.locator("#view-mcp").click();
   await page.getByRole("button", { name: "Start MCP server", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
@@ -639,6 +649,7 @@ test("MCP write mode refreshes the UI and protects in-progress cell edits", asyn
     expect(value.isError).toBe(false);
     return value.structuredContent;
   }
+  expect((await agent("get_state")).data.program_settings.mcp_enabled).toBe(true);
   const item = (await agent("get_items", { kind: "schedule", codes: ["A"] })).data.items[0];
   await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();

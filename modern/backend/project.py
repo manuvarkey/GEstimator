@@ -1076,6 +1076,7 @@ class ProjectEditor:
                 item.code = f"{prefix}:{code}" if prefix and ":" not in code else code
                 item.category = misc.SUB_ANA_TITLE
                 item.parent = None
+                item.qty = Decimal(0)
                 existing = self.db.get_item(item.code, copy_ana=False)
                 if existing:
                     if existing.category != misc.SUB_ANA_TITLE:

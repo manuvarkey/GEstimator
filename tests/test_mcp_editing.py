@@ -45,7 +45,8 @@ class MCPEditingTests(MCPFixture):
         self.assertEqual(nlb["columns"][1]["field"], "c1")
         self.assertFalse(nlb["columns"][1]["editable"])
         identity = self.agent("edit_measurements", ops=[dict(action="create", template="_1_NLBH", description="Dimensions", links=[dict(code="A", remark="Measured")], records=[{"No":"2*3", "L":"2+2"}, {"L":"2"}])])["data"]["results"][0]["id"]
-        self.agent("recalculate", what="quantities", rounding="No rounding")
+        self.assertEqual(self.agent("recalculate", what="quantities", rounding="No rounding")["data"]["changed"], 1)
+        self.assertEqual(self.agent("recalculate", what="quantities", rounding="No rounding")["data"]["changed"], 0)
         self.assertEqual(Decimal(self.agent("get_summary")["data"]["grand_total"]), 1040)
         self.assertEqual(Decimal(self.agent("get_items", kind="schedule", codes=["A"])["data"]["items"][0]["qty"]), 26)
         with tempfile.TemporaryDirectory() as directory:

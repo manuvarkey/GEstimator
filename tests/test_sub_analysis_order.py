@@ -29,8 +29,9 @@ class SubAnalysisImports(unittest.TestCase):
         self.assertEqual(result["code_map"]["6.1.1"], "6.1.1")
         masonry = execute(self.s, "browse", dict(kind="schedule", under="MASONRY WORK", depth=3))["data"]["items"]
         self.assertEqual([(row["code"], row["rate"]) for row in masonry], [("6.1", "0"), ("6.1.1", "7370.65")])
-        sub = [row["code"] for row in execute(self.s, "browse", dict(kind="schedule", under="SUB ANALYSIS"))["data"]["items"]]
-        self.assertIn("DC23:6.1.1", sub)
+        dependency = self.s.db.get_item("DC23:6.1.1")
+        self.assertEqual(dependency.qty, 0)
+        self.assertEqual(self.s.db.get_item("6.1.1").qty, 1)
         self.assertEqual(execute(self.s, "get_items", dict(kind="schedule", codes=["19.7.1.1"]))["data"]["items"][0]["rate"], "12770.55")
 
     def test_sub_analysis_category_stays_last_in_view_and_export(self):

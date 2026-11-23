@@ -779,3 +779,9 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - Import bug: an item selected together with an item whose analysis uses it (6.1.1 with 19.7.1.1 in DSR 2023) was skipped. Only its `DC23:` copy reached SUB ANALYSIS, `code_map` had no entry and its heading stayed empty, which is how the first Codex run ended up measuring sub-analysis copies. Selected items are now always imported; the analyses keep referencing the prefixed copy, as when the two are imported separately. Rates are unchanged (19.7.1.1: 12770.55).
 - The skills and `start_here` now name the saved project as the deliverable and allow a workbook only on request, unedited.
 - Tests: `tests/test_sub_analysis_order.py`. `unittest` full suite OK.
+
+## 2026-11-23 — Security shed MCP transcript replay
+
+- New SUB ANALYSIS dependencies import with quantity zero. The libraries can store quantity one on the original item. The selected schedule item still retains its source quantity until measured or edited.
+- `get_state` reports the active MCP enable flag. Quantity recalculation reports the number of schedule quantities whose values actually changed.
+- In the security shed transcript, a duplicate-code error using `on_conflict=error` rolled back the whole batch. The retry with `rename` succeeded. Replaying the workflow over HTTP without the client's 21 quantity corrections reproduced the saved project total of 1,649,144.00, all 164 schedule codes, rates and quantities, and the 87 serialized measurements. SQLite integrity and foreign-key checks passed.
