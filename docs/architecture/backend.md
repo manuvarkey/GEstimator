@@ -14,8 +14,11 @@ and MCP adapters reuse the same service/editor operations.
 | --- | --- |
 | JSON Lines transport and error envelopes | [`__main__.py`](../../modern/backend/__main__.py) |
 | Owner thread, bounded queue and document routing | [`runtime.py`](../../modern/backend/runtime.py) |
-| Project lifecycle, analysis draft, revisions and orchestration | [`service.py`](../../modern/backend/service.py) |
+| Project lifecycle, analysis draft history, revisions and orchestration | [`service.py`](../../modern/backend/service.py) |
+| Draft analysis row edits, resource insertion and worksheet import | [`analysis_edits.py`](../../modern/backend/analysis_edits.py) |
 | Project transactions, compound operations and snapshot undo | [`project.py`](../../modern/backend/project.py) |
+| Schedule and resource edit dispatch and row operations | [`project_edits.py`](../../modern/backend/project_edits.py) |
+| Schedule and resource table pages, type-ahead, row deltas and totals | [`project_tables.py`](../../modern/backend/project_tables.py) |
 | Read-only library attachment, catalog and notes | [`libraries.py`](../../modern/backend/libraries.py) |
 | Library import policies, staging and dependencies | [`library_import.py`](../../modern/backend/library_import.py) |
 | Measurement list/detail and item operations | [`measurements.py`](../../modern/backend/measurements.py) |
@@ -30,12 +33,33 @@ and MCP adapters reuse the same service/editor operations.
 | Saves, fingerprints, backups and recovery locks | [`persistence.py`](../../modern/backend/persistence.py) |
 | Reporting changes/deltas | [`editor_changes.py`](../../modern/backend/editor_changes.py) |
 | Analysis rules and template/settings validation | [`analysis_rules.py`](../../modern/backend/analysis_rules.py), [`program_settings.py`](../../modern/backend/program_settings.py) |
-| ORM, analysis/measurement models and workbook output | [`estimator/data/`](../../estimator/data) |
+| ORM and analysis/measurement models | [`estimator/data/`](../../estimator/data) |
+| Schedule database connection lifecycle and version-one migration | [`database_lifecycle.py`](../../estimator/data/database_lifecycle.py) |
+| Workbook layout, formulas and progress reporting | [`workbook_export.py`](../../estimator/data/workbook_export.py) |
 
 `Service` and `ProjectEditor` are already large. A new domain concern belongs in
 a named handler with explicit editor/service context, not another unrelated
 branch in a router. Helpers must not create their own commit/history system.
 See the [quality audit](../code-quality-audit.md) for remaining extraction work.
+
+`ProjectEditor.edit` forwards schedule and resource operations to
+`project_edits`. Revision and draft checks, transaction entry points, undo
+and clipboard lifetime remain with the editor. Edit handlers reuse its
+selection, deletion and numbering operations and share insertion placement
+with other project workflows.
+
+`ProjectEditor.state` forwards read-only table presentation to
+`project_tables`. The editor retains its working and attached database
+handles and provides the history and change sequence used in the response.
+`Service.edit` forwards draft model changes to `analysis_edits`. The service
+still owns revision validation, preview restoration, rollback, acceptance and
+draft undo.
+
+The schedule database export methods delegate to `workbook_export`. The
+writers use the shared engine reads and currency rules for schedule,
+resources, analyses, resource usage and measurements. Scratch copies and
+safe publication follow the existing
+[persistence boundary](database-format.md#working-copies-save-and-recovery).
 
 Library attachment/import methods on `ProjectEditor` are compatibility forwards.
 The editor retains attachment handles, selection helpers and transaction/history

@@ -24,8 +24,12 @@ formatting is presentation; the currency option does not convert prices.
 | Analysis resource, workbook, custom template and project analysis rules dialogs | [`AnalysisDialogs.vue`](../../modern/src/components/AnalysisDialogs.vue) |
 | Native save chooser for project and analysis workbooks | [`workbookExport.ts`](../../modern/src/workbookExport.ts) |
 | Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
+| Analysis ribbon groups and row insertion buttons | [`AnalysisRibbon.vue`](../../modern/src/components/AnalysisRibbon.vue) |
+| Analysis Schedule and Resources explorer | [`AnalysisExplorer.vue`](../../modern/src/components/AnalysisExplorer.vue) |
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| Schedule, Resources and Measurements list ribbon groups | [`ProjectListRibbon.vue`](../../modern/src/components/ProjectListRibbon.vue) |
+| Project editor shortcut recognition and precedence | [`projectViewShortcuts.ts`](../../modern/src/projectViewShortcuts.ts) |
 | Project grid loading, search, paging, delta refresh and table restoration | [`useProjectGrid.ts`](../../modern/src/useProjectGrid.ts) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
@@ -95,10 +99,39 @@ select ribbon context while preserving the active editor. Active project views
 are retained within a mounted workspace to preserve their state. Keep this
 separate from document switching, which changes backend session and remounts it.
 
-`MeasurementRecordRibbon` renders the record editor's four ribbon groups as
-siblings in the shared ribbon host. `ProjectViews` chooses when to show them,
-supplies selected-record and busy state, and routes actions to the same
-commands and dialogs used by the editor.
+`AnalysisRibbon` renders its groups directly in the shared ribbon host.
+`App.vue` supplies the edit, selection and panel state, and handles ribbon
+events through the existing analysis commands, dialogs and visibility controls.
+
+`AnalysisExplorer` renders the active search tab and its project items.
+The workspace retains queries, results and paging state. The shell routes
+item activation through guarded navigation and resource activation through
+the existing draft insertion command. The search field keeps its workspace
+focus target when the explorer is shown or its tab changes.
+
+`ProjectListRibbon` renders the Schedule, Resources and Measurements list
+actions, using the current view, selection and busy state to determine which
+actions are available. `MeasurementRecordRibbon` renders the record editor's
+four groups using record selection and loading state. Both components render
+groups as siblings in the shared ribbon host so it can measure overflow.
+`ProjectViews` chooses the active ribbon, keeps the Measurements rounding
+selection across record entry and exit, and routes ribbon and keyboard actions
+through the existing editor commands and dialogs.
+
+Both project keyboard entry points use `projectViewShortcut` to resolve an
+action against the current editor, selection, and event target. Draft finish
+and history shortcuts are resolved before source and grid guards.
+`ProjectViews` consumes recognized events and dispatches them through its
+existing command, draft and dialog handlers.
+
+Shared ribbon, table and dialog styles live in `style.css`. The ribbon
+measures its available width and applies `data-ribbon-mini` to individual
+actions while honoring actions whose labels must stay visible.
+
+The in-app manual and About, Program Settings and Project Settings load from
+local build assets when opened. The shell owns their visibility state.
+Startup preferences and the initial workspace load continue through the
+workspace setup.
 
 ## Requests, stale edits and refresh
 

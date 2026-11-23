@@ -13,9 +13,9 @@ establish a published store version or successful installation on another machin
 | Area | Next work | Acceptance evidence |
 | --- | --- | --- |
 | Large shell/view/router modules | Follow the audit's bounded priorities for `App.vue`, `ProjectViews.vue`, `project.py` and `service.py` | Preserve drafts, identity, focus and undo. Follow the [Flatpak acceptance checks](code-quality-audit.md#flatpak-behavior-to-preserve) for affected file workflows. |
-| Shared CSS | Consolidate repeated selectors without changing cascade behavior | Relevant dark/light/narrow UI verification |
-| Frontend bundle size | Measure startup and assess lazy loading of optional UI | A measured improvement with preserved startup/interaction behavior; do not silence the warning |
-| Shared engine maintenance | Narrow legacy error handling and extract persistence/export concerns when those areas change | Fixed calculation baselines, real-data/save/export comparisons and documented compatibility decisions |
+| Shared CSS | Continue consolidating feature-local overrides as surfaces change | Relevant dark/light/narrow UI verification |
+| Frontend bundle size | Profile the installed WebView before splitting the core editors | A measured improvement with preserved startup and interaction behavior |
+| Shared engine maintenance | Narrow remaining legacy error handling as each owning operation changes | Fixed calculation baselines, real-data/save/export comparisons and documented compatibility decisions |
 | Search enhancements | Embeddings/bulk AI enrichment remain proposals pending measured benefit and review | Compare against existing search evaluation; preserve exact definitions and optional-metadata fallback |
 | Future quantity inputs | IFC-derived quantities remain deferred | A separate accepted design that reuses measurement records rather than creating a second quantity model |
 

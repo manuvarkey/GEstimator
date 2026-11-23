@@ -1422,3 +1422,156 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   on `3879a0ee` passed the Windows backend test step that had failed on the
   previous revision. Documentation and the frontend build passed too.
   Browser workflows were in progress at the time of this check.
+
+## 2026-11-23 — Project list ribbon
+
+- Moved the Schedule, Resources and Measurements list groups into
+  `ProjectListRibbon.vue`. `ProjectViews.vue` decreased from 1,351 to
+  1,025 lines and retains command and dialog routing, keyboard handlers,
+  and the rounding selection used when returning from the record editor.
+  Compared the template structure, labels, static attributes and all 33 click
+  handlers against the original.
+- Seven focused browser scenarios passed before and after extraction,
+  covering clipboard transfers, resource usage, schedule colouring, the
+  measurement record transition, toolbar geometry, rate and numbering
+  actions, and analysis workbook import.
+- A temporary browser scenario selected `Round to 10`, edited and applied
+  measurement records, and verified that the selection persisted on return
+  to the list and produced the rounded schedule quantity.
+- All 224 Python tests passed. Changed-source formatting, documentation
+  checks, `git diff --check` and the production build passed. Vite retained
+  its large-chunk warning (1.27 MB, 328 KB gzip).
+- The full Linux browser suite passed 91 tests with Node 24.21.0 and
+  Playwright's bundled headless Chromium. The opt-in performance test was
+  skipped. Ribbon layout checks passed from 1,600 down to 700 px and
+  with enlarged system text.
+
+## 2026-11-23 — Project editor shortcut recognition
+
+- Extracted shortcut matching into `projectViewShortcuts.ts`, reducing
+  `ProjectViews.vue` from 1,025 to 994 lines. Both keyboard entry points
+  share the same matching rules. Event consumption and command, history,
+  draft and dialog dispatch stay in the view.
+- Compared the original and extracted handlers across 1,451,520 synthetic
+  combinations of keys, modifiers, editing targets, guards and selections.
+  Observed event consumption and action arguments matched.
+- Eight focused browser scenarios passed before the extraction and in the
+  full suite afterward. The full suite passed 91 tests and skipped the
+  opt-in performance test. All 224 Python tests and the production build
+  passed. Vite retained the large-chunk warning (1.27 MB, 328 KB gzip).
+
+## 2026-11-23 — Analysis ribbon
+
+- Moved the six Analysis ribbon groups and row insertion button definitions
+  into `AnalysisRibbon.vue`, reducing `App.vue` from 1,506 to 1,308 lines.
+  Compared group structure, availability rules, labels, row definitions and
+  the 15 template click bindings with the originals.
+- The production build passed with the existing large-chunk warning
+  (1.27 MB, 328 KB gzip). The full Linux browser suite passed 91 tests and
+  skipped the opt-in performance test, matching the baseline. Analysis
+  resource, workbook, project navigation and narrow ribbon workflows passed.
+
+## 2026-11-23 — Schedule and resource edit handlers
+
+- Moved schedule and resource edit operations into `project_edits.py`,
+  reducing `ProjectEditor`'s module from 1,523 to 1,271 lines. The dispatcher
+  and its nine operation helpers reconstruct the original edit AST after
+  normalizing the editor reference and imports. The service, editor
+  revision and draft guards, and transaction entry points retain their roles.
+- The same 82 focused project editor, parity, clipboard and MCP editing
+  tests passed before and after extraction. All 224 Python tests passed.
+- Rebuilt the Linux Python sidecar and ran it outside the checkout against
+  a disposable project. Resource edits updated dependent rates, undo and
+  redo restored their expected values, category creation succeeded, and
+  save copy and workbook export completed. The source bytes were preserved
+  and the sidecar shut down cleanly.
+- The full Linux browser suite passed 91 tests and skipped the opt-in
+  performance test. Changed-source formatting, documentation checks and
+  `git diff --check` passed.
+
+## 2026-11-23 — Analysis draft edits, project table reads and Analysis explorer
+
+- Extracted `analysis_edits.py` and `project_tables.py`. The analysis handler
+  AST reconstructs the original edit method after normalizing the receiver
+  and import locations. Service and editor revision, guard, preview and
+  history boundaries retain their existing roles.
+- The initial focused rerun caught a missing ranked-list input in type-ahead.
+  After correction, the same 133 focused backend tests passed before and
+  after. Compared 43 byte-identical JSON responses across all three bundled
+  databases, including search, filter, paging, reveal, type-ahead, and five
+  incremental row responses. All 224 Python tests passed.
+- Moved the Analysis explorer to `AnalysisExplorer.vue`. Six browser
+  scenarios passed before extraction and again in the full suite, covering
+  search, focus, guarded navigation, and refreshed schedule results.
+  The build passed and the full suite passed 91 tests with the opt-in
+  performance test skipped.
+
+## 2026-11-23 — Shared stylesheet consolidation and workbook writers
+
+- Consolidated 17 repeated ribbon, table and dialog selectors and removed
+  the unused compact ribbon rules. The 24 before/after browser screenshots
+  were byte-identical across dark/light themes at 1,600 and 700 px. They
+  cover four ribbons, the analysis table and the custom resource dialog.
+- Moved six writers into `workbook_export.py`. The writer bodies match the
+  original ASTs after accounting for the database receiver and imports.
+  The remaining schedule engine code matched after normalizing import order
+  and formatter-only docstring whitespace.
+- Exported and reopened eight workbooks before and after, with the entire
+  DSR2025HORTI catalog, sample analyses from DSR2023 and DSREM2025, and a
+  project with linked measurements and multiline descriptions. Both
+  description wrapping modes produced identical workbook package parts
+  after removing document timestamps. Progress messages and source bytes
+  also matched.
+- All 224 Python tests passed. The rebuilt Linux sidecar ran from a
+  disposable directory and passed table search, analysis edit and undo,
+  linked-measurement workbook export and shutdown. The packaged workbook
+  matched the source baseline. The production build passed with the
+  existing Vite large-chunk warning (1.27 MB, 329 KB gzip).
+- The first full browser run passed 90 tests, skipped the performance test
+  and failed the schedule keyboard selection scenario. The scenario pressed
+  Home as soon as the table mounted. A temporary response gate reproduced
+  ignored input before the first rows arrived and verified selection once
+  the grid was ready. The scenario now waits for the fixture row and the
+  grid's idle state before testing the same keyboard sequence.
+
+## 2026-11-23 — On-demand help and settings
+
+- Moved the in-app manual and About, Program Settings and Project Settings
+  into three local split chunks. Help remains mounted after its first open
+  so close and focus behavior can complete as before.
+- Seven fresh headless Chromium contexts per build ran against the production
+  preview with the Python bridge. JavaScript fetched before the window
+  reveal decreased from 328,581 to 312,118 compressed bytes (5.0%).
+  Observed median reveal time was 168.8 ms before and 160.7 ms after. These
+  development previews do not establish installed WebView timings.
+- The production preview opened all four dialogs with external origins
+  blocked. The help chunk loaded on first use and was reused for About.
+  The build passed with the existing Vite warning at 1.22 MB (312 KB gzip).
+- The final full browser run, with the schedule keyboard readiness
+  correction and the split chunks, passed 91 tests and skipped the
+  opt-in performance scenario. Formatting, documentation checks and
+  `git diff --check` passed.
+
+## 2026-11-23 — Schedule database lifecycle and migration
+
+- Extracted file and in-memory database creation, binding, closing and
+  version validation into `database_lifecycle.py`. The schedule database
+  retains its existing entry points. The validation path closes all
+  connections and commits the version-one colour column with its version
+  marker in one transaction.
+- The ten focused migration, persistence, round-trip and recovery tests
+  passed before the extraction. Afterward, those tests and two new lifecycle
+  tests passed. A trigger that rejects the marker update proves that the
+  colour column rolls back and the migration can be retried.
+- All 226 Python tests passed. Eight workbook exports again matched the
+  pre-refactor package contents and progress signatures. The rebuilt Linux
+  sidecar migrated and attached a version-one project outside the checkout,
+  rejected a failed migration while retaining the active project, and
+  completed Save Copy, reopen and workbook export. The original files
+  matched byte for byte, the new project passed SQLite integrity and foreign
+  key checks, and its workbook matched the baseline. The production build
+  passed with the existing 1.22 MB entry chunk warning (312 KB gzip).
+- The final full Linux browser suite passed 91 tests and skipped its opt-in
+  profile by default. The separate `GESTIMATOR_PERF=1` large-project profile
+  passed against a disposable copy of DSR2021_12GST. Ruff, Prettier,
+  documentation checks and `git diff --check` passed.

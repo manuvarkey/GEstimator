@@ -2067,6 +2067,9 @@ test("keyboard table selection opens analysis and wide measurement templates ret
   await applyRecordsIfDirty(page);
   await page.locator("#view-schedule").click();
   const table = page.locator(".project-main-grid .project-grid");
+  // The grid mounts before its first rows arrive and ignores keys while loading.
+  await expect(table.getByText("Foundation", { exact: true })).toBeVisible();
+  await expect(table).toHaveAttribute("aria-busy", "false");
   await table.focus();
   await page.keyboard.press("Home");
   await expect(table.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);

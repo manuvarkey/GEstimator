@@ -7,16 +7,16 @@ import json
 import sqlite3
 import tempfile
 from contextlib import closing
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 from estimator import misc
-from estimator.data.schedule import Currency, ResourceItemModel, ScheduleDatabase, ScheduleItemModel
+from estimator.data.schedule import ScheduleDatabase, ScheduleItemModel
 from estimator.undo import Stack
 
-from .numbers import decimal, tax_text
+from . import analysis_edits
+from .numbers import tax_text
 from .persistence import (
     RecoveryClaim,
     check_database_access,
@@ -28,12 +28,7 @@ from .persistence import (
     save_target,
     write_recovery,
 )
-
-
-def text(value: Any) -> str:
-    if not isinstance(value, str) or len(value) > 10000:
-        raise ValueError("Expected text of at most 10000 characters")
-    return value
+from .validation import request_text as text
 
 
 class Service:
@@ -550,246 +545,8 @@ class Service:
         return self.state()
 
     def edit(self, method, p):
-        if method == "analysis.resources_add":
-            if not self.db:
-                raise ValueError("Open a project first")
-            source_id = p.get("source")
-            if source_id and source_id not in self.project_editor.libraries:
-                raise ValueError("Resource database is no longer attached")
-            source = self.project_editor.libraries[source_id][1] if source_id else self.db
-            _, rows = self.project_editor.selection("resources", p.get("ids"), source, include_descendants=False)
-            index, child = self.locate(p.get("id"))
-            group = self.model.ana_items[index]
-            if group["itemtype"] != 0:
-                raise ValueError("Select a resource group")
-            prefix = source.get_project_settings().get("project_resource_code", "") if source is not self.db else ""
-            quantity = decimal(p.get("qty", "0"))
-            entries, identities = [], []
-            for row in sorted(rows, key=lambda row: (row.category.order, row.order, row.id)):
-                resource = source.get_resource(row.code, modify_code=bool(prefix))
-                if resource is None:
-                    raise ValueError("Unknown resource")
-                resource = self.model.resources.get(resource.code) or self.db.get_resource(resource.code) or resource
-                self.model.resources[resource.code] = resource
-                entries.append([resource.code, quantity, ""])
-                identities.append(uuid4().hex)
-            position = child + 1 if child is not None else 0
-            group["resource_list"][position:position] = entries
-            group["_resource_ids"][position:position] = identities
-            return
-        if method == "analysis.batch":
-            operations = p.get("operations")
-            if not isinstance(operations, list) or not 1 <= len(operations) <= 500:
-                raise ValueError("Provide between 1 and 500 analysis edits")
-            cursor = p.get("id")
-            for operation in operations:
-                if not isinstance(operation, dict) or operation.get("method") not in ("edit", "add"):
-                    raise ValueError("Batch supports only row edits and calculation-row insertion")
-                params = dict(operation)
-                action = params.pop("method")
-                if action == "add":
-                    params["id"] = cursor
-                    position = self.locate(cursor)[0] + 1 if cursor else 0
-                    self.edit(action, params)
-                    cursor = self.model.ana_items[position]["_id"]
-                else:
-                    self.edit(action, params)
-            return
-        if method == "analysis.insert_template":
-            position = self.locate(p["id"])[0] + 1 if p.get("id") else 0
-            if "rows" in p:
-                from .program_settings import legacy_rows
-
-                rows = legacy_rows(p["rows"])
-            else:
-                rows = copy.deepcopy(misc.ana_default_add_items)
-            for row in rows:
-                if "value" in row:
-                    row["value"] = Decimal(str(row["value"]))
-            self.model.ana_items[position:position] = rows
-            self.identify()
-            return
-        if method == "analysis.import_xlsx":
-            if not self.loaded:
-                raise ValueError("Load an analysis first")
-            from .analysis_import import import_analysis
-
-            draft = import_analysis(self.model, p)
-            self.model.ana_items = draft.ana_items
-            self.model.resources = draft.resources
-            self.model.ana_remarks = draft.ana_remarks or self.model.ana_remarks
-            self.identify()
-            return
-        if method == "analysis.edit":
-            if p["field"] != "ana_remarks":
-                raise ValueError("Unknown analysis field")
-            self.model.ana_remarks = text(p["value"])
-            return
-        if method == "add":
-            kind = p["kind"]
-            description = text(p.get("description", kind))
-            pos = self.locate(p["id"])[0] + 1 if p.get("id") else 0
-            if kind == "Group":
-                self.model.add_ana_group(description, code=text(p.get("code", "")), pos=pos)
-            elif kind == "Subtotal":
-                self.model.add_ana_sum(description, pos=pos)
-            elif kind in ("Weight", "Multiply", "Round"):
-                value = decimal(p["value"])
-                if kind == "Round" and (
-                    abs(value) > 12 or (value != int(value) and int((value - int(value)) * 10) == 0)
-                ):
-                    raise ValueError("Use rounding places from -12 to 12 with a non-zero tenth for interval rounding")
-                {
-                    "Weight": self.model.add_ana_weight,
-                    "Multiply": self.model.add_ana_times,
-                    "Round": self.model.add_ana_round,
-                }[kind](description, value, pos=pos)
-            else:
-                raise ValueError("Unknown row kind")
-            self.identify()
-            return
-        if method in ("resource.add", "resource.duplicate"):
-            i, child = self.locate(p["id"])
-            group = self.model.ana_items[i]
-            if group["itemtype"] != 0:
-                raise ValueError("Select a resource group")
-            if method == "resource.duplicate":
-                if child is None:
-                    raise ValueError("Select a resource entry to duplicate")
-                resource = copy.deepcopy(self.model.resources[group["resource_list"][child][0]])
-                resource.code = text(p["code"])
-                if (
-                    not resource.code
-                    or resource.code in self.model.resources
-                    or (self.db and self.db.get_resource(resource.code))
-                ):
-                    raise ValueError("Choose an unused resource code")
-            elif p.get("library"):
-                if not self.db:
-                    raise ValueError("Open a project first")
-                source = (
-                    self.project_editor.libraries[p["source"]][1]
-                    if p.get("source") in self.project_editor.libraries
-                    else self.db
-                )
-                prefix = source.get_project_settings().get("project_resource_code", "") if source is not self.db else ""
-                resource = source.get_resource(text(p["code"]), modify_code=bool(prefix))
-                if resource:
-                    resource = (
-                        self.model.resources.get(resource.code) or self.db.get_resource(resource.code) or resource
-                    )
-                if resource is None:
-                    raise ValueError("Unknown resource")
-            else:
-                code = text(p.get("code", ""))
-                if not code:
-                    code = self.db.get_new_resource_code(exclude=self.model.resources) if self.db else "MR.1"
-                    while code in self.model.resources:
-                        code = "MR." + str(int(code.split(".")[-1]) + 1)
-                if code in self.model.resources:
-                    raise ValueError("Use a new resource code")
-                resource = ResourceItemModel(
-                    code,
-                    text(p["description"]),
-                    text(p["unit"]),
-                    Currency(decimal(p["rate"])),
-                    Currency(decimal(p.get("vat", "0")), 4),
-                    Currency(decimal(p.get("discount", "0"))),
-                    text(p.get("reference", "")),
-                    text(p.get("category", "")),
-                )
-            self.model.resources[resource.code] = resource
-            pos = child + 1 if child is not None else 0
-            self.model.add_ana_res([resource.code, decimal(p.get("qty", "0")), text(p.get("remarks", ""))], i, pos)
-            group["_resource_ids"].insert(pos, uuid4().hex)
-            return
-        if method in ("copy", "delete", "duplicate", "paste"):
-            ids = p.get("ids", [])
-            if not isinstance(ids, list) or len(ids) > 1000:
-                raise ValueError("Invalid selection")
-            locations = sorted(set(self.locate(x) for x in ids), key=lambda x: (x[0], -1 if x[1] is None else x[1]))
-            if method in ("copy", "duplicate"):
-                self.clipboard = []
-                for i, j in locations:
-                    entry = copy.deepcopy(self.model.get_item([i] if j is None else [i, j], deep=False))
-                    self.clipboard.append(entry)
-            if method == "delete":
-                locations = [x for x in locations if x[1] is None or (x[0], None) not in locations]
-                for i, j in reversed(locations):
-                    self.model.delete_item([i] if j is None else [i, j])
-                    if j is not None:
-                        self.model.ana_items[i]["_resource_ids"].pop(j)
-            if method in ("paste", "duplicate"):
-                i, j = self.locate(p["id"]) if p.get("id") else (-1, None)
-                for entry in self.clipboard:
-                    if entry[0] == "ana_item":
-                        row = copy.deepcopy(entry[1])
-                        row["_id"] = uuid4().hex
-                        if row["itemtype"] == 0:
-                            row["_resource_ids"] = []
-                        i += 1
-                        j = None
-                        self.model.ana_items.insert(i, row)
-                    else:
-                        if i < 0 or self.model.ana_items[i]["itemtype"] != 0:
-                            raise ValueError("Select a destination resource group")
-                        j = 0 if j is None else j + 1
-                        self.model.resources.setdefault(
-                            entry[2].code,
-                            (self.db.get_resource(entry[2].code) if self.db else None) or copy.deepcopy(entry[2]),
-                        )
-                        self.model.add_ana_res(copy.deepcopy(entry[1]), i, j)
-                        self.model.ana_items[i]["_resource_ids"].insert(j, uuid4().hex)
-            return
-        i, j = self.locate(p["id"])
-        row = self.model.ana_items[i]
-        if method == "move":
-            delta = p["delta"]
-            if type(delta) is not int or delta not in (-1, 1):
-                raise ValueError("Invalid direction")
-            values = self.model.ana_items if j is None else row["resource_list"]
-            index = i if j is None else j
-            target = index + delta
-            if 0 <= target < len(values):
-                values[index], values[target] = values[target], values[index]
-                if j is not None:
-                    ids = row["_resource_ids"]
-                    ids[index], ids[target] = ids[target], ids[index]
-            return
-        if method != "edit":
-            raise ValueError("Unknown operation")
-        field = p["field"]
-        value = p["value"]
-        if j is not None:
-            resource = self.model.resources[row["resource_list"][j][0]]
-            if field == "value":
-                row["resource_list"][j][1] = decimal(value)
-            elif field == "code":
-                code = text(value)
-                replacement = self.model.resources.get(code) or (self.db.get_resource(code) if self.db else None)
-                if replacement is None:
-                    raise ValueError("Resource code not found")
-                self.model.resources.setdefault(code, replacement)
-                row["resource_list"][j][0] = code
-            elif field == "remarks":
-                row["resource_list"][j][2] = text(value)
-            elif field in ("description", "unit", "reference", "category"):
-                setattr(resource, field, text(value))
-            elif field in ("rate", "vat", "discount"):
-                setattr(resource, field, Currency(decimal(value), 4 if field == "vat" else 2))
-            else:
-                raise ValueError("Field is not editable")
-        elif field == "description" or (field == "code" and row["itemtype"] == 0):
-            row[field] = text(value)
-        elif field == "value" and row["itemtype"] in (2, 3, 4):
-            value = decimal(value)
-            if row["itemtype"] == 4 and (
-                abs(value) > 12 or (value != int(value) and int((value - int(value)) * 10) == 0)
-            ):
-                raise ValueError("Unsupported rounding places")
-            row[field] = value
-        else:
-            raise ValueError("Field is not editable")
+        """Edit the active analysis draft under the existing caller boundary."""
+        return analysis_edits.edit(self, method, p)
 
     def sync_analysis(self):
         model = self.db.get_item(self.model.code, modify_res_code=False)

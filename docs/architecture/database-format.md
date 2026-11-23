@@ -18,9 +18,12 @@ value: GESTIMATOR_FILE_REFERENCE_VER_2
 
 The modern open path copies a read-only source into a temporary working database
 using SQLite backup, then validates/migrates the copy. Version 1 migration adds
-the schedule colour field and updates the marker. Never invoke the engine's
-migration directly on an attached library or an original user file. Follow
-[`Service.call`](../../modern/backend/service.py) for the open sequence.
+the schedule colour field and updates the marker in one transaction. If either
+step fails, the copy keeps its original column layout and version marker. Never
+invoke the engine's migration directly on an attached library or an original
+user file. Follow [`Service.call`](../../modern/backend/service.py) for the open
+sequence and [the database lifecycle module](../../estimator/data/database_lifecycle.py)
+for the engine transaction.
 
 The [original design spreadsheet](<../../design documentation/database design_initial.ods>)
 is historical evidence, not the current schema specification.

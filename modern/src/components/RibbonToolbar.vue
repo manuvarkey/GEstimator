@@ -21,7 +21,10 @@ function sizeCaptions(element: HTMLElement) {
     const words = text.split(/\s+/);
     let caption = width(text);
     for (let split = 1; split < words.length; split++) {
-      caption = Math.min(caption, Math.max(width(words.slice(0, split).join(" ")), width(words.slice(split).join(" "))));
+      caption = Math.min(
+        caption,
+        Math.max(width(words.slice(0, split).join(" ")), width(words.slice(split).join(" "))),
+      );
     }
     caption = Math.min(80, Math.ceil(caption) + 1);
     const padding = getComputedStyle(button);
@@ -33,8 +36,7 @@ function sizeCaptions(element: HTMLElement) {
 function fitNow() {
   const element = host.value;
   if (!element) return;
-  element.removeAttribute("data-compact");
-  element.querySelectorAll("[data-ribbon-mini]").forEach(button => button.removeAttribute("data-ribbon-mini"));
+  element.querySelectorAll("[data-ribbon-mini]").forEach((button) => button.removeAttribute("data-ribbon-mini"));
   sizeCaptions(element);
   const groups = Array.from(element.querySelectorAll<HTMLElement>(".ribbon-group"));
   const width = () => groups.reduce((total, group) => total + group.getBoundingClientRect().width, 0);
@@ -52,16 +54,32 @@ function fit() {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(fitNow);
 }
-defineExpose({ prepare: () => { cancelAnimationFrame(frame); fitNow(); } });
+defineExpose({
+  prepare: () => {
+    cancelAnimationFrame(frame);
+    fitNow();
+  },
+});
 onMounted(() => {
   resize = new ResizeObserver(fit);
   resize.observe(host.value!);
-  mutations = new MutationObserver(records => {
+  mutations = new MutationObserver((records) => {
     // Cached views switch via v-show. Ignore the button sizing styles written
     // by fit itself, but refit when a ribbon container becomes visible.
-    if (records.some(record => record.type !== "attributes" || !(record.target as Element).classList.contains("ribbon-action"))) fit();
+    if (
+      records.some(
+        (record) => record.type !== "attributes" || !(record.target as Element).classList.contains("ribbon-action"),
+      )
+    )
+      fit();
   });
-  mutations.observe(host.value!, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["style"] });
+  mutations.observe(host.value!, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["style"],
+  });
   fontChanges = new MutationObserver(fit);
   fontChanges.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
   document.fonts.addEventListener("loadingdone", fit);

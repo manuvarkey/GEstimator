@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
 import Dialog from "primevue/dialog";
 import { afterDialogsClose, focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
-import ApplicationHelp from "./components/ApplicationHelp.vue";
 import ThemedDropdowns from "./components/ThemedDropdowns.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisDialogs from "./components/AnalysisDialogs.vue";
+import AnalysisExplorer from "./components/AnalysisExplorer.vue";
+import AnalysisRibbon from "./components/AnalysisRibbon.vue";
 import AnalysisInspector from "./components/AnalysisInspector.vue";
 import ProjectDatabasePickers from "./components/ProjectDatabasePickers.vue";
-import ProgramSettings from "./components/ProgramSettings.vue";
-import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
 import {
   mcpStatus,
@@ -52,8 +51,13 @@ import ProjectViews from "./components/ProjectViews.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
 import { installProjectOpening } from "./projectOpening";
-import { request, type AnalysisRow, type RowKind } from "./backend";
+import { request, type AnalysisRow } from "./backend";
 import { formatMoney } from "./numberFormatting";
+
+const ApplicationHelp = defineAsyncComponent(() => import("./components/ApplicationHelp.vue"));
+const ProgramSettings = defineAsyncComponent(() => import("./components/ProgramSettings.vue"));
+const ProjectSettings = defineAsyncComponent(() => import("./components/ProjectSettings.vue"));
+
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
 const analysisDialogs = ref<InstanceType<typeof AnalysisDialogs>>();
@@ -228,9 +232,10 @@ const {
 });
 
 let pendingProject = false;
-const explorer = ref("schedule");
 const sidebar = ref(true);
 const helpOpen = ref(false);
+// Keep the help dialogs mounted after first use so their normal close and focus handling runs.
+const applicationHelpRequested = ref(false);
 const manualOpen = ref(false);
 const aboutOpen = ref(false);
 const shortcutGroups = [
@@ -294,49 +299,6 @@ const shortcutGroups = [
 ];
 let pending: ((discard: boolean) => Promise<unknown>) | undefined;
 let unsubscribers: UnlistenFn[] = [];
-const rowKinds: {
-  kind: RowKind;
-  icon: string;
-  label: string;
-  hint: string;
-  value: string;
-}[] = [
-  {
-    kind: "Group",
-    icon: "group",
-    label: "Resource group",
-    hint: "Insert a resource group for materials, labour or equipment at the current selection.",
-    value: "",
-  },
-  {
-    kind: "Subtotal",
-    icon: "sum",
-    label: "Subtotal",
-    hint: "Insert a subtotal that captures the cumulative total as the base for later weighted additions.",
-    value: "",
-  },
-  {
-    kind: "Weight",
-    icon: "percent",
-    label: "Weighted addition",
-    hint: "Insert a weighted addition calculated as a fraction of the latest group or subtotal base.",
-    value: "0.01",
-  },
-  {
-    kind: "Multiply",
-    icon: "multiply",
-    label: "Multiplier",
-    hint: "Insert a multiplier that replaces the total with the last base multiplied by a factor.",
-    value: "1",
-  },
-  {
-    kind: "Round",
-    icon: "round",
-    label: "Round off",
-    hint: "Insert a rounding step for the cumulative analysis total using the existing currency rules.",
-    value: "2",
-  },
-];
 const canEdit = computed(
   () => connected.value && !busy.value && !projectBusy.value && !!state.value?.code && activeView.value === "analysis",
 );
@@ -574,9 +536,11 @@ async function applicationAction(action: string) {
       if (recoveryProjects.value.length && !state.value?.project_open) showFile("open");
       break;
     case "manual":
+      applicationHelpRequested.value = true;
       manualOpen.value = true;
       break;
     case "about":
+      applicationHelpRequested.value = true;
       aboutOpen.value = true;
       break;
     case "help":
@@ -826,178 +790,22 @@ onBeforeUnmount(() => {
       :aria-labelledby="'view-' + activeTab"
       :aria-label="(views.find((view) => view.key === activeTab)?.label || '') + ' tools'"
     >
-      <template v-if="activeTab === 'analysis'">
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Add resources from database"
-              :disabled="!canEdit || !groups.length"
-              @click="analysisDialogs?.showResource('library')"
-            >
-              <AppIcon name="database" /><span class="ribbon-label">From database</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Add custom resource"
-              :disabled="!canEdit || !groups.length"
-              @click="analysisDialogs?.showResource('custom')"
-            >
-              <AppIcon name="resource" /><span class="ribbon-label">Custom resource</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Duplicate"
-              :disabled="!canEdit || !selected.length"
-              @click="w.command('duplicate')"
-            >
-              <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span>
-            </button>
-          </div>
-          <small>RESOURCES</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions ribbon-actions-wide">
-            <button
-              v-for="row in rowKinds"
-              :key="row.kind"
-              class="ribbon-action"
-              :aria-label="row.label"
-              :title="row.hint"
-              :disabled="!canEdit"
-              @click="w.command('add', { kind: row.kind, value: row.value })"
-            >
-              <AppIcon :name="row.icon" /><span class="ribbon-label">{{ row.label }}</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Default analysis rows"
-              title="Insert the default calculation rows configured in Program Settings into this draft. Undo restores the previous draft."
-              :disabled="!canEdit"
-              @click="w.command('analysis.insert_template')"
-            >
-              <AppIcon name="file" /><span class="ribbon-label">Default rows</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Custom analysis template…"
-              title="Configure, save and preview reusable calculation rows before inserting them as one undoable batch."
-              :disabled="!canEdit"
-              @click="analysisDialogs?.showTemplate()"
-            >
-              <AppIcon name="settings" /><span class="ribbon-label">Custom template</span>
-            </button>
-          </div>
-          <small>INSERT</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions ribbon-pairs">
-            <button
-              class="ribbon-action ribbon-icon"
-              aria-label="Copy rows"
-              title="Copy selected analysis rows and resource definitions to the system clipboard for use in another GEstimator window (Ctrl+C)."
-              :disabled="!canEdit || !selected.length"
-              @click="w.command('copy')"
-            >
-              <AppIcon name="copy" /><span class="ribbon-label">Copy rows</span>
-            </button>
-            <button
-              class="ribbon-action ribbon-icon"
-              aria-label="Paste rows"
-              title="Insert analysis rows copied from this or another GEstimator window at the current selection. Existing project resource definitions are reused by code (Ctrl+V)."
-              :disabled="!canEdit"
-              @click="w.command('paste')"
-            >
-              <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span>
-            </button>
-
-            <button
-              class="ribbon-action ribbon-icon danger"
-              aria-label="Delete"
-              title="Remove the selected rows from this analysis draft. Use Undo to restore them."
-              :disabled="!canEdit || !selected.length"
-              @click="w.command('delete')"
-            >
-              <AppIcon name="trash" /><span class="ribbon-label">Delete</span>
-            </button>
-          </div>
-          <small>EDIT</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action ribbon-icon"
-              aria-label="Move up"
-              title="Move the selected analysis row one position earlier in the calculation sequence."
-              :disabled="!canEdit || selected.length !== 1"
-              @click="w.command('move', { delta: -1 })"
-            >
-              <AppIcon name="up" /><span class="ribbon-label">Move up</span></button
-            ><button
-              class="ribbon-action ribbon-icon"
-              aria-label="Move down"
-              title="Move the selected analysis row one position later in the calculation sequence."
-              :disabled="!canEdit || selected.length !== 1"
-              @click="w.command('move', { delta: 1 })"
-            >
-              <AppIcon name="down" /><span class="ribbon-label">Move down</span>
-            </button>
-          </div>
-          <small>SEQUENCE</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'"
-              @click="sidebar = !sidebar"
-            >
-              <AppIcon name="panel-left" /><span class="ribbon-label">{{
-                sidebar ? "Hide explorer" : "Show explorer"
-              }}</span>
-            </button>
-            <button
-              class="ribbon-action"
-              :aria-label="inspector ? 'Hide analysis inspector' : 'Show analysis inspector'"
-              :title="
-                inspector
-                  ? 'Hide the selected-row inspector to give the analysis table more room.'
-                  : 'Show the inspector to edit the selected analysis row and resource definition.'
-              "
-              :class="{ pressed: !inspector }"
-              :aria-pressed="!inspector"
-              @click="inspector = !inspector"
-            >
-              <AppIcon name="panel" />
-              <span class="ribbon-label">{{ inspector ? "Hide inspector" : "Show inspector" }}</span>
-            </button>
-          </div>
-          <small>VIEW</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Export analysis"
-              title="Export this analysis, including unapplied draft edits, to an Excel workbook."
-              :disabled="!canEdit || !state?.project"
-              @click="analysisDialogs?.exportWorkbook()"
-            >
-              <AppIcon name="export" /><span class="ribbon-label">Export analysis</span>
-            </button>
-            <button
-              class="ribbon-action"
-              aria-label="Import analysis"
-              title="Preview an Excel worksheet range and insert its calculation rows into this draft. The import can be undone."
-              :disabled="!canEdit || !state?.project"
-              @click="analysisDialogs?.showImport()"
-            >
-              <AppIcon name="import" /><span class="ribbon-label">Import analysis</span>
-            </button>
-          </div>
-          <small>PROJECT</small>
-        </div>
-      </template>
+      <AnalysisRibbon
+        v-if="activeTab === 'analysis'"
+        :can-edit="canEdit"
+        :has-groups="!!groups.length"
+        :selection-count="selected.length"
+        :has-project="!!state?.project"
+        :sidebar="sidebar"
+        :inspector="inspector"
+        @command="w.command"
+        @show-resource="analysisDialogs?.showResource($event)"
+        @show-template="analysisDialogs?.showTemplate()"
+        @toggle-sidebar="sidebar = !sidebar"
+        @toggle-inspector="inspector = !inspector"
+        @export-workbook="analysisDialogs?.exportWorkbook()"
+        @show-import="analysisDialogs?.showImport()"
+      />
       <template v-else-if="activeTab === 'databases'">
         <div class="ribbon-group">
           <div class="ribbon-actions">
@@ -1115,129 +923,26 @@ onBeforeUnmount(() => {
     </div>
     <div class="workspace">
       <DocumentRail :busy="uiBusy" @switch="switchProjectTab" @close="closeProjectTab" @add="addProjectTab" />
-      <aside v-show="sidebar && activeView === 'analysis'" class="explorer">
-        <div class="panel-heading"><span>PROJECT EXPLORER</span></div>
-        <div class="explorer-project">
-          <span class="project-icon"><AppIcon name="folder" :size="20" /></span>
-          <div>
-            <strong>{{ projectName }}</strong
-            ><small>{{ state?.project_open ? "Project working copy" : "No project open" }}</small>
-          </div>
-        </div>
-        <div class="explorer-tabs" role="tablist" aria-label="Explorer">
-          <button
-            role="tab"
-            :aria-selected="explorer === 'schedule'"
-            :class="{ active: explorer === 'schedule' }"
-            @click="explorer = 'schedule'"
-          >
-            <AppIcon name="grid" :size="15" />Schedule</button
-          ><button
-            role="tab"
-            :aria-selected="explorer === 'resources'"
-            :class="{ active: explorer === 'resources' }"
-            @click="
-              explorer = 'resources';
-              if (state?.project_open) w.searchResources();
-            "
-          >
-            <AppIcon name="library" :size="15" />Resources
-          </button>
-        </div>
-        <form class="search-field" @submit.prevent="explorer === 'schedule' ? w.searchSchedule() : w.searchResources()">
-          <AppIcon name="search" :size="15" /><input
-            v-if="explorer === 'schedule'"
-            id="navigator-search"
-            v-model="scheduleQuery"
-            placeholder="Find schedule items…"
-            aria-label="Find schedule items"
-            :disabled="!state?.project_open"
-          /><input
-            v-else
-            id="navigator-search"
-            v-model="resourceQuery"
-            placeholder="Find resources…"
-            aria-label="Find resources"
-            :disabled="!state?.project_open"
-          /><button
-            type="submit"
-            class="icon-button"
-            aria-label="Search explorer"
-            :disabled="uiBusy || !state?.project_open"
-          >
-            <AppIcon name="chevron" :size="14" />
-          </button>
-        </form>
-        <div class="explorer-caption">
-          <span>{{ explorer === "schedule" ? "SCHEDULE ITEMS" : "RESOURCE LIBRARY" }}</span
-          ><span>{{ (explorer === "schedule" ? schedule : resources).length }} shown</span>
-        </div>
-        <nav class="item-list" :aria-label="explorer === 'schedule' ? 'Schedule items' : 'Resource library'">
-          <template v-if="explorer === 'schedule'"
-            ><button
-              v-for="item in schedule"
-              :key="item.code"
-              class="item-card"
-              :class="{ active: state?.code === item.code }"
-              :disabled="uiBusy"
-              @click="loadAnalysis(item.code)"
-            >
-              <span class="item-code"
-                ><AppIcon name="file" :size="14" />{{ item.code
-                }}<span v-if="state?.code === item.code" class="item-active-dot" /></span
-              ><span class="item-description">{{ item.description }}</span
-              ><span class="item-unit">{{ item.unit || "Heading" }}</span>
-            </button></template
-          >
-          <template v-else
-            ><button
-              v-for="item in resources"
-              :key="item.code"
-              class="item-card"
-              :disabled="uiBusy || !canEdit || !groups.length"
-              @click="analysisDialogs?.insertExplorerResource(item.code)"
-            >
-              <span class="item-code"><AppIcon name="resource" :size="14" />{{ item.code }}</span
-              ><span class="item-description">{{ item.description }}</span
-              ><span class="item-unit">{{ formatMoney(item.rate) }} / {{ item.unit }}</span>
-            </button></template
-          >
-          <div v-if="!(explorer === 'schedule' ? schedule : resources).length" class="empty-explorer">
-            <AppIcon :name="state?.project_open ? 'search' : 'folder'" :size="30" /><strong>{{
-              state?.project_open ? "No items to show" : "Your project starts here"
-            }}</strong>
-            <p>
-              {{
-                state?.project_open
-                  ? "Search by code or description."
-                  : "Open a GEstimator project to explore its schedule and resources."
-              }}
-            </p>
-            <button v-if="!state?.project_open" class="button secondary" :disabled="uiBusy" @click="showFile('open')">
-              Open project
-            </button>
-          </div>
-        </nav>
-        <div v-if="state?.project_open" class="pagination">
-          <button
-            class="icon-button"
-            aria-label="Previous page"
-            :disabled="busy || (explorer === 'schedule' ? schedulePage : resourcePage) === 0"
-            @click="explorer === 'schedule' ? w.searchSchedule(schedulePage - 1) : w.searchResources(resourcePage - 1)"
-          >
-            <AppIcon name="up" :size="15" /></button
-          ><span>Page {{ (explorer === "schedule" ? schedulePage : resourcePage) + 1 }}</span
-          ><button
-            class="icon-button"
-            aria-label="Next page"
-            :disabled="busy || (explorer === 'schedule' ? schedule : resources).length < 100"
-            @click="explorer === 'schedule' ? w.searchSchedule(schedulePage + 1) : w.searchResources(resourcePage + 1)"
-          >
-            <AppIcon name="down" :size="15" />
-          </button>
-        </div>
-        <div class="explorer-foot"><AppIcon name="check" :size="14" /><span>Isolated working copy</span></div>
-      </aside>
+      <AnalysisExplorer
+        v-show="sidebar && activeView === 'analysis'"
+        v-model:schedule-query="scheduleQuery"
+        v-model:resource-query="resourceQuery"
+        :project-name="projectName"
+        :project-open="!!state?.project_open"
+        :active-code="state?.code"
+        :busy="busy"
+        :ui-busy="uiBusy"
+        :can-insert-resource="canEdit && !!groups.length"
+        :schedule="schedule"
+        :resources="resources"
+        :schedule-page="schedulePage"
+        :resource-page="resourcePage"
+        @search-schedule="w.searchSchedule"
+        @search-resources="w.searchResources"
+        @load-analysis="loadAnalysis"
+        @insert-resource="analysisDialogs?.insertExplorerResource($event)"
+        @open-project="showFile('open')"
+      />
       <main class="editor-pane">
         <ProjectLanding
           v-if="landingVisible"
@@ -1495,7 +1200,7 @@ onBeforeUnmount(() => {
     {{ mcpMessage }}
   </div>
   <ThemedDropdowns />
-  <ApplicationHelp v-model:manual="manualOpen" v-model:about="aboutOpen" />
+  <ApplicationHelp v-if="applicationHelpRequested" v-model:manual="manualOpen" v-model:about="aboutOpen" />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
   <ProjectDatabasePickers
     ref="projectDatabasePickers"
