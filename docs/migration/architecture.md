@@ -1,5 +1,10 @@
 # GTK → Vue/Tauri migration architecture
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 ## Scope and acceptance
 
 The initial vertical slice opened version 2 projects in an isolated workspace and supported editing all five analysis row types, resource quantities and definitions, undo and redo, and saving a compatible copy. It preserved GTK startup and the original calculation methods. Later milestones and remaining release gates are tracked in the [migration handoff](handoff.md).

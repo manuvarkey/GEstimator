@@ -1,5 +1,9 @@
 # Repository code quality audit — 2026-11-23
 
+Navigation: [documentation index](README.md) · [current architecture](architecture/README.md)
+· [development workflow](development-guidelines.md) · [verification](testing.md).
+This is a dated audit/debt record; current contracts are maintained separately.
+
 ## Scope and conclusion
 
 Reviewed the repository structure, development/release tooling, Python service
@@ -73,6 +77,12 @@ growing these hotspots further.
 - Formatting adoption is incremental. Untouched legacy Python/Vue/CSS files are
   not a passing whole-tree formatting baseline. The current changed files pass;
   later edits must bring their changed files into the checked-in style.
+- Current development contracts now have a [documentation index](README.md),
+  separate [architecture references](architecture/README.md), source/test maps,
+  [verification guide](testing.md) and explicitly labeled migration history.
+  `tools/check_docs.py` checks local targets/anchors and current-page discovery
+  in CI. Documentation links are checked automatically; semantic accuracy still
+  requires comparing the owning source and tests when behavior changes.
 
 Actual commands, results and platform limits are recorded in the
 [validation log](migration/validation.md).

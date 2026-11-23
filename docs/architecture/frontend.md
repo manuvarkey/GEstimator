@@ -1,0 +1,126 @@
+# Frontend architecture and workspace contracts
+
+Current contract, checked against source on 2026-11-23.
+Navigation: [index](../README.md) · [architecture](README.md) · [backend](backend.md)
+· [UI rules](../ui-guidelines.md) · [verification](../testing.md).
+
+## Ownership and module map
+
+Vue collects input and renders Python results. It owns view state, not estimates,
+rate calculations, numeric expression evaluation or persistence rules. Monetary
+formatting is presentation; the currency option does not convert prices.
+
+| Concern | Owner |
+| --- | --- |
+| App mounting, PrimeVue, styles and shared input installation | [`main.ts`](../../modern/src/main.ts) |
+| Active document workspace lifetime | [`Root.vue`](../../modern/src/Root.vue) |
+| Document/session store and actions | [`documents.ts`](../../modern/src/documents.ts), [`useDocumentTabs.ts`](../../modern/src/useDocumentTabs.ts) |
+| Shell, ribbon/context, guarded navigation and coordination | [`App.vue`](../../modern/src/App.vue) |
+| Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
+| Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| JSON request transport and shared analysis types | [`backend.ts`](../../modern/src/backend.ts) |
+| Project and analysis grid lifecycle | [`DataTable.vue`](../../modern/src/components/DataTable.vue), [`AnalysisTable.vue`](../../modern/src/components/AnalysisTable.vue) |
+| Tab memory, row clipboard, cell navigation/editing and selection | [`tabMemory.ts`](../../modern/src/tabMemory.ts), [`rowClipboard.ts`](../../modern/src/rowClipboard.ts), [`cellNavigation.ts`](../../modern/src/cellNavigation.ts), [`tableTextEditor.ts`](../../modern/src/tableTextEditor.ts), [`tableSelection.ts`](../../modern/src/tableSelection.ts) |
+| Display formatting and appearance | [`numberFormatting.ts`](../../modern/src/numberFormatting.ts), [`appearance.ts`](../../modern/src/appearance.ts) |
+| Program settings and shared helpers | [`programSettings.ts`](../../modern/src/programSettings.ts), [`uiActions.ts`](../../modern/src/uiActions.ts), [`statusNotice.ts`](../../modern/src/statusNotice.ts) |
+| MCP control/status and library restoration | [`mcp.ts`](../../modern/src/mcp.ts), [`libraryPreferences.ts`](../../modern/src/libraryPreferences.ts) |
+| Native file-open/drop routing | [`projectOpening.ts`](../../modern/src/projectOpening.ts) |
+
+Before adding behavior to a shell/view, check for an existing shared helper.
+Extract a separate concern into a composable or component with explicit inputs
+and cleanup. The [quality audit](../code-quality-audit.md) identifies navigation,
+MCP refresh and measurement view state as remaining extraction candidates.
+
+## Document and view lifetimes
+
+`documents.ts` maps document tabs to backend sessions and marks the active one.
+`Root.vue` keys `App` by the active document, so switching documents unmounts one
+workspace and mounts another. Backend projects and drafts remain alive; local
+component state does not automatically survive remounting.
+
+`tabMemory.ts` stores document-specific navigation, selection, paging and scroll
+state for restoration. A new/replaced project or closed document forgets its
+old state. `useDocumentTabs` routes New/Open/Close and window close through the
+workspace guard; do not bypass it from a new button or native callback.
+
+Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
+select ribbon context while preserving the active editor. Active project views
+are retained within a mounted workspace to preserve their state. Keep this
+separate from document switching, which changes backend session and remounts it.
+
+## Requests, stale edits and refresh
+
+`backend.ts` wraps Tauri `backend_request` with a unique ID and explicit document
+session. Request orchestration sends the current backend revision for writes.
+The Python result is the final authority, including numeric strings, totals,
+draft flags and history availability.
+
+Refresh should reconcile selections by stable ID and preserve scroll/focus where
+valid. Do not use a visible row index as an item identity. Hidden category
+contents and off-page rows are resolved by backend selection expansion; frontend
+filtering cannot define deletion, import or total scope.
+
+MCP polls change sequence/project epoch and refreshes the active workspace.
+Refresh is deferred around human edits and dialogs. A stale edit is rejected
+with its input retained for correction; do not silently overwrite it with an
+agent's new value. See [MCP synchronization](mcp.md#desktop-synchronization-and-transport)
+and [backend revisions](backend.md#revisions-and-write-boundaries).
+
+## Grids and drafts
+
+Tabulator is a rendering/editing adapter. It does not own authoritative undo or
+calculation history. Reuse the table input, arrow/Tab navigation, selection,
+clipboard, tooltip and virtual-row helpers instead of making view-specific copies.
+Confine unavoidable access to third-party internals to a documented adapter.
+
+Raw editable numeric strings may be expressions. Keep them distinct from
+rendered results; send validation to Python. Derived cells remain read-only.
+`GroupTotal` analysis rows and generated record serial numbers are display-only,
+not new domain rows to select, edit, copy or persist.
+
+Analysis and records have explicit Apply/Discard boundaries. Accepting a draft
+changes the working project; Save publishes a project file. A failed acceptance
+retains the editor and draft. Dirty drafts must be guarded during navigation,
+project replacement and close. Detailed action placement, keyboard semantics,
+numeric formatting and accessible states belong in the [UI guidelines](../ui-guidelines.md).
+
+## Preferences, styles and text
+
+Program/appearance/MCP/library preferences are application settings, separate
+from `.eproj` project metadata. Program settings are validated by Python and
+stored in versioned frontend preferences. Do not add project-specific state to
+a global preference or store derived backend totals as preferences.
+
+Semantic tokens belong in [`theme.css`](../../modern/src/theme.css); shared
+styles in [`style.css`](../../modern/src/style.css). Reuse `AppIcon`,
+`RibbonToolbar`, `PersistentDialog`, `ThemedDropdowns` and `ThemedAutocomplete`.
+Prefer changing the owning shared rule over adding duplicate selectors at the
+end of the stylesheet. Preserve cascade order in any CSS extraction.
+
+User data is rendered as text. Only the shared escaped
+[`markdown.ts`](../../modern/src/markdown.ts) renderer formats author notes;
+do not insert untrusted HTML into Tabulator, Vue or tooltips. User-facing labels
+describe GEstimator behavior, not internal migration/GTK implementation history.
+
+## Extending a frontend workflow
+
+1. Identify its backend operation and typed request/result shape. Add missing
+   validation in Python, not a competing JavaScript implementation.
+2. Put reusable orchestration in a composable/helper and bounded UI in a
+   component. Keep pending/busy/error ownership explicit.
+3. Preserve keyboard and pointer interaction, focus, row identity and tab memory.
+   Clean up listeners, timers and table instances when the owner unmounts.
+4. Reuse the existing unsaved-work guard and status/error presentation. Wait for
+   command completion before navigating or asserting an asynchronous result.
+5. Verify the affected browser behavior through the real Python bridge, and use
+   installed native builds for OS dialogs, file associations and WebView-specific
+   behavior. Follow the [testing guide](../testing.md).
+
+The main browser suite is
+[`workspace.spec.ts`](../../modern/e2e/workspace.spec.ts); fixtures live in
+[`modern/e2e/`](../../modern/e2e). Relevant backend coverage includes
+[desktop refresh](../../tests/test_desktop_refresh.py),
+[document sessions](../../tests/test_document_sessions.py) and
+[records drafts](../../tests/test_records_draft.py). Type checking is strict in
+[`tsconfig.json`](../../modern/tsconfig.json); do not broaden `any` or casts to
+hide a disagreement at an IPC boundary.

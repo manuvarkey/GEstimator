@@ -1,5 +1,10 @@
 # Database selection and measurement entry — 2026-11-14
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 The starting tree was already clean at `c813c2c`; no duplicate checkpoint commit was needed before this continuation.
 
 ## Implemented workflow

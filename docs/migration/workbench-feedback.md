@@ -1,5 +1,10 @@
 # Workbench feedback implementation
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 ## Review fixes — 2026-11-17
 
 - Compact Analysis cells no longer apply padding twice while editing. A later

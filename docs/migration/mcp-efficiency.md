@@ -1,5 +1,10 @@
 # MCP efficiency: rationalized tools, optional metadata and search
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 Implementation brief for AI coding tools. This brief covers the MCP backend, its tests and developer evaluation tools, plus the desktop enrichment badge and Clear action. It must work for **any** `.eproj` database: bundled, custom or user-made. Nothing here may require users to write metadata.
 
 **This is a breaking change.** The current 120 tools (113 operations plus 7 legacy aliases) are replaced by the **19 tools** below. There is no backward-compatibility toolset. The application adapters in `mcp_operations.py` remain as internal functions; only the tools exposed to MCP clients change.

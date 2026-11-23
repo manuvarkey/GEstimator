@@ -25,7 +25,7 @@ GEstimator prepares cost and quantity estimates of civil and electrical works wi
 - **Measurements** recorded against schedule items with templates (NLBH, steel reinforcement, electrical points, ducting), expressions in cells and automatic quantity update.
 - **Databases** attached read-only, with notes on how each is organised and what its rates include.
 - **Export** of the whole estimate to a `.xlsx` workbook: schedule of rates, schedule of resources, details of measurements, resource usage and analysis of rates.
-- **Several projects in tabs**, unlimited undo, light and dark themes, and recovery of unsaved work after a crash.
+- **Several projects in tabs**, undo/redo, light and dark themes, and recovery of unsaved work after a crash.
 - **AI assistants** (optional): a local [MCP](https://modelcontextprotocol.io) server lets Claude or any MCP client read and prepare estimates in the open project.
 
 ## User manual
@@ -51,20 +51,16 @@ Version 2.7, the last release of the earlier GTK application, remains available 
 
 ## Building from source
 
-The application is a [Tauri](https://tauri.app) desktop program (`modern/`) with a Vue interface and a Python backend (`modern/backend`, using the calculation engine in `estimator/`). It needs Python 3.14, Node.js 22 or later, Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). See [modern/README.md](modern/README.md) for development and Windows builds.
-
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt pyinstaller==6.22.3
-npm ci --prefix modern
-npm run --prefix modern bundle:backend
-npm run --prefix modern tauri -- build
-```
+The application is a [Tauri](https://tauri.app) desktop program (`modern/`) with a Vue interface and a Python backend (`modern/backend`, using the calculation engine in `estimator/`). Start with the [documentation index](docs/README.md) for development, architecture and code-quality guidance. [modern/README.md](modern/README.md) owns prerequisites and platform build commands.
 
 Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. The Flatpak builds from source (`packaging/flathub`, the manifest used by Flathub); the Snap (`snapcraft.yaml`) repackages the Linux `.deb`.
 
 For contributions, follow [AGENTS.md](AGENTS.md), the
-[development guidelines](docs/development-guidelines.md) and the
-[repository quality audit](docs/code-quality-audit.md). The
+[documentation reading order](docs/README.md#reading-order-for-coding-agents),
+[development workflow](docs/development-guidelines.md) and
+[repository quality audit](docs/code-quality-audit.md). Current
+[database, backend, frontend and MCP contracts](docs/architecture/README.md)
+link to their source and regression tests. The
 [Code quality workflow](.github/workflows/quality.yml) checks changed-file
-formatting, backend tests, frontend builds, browser workflows and native Rust code.
+formatting, documentation links, backend tests, frontend builds, browser workflows
+and native Rust code.

@@ -1,5 +1,10 @@
 # Workbench refinement — 2026-11-15
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 Light-theme content uses darker text (`#111827`), secondary text (`#344155`) and hints (`#45566b`). Dark-theme secondary/hint colours are brighter for contrast. System typography and 24 px full-action icons are retained. Ribbon captions use `.85rem`; full-button widths are measured from their captions, allowing two lines. Smaller actions use 20 px icons with side captions in three fixed-height rows. One- and two-button stacks align to the top and leave unused space below. Full buttons span all three rows; Schedule Add subitem and Duplicate (also Resources, Measurements and Analysis Duplicate) use this form. Measured overflow reduces individual buttons from right to left to icons in the same grid, retaining captions where space permits. This follows the fixed-height stacks and per-button fitting approach inspected in [Open Planner Studio's ribbon](https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/layout/Ribbon/Ribbon.css), implemented using the existing Vue component. Tighter buttons, form gaps, table padding and chrome expose more content. Redundant breadcrumbs, instructional headings, counts/legends and calculation notes are hidden; the active description, remarks, rate and editable data remain visible.
 
 Tauri disables native decorations and uses the existing compact header for client-side drag regions and minimize/maximize/close controls. Close still travels through the existing dirty-project guard. Native scaling, resize edges and platform window-manager behavior require target-platform checks; browser tests exercise the controls through the transport substitute, and native compilation validates configuration/capabilities.

@@ -1,5 +1,10 @@
 # GTK parity review — 2026-11-18
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 Reference: the GTK implementation in this checkout (`estimator/gtk_app.py`, `estimator/view/`, `estimator/data/`). This is a source/workflow audit backed by the Python regression suite and browser tests using the real Python service. It is not a claim that every native GTK/WebView interaction has been tested side by side.
 
 ## Corrections in this change

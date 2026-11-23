@@ -1,122 +1,109 @@
-# GEstimator desktop application
+# GEstimator desktop development and builds
 
-See the [migration handoff](../docs/migration/handoff.md), [architecture and audit](../docs/migration/architecture.md), [feature parity ledger](../docs/migration/parity.md), [validation record](../docs/migration/validation.md), [development guidelines](../docs/development-guidelines.md), [UI guidelines](../docs/ui-guidelines.md) and [roadmap](../docs/roadmap.md). The earlier GTK application is kept on the `archive/gtk` branch.
+Start with [AGENTS.md](../AGENTS.md) and the [documentation index](../docs/README.md).
+Current [architecture](../docs/architecture/README.md),
+[development workflow](../docs/development-guidelines.md) and
+[testing guide](../docs/testing.md) replace migration notes as development entry points.
+The [user manual](../docs/manual/README.md) owns feature/interaction instructions.
 
-From the repository root:
+## Prerequisites
 
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt pyinstaller
-npm ci --prefix modern
-.venv/bin/python -m unittest discover -s tests -v
-.venv/bin/python modern/bundle_backend.py
-cd modern
-npm run tauri dev
-```
+The app uses Python 3.14, Node.js 22.12 or later with npm, stable Rust and the
+[Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/).
+Windows builds use the MSVC toolchain, Visual Studio C++ desktop build tools,
+a Windows SDK and WebView2. Linux needs the Tauri WebKit/GTK development packages.
+Runtime requirements and lock files, not prose version lists, own dependencies.
 
-Requires Node 22+, Rust and [Tauri platform build prerequisites](https://v2.tauri.app/start/prerequisites/). To build an installer, build the native backend first and then run `npm run tauri build` from `modern`. Cross-compiling Python sidecars is not supported.
-
-## Linux packages
-
-`npm run tauri -- build --bundles deb,appimage` writes the `.deb` and `.AppImage` under `src-tauri/target/release/bundle/`. Build them on Ubuntu 22.04 for releases: the binaries need a glibc at least as old as the target systems. `packaging/flathub/build-local.sh` builds the Flatpak from source with the Flathub manifest (GNOME 51 runtime; the backend runs on the runtime's Python instead of the PyInstaller executable). `snapcraft.yaml` repackages it as a core22 snap, so its `.deb` must come from Ubuntu 22.04. The [Release workflow](../.github/workflows/release.yml) builds all packages on a version tag. The frontend alone (`npm run dev`) has no mock backend; use Tauri for IPC.
+The GTK interface is preserved on `archive/gtk`; `estimator/` in this checkout
+is the shared headless engine used by the modern backend.
 
 ## Windows development and builds
 
-Install Node.js 24 LTS with npm, Python 3.14 x64, Rust's stable MSVC toolchain, and the Visual Studio C++ desktop build tools with a Windows SDK. Windows also needs the Edge WebView2 Runtime. [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/#windows)
-
-Run these commands in PowerShell from the repository root. With uv, use `uv venv --python 3.14 --seed .venv` for the first command.
+Run from the repository root in PowerShell:
 
 ```powershell
 py -3.14 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt pyinstaller==6.22.3
+.venv/Scripts/python.exe -m pip install -r requirements-dev.txt pyinstaller==6.22.3
 npm.cmd ci --prefix modern
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\.venv\Scripts\python.exe modern/bundle_backend.py
+npm.cmd run --prefix modern bundle:backend
 npm.cmd run --prefix modern tauri -- dev
 ```
 
-To produce a Windows x64 NSIS installer, run `npm.cmd run --prefix modern tauri -- build --bundles nsis -- --locked` from the repository root after building the backend. The installer is written to `modern/src-tauri/target/release/bundle/nsis/`. Rebuild the sidecar after editing Python code before packaging a release. The `bundle:backend` npm command also builds the sidecar using the repository's `.venv`.
+Development uses `.venv/Scripts/python.exe`; PyInstaller builds the external
+binary Tauri expects. Rebuild the sidecar after Python/data changes before
+packaged validation. Production users do not need a separate Python installation.
 
-Use the **New project** icon beside the logo to create a working project, or the **Open project** icon and Browse to choose a v1/v2 `.eproj` (or enter its absolute path). Search/load an item in the explorer, select rows to edit them in the inspector or double click table cells, then use **Save copy** to choose a **new** path. Use **Save project** to replace the opened project after checking for external changes and writing a numbered backup beside it. Numeric entries support bounded arithmetic, evaluated in Python. Tax percentages use four decimal places; rates and discounts use two-place currency rounding; final calculated values always come from the backend. Ctrl+C/V copies validated row data through the system clipboard between modern GEstimator windows; text editing uses the ordinary text clipboard. Ctrl+Z/Y, Delete and explicit Move up/down act on the analysis. Use the analysis headerbar’s **Apply analysis** to retain edits and return to Schedule; **Discard analysis** abandons the draft and returns to Schedule. Applied changes to multiple items are included in Save copy. Switching items/projects prompts to apply/save/discard a dirty draft; the backend also rejects unconfirmed switches. Closing the desktop window prompts for dirty drafts. The Open Project dialog lists recent projects and recoverable checkpoints. Save a recovered project to a new location.
+After the [required verification](../docs/testing.md), build an x64 NSIS installer:
 
-Backend protocol can also run independently: `.venv/bin/python -m modern.backend`, one JSON object per line, e.g. `{"id":"1","method":"state","params":{}}`. Responses contain `id` plus `result` or `error:{code,message}`; long operations can emit `event:"progress"` first. Edits require the latest `revision` from state.
+```powershell
+npm.cmd run --prefix modern bundle:backend
+npm.cmd run --prefix modern tauri -- build --bundles nsis -- --locked
+```
 
+Output is under `modern/src-tauri/target/release/bundle/nsis/`. Building is not
+installation verification; use the release gates in the [roadmap](../docs/roadmap.md).
 
-## Workspace
+## POSIX development
 
-The ribbon tabs select Schedule, Analysis, Resources and Measurements editors. Databases and MCP change only the ribbon, preserving the active editor, draft and selection. The logo opens the application menu; file commands and context-sensitive undo/redo are icon-only controls beside it. The Explorer visibility icon follows undo/redo. Explorer tabs provide paged schedule/resource search. The inspector shows resource definitions, effective rates and the selected row's calculated amount. The final rate stays visible below the table. Analysis → View controls inspector visibility, group expansion and compact row spacing. Ribbons share one depth with aligned 24 px full-action icons and one/two-line captions. Minor actions use two rows with 20 px icons and text; overflow uses a two-row icon layout. Toolbar icons are local inline SVG paths with neutral bodies and restrained amber details, following Open Planner Studio’s OpenAEC visual direction. Disabled, destructive and filled-button icons keep their semantic foreground colour. Shared theme tokens define charcoal dark surfaces and neutral light surfaces. Copy/Paste use crisp filled rectangular outlines. Hover and pressed toolbar states have square inset borders without moving or resizing controls. The native window stays hidden until startup data, theme, fonts and initial layout are ready. Client-side window controls replace native decorations, and tighter spacing keeps the editable content prominent. The light theme uses darker text and the dark theme uses higher-contrast secondary text. Hover actions for explanations of selection scope, calculations and saving. Dark/light themes persist locally. Ctrl/⌘+O opens, Ctrl/⌘+S saves the current project, Ctrl/⌘+Shift+S saves a copy, Ctrl/⌘+F focuses the existing search bar in the active view or selection dialog, and the help button groups editing shortcuts by category. Schedule shows a highlighted overall estimate total beneath the table, independent of filters and pages.
+From the repository root with platform prerequisites installed:
 
-With a ribbon tab focused, Left/Right and Home/End move focus; Enter/Space activates it through the unsaved-draft guard. In a project table, Ctrl/⌘+D duplicates selected items, Delete uses the existing deletion flow, and Alt+Up/Down reorders the selection. These commands act on measurement records when their table has focus. Ctrl/⌘+I opens item creation (or inserts a record when the record table has focus). Ctrl/⌘+Shift+I creates a schedule subitem with its parent prefilled; Ctrl/⌘+E opens the selected schedule analysis and Ctrl/⌘+M opens row colours. In Analysis, Ctrl/⌘+I opens library resources and Ctrl/⌘+Shift+I opens custom resource entry. Text fields retain native editing shortcuts and project cells retain spreadsheet paste.
+```sh
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt pyinstaller==6.22.3
+npm ci --prefix modern
+npm run --prefix modern bundle:backend
+npm run --prefix modern tauri -- dev
+```
 
-The visual direction follows [CivilKit Calcs](https://github.com/civilkit/civilkit-calcs)' docked engineering workspace and ribbon organization; the GEstimator implementation and calculation model remain separate.
+`npm run dev` from `modern/` serves the frontend alone, without a mock backend.
+Use Tauri for normal desktop development. Browser tests install their own bridge
+to the real Python process; it is not shipped in the app.
+
+## Linux packages
+
+Build the sidecar on the target OS/architecture; PyInstaller does not cross-compile.
+From `modern/`, `npm run tauri -- build --bundles deb,appimage` writes bundles
+under `src-tauri/target/release/bundle/`. The release workflow uses Ubuntu 22.04
+for `.deb`/AppImage compatibility and the core22 Snap base.
+
+[Flathub packaging](../packaging/flathub/README.md) builds from source offline,
+using the runtime's Python rather than a PyInstaller sidecar. Regenerate its
+source lists when runtime dependency/lock files change. `snapcraft.yaml`
+repackages the release `.deb`. The [Release workflow](../.github/workflows/release.yml)
+defines actual runner/package behavior; clean-machine validation is separate.
+
+## Backend protocol
+
+Run `.venv/Scripts/python.exe -m modern.backend` on Windows or
+`.venv/bin/python -m modern.backend` on POSIX. Requests are UTF-8 JSON Lines;
+start with `{"id":"1","method":"state","params":{},"session":"main"}`.
+See the [backend protocol](../docs/architecture/backend.md#desktop-json-lines-protocol)
+for sessions, response/progress envelopes, revision guards and shutdown.
 
 ## Browser integration tests
 
-From `modern`, with the repository Python environment prepared:
+Commands, focused runs, real-backend scope and native limits are maintained in
+[testing.md](../docs/testing.md#browser-integration-suite). The
+[Code quality workflow](../.github/workflows/quality.yml) checks PR/master
+changes; tagged/manual [Release](../.github/workflows/release.yml) builds packages.
+A hosted workflow result must be observed separately from local checks.
 
-```sh
-npx playwright install chromium
-npm run test:e2e
-```
+## Workspace
 
-On Windows use `npx.cmd` and `npm.cmd` in PowerShell.
-
-The tests replace only the Tauri invocation transport with a bridge to a real persistent Python subprocess. Calculation responses and project saves are real, with test outputs confined to temporary copies. Native OS dialogs and window-close events still require a desktop interaction check. The test runner starts Vite automatically and saves dark/light/narrow-layout screenshots in `test-results/`. A preinstalled browser can be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
-
-Workspace previews: [dark](../docs/migration/screenshots/workspace-dark.png) · [light](../docs/migration/screenshots/workspace-light.png).
-
+Read [frontend architecture](../docs/architecture/frontend.md) for document/view
+lifetimes, navigation and refresh ownership, and [UI guidelines](../docs/ui-guidelines.md)
+for interaction rules. Use the [manual](../docs/manual/README.md) to learn the UI.
 
 ## Schedule, resources and measurements
 
-Use the ribbon tabs to open the project editors. Schedule/resources support hierarchical categories, multiline editing, arithmetic numeric entry, duplication, copy/paste, search/paging and project undo/redo. Select categories or items and use the ribbon arrows to reorder them. Delete previews include hidden category contents and descendants. For used resources, choose **Delete unused** or **Delete including used**; the latter removes their analysis entries and recalculates rates. Project undo restores the entire operation. Select an item and use **Edit analysis** to enter its analysis. Paste plain tab-separated cells into a selected table cell; the backend applies the batch transactionally.
-
-**Attach library…** opens a snapshot of an external .eproj for browsing. Choose that data source, select items or whole categories and use **Import selected into project**. Imported resources retain library prefixes when defined. Attached libraries also appear as a source in the analysis resource dialog. Libraries are never edited in place.
-
-The attachment dialog can remember library paths in application preferences. Remembered libraries reopen with every project, including after restarting the backend. Missing paths produce a non-blocking warning; use **Application menu → Databases…** to retry, attach a moved file or forget its old path. Forget affects future restoration; the current read-only snapshot remains until the project closes. Duplicate attachments in a window are reused. Up to 50 library paths can be remembered.
-
-In Analysis, **Bulk edit analysis…** previews setting one field on the selected rows. Resource definition changes affect other uses of the same resource in the draft. **Custom analysis template…** configures reusable Group, Subtotal, Weight, Multiply and Round rows. Saving the template updates the default analysis template in Program Settings; previewing and applying inserts the rows after the selection as one undo step. Both workflows use the Python engine for validation and final calculated values.
-
-**Application menu → Program settings…** is available without an open project. It controls workbook description splitting, the library schedule-rate multiplier, the number of trailing analysis rows to replace (0–5), and the default and Modify & Add analysis templates. Settings are validated by Python and saved as versioned application preferences, separately from project files. Cancel discards settings edits; Restore shipped defaults changes the dialog draft until Save is pressed. Existing modern custom-template preferences are carried into the unified settings. GTK pickle settings are not read.
-
-**Analysis → Default rows** inserts the configured default template. Opening an analysis with no calculation rows also inserts those defaults as an undoable draft change; apply the analysis and save to retain them. **Schedule → Modify & Add**, available while browsing a library, applies the configured multiplier and eligible trailing-row replacements and records the library item reference. As in GTK, its multiplied stored schedule rate may differ from the resulting analysis rate until explicitly recalculated. Plain import retains its existing behavior. The entire Modify & Add operation is one project undo step.
-
-The library dialog also lists the bundled DSR databases and `.eproj` files in the legacy custom database folder. The Databases ribbon and attachment dialog can open that folder. Refresh available databases after adding a file. Bundled databases are packaged in the sidecar and remembered by stable names rather than temporary extraction paths; attachments remain read-only snapshots.
-
-Measurements are grouped under categories. Double-click a category or press Enter to edit its name. Select an item and choose **Edit records**, or double-click it, to open its records page. **Properties** is available on the main Measurements ribbon and the records ribbon. On the records page, **Edit description** focuses the editable Description / remarks field; the heading shows up to 120 characters, with the full description available in its tooltip. Record actions appear in the contextual ribbon. Use **Update schedule quantities** from the main list with the desired rounding rule. Stable identifiers and project undo retain record values. Template-calculated columns are read-only. Deleting linked schedule items retains measurement records/remarks and clears their associations; undo restores the links.
-
-All measurement record grids prepend a generated, read-only serial number that continues across pages. Measurement columns use the widths and expansion rules declared by their Python templates, including the steel table. Numeric inputs align right, calculated columns are shaded and read-only, and template user data and schedule links wrap into responsive fields. Trees stay expanded. Arrows navigate cells; Home/End and Shift ranges retain row selection, Ctrl/⌘+A selects the current page, and Escape clears selection. Enter/F2 starts the focused cell editor. Escape cancels an edit and retains keyboard focus on that cell. During editing, arrows move the caret and Shift+arrows select text. Tab/Shift+Tab accept the value, wait for backend validation and continue editing the next editable cell; Enter accepts and moves down. Read-only calculated fields are skipped. Invalid/stale edits reopen with the typed value for correction; Shift/Ctrl+Enter inserts a newline.
-
-Row copy/paste works between modern instances for Analysis, Schedule, Resources, whole measurement items and template-matched records. Category selections include contents beyond the displayed page; schedule transfers carry required resource and sub-analysis definitions. Schedule/resource collisions receive a copy suffix. Matching destination resource definitions are reused; copied schedule stored rates are retained. Measurement links match schedule codes; missing codes clear the link with visible feedback and preserve records/remarks. Each paste is one undo step. The versioned JSON format is separate from GTK's pickle clipboard; unsupported data is rejected. Limits are 500,000 characters, 1,000 items/dependencies and 1,000 records per copied measurement item. When native clipboard writing fails, the UI explicitly reports a fallback limited to the current window. Actual native clipboard behavior remains a supported-platform check.
-
-Schedule/resource creation suggests codes using the original GTK numbering helpers. A selected category inserts at its start; a selected item supplies the insertion position. New items are selected and revealed on the appropriate page; an active search/category filter is cleared to make the new row visible. Right-click a row for contextual editing actions. Ctrl+E opens schedule analysis or resource/measurement Properties. Category rows are bold; the schedule omits category/parent columns and resources omit category. Use the category filter to choose one or several categories before paging, and use item dialogs/API fields to edit category/parent relationships. **Move resources…** moves selected definitions between categories with their codes and links intact. Ctrl+L opens Add item/resources from database in a separate dialog; the working selection remains the insertion target. Whole-category imports retain their categories.
-
-Measurement templates are grouped by General, Civil and E&M and show descriptive names, inputs and calculation notes before creation. **Properties…** (Ctrl+E) stages description, links and template data until Save; Cancel preserves the item. Steel labels and constants are paired by bar, and numeric constants accept evaluated arithmetic. Search/clear controls manage schedule links; per-item remarks identify mapped quantity columns. Use **Add multiple records** for a single undoable batch of 1–1000 rows. Record tables show 100 rows per page; Ctrl+A selects the current page, and copy/paste/duplicate/delete/move work on ordered record selections. Full totals and quantity updates include every page. Ctrl+Enter applies an analysis; Ctrl+Escape opens draft-discard confirmation. Ctrl+Shift+S remains Save Copy.
-
-The [editor review](../docs/migration/editor-review.md) records corrected inefficiencies and unusual retained template rules, including NLBH's treatment of zero factors and the electrical templates' count/dimension conventions.
-
-Use the **Databases** tab to attach/manage sources. Attach adds a row and keeps the dialog open; Close is separate. Schedule and Resources have **Add from database** and **Database rates** dialogs, with source selection, search, multiple-item/category selection and rate-change preview. Program Settings groups all Library Modify & Add controls in one tab. Dropdown popups follow the main menu theme. Enter accepts text; Shift/Ctrl+Enter inserts a line break. Measurement cells display the original evaluated results and Breakup while retaining expressions for editing. See the [database workflow and modification-preset proposal](../docs/migration/database-selection-workflow.md).
-
-The MCP server is off by default: enable it in **Application menu → Program settings… → AI assistants (MCP)**, which shows the MCP tab; turning the option off stops a running server and hides the tab. Use **MCP → Configure server** to set the local port and optional automatic startup, inspect tools, rotate the connection token and copy client configuration. **Start server** / **Stop server** control the listener independently of the editor. Choose Read only or Read and write. The server exposes 110 typed application operations plus seven read aliases through the existing Python service, including database metadata/definitions, complete estimate editing, batch operations, measurement evaluation, save/export and undo. Writes require the current revision. Agent updates refresh the UI while active human inputs are preserved for stale-edit correction. See [MCP setup and lifecycle](../docs/migration/mcp-server.md) for supported tools and client requirements.
-
-In Schedule, select item rows and use **Row colour…** to apply or clear their saved colours. Use **Quantities from measurements…** to update the selected items from their linked totals. **Resource usage** opens the project totals from either Schedule or Resources.
-
-**Import workbook** previews a schedule/resource worksheet with field mapping and duplicate policies. **Export workbook** calls the existing five-sheet exporter. Apply an analysis draft before exporting the whole project; analysis-only export includes the draft without changing the project.
-
-**Application menu → Project settings…** edits the existing project name/code metadata. Linux typography reads the actual GTK control font family and size and follows font changes; other platforms use native CSS menu typography until platform validation is complete. No external font is downloaded.
-
-Consult the parity ledger for the status of each workflow compared with the GTK application. Library snapshots preserve their source files.
-
-Editor previews: [Schedule](../docs/migration/screenshots/schedule-desktop.png) · [Resources](../docs/migration/screenshots/resources-desktop.png) · [Measurements](../docs/migration/screenshots/measurements-desktop.png).
-
-See the [workbench refinement](../docs/migration/workbench-refinement.md) for compact layout, client decorations, filters and cell-navigation behavior.
-
+Read [backend architecture](../docs/architecture/backend.md),
+[database format](../docs/architecture/database-format.md),
+[analysis rules](../docs/features/analysis-rules.md) and the
+[MCP public contract](../docs/architecture/mcp.md) before extending these workflows.
+Do not treat historical tool counts or editor notes as current contracts.
 
 ## November 18 editor corrections
 
-Returning from Analysis rebuilds the visible Schedule viewport while retaining scroll position. Analysis fits desktop panes and allows horizontal scrolling only below a 500 CSS px pane width. Library additions use the original batch insertion helpers, retaining a single undo step.
-
-Measurement records now use a draft: **Apply records** (Ctrl+Enter) accepts records, links, description and properties as one project operation; **Discard records** (Ctrl+Escape) abandons the draft. Both actions return to the Measurements list. Navigation and closing protect unsaved records. Undo/redo within records edits the draft; project undo after leaving records reverts the complete applied operation. Save/Save copy and recovery include pending records.
-
-**Program settings → General** controls the regional locale (blank follows the system), three-letter currency code and symbol visibility for rates/amounts in all views and previews. Editors keep raw numeric strings and expressions. Blank interface and table font settings independently use OS control typography; the fallback is 13 px.
-
-See the [November 18 parity review](../docs/migration/parity-review-2026-11-18.md) for remaining original commands and validation limits.
+Historical correction/compatibility evidence is indexed under
+[the migration archive](../docs/migration/README.md). Current contracts are
+linked from the [documentation index](../docs/README.md).

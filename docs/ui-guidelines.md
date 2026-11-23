@@ -1,5 +1,10 @@
 # Workspace UI design guidelines
 
+Current UI rules. Navigation: [documentation index](README.md) ·
+[frontend architecture](architecture/frontend.md) · [development workflow](development-guidelines.md)
+· [verification](testing.md). Root [AGENTS.md](../AGENTS.md) owns code/comment
+formatting; this page owns interaction and visual conventions.
+
 These rules apply to the modern desktop workspace. Keep design decisions in shared components and tokens so every new editor follows the same UI.
 
 ## Ownership

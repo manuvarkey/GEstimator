@@ -1,5 +1,8 @@
 # Flathub
 
+Development guidance: [documentation index](../../docs/README.md) ·
+[build setup](../../modern/README.md) · [verification](../../docs/testing.md).
+
 Files for the Flathub repository [flathub/com.kavilgroup.gestimator](https://github.com/flathub/com.kavilgroup.gestimator). The manifest builds GEstimator from source without network access:
 
 - `cargo-sources.json`, `node-sources.json` and `python-sources.json` list every Rust crate, npm package and Python package with its checksum. Regenerate them with `python3 packaging/flathub/generate-sources.py` after changing `modern/src-tauri/Cargo.lock`, `modern/package-lock.json` or `requirements.txt`.

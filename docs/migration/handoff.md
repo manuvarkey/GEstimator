@@ -1,12 +1,17 @@
 # Vue/Tauri migration handoff
 
+> Historical migration/design record. Start with the [documentation index](../README.md)
+> and [current architecture](../architecture/README.md) for development. Old plans,
+> branches, API/tool names and validation counts below describe their date; do not
+> treat them as current implementation instructions. See the [archive index](README.md).
+
 ## Editor corrections and recorded parity issues — 2026-11-18
 
 Schedule activation now rebuilds its visible virtual viewport while retaining scroll position. Analysis fits desktop panes and permits horizontal scrolling below a 500 CSS px pane width. Library schedule/resource additions use the original batch helpers as one project operation. Measurement records have explicit Apply/Discard drafts, separate undo/redo, navigation protection, save/recovery inclusion, and a clean-draft lifecycle that preserves main-list Properties and committed MCP edits.
 
 Program Settings now controls regional rate/amount formatting and optional currency symbols across views. Blank interface/table typography independently follows OS control fonts, with a 13 px fallback; saved overrides remain effective.
 
-The [open parity backlog](parity.md#open-parity-issues) records **PARITY-001 through PARITY-006** with status and acceptance criteria: mismatch highlighting, resource renumbering, resource-rate synchronization, multi-item analysis import, OS file opening, and manual/About commands. The [source audit](parity-review-2026-11-18.md) contains the evidence and compatibility distinctions.
+The [parity issue ledger](parity.md#tracked-parity-issues) records **PARITY-001 through PARITY-006** with status and acceptance criteria: mismatch highlighting, resource renumbering, resource-rate synchronization, multi-item analysis import, OS file opening, and manual/About commands. The [source audit](parity-review-2026-11-18.md) contains the evidence and compatibility distinctions.
 
 Validation: 138 Python tests passed; the full 63-test browser suite passed, followed by 16 affected browser scenarios and one new lifecycle regression after the final correction (64 distinct browser scenarios across runs). The production frontend build passed. The native installer was not rebuilt; see the [validation record](validation.md).
 

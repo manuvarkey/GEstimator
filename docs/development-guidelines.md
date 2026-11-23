@@ -1,59 +1,92 @@
-# Development guidelines
+# Development workflow and maintainability
 
-These rules keep the modern desktop application (`modern/`) maintainable as features are added. UI rules are in [ui-guidelines.md](ui-guidelines.md); planned work is in [roadmap.md](roadmap.md).
+Current workflow. Navigation: [index](README.md) · [architecture](architecture/README.md)
+· [UI rules](ui-guidelines.md) · [verification](testing.md).
+Root [AGENTS.md](../AGENTS.md) owns mandatory code/comment/formatting rules.
 
-Repository-wide comment, formatting and quality-check rules are in
-[AGENTS.md](../AGENTS.md). The [repository audit](code-quality-audit.md) records
-current structural debt and the order for further extraction. Install
-`requirements-dev.txt` and the locked frontend dependencies, then use
-`python tools/check_quality.py --fix` and `python tools/check_quality.py` with the
-repository virtual environment. Add `--base <ref>` to check a whole branch.
+## Before changing code
 
-## Layering
+1. Use the [task map](README.md#find-guidance-by-task) and read the relevant
+   current contract and source links. Check existing tests for retained behavior.
+2. Identify the owner: domain calculation, service orchestration, transaction,
+   view state, native integration or public MCP adaptation. Read neighboring
+   helpers before creating another abstraction.
+3. Check the [quality audit](code-quality-audit.md) and [roadmap](roadmap.md).
+   Separate requested work from future proposals and historical migration notes.
+4. State the behavior/invariant being changed and choose focused regression
+   evidence from the [testing matrix](testing.md#choose-checks-from-the-change).
 
-- **Python backend owns the domain.** Calculations, parsing (spreadsheets, clipboard, analyses), validation, numbering, placement, rate updates and persistence live in `modern/backend` or the shared engine (`estimator/`). The frontend never re-implements them; it sends requests and renders results.
-- **Vue renders and collects input.** Components display backend data, hold view state (selection, open dialogs, scroll) and send commands. Shared behaviour goes into composables (`useWorkspace`, `useDocumentTabs`) or helpers (`rowClipboard.ts`, `numberFormatting.ts`, `markdown.ts`), not into `App.vue` or a single view.
-- **One protocol.** Every desktop and MCP operation goes through `Service.call` / `ProjectEditor.call`. MCP tools call the same methods as the desktop (`mcp_writes.py` uses `self.app(...)`), so behaviour and validation stay identical.
-- **Read-only requests stay read-only.** Previews (`*_preview`, `dry_run`) either run outside `mutate` or inside `compound(..., preview=True)` so nothing is committed. Keep them before the revision check only when they cannot change data.
+## Keep changes in their layer
 
-## Modules
+- Python owns calculations, validation, imports, numbering and persistence. Vue
+  renders authoritative results and collects input; Rust owns native integration
+  and transport. The [architecture overview](architecture/README.md) maps owners.
+- Desktop and MCP reuse `Service.call` / `ProjectEditor.call`; public MCP
+  contracts are defined in [MCP architecture](architecture/mcp.md), not by exposing
+  arbitrary internal methods.
+- Preserve [draft/project transaction boundaries](architecture/backend.md#revisions-and-write-boundaries).
+  Helpers do not commit or create parallel undo histories. Previews restore data
+  and transient state; do not implement a preview by applying and manually undoing.
+- Use top-level imports unless a documented cycle/startup constraint needs lazy
+  loading. Keep the shared engine independent of `modern` and UI packages.
 
-- Keep a module to one concern and name it for that concern: `importing.py` (worksheet helpers and mapped schedule/resource import), `analysis_import.py` (analysis parsing and analysis import operations), `rates.py` (rate recalculation), `clipboard.py` (row transfer format), `insertion.py` (placement), `search.py` (indexes).
-- `measurements.py` builds measurement views and handles item operations;
-  `measurement_records.py` handles record edits. Both use `ProjectEditor` for
-  draft-aware data access and leave transactions and history with the caller.
-- When a module grows a second concern, split it before adding more. Prefer new files to larger `App.vue`, `ProjectViews.vue`, `project.py` or `service.py`.
-- Delete code that becomes unused in the same change; do not leave parallel implementations.
-- Use lazy imports inside handlers only to avoid import cycles or slow start-up; otherwise import at the top.
+## Modularity review
 
-## Data and behaviour
+Choose a named module for one concern and explicit inputs/outputs. Existing
+owners are listed in the [backend](architecture/backend.md#ownership-and-module-map)
+and [frontend](architecture/frontend.md#ownership-and-module-map) maps.
 
-- **Exact numbers.** Use `Decimal`/`Currency`; never floats for money or quantities. Parse user and worksheet numbers with `numbers.decimal` or `importing.loose_number`.
-- **Measurement compatibility.** Existing measurement templates retain their
-  integer/float arithmetic and rounding. Their expressions use
-  `estimator.arithmetic.evaluate_number`, which bounds syntax, powers and
-  intermediate values without executing Python text. This exception does not
-  apply to financial arithmetic. Project-file loading must enforce the same
-  safety boundary as interactive editing.
-- **Shared math syntax.** Both numeric modes use `NumericExpression` in
-  `estimator/arithmetic.py`. Extend its explicit function/constant list rather
-  than adding another parser. Decimal entry keeps exact decimal arithmetic and
-  native Decimal roots/logarithms where available; trigonometric functions use
-  standard math approximations converted back to Decimal before entry rounding.
-- **Undo.** Every mutation runs through `ProjectEditor.mutate` (or `compound` for multi-step operations) so it is one undo step and rolls back completely on error.
-- **Shared engine changes.** `estimator/` is the calculation engine of the GTK application (kept on the `archive/gtk` branch). Behaviour changes there must keep its results identical unless the change is a deliberate fix; performance changes must be verified to produce identical output (see the `get_item` and rate-engine checks in `docs/migration/validation.md`).
-- **Bulk over per-row.** Load related rows with one query (joins, `IN` chunks of ≤ 500, raw SQL for integer graphs) instead of a query per row; batch writes with `insert_many`/`executemany`. Profile with real databases (DSR 2021, DSR E&M 2022) before and after.
-- **Resilient imports.** Worksheets are user data: accept common variations, report what could not be used as row-numbered warnings, and never fail the whole import for one bad row unless the result would be wrong.
-- **Limits.** Validate request sizes and types at the backend boundary (lists ≤ 1000 rows, text lengths, ranges); keep MCP tool discovery within its size budget (tests enforce it).
+Before extending an oversized shell/router, extract the new concern into a
+handler, composable or component. Small forwarding methods are acceptable when
+preserving an existing API. Do not replace a large file with hidden state mixins,
+numbered file fragments or layers that only forward every argument unchanged.
 
-## User-facing text
+The root rules use 600-line modules and 80-line functions as review triggers.
+For a larger unit, explain why its responsibilities belong together and how it
+will be verified. Do not create many trivial helpers merely to pass a line count.
+Delete superseded implementations and update the owning contract in the same change.
 
-- Describe GEstimator behaviour only. Never mention the GTK application, earlier versions or implementation references in labels, tooltips, help or messages; keep such notes in code comments and developer docs.
-- Name actions by outcome ("Import 12 records", "Resources moved") and put counts in buttons and status notices.
+## Preserve data and compatibility
 
-## Tests and verification
+- Keep financial arithmetic Decimal/Currency and preserve numeric strings across
+  IPC. Measurement templates retain integer/float semantics. The shared bounded
+  [numeric evaluator](architecture/backend.md#numeric-evaluation) owns expression
+  syntax; do not add a frontend parser or execute data as Python.
+- [Project files](architecture/database-format.md) and attached libraries are
+  isolated before editing/migration. Preserve stable identities, foreign keys,
+  measurement links, source fingerprints, recovery and atomic undo.
+- Reuse engine calculations and workbook output. For engine changes compare fixed
+  baselines and real-data round trips; record any intentional behavior change.
+- Load related rows in batches and write in batches rather than querying per row.
+  Profile relevant bundled databases before/after a performance change and compare
+  outputs, not just timings.
+- Treat worksheets/clipboard as user data. Accept supported variations, return
+  row-specific warnings where appropriate, and reject invalid batches atomically
+  where a partial result would be wrong. Request limits belong to their actual
+  schema/validator; do not copy one tool's limits into a global rule.
 
-- Add a Python unit test for every backend behaviour change and a browser test (`modern/e2e/workspace.spec.ts`) for every user-visible workflow change. Test behaviour, not CSS.
-- Run before committing: `.venv/bin/python -m unittest discover -s tests`, `npx vue-tsc --noEmit -p tsconfig.json`, `npm run build` and the browser suite (`npx playwright test`).
-- For parser or engine changes, compare against real data (export/re-import round trips of the bundled databases, source spreadsheets in `spreadsheets/`).
-- Record notable changes and their validation in `docs/migration/validation.md`.
+## Frontend and user-facing behavior
+
+Follow [UI guidelines](ui-guidelines.md) for shared controls, tokens, accessibility,
+keyboard behavior, draft actions, status/error presentation and both themes.
+Keep new IPC shapes explicit; isolate third-party `any` in an adapter rather than
+adding casts throughout a view. Preserve human inputs during stale/agent refresh.
+
+User-facing text describes GEstimator behavior. Internal migration/GTK references
+belong in code comments or historical developer records. Name actions by their
+outcome and include counts when they help the user understand scope.
+
+## Finish a change
+
+1. Apply/check the configured formatting on changed source files. Keep unrelated
+   files out of formatting-only churn. The [testing guide](testing.md) owns commands.
+2. Run relevant focused checks and the required app/native suites for executable
+   changes. Documentation-only work uses local link/anchor checks and diff checks.
+3. Review error paths, previews, undo and cleanup as well as the happy path.
+   Do not weaken checks, increase schema budgets or replace expected values just
+   to make a test pass.
+4. Update the owning current document and its cross-references. Keep one canonical
+   description of each contract, using the [documentation ownership rules](README.md#authority-and-document-ownership).
+5. Append actual commands/results, warnings, skips and remaining platform limits
+   to the [validation log](migration/validation.md). Label targeted reruns and
+   historical evidence accurately. Update roadmap/audit status only with evidence.

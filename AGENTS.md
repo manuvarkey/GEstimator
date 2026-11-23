@@ -1,8 +1,11 @@
 # Project development rules
 
-These rules apply to the whole repository. Read
-[development guidelines](docs/development-guidelines.md) and the
-[architecture](docs/migration/architecture.md) before structural changes.
+These rules apply to the whole repository. Start with the
+[documentation index](docs/README.md), then read the
+[development workflow](docs/development-guidelines.md) and
+[current architecture](docs/architecture/README.md) before structural changes.
+The index routes database, backend, frontend, MCP, feature and testing work to
+their current contracts. Migration notes are historical context, not API rules.
 Changes under `modern/` also follow its [AGENTS.md](modern/AGENTS.md).
 
 ## Responsibilities and modularity
@@ -129,6 +132,19 @@ be edited directly. Keep cascade order intact during CSS refactors.
 - Record notable changes and actual validation in
   [validation.md](docs/migration/validation.md). Keep remaining structural debt
   and audit limits in [the repository audit](docs/code-quality-audit.md).
+
+## Documentation maintenance
+
+- Keep the relevant current contract in `docs/architecture/` or `docs/features/`
+  synchronized with behavior and link it from [the index](docs/README.md).
+  Link to canonical contracts instead of copying schemas, tool lists or commands.
+- Keep future proposals in the roadmap and historical evidence in `docs/migration/`.
+  Do not present old tool counts, branches, test totals or completed plans as
+  current instructions. Preserve old entry points and referenced section anchors
+  when moving a document.
+- For documentation-only changes, run `tools/check_docs.py` and
+  `git diff --check`; app tests are needed only when behavior/code changes.
+  Use the [testing guide](docs/testing.md) for the complete verification matrix.
 
 Do not change these rules without explicit user instruction. An uncovered case
 is a reason to flag it, not to silently expand the rules.

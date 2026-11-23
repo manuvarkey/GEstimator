@@ -51,6 +51,8 @@ jobs:
           }
       - name: Backend regression tests
         run: .venv/Scripts/python -m unittest discover -s tests
+      - name: Documentation links and discovery
+        run: .venv/Scripts/python tools/check_docs.py
       - name: Frontend types and production build
         run: npm run --prefix modern build
       - name: Browser workflows

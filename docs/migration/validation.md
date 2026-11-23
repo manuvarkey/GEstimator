@@ -1,5 +1,9 @@
 # Validation record — 2026-11-13
 
+> Dated validation evidence. Use the [documentation index](../README.md) and
+> [testing guide](../testing.md) for current guidance. Later entries may supersede
+> earlier limits; keep historical results in their original date context.
+
 Filter-inspired bulk-edit continuation (2026-11-16): **93 Python tests pass**; the two affected analysis browser workflows and the new nested-condition/preset workflow pass, building on the 32-workflow baseline below. New checks exercise nested AND/OR groups, numeric ranges/inequality and empty-value operators, bounded nesting, project-independent typed MCP validation, named preset save/reload/delete across page reload, exclusion of project scope/IDs/revision from presets, and storage-write failures retaining current rules and project data. Production frontend, locked offline Linux native debug and rebuilt Python sidecar builds pass. The final frozen-process contract verifies nested rule validation, range/OR preview/apply, dependency rates, undo and original-source preservation. The reference filter components were inspected through GitHub; an interactive browser connection was unavailable.
 
 Native packaging check (2026-11-16): the locked offline Linux debug build passes and produces `modern/src-tauri/target/debug/gestimator-modern`. The Python sidecar has been rebuilt with the project analysis-rule module.
@@ -887,3 +891,41 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   isolated repetitions**. No production MCP logic or automatic retries were
   changed; the other 88 passing workflows were not rerun after this wait-only
   test correction.
+
+## 2026-11-23 — Current documentation structure and agent discovery
+
+- Added [docs/README.md](../README.md) as the development entry point, with
+  reading order, task routing, document ownership and maintenance rules. Root
+  and modern AGENTS files, repository/developer READMEs and relevant guides now
+  route agents through the current contracts rather than old handoff plans.
+- Added current [architecture references](../architecture/README.md) for the
+  database format, backend, frontend and MCP. Each links source owners, invariants,
+  extension guidance, related contracts and regression tests. Verified schema
+  field names/nullability/Decimal declarations against `get_orm_model`, session
+  and transaction ownership against runtime/service/editor code, and MCP tool
+  counts/reporting views against their registries (19 tools, eight reads, six views).
+- Moved the current MCP reference and analysis-rule feature contract out of
+  `migration/`, preserving forwarding pages and their existing section anchors.
+  Corrected the analysis-rule documentation to distinguish internal desktop
+  methods from public `apply_analysis_rules` and its code-based scope.
+- Added a migration archive index and context banners; retained dated evidence.
+  Simplified the build README and development workflow, centralized verification
+  in [testing.md](../testing.md), and separated completed baselines from remaining
+  release gates in the roadmap. Removed the old MCP counts, DSR 2023/screenshot
+  pending items and unlimited-undo wording from current guidance. The Node minimum
+  in the developer README now matches the locked Vite constraint (22.12 or later).
+- Added `tools/check_docs.py` and its CI step. It checks local inline/reference/HTML
+  destinations, Markdown section anchors, current-contract reachability and links
+  back to the index; it does not fetch external URLs or execute documentation.
+  The first run found two pre-existing broken migration anchors, now corrected.
+- Validation: documentation checks passed across **36 Markdown files**;
+  `tools/check_quality.py`, an additional Ruff unused-import/undefined-name check
+  for the new checker, and `git diff --check` passed. Disposable fixture checks
+  verified valid graphs, ignored fenced/inline examples, missing paths/anchors,
+  orphan pages, missing backlinks and duplicate heading IDs. The existing manual
+  renderer also rendered the updated manual successfully in memory.
+- No application behavior or database schema changed. Full app/native suites
+  were not rerun for this documentation/tooling change. Hosted CI, external store
+  state and clean-machine packages were not observed. The roadmap records that
+  the current locked Prettier dependency is absent from the offline Flathub Node
+  source list; that build input still needs regeneration/verification.

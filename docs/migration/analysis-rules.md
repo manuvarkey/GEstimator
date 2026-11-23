@@ -1,27 +1,18 @@
 # Project analysis rules
 
-Open **Bulk edit analysis** from Schedule to operate on selected items/categories (including descendants), or choose Whole schedule. From Analysis, the initial scope is the current schedule item. Apply or discard a dirty draft before previewing project changes.
+This reference moved to [Project analysis rules](../features/analysis-rules.md).
 
-Rules run in order. Each rule sees the result of earlier rules, and matches each row once; rows inserted by that rule are considered only by later rules. Match a row type, nested All/Any condition groups, case sensitivity and every/first/last occurrence per analysis. Groups allow three levels, up to eight children per group and 32 conditions/groups per rule. Field-specific operators and value controls are inspired by [Open Planner Studio's filter editor](https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/dialogs/FilterDialog.tsx) and [field catalog](https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/viewControls/fieldCatalog.ts). These were inspected from source; no browser connection was available for the reference application.
-
-Description, code and remarks use text comparisons: equals/not equals, contains/does not contain, starts/ends with and wildcard `*`/`?`. Quantity/factor fields use numeric equality/inequality, greater/less-than and an inclusive Between range with two inputs. Is empty/Is not empty need no value. Numeric comparisons and range bounds use the existing bounded Python arithmetic parser, so `1/5` remains a valid bound. Changing a field chooses its first compatible operator and clears stale values. Case sensitivity is shared by the rule's text conditions; literal replacement remains case sensitive.
-
-For **(overhead OR profit) AND factor between 0.05 and 0.2**, choose Weight, set the outer group to All, add an Any subgroup with the two description conditions, then add a Quantity/factor Between condition to the outer group. The same matcher is used by preview, apply and MCP.
+Read the [documentation index](../README.md) for current development guidance.
+This page preserves old links; the linked page owns the current contract.
 
 ## Saved rule presets
 
-Save named matching rules and actions, reload them in other projects, or delete a saved preset while keeping the current rules in the editor. Saving does not modify the project, and loading requires a fresh preview before applying. Presets exclude project revisions, scope and selected item IDs; those are chosen each time. Keeping the current preset name updates it; changing the name saves a new preset. Up to 50 presets are stored in the application's local preferences under `gestimator.analysis-rules.v1`. Each save/delete reads the latest stored list first, preserving changes made by other windows. Backend validation runs before save/load; invalid or unavailable storage leaves the current rules intact and shows an error.
+See [Saved rule presets](../features/analysis-rules.md#saved-rule-presets).
 
 ## Actions and preview
 
-Actions set fields, multiply or add to quantities/factors, replace literal text, delete matched rows, insert calculation rows before/after matches, replace matches with template rows, or prepend/append rows to every scoped analysis. Multiple ordered rules replace fragile fixed trailing-row counts: for example, match Weight rows with description containing OH and set the factor, rename that row, then replace matching Round rows. Resource entry rules change quantities/remarks or reassign an existing project resource code; shared resource definitions are edited in Resources. Deleting a Group removes its resource entries too. Calculation-row insertion/replacement targets calculation rows, rather than resource children.
-
-**Preview changes** runs the same persistence and dependency-calculation path on a temporary SQLite copy. It shows per-rule match counts, unmatched analyses, edited rows and before/after rates, including affected dependent items. Zero matches or no actual changes keep Apply disabled. Preview details are limited to 200 affected items and 500 changes; summary counts cover the whole operation. Limits are 50 rules, 100 inserted template rows per rule and 10,000 scoped items. Invalid field/type combinations fail with the item code and leave the project unchanged.
-
-Editing a rule or changing the project revision invalidates the preview. **Apply rules** uses the captured revision, applies the batch atomically, and returns to Schedule, where header Undo restores the entire batch (including dependent rates). Source files change only through the existing explicit Save workflow. Project undo/redo, active-analysis synchronization, dirty-draft protection and calculations reuse the existing Python engine; no frontend calculation or new database schema is introduced.
+See [Actions and preview](../features/analysis-rules.md#actions-and-preview).
 
 ## Agent operations
 
-MCP exposes the same typed operations as `schedule.editor.analysis_rules.preview` and `schedule.editor.analysis_rules.apply`. Supply `revision`, `rules`, `scope` (`selected` or `all`), and selected `ids` or the current `code`. A rule has `match` (`kind`, `mode`, `occurrence`, `case_sensitive`, `conditions`), `action`, and action-specific `field`, `value`, `find` or `rows`. Conditions contain `field`, `operator` and `value`. Template rows use the same Group/Subtotal/Weight/Multiply/Round definitions as Program Settings.
-
-Nested groups contain `mode` and `conditions`; a Between leaf also supplies `value2`. `analysis.rules.validate` validates reusable rules without requiring or changing a project. MCP advertises the same bounded nested schema as the editor. Saved application presets remain UI preferences; agents supply explicit rules.
+See [Agent operations](../features/analysis-rules.md#agent-operations).

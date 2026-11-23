@@ -1,5 +1,7 @@
 # GEstimator user manual
 
+For application development, start with the [developer documentation index](../README.md).
+
 GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. This manual walks through the workflow with a sample estimate: a small staff quarters building priced from the bundled DSR 2023 (Civil) database.
 
 - [1. The workspace](#1-the-workspace)

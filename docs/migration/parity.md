@@ -1,5 +1,10 @@
 # Feature parity ledger
 
+> Migration compatibility ledger. Use the [documentation index](../README.md),
+> [current contracts](../architecture/README.md) and [roadmap](../roadmap.md) for
+> present development. Status entries and test counts below describe their date;
+> they are not a fresh platform/release verification.
+
 The GTK application remains the production reference and remains runnable. A modern view being present is not a full-parity claim. This ledger distinguishes exercised workflows from remaining work.
 
 | Area | Implemented in the modern workspace | Remaining parity gates |
@@ -23,7 +28,7 @@ See the [2026-11-18 source/workflow review](parity-review-2026-11-18.md) for thi
 
 ## Tracked parity issues
 
-Recorded 2026-11-18. These are implementation gaps identified against the GTK source; platform validation gates remain listed separately above. IDs are stable so subsequent changes can reference each issue. Implementation status below reflects the follow-up change; installed-platform validation remains a separate gate. Source evidence is in the [audit](parity-review-2026-11-18.md#remaining-concrete-gaps-found).
+Recorded 2026-11-18. These are implementation gaps identified against the GTK source; platform validation gates remain listed separately above. IDs are stable so subsequent changes can reference each issue. Implementation status below reflects the follow-up change; installed-platform validation remains a separate gate. Source evidence is in the [audit](parity-review-2026-11-18.md#concrete-gaps-found-in-the-original-audit).
 
 | ID | Status | Issue | Acceptance criteria |
 |---|---|---|---|
