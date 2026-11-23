@@ -4,7 +4,7 @@ description: Worked example - preliminary lighting design for a 6 x 4 m office (
 
 # Worked example: office
 
-The values below show the method. The luminaire flux and utilisation factor are assumed, not from a real datasheet. Replace them with project data before you rely on the count.
+The values below show the method. The luminaire flux is assumed and the utilisation factor comes from the fitting-type reference. Use the selected luminaire's photometric data to check the count.
 
 ## Brief
 
@@ -21,7 +21,7 @@ The values below show the method. The luminaire flux and utilisation factor are 
 | Reflectances | ceiling 0.7 (white), walls 0.5 (light colour), floor 0.2 | NBCS 2026 reflection factors 4.3.2.3(b)(2) for ceiling and walls; floor assumed |
 | Criteria | Ēm 500 lux (range 300-500-750, middle value), Uo 0.60, Ra 80, RUGL 19 | NBCS 2026, Table 6 ref. 26.2 and 4.1.4.3 |
 | Luminaire | Recessed LED panel 2×2 ft, 36 W, 4400 lm (122 lm/W) | Assumption, no datasheet |
-| Utilisation factor | 0.60 at kr ≈ 1.1 for the reflectances above | Assumption, no datasheet |
+| Utilisation factor | About 0.7065 at RCR ≈ 4.48 for the reflectances above | Typical 2×2 panel CU |
 | Maintenance factor | 0.8 (fairly clean interior, office) | IS 3646 (Part 1):1992, 6.2.1 (NBCS 2026 gives no value) |
 | Control | Two switch groups at the entrance, one row each, rows parallel to the window wall | Assumption; the window row can be switched off in daylight (ECSBC 2024, 7.2.2(c)) |
 | Energy code | ECSBC 2024, ECSBC building level (office, connected load over 100 kW) | Assumption, to confirm |
@@ -30,8 +30,8 @@ The values below show the method. The luminaire flux and utilisation factor are 
 
 1. `Hm = 3.00 - 0.85 = 2.15 m`
 2. `kr = (6.00 × 4.00) / ((6.00 + 4.00) × 2.15) = 24.00 / 21.50 = 1.12` (L is under 5W, so no cap).
-3. `N = (500 × 24.00) / (0.60 × 0.8 × 4400) = 12000 / 2112 = 5.68`, rounded up to **6**.
-4. Check: `Eav = 6 × 4400 × 0.60 × 0.8 / 24.00 = 528 lux`, which meets 500 lux.
+3. `RCR = 5 × 2.15 × (6.00 + 4.00) / 24.00 ≈ 4.48`. Interpolate between CU 0.74 at RCR 4 and CU 0.67 at RCR 5 to get about 0.7065.
+4. `N = (500 × 24.00) / (0.7065 × 0.8 × 4400) ≈ 4.83`. Use **6** for a regular 2 × 3 grid. Check `Eav = 6 × 4400 × 0.7065 × 0.8 / 24.00 ≈ 622 lux`, which meets 500 lux.
 5. Layout: 2 rows × 3 luminaires. Along the 6.00 m wall: spacing 2.00 m, 1.00 m to the end walls. Across the 4.00 m width: row spacing 2.00 m, 1.00 m to the side walls. Spacing 2.00 m ≈ Hm 2.15 m and end distance 1.00 m = 0.5 × spacing, as NBCS 4.3.2.4(a) describes. Confirm the datasheet's maximum spacing to height ratio.
 6. Quality: the proposed DSR (E&M) panel specification requires CRI > 80 and UGR < 19, which meets Ra 80 and RUGL 19. Uniformity Uo 0.60 is not verified (needs a point calculation).
 7. Load: `6 × 36 W = 216 W`; LPD `216 / 24.00 = 9.0 W/sqm`. This is within the ECSBC 2024 space function limit for an enclosed business space, 10.0 W/sqm (Table 7.4). It exceeds the ECSBC+ limit of 8.6 W/sqm (Table 7.5), so an ECSBC+ building needs fewer or more efficient luminaires.
@@ -51,7 +51,7 @@ The values below show the method. The luminaire flux and utilisation factor are 
 | Rating | 36 W, 4400 lm assumed (efficacy 122 lm/W, band at least 120 and under 135 lm/W) |
 | Control assumptions | 2 switch groups of 3 luminaires at the entrance, window row separately switched; one ceiling occupancy sensor over both groups, with the wall switches kept (ECSBC 2024, 7.2.2(a)2 and (b)2.i) |
 | Associated work | Point wiring for 6 luminaires; occupancy sensor; circuit wiring from the floor DB to the switchboard |
-| Sources | A-101 rev B, S-1 rev B, NBCS 2026 Part D Section 1 (Table 6 ref. 26.2, 4.1.4.3, 4.1.4.4, 4.3.2), IS 3646 (Part 1) 6.2.1, ECSBC 2024 Table 7.4 and 7.2.2 |
+| Sources | A-101 rev B, S-1 rev B, typical 2×2 panel CU, NBCS 2026 Part D Section 1 (Table 6 ref. 26.2, 4.1.4.3, 4.1.4.4, 4.3.2), IS 3646 (Part 1) 6.2.1, ECSBC 2024 Table 7.4 and 7.2.2 |
 | Unresolved inputs | Luminaire datasheet (flux, UF, spacing ratio, photometry for uniformity); efficacy band and body construction required by the specification; ECSBC compliance level; sensor coverage and mounting (one sensor may not cover the room); DB location and circuit route; wiring specification (assumed PVC conduit, modular switches) |
 | Status | Provisional (preliminary design) |
 
@@ -92,7 +92,7 @@ After review, and only when the user asks to apply the estimate:
 
 1. `import_items` with `source` set to the DSR (E&M) 2025 source and `codes` for the chosen items (for example 8.7.4, 1.10.3, 1.55.3, and 7.1 once its mounting is resolved). Use the returned `code_map` for the project codes.
 2. `get_measurements section=templates` to read the template IDs and columns.
-3. `edit_measurements` to create one sheet per item, linked to the item, with one record per line above. Put the location and "provisional" in the description.
+3. Use `edit_measurements` to create or reuse a first-floor lighting category. Put the counted quantities in one `_3_NNNNNNNN` sheet under it. Link N1 to the fixture, N2 to normal points, N3 to looped points and N4 to the occupancy sensor if confirmed. Enter one record for Office 1 with those quantities in their own columns. Include the location, source and provisional assumptions in the remarks.
 4. `recalculate what=quantities` with an explicit rounding choice. Then `get_summary`.
 
 Group the writes in one `batch`. Leave line 5 out until its route and size are known.

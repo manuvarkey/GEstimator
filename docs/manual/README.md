@@ -84,11 +84,16 @@ The Schedule holds the items of the estimate: code, description, unit, rate, qua
 3. Choose the database, search for the work (for example `cement plaster`) and narrow the list with **All categories** if needed.
 4. Select one or more items (Ctrl+click or Shift+click) and click **Add selected items**.
 
+In the Schedule and Resources database pickers, use Shift+Up or Shift+Down in
+the results grid to select a range, then press Enter to add the selected items.
+In Schedule, Enter uses **Modify & Add**. Use Ctrl+Enter (Command+Enter on
+macOS) to add the selected schedule items with their original rates and analysis.
+
 ![Add items from a database](images/add-from-database.png)
 
 GEstimator copies each item with its rate analysis, the resources the analysis uses and any parent headings, so every rate stays traceable. Codes of imported resources carry the database prefix (for example `DC23:0367`) so that the same resource from two databases stays one row.
 
-- **Modify & Add** lets you change the item (code, description, rate settings) before it is added.
+- **Modify & Add** applies the schedule rate multiplier and analysis-row replacements from Program Settings.
 - **Modify & Add with rules…** applies bulk analysis rules while adding (see [section 5](#5-check-and-edit-rate-analyses)).
 - **Database notes** explains how the database is organised, what its rates include and how to pick the right item. Read them before using a database for the first time.
 

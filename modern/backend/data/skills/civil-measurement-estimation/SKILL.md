@@ -92,7 +92,8 @@ Present the draft as a table: measurement lines grouped by proposed item, totals
 Write only when the user asks you to apply the estimate:
 
 - `import_items` to bring the matched items into the project (it keeps their ancestors and returns a `code_map`).
-- `get_measurements section=templates`, then `edit_measurements` to create measurement sheets, link them to items and fill the records.
+- `get_measurements` lists existing measurement categories as rows of type `Heading`. Group sheets by work package, phase or location. Reuse a suitable heading or use `edit_measurements` with `{"action":"create","description":"Ground-floor concrete","ref":"ground-floor"}` to create one. Set `after` on the first sheet to the heading ID or `$ground-floor` in the same call. For each additional sheet, use the preceding sheet's ID or ref as `after` to preserve order.
+- Use `get_measurements section=templates` to check editable columns and outputs, then `edit_measurements` to create and link the sheets and fill their records. For related quantities measured in the same rows, use `_2_LLLLL` (L1–L5) or `_3_NNNNNNNN` (N1–N8), linking each column to its schedule code in column order. Use `_1_NLBH` when a quantity needs a product of dimensions, and use the appropriate specialised template for reinforcement and other template-specific calculations.
 - `recalculate what=quantities` with an explicit rounding choice.
 - `edit_analysis` only when the user asks for a rate analysis change.
 - Group related writes in `batch` so they are one undo step. Pass `if_revision` from the last response. Use `preview: true` where a tool offers it before a large change.

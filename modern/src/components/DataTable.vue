@@ -32,6 +32,7 @@ const props = defineProps<{
   /** Continues the type-ahead search on other pages of a paged table. */
   typeAheadFind?: TypeAheadFind;
   activateOnDoubleClick?: boolean;
+  activateSelectionOnEnter?: boolean;
   label?: string;
   selectIds?: string[];
   saveCell?: (row: Row, field: string, value: string) => Promise<boolean>;
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   paste: [changes: { id: string; field: string; value: string }[]];
   edit: [row: Row, field: string, value: string];
   activate: [row: Row, modifiers?: { ctrl: boolean }];
+  activateSelection: [rows: Row[], modifiers: { ctrl: boolean }];
   pasteRows: [data: string];
   action: [operation: string];
 }>();
@@ -300,16 +302,14 @@ function keyboard(event: KeyboardEvent) {
     }
     return;
   }
-  if (
-    event.key === "Enter" &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    !event.altKey &&
-    table.getSelectedRows().length === 1
-  ) {
+  if (event.key === "Enter" && !event.altKey) {
+    const rows = selectedData();
+    const ctrl = event.ctrlKey || event.metaKey;
+    if (!rows.length || (!props.activateSelectionOnEnter && (ctrl || rows.length !== 1))) return;
     event.preventDefault();
     event.stopPropagation();
-    emit("activate", selectedData()[0], { ctrl: event.ctrlKey || event.metaKey });
+    if (props.activateSelectionOnEnter) emit("activateSelection", rows, { ctrl });
+    else emit("activate", rows[0]!, { ctrl });
   }
 }
 function paste(event: ClipboardEvent) {

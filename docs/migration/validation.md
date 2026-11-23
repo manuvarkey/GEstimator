@@ -1692,3 +1692,30 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   (five tests), Clippy, changed-file quality checks, broad Python correctness,
   documentation links and diff checks passed. A hosted run of the revised
   code and installed Windows UI checks remain separate verification.
+
+## 2026-11-24 — Database picker keyboard insertion, MCP measurements and lighting CU
+
+- Schedule and Resources now import all selected items when Enter is pressed
+  in the picker results grid. The regression first reproduced the Schedule
+  dialog staying open with multiple selected items. The focused Chromium run
+  then passed both pickers, the unmodified Ctrl+Enter path, and two existing
+  double-click tests.
+- MCP instructions and estimation skills now show how to place sheets under
+  measurement categories and link multiple outputs from a single sheet. The
+  HTTP regression checks two category blocks, both multi-output templates,
+  a skipped link slot, undo/redo and the resulting schedule quantities. The
+  server instruction text was shortened after the first run exceeded the
+  existing discovery word budget. All 241 Python tests passed on the final
+  run. An AST comparison confirmed that formatting the changed server file
+  preserved its executable code outside the instructions.
+- The lighting reference contains only the 70% ceiling, 50% wall and 20%
+  effective floor-cavity reflectance series. All 66 values match the supplied
+  exports after conversion to factors. Recomputing the office example gives
+  about 622 lux. `npm run --prefix modern bundle:backend` passed. The frozen
+  Linux sidecar served the reference through `resources/read` and
+  `describe_source` outside the checkout, then shut down cleanly.
+- Changed-file quality checks with and without `--fix`, documentation links
+  and `git diff --check` passed. `npm run --prefix modern build` passed with
+  the existing Vite warning for the 1.22 MB entry chunk (313 kB gzip).
+  `npm run --prefix modern test:e2e` passed 100 Chromium scenarios and
+  skipped the opt-in large-project performance profile.

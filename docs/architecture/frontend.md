@@ -182,6 +182,9 @@ visibility and restores it when switching back to an open document tab.
 shared rate refresh picker mounted across editor switches. The project view
 supplies the selected IDs and revision when opening a picker and handles its
 apply command. The picker displays the view's command error if applying fails.
+Enter in the results grid imports all selected item rows, skipping category
+headings. Schedule Enter uses Modify & Add. Ctrl+Enter (Command+Enter on macOS)
+adds the items unmodified. Double-click applies to the clicked item.
 An updated project session recreates the picker instances, and the shell
 continues to open the database manager for picker requests.
 The database manager handles reselection of unavailable remembered paths.

@@ -56,7 +56,7 @@ The server also declares the `resources` capability and serves estimation skills
 |---|---|
 | `gestimator://skills/civil-measurement-estimation` | Civil takeoff to IS 1200, the project specification and the adopted item; design inputs and checks; record format; item matching; apply on request |
 | `gestimator://skills/electrical-measurement-estimation` | Electrical takeoff: points, equipment and ratings, wiring and cable runs; DSR (E&M) counting rules; design inputs and checks |
-| `gestimator://skills/preliminary-lighting-design` | Lumen-method preliminary design when explicitly requested; provisional handoff to electrical measurement |
+| `gestimator://skills/preliminary-lighting-design` | Lumen-method preliminary design when explicitly requested, including typical CU for six fittings and a provisional handoff to electrical measurement |
 | `gestimator://skills/<skill>/references/<file>.md` | Supporting references linked from each skill (masonry, concrete, finishes, earthwork, wiring, distribution, luminaires, worked example, standards registers) |
 
 Each listing entry has `uri`, `name`, `title` (first heading), `description` (from front matter), `mimeType: text/markdown`, `size` and `annotations` (`audience: ["assistant"]`; priority 1.0 for a skill, 0.5 for a reference). A read returns `{contents: [{uri, mimeType, text}]}`. An unknown or invalid URI returns JSON-RPC error `-32002` (resource not found) with `data.uri`; a missing or non-string `uri` returns `-32602`.
@@ -100,12 +100,28 @@ Insertion defaults to natural code order among siblings (`1.2` before `1.10`). E
    ```
 
    A resource add without `rate` resolves an existing project/source resource; with `rate`, supply its custom definition (`description`, `unit`, etc.). `preview: true` executes the same edits and calculations, then rolls back. An existing dirty desktop draft produces `draft_conflict` unless `discard_draft: true`. Success leaves no agent draft and returns the desktop selection to stored data.
-4. Discover real columns with `get_measurements section=templates`. Create/link/fill in one call:
+4. Read the measurement list with `get_measurements`. Reuse the ID of an existing
+   category (a row with `type: "Heading"`) or create one with a description and
+   no template. Group sheets by work package, phase or location. Set each new
+   sheet's `after` to the category ID or to a preceding sheet in that category.
+   Prefix a same-call `ref` with `$` to use it in `after`. When adding several
+   sheets, chain their refs to keep them in the intended order. To add a new
+   category after an existing group, use that group's heading as `after`.
+
+   Discover editable columns and the number of outputs with
+   `get_measurements section=templates`. When related items share the same
+   takeoff rows, use one multi-output sheet. The five lengths in
+   `_2_LLLLL` map to `links` in L1–L5 order. The eight quantities in
+   `_3_NNNNNNNN` map to `links` in N1–N8 order. Omit trailing unused links
+   and use `{"code":""}` to skip an intervening slot. Each linked column
+   contributes its own total to the corresponding schedule item.
 
    ```json
-   {"ops":[{"action":"create","template":"_1_NLBH","description":"Dimensions",
-     "links":[{"code":"A","remark":"Measured"}],
-     "records":[{"No":"2*3","L":"4"}]}]}
+   {"ops":[
+     {"action":"create","description":"First floor electrical","ref":"first-floor"},
+     {"action":"create","template":"_2_LLLLL","description":"Cable runs","after":"$first-floor",
+      "links":[{"code":"A","remark":"Lighting"},{"code":"B","remark":"Power"}],
+      "records":[{"Description":"North corridor, drawing E-01","L1":"2*4","L2":"6"}]}]}
    ```
 
    Record keys accept exact displayed titles, base template captions or editable `cN` fields. Ambiguous titles require a `cN` field. Computed columns such as `Breakup` remain read-only and errors list allowed fields. Record edits include each stable record `id`; new measurements can use `ref` labels in subsequent operations within the same call. Finish with `recalculate what=quantities` and an explicit rounding enum.

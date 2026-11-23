@@ -8,6 +8,13 @@ The index routes database, backend, frontend, MCP, feature and testing work to
 their current contracts. Migration notes are historical context, not API rules.
 Changes under `modern/` also follow its [AGENTS.md](modern/AGENTS.md).
 
+## Branches and pull requests
+
+- Always work on a task branch and keep the task's commits on that branch.
+- Open a pull request only on request. Describe the modifications in plain
+  English and include the verification performed.
+- Leave merging to the repository owner.
+
 ## Responsibilities and modularity
 
 - Python owns calculations, validation, imports, persistence and numbering.

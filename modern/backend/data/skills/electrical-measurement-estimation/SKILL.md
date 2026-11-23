@@ -82,7 +82,7 @@ Record every line with these fields:
 | Source | Drawing number and revision, schedule row, model element ID, design output or user statement |
 | Assumptions | Any value not taken from a source, marked provisional |
 
-The source field is independent of how the quantity was obtained. A layout count, a schedule row and a model export all enter the same line format. Use `elec_tableofpoints` (columns Lights, Fans, Ex.Fans, Call Bells, Other) for point tables. Use `_3_NNNNNNNN` or `_2_LLLLL` for counts and run lengths. Check the real columns with `get_measurements section=templates`.
+The source field is independent of how the quantity was obtained. A layout count, a schedule row and a model export all enter the same line format. Use `elec_tableofpoints` (Lights, Fans, Ex.Fans, Call Bells, Other) when those counts contribute to one schedule item. Use one `_3_NNNNNNNN` sheet for related counts from the same locations that have separate schedule codes, such as normal points and group-controlled points. Use `_2_LLLLL` for related run lengths. Enter links in N1–N8 or L1–L5 order. Check the editable columns and number of outputs with `get_measurements section=templates`.
 
 ## 5. Match schedule items
 
@@ -98,7 +98,8 @@ Present the draft as a table: measurement lines grouped by proposed item, totals
 Write only when the user asks you to apply the estimate:
 
 - `import_items` to bring the matched items into the project.
-- `get_measurements section=templates`, then `edit_measurements` to create sheets, link them to items and fill the records.
+- `get_measurements` lists existing measurement categories as rows of type `Heading`. Group sheets by work package, phase or location. Reuse a suitable heading or use `edit_measurements` with `{"action":"create","description":"First-floor lighting","ref":"lighting"}` to create one. Set `after` on the first sheet to the heading ID or `$lighting` in the same call. For each additional sheet, use the preceding sheet's ID or ref as `after` to preserve order.
+- Use `get_measurements section=templates`, then `edit_measurements` to create and link sheets and fill the records. Combine quantities measured on the same rows in one multi-output sheet when the template fits.
 - `recalculate what=quantities` with an explicit rounding choice.
 - `edit_analysis` only when the user asks for a rate analysis change.
 - Group related writes in `batch`. Pass `if_revision` from the last response. Use `preview: true` where a tool offers it.
