@@ -4311,15 +4311,16 @@ test("reselecting a remembered library replaces its unavailable path", async ({ 
   await page.goto("/");
   const manager = await openDatabaseManager(page);
   const saved = manager.locator(".saved-libraries");
-  await expect(saved.getByText(oldPath)).toBeVisible();
+  const savedPath = (path: string) => saved.getByText(path, { exact: true });
+  await expect(savedPath(oldPath)).toBeVisible();
 
   nativeDialogResults.push(null, newPath);
   const reselect = manager.getByRole("button", { name: "Reselect library External library" });
   await reselect.click();
-  await expect(saved.getByText(oldPath)).toBeVisible();
+  await expect(savedPath(oldPath)).toBeVisible();
   await reselect.click();
-  await expect(saved.getByText(newPath)).toBeVisible();
-  await expect(saved.getByText(oldPath)).toHaveCount(0);
+  await expect(savedPath(newPath)).toBeVisible();
+  await expect(savedPath(oldPath)).toHaveCount(0);
   await expect(manager.locator(".attached-database")).toHaveCount(1);
   const preferences = await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.libraries.v1") || "{}"));
   expect(preferences.libraries).toEqual([{ name: "library", path: newPath }]);

@@ -1311,3 +1311,90 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   scenario reported `write after end` from the test bridge's Python stdin.
   The same test passed once in isolation and then three times with
   `--repeat-each 3`, with the application and test source unchanged.
+
+## 2026-11-23 — Project grid coordination and file dialog
+
+- After `96ffd34c`, moved page loads, search, type-ahead, incremental
+  refresh and table restoration into `useProjectGrid.ts`.
+  `ProjectViews.vue` decreased from 1,785 to 1,654 lines. The view retains
+  command execution, focus and selection, and the grid uses the existing
+  measurement draft and summary operations.
+- Moved the file and recovery form into `ProjectFileDialog.vue`.
+  `App.vue` decreased from 1,563 to 1,506 lines. The file workflow still
+  owns the dialog state, guarded navigation, native open completion and
+  folder grants. Compared the moved grid logic and dialog markup to the
+  previous source, accounting for their new callback and event bindings.
+- The same eight browser scenarios passed before and after the extractions.
+  They cover landing, native-open routing, folder selection cancellation,
+  live search, cross-page type-ahead, incremental refresh and record view
+  memory. Playwright used its bundled headless Chromium and the local Vite
+  server on the default port.
+- A temporary browser scenario exercised Browse and Cancel in the extracted
+  dialog, then reopened it and selected a checkpoint. It verified the
+  recovery request used the chosen ID and Python restored a dirty workspace
+  from the isolated recovery directory.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`,
+  `tools/check_docs.py` and `git diff --check` passed. All 224 Python tests
+  passed. Strict frontend type checking and the production build passed
+  with the existing Vite large-chunk warning (1.26 MB, 326 KB gzip).
+- The first full browser run ended with 90 passed, one skipped and one
+  failure. The remembered-library test's path locator matched both the path
+  label and the unavailable-file error. The same failure reproduced four
+  times on the original revision. The test now matches the exact saved path
+  text and still checks cancellation, replacement and saved preferences.
+- With the locator corrected, the focused scenario passed four consecutive
+  runs. The full browser rerun passed 91 tests and skipped the opt-in
+  performance test. Browser checks exercise the Tauri chooser bridge with
+  simulated chooser results. Installed Flatpak chooser behavior remains a
+  separate native verification item.
+
+## 2026-11-23 — Measurement properties dialog and Windows CI fixture
+
+- [Code quality run 45185055551](https://github.com/manuvarkey/GEstimator/actions/runs/45185055551)
+  stopped at Windows backend regression tests. The two failures in
+  `test_portal_files.py` showed that resolved chooser paths were outside the
+  simulated portal mount as spelled by the fixture. A Linux run with
+  `TMPDIR` pointing to a symlink reproduced both failures. With the fixture
+  resolving the temp directory before setting `XDG_RUNTIME_DIR`, all five
+  portal tests passed through that alias. The production code and assertions
+  are unchanged. Hosted Windows validation of the fix is pending.
+- Moved the measurement properties form, its original-revision snapshot
+  and the shared schedule-link picker into `MeasurementPropertiesDialog.vue`,
+  replacing `useMeasurementProperties.ts`. `ProjectViews.vue` decreased from
+  1,654 to 1,508 lines. The view retains the common command boundary and
+  opens the same picker from the active record editor. Compared the template
+  and staged form logic with the originals.
+- Four focused browser scenarios passed before and after the extraction,
+  covering measurement properties, schedule-link search, category edits,
+  draft navigation and tab restoration. All 224 Python tests passed.
+  Changed-source formatting, documentation checks, `git diff --check`
+  and the production build passed. Vite retained its large-chunk warning
+  (1.26 MB, 327 KB gzip).
+- The Linux sidecar bundle, Rust formatting check, five Rust tests and
+  Clippy with warnings denied passed. The requested hosted run stopped
+  before its native steps.
+- The full Linux browser suite used Node 22.23.5 and Playwright's bundled
+  headless Chromium. It passed 91 tests and skipped the opt-in performance
+  test. The production build also passed under Node 22.23.5.
+
+## 2026-11-23 — Measurement record layout
+
+- Moved the measurement draft header, description field, totals and page
+  controls into `MeasurementRecordLayout.vue`, reducing `ProjectViews.vue`
+  from 1,508 to 1,442 lines. The view supplies the link fields and record
+  table. The record composable retains the description draft and uses the
+  layout's textarea focus method. Draft and page actions use their existing
+  handlers. The footer displays Python totals for all records.
+- Six focused browser scenarios passed before and after the extraction
+  under Node 22.23.5. They cover the shared link picker, caption focus and
+  Escape, narrow heading layout, draft Apply and Discard, all-record totals,
+  header order in both themes, and restoration when switching document tabs.
+- A temporary browser scenario injected a rejected description edit and
+  verified that the textarea regained focus with its text intact and that
+  resubmitting saved the description.
+- All 224 Python tests passed. Changed-source formatting, documentation
+  checks, `git diff --check` and the production build passed. Vite retained
+  its large-chunk warning (1.26 MB, 327 KB gzip).
+- The full Linux browser suite passed 91 tests under Node 22.23.5 with
+  Playwright's bundled headless Chromium. The opt-in performance test was
+  skipped.

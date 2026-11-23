@@ -17,7 +17,9 @@ class PortalFileTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.runtime = Path(temporary.name)
+        # The service resolves chooser paths. Use the same spelling for the
+        # simulated mount when the temp directory has an alias.
+        self.runtime = Path(temporary.name).resolve(strict=True)
         environment = patch.dict(os.environ, FLATPAK_ID="com.kavilgroup.gestimator", XDG_RUNTIME_DIR=str(self.runtime))
         environment.start()
         self.addCleanup(environment.stop)

@@ -16,7 +16,8 @@ formatting is presentation; the currency option does not convert prices.
 | Active document workspace lifetime | [`Root.vue`](../../modern/src/Root.vue) |
 | Document/session store and actions | [`documents.ts`](../../modern/src/documents.ts), [`useDocumentTabs.ts`](../../modern/src/useDocumentTabs.ts) |
 | Shell, ribbon/context, guarded navigation and coordination | [`App.vue`](../../modern/src/App.vue) |
-| Project file dialogs, recent paths, recovery and guarded file workflows | [`useProjectFiles.ts`](../../modern/src/useProjectFiles.ts) |
+| Guarded file workflows, recent paths and recovery state | [`useProjectFiles.ts`](../../modern/src/useProjectFiles.ts) |
+| File chooser form, recent paths and recovery actions | [`ProjectFileDialog.vue`](../../modern/src/components/ProjectFileDialog.vue) |
 | View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
@@ -25,13 +26,15 @@ formatting is presentation; the currency option does not convert prices.
 | Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| Project grid loading, search, paging, delta refresh and table restoration | [`useProjectGrid.ts`](../../modern/src/useProjectGrid.ts) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
 | Item and category forms | [`ProjectItemDialogs.vue`](../../modern/src/components/ProjectItemDialogs.vue) |
 | Schedule/resource workbook, multiple analysis and measurement record import dialogs | [`ProjectImportDialogs.vue`](../../modern/src/components/ProjectImportDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
-| Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
+| Measurement draft header, description field, totals and page controls | [`MeasurementRecordLayout.vue`](../../modern/src/components/MeasurementRecordLayout.vue) |
+| Staged measurement/category properties and schedule-link picker | [`MeasurementPropertiesDialog.vue`](../../modern/src/components/MeasurementPropertiesDialog.vue) |
 | Project table pages and deltas, measurement responses and tab memory | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
 | Measurement category projection, schedule rate highlighting and row traversal | [`projectGridRows.ts`](../../modern/src/projectGridRows.ts) |
 | Measurement column presentation and Tabulator type compatibility | [`measurementColumns.ts`](../../modern/src/measurementColumns.ts) |
@@ -66,6 +69,9 @@ do not bypass it from a new button or native callback.
 `useProjectFiles` owns New/Open/Save/Close orchestration, the file-dialog state,
 recent paths, recovery choices and OS-open completion/handoff state. It delegates
 session switching to `useDocumentTabs` and persistence to `useWorkspace`/Python.
+`ProjectFileDialog` renders the form and binds its mode and path to the same
+state that the OS-open queue observes. Browse, submit and recovery actions
+delegate to the existing file workflow.
 The shell supplies the same draft guard and a post-save continuation, retaining
 pending actions and measurement-view refresh in one place. Cancelling that guard
 also settles the composable's pending native open; displaying the dialog alone
@@ -182,19 +188,31 @@ retains the editor and draft. Dirty drafts must be guarded during navigation,
 project replacement and close. Detailed action placement, keyboard semantics,
 numeric formatting and accessible states belong in the [UI guidelines](../ui-guidelines.md).
 
-`useMeasurementRecords` owns the record page, selection, table/description refs,
-description edit recovery and draft-aware detail loading. Its request-token,
+`useMeasurementRecords` owns the record page, selection, table ref,
+description draft and draft-aware detail loading. Its request-token,
 item-ID and revision checks reject superseded detail responses before replacing
 view state. `ProjectViews` still owns the common command, busy/error recovery,
-main-table state and document-memory snapshot. The composable contributes its
+selection, focus and document-memory snapshot. The composable contributes its
 matching record-page memory to that snapshot and restores it after detail loads.
 It delegates focus, change notifications and commands through explicit callbacks;
 it does not create another draft history or navigation guard.
 
-`useMeasurementProperties` stages description, links and template constants in
-a separate form snapshot with the original revision. Its picker supports both
-staged properties and the active record editor's link action. Save uses the
-common command; validation, calculations and undo remain in Python.
+`MeasurementRecordLayout` renders the draft actions, description editor,
+whole-measurement totals and page controls around the view's link fields
+and record grid. It owns the textarea ref and provides a focus method for
+opening or restoring a description edit. The view routes actions through the
+existing draft guard and record-page operations.
+
+`useProjectGrid` loads project pages and applies schedule/resource deltas through
+the shared table adapter. It coordinates search, type-ahead, paging and
+restoration from the view's remembered table state. Measurement refresh keeps
+draft activation and summary synchronization on the existing shared path.
+
+`MeasurementPropertiesDialog` stages description, links and template constants
+in a form snapshot with the original revision. The component owns both the
+properties form and its schedule-link picker. The view opens the same picker
+from the active record editor. Saving properties and changing a record link use
+the view's common command. Python owns validation, calculations and undo.
 
 The contracts in `projectViewTypes.ts` distinguish schedule items, resources,
 categories and flat measurement list rows. Full project table pages carry

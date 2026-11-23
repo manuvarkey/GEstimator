@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
-import PersistentDialog from "./PersistentDialog.vue";
+import MeasurementRecordLayout from "./MeasurementRecordLayout.vue";
+import MeasurementPropertiesDialog from "./MeasurementPropertiesDialog.vue";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
@@ -14,16 +15,12 @@ import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import type { DataTableHandle, TableRow } from "../dataTableTypes";
-import { flattenGridRows, groupMeasurementRows, highlightScheduleRates } from "../projectGridRows";
+import { groupMeasurementRows, highlightScheduleRates } from "../projectGridRows";
 import { resourceItemFields, scheduleItemFields } from "../projectViewTypes";
 import type {
   GridRow,
   GridState,
-  MeasurementDetailState,
-  MeasurementListState,
   ProjectItemField,
-  ProjectTableDelta,
-  ProjectTablePage,
   RateDiscrepancies,
   View,
   ViewMemory,
@@ -32,11 +29,10 @@ import type {
   ProjectItemMode,
 } from "../projectViewTypes";
 import { useMeasurementRecords } from "../useMeasurementRecords";
-import { useMeasurementProperties } from "../useMeasurementProperties";
 import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
 import { exportWithWorkbookChooser } from "../workbookExport";
-import { useLiveSearch } from "../liveSearch";
+import { useProjectGrid } from "../useProjectGrid";
 import { formatMoney } from "../numberFormatting";
 import { quantityRoundingOptions } from "../quantityRounding";
 import { vMiddleEllipsis } from "../middleEllipsis";
@@ -82,7 +78,7 @@ onBeforeUnmount(() => emit("history", { undo: false, redo: false }));
 defineExpose({
   reload: () => refreshChanges(),
   focus: focusTable,
-  revealCode,
+  revealCode: (code: string) => revealCode(code),
   handleKeyboard: keyboard,
   historyAction: (method: "undo" | "redo") =>
     command(props.entryId && state.value?.measurement_draft ? "draft." + method : "project." + method),
@@ -114,20 +110,10 @@ const memoryKey = "view:" + props.view;
 const remembered = recallTabState<ViewMemory>(memoryKey);
 const query = ref(remembered?.query ?? "");
 const categoryFilters = ref<string[]>(remembered?.categoryFilters ?? []);
-watch(categoryFilters, () => {
-  void search();
-});
-let searchedQuery = "";
-const liveSearch = useLiveSearch(
-  query,
-  () => searchedQuery,
-  () => (isMeasurement.value ? Promise.resolve(true) : search()),
-);
 const source = ref("");
 watch([() => state.value?.revision, source, () => props.view], () => {
   discrepancy.value = undefined;
 });
-const libraries = ref<{ id: string; name: string }[]>([]);
 const usageOpen = ref(false);
 const usageCode = ref<string>();
 const page = ref(remembered?.page ?? 0);
@@ -173,6 +159,7 @@ const mainRows = computed<GridRow[]>(() => {
       )
     : rows;
 });
+const recordLayout = ref<InstanceType<typeof MeasurementRecordLayout>>();
 // Measurement owners reuse this view's single command and busy/error boundary.
 const {
   selectedRecord,
@@ -184,9 +171,7 @@ const {
   recordsOpen,
   detailBusy,
   recordTable,
-  measurementDescription,
   descriptionDraft,
-  fullMeasurementTitle,
   recordRows,
   recordColumns,
   editMeasurementDescription,
@@ -211,25 +196,31 @@ const {
   command,
   run,
   focus: focusTable,
+  focusDescription: () => recordLayout.value?.focusDescription(),
   changed: () => emit("changed"),
 });
-const {
-  propertiesOpen,
-  propertiesCategory,
-  propertiesDetail,
-  properties,
-  pickerOpen,
-  pickerQuery,
-  pickerPage,
-  pickerItems,
-  pickerBusy,
-  pickerError,
-  showProperties,
-  saveProperties,
-  searchLinks,
-  showLinkPicker,
-  chooseLink,
-} = useMeasurementProperties({ state, one, error, activeMeasurement, command, loadDetail });
+const measurementPropertiesDialog = ref<InstanceType<typeof MeasurementPropertiesDialog>>();
+const measurementPropertiesContext = { state, one, error, activeMeasurement, command, loadDetail };
+
+const { libraries, refresh, refreshChanges, revealCode, findAcross, load, search, goToPage } = useProjectGrid({
+  props,
+  state,
+  busy,
+  isMeasurement,
+  query,
+  categoryFilters,
+  source,
+  page,
+  selectionIds,
+  mainTable,
+  rememberedTable: remembered?.table,
+  activeMeasurement,
+  recordPage,
+  syncMeasurementSummary,
+  restoreRecords,
+  run,
+  changed: () => emit("changed"),
+});
 
 let cancelFocus: (() => void) | undefined;
 onBeforeUnmount(() => cancelFocus?.());
@@ -330,61 +321,12 @@ function rowAction(operation: string) {
   else if (operation === "child") void showSubitem();
   else if (operation === "activate" && one.value) activateRow(one.value);
   else if (operation === "properties") {
-    if (isMeasurement.value) showProperties();
+    if (isMeasurement.value) measurementPropertiesDialog.value?.showProperties();
     else if (one.value?.rowtype !== "Category") void showForm("edit");
   } else if (operation === "delete") void deleteSelection();
   else if (operation === "duplicate" && !isMeasurement.value) {
     if (one.value && one.value.rowtype !== "Category") void showForm("duplicate");
   } else void command(operation);
-}
-async function refresh(revealId?: string) {
-  if (!props.projectOpen) {
-    state.value = undefined;
-    return;
-  }
-  if (!isMeasurement.value) libraries.value = await request("library.list");
-  const detailOnly = isMeasurement.value && !!props.entryId && !!state.value;
-  searchedQuery = query.value;
-  const params = {
-    query: query.value,
-    categories: categoryFilters.value,
-    source: source.value,
-    offset: page.value * 100,
-    id: props.entryId ? activeMeasurement.value : undefined,
-    record_offset: recordPage.value * 100,
-    reveal_id: revealId,
-  };
-  if (detailOnly) {
-    const detail = await request<MeasurementDetailState>("measurement.detail", params);
-    state.value = { ...state.value!, ...detail };
-  } else {
-    state.value = isMeasurement.value
-      ? await request<MeasurementListState>("measurement.state", params)
-      : await request<ProjectTablePage>(props.view + ".editor.state", params);
-  }
-  if (props.entryId && state.value.detail && state.value.measurement_draft?.id !== props.entryId) {
-    await request("measurement.draft.open", { id: props.entryId, revision: state.value.revision });
-    Object.assign(
-      state.value,
-      await request<MeasurementDetailState>("measurement.detail", {
-        id: props.entryId,
-        record_offset: recordPage.value * 100,
-      }),
-    );
-    emit("changed");
-  }
-  syncMeasurementSummary();
-  if (!isMeasurement.value) {
-    const retained = categoryFilters.value.filter((name) => state.value?.categories?.includes(name));
-    if (retained.length !== categoryFilters.value.length) {
-      categoryFilters.value = retained;
-      page.value = 0;
-      await refresh(revealId);
-      return;
-    }
-  }
-  if (isMeasurement.value && state.value?.detail) recordPage.value = state.value.detail.offset / 100;
-  if (!isMeasurement.value) page.value = (state.value?.offset || 0) / 100;
 }
 function selectedItemIds() {
   return [
@@ -484,72 +426,6 @@ function deleteSelection() {
     revision,
   );
 }
-async function revealCode(code: string) {
-  if (isMeasurement.value) return;
-  let row = flattenGridRows(state.value?.rows || []).find((row) => row.code === code);
-  if (!row) {
-    const result = await request<{ id: string }>(props.view + ".editor.locate", { code });
-    query.value = "";
-    categoryFilters.value = [];
-    await refresh(result.id);
-    row = flattenGridRows(state.value?.rows || []).find((row) => row.id === result.id);
-  }
-  if (row) selectionIds.value = [row.id];
-}
-/** Type-ahead on the main table: load the page holding the next match and select it. */
-async function findAcross(text: string, from: string | undefined, direction: 1 | -1) {
-  if (isMeasurement.value || busy.value || !props.projectOpen) return false;
-  try {
-    const next = await request<ProjectTablePage>(props.view + ".editor.state", {
-      query: searchedQuery,
-      categories: categoryFilters.value,
-      source: source.value,
-      offset: page.value * 100,
-      find: text,
-      find_from: from,
-      find_direction: direction,
-    });
-    if (!next.found_id) return false;
-    state.value = next;
-    page.value = (next.offset || 0) / 100;
-    selectionIds.value = [next.found_id];
-    return true;
-  } catch {
-    return false;
-  }
-}
-async function refreshChanges() {
-  if (!state.value || isMeasurement.value || source.value) {
-    await load();
-    return;
-  }
-  const current = flattenGridRows(state.value.rows);
-  const update = async () => {
-    const next = await request<ProjectTablePage | ProjectTableDelta>(props.view + ".editor.state", {
-      since: state.value!.view_seq,
-      visible_ids: current.map((row) => row.id),
-      query: query.value,
-      categories: categoryFilters.value,
-      offset: page.value * 100,
-    });
-    if (next.delta) {
-      for (const update of next.updates) Object.assign(current.find((row) => row.id === update.id) || {}, update);
-      Object.assign(state.value!, {
-        revision: next.revision,
-        view_seq: next.view_seq,
-        undo: next.undo,
-        redo: next.redo,
-        enrichment: next.enrichment,
-        grand_total: next.grand_total,
-      });
-      await mainTable.value?.patchRows(next.updates);
-    } else state.value = next;
-    await nextTick();
-    await mainTable.value?.redraw();
-  };
-  if (busy.value) await update();
-  else await run(update);
-}
 watch(
   () => props.active,
   async (active) => {
@@ -559,28 +435,6 @@ watch(
     } else cancelFocus?.();
   },
 );
-let pendingView = remembered?.table;
-async function load() {
-  const result = await run(refresh);
-  // The first load with the project open restores the remembered rows and scroll.
-  if (pendingView && mainTable.value && state.value) {
-    const view = pendingView;
-    pendingView = undefined;
-    await mainTable.value.restoreViewState(view);
-  }
-  await restoreRecords();
-  return result;
-}
-/** Load the first page of results for the current search and filters. */
-async function search() {
-  liveSearch.cancel();
-  return goToPage(0);
-}
-async function goToPage(index: number) {
-  page.value = index;
-  await mainTable.value?.scrollToTop();
-  return load();
-}
 function showPriceUpdate() {
   showDatabase("rates");
 }
@@ -629,7 +483,7 @@ function activateRow(row: GridRow) {
     if (isMeasurement.value && row.id !== "measurement:uncategorised") {
       selected.value = [row];
       selectionIds.value = [row.id];
-      void showProperties();
+      void measurementPropertiesDialog.value?.showProperties();
     }
     return;
   }
@@ -638,7 +492,7 @@ function activateRow(row: GridRow) {
     else emit("analysis", row.code);
   } else if (props.view === "resources") void showForm("edit");
   else if (row.type !== "Heading") emit("entry", row.id);
-  else showProperties();
+  else measurementPropertiesDialog.value?.showProperties();
 }
 async function edit(row: GridRow, field: string, value: string) {
   return command("edit", {
@@ -697,7 +551,7 @@ function keyboard(event: KeyboardEvent) {
     if (key === "e" && one.value && props.view !== "schedule") {
       event.preventDefault();
       event.stopPropagation();
-      if (isMeasurement.value) showProperties();
+      if (isMeasurement.value) measurementPropertiesDialog.value?.showProperties();
       else if (one.value.rowtype !== "Category") void showForm("edit");
       return;
     }
@@ -906,7 +760,7 @@ watch(
                   class="ribbon-action"
                   aria-label="Properties…"
                   :disabled="busy || detailBusy"
-                  @click="showProperties"
+                  @click="measurementPropertiesDialog?.showProperties()"
                 >
                   <AppIcon name="settings" /><span class="ribbon-label">Properties</span>
                 </button>
@@ -1238,7 +1092,7 @@ watch(
                     data-ribbon-keep-label
                     aria-label="Properties…"
                     :disabled="busy || !one || one.id === 'measurement:uncategorised'"
-                    @click="showProperties"
+                    @click="measurementPropertiesDialog?.showProperties()"
                   >
                     <AppIcon name="settings" /><span class="ribbon-label">Properties</span>
                   </button>
@@ -1366,189 +1220,122 @@ watch(
           Next
         </button>
       </div>
-      <div
+      <MeasurementRecordLayout
         v-if="isMeasurement && entryId"
-        class="measurement-draft-header draft-headerbar"
-        role="region"
-        aria-label="Measurement records draft"
+        ref="recordLayout"
+        v-model:description-draft="descriptionDraft"
+        :entry-id="entryId"
+        :active-measurement="activeMeasurement"
+        :detail="state?.detail"
+        :draft="state?.measurement_draft"
+        :busy="busy"
+        :detail-busy="detailBusy"
+        @apply="emit('applyRecords')"
+        @discard="emit('discardRecords')"
+        @edit-description="editMeasurementDescription"
+        @finish-description="finishMeasurementDescription"
+        @change-page="changeRecordPage"
       >
-        <strong :title="state?.detail?.info.note">{{
-          state?.detail?.id === entryId ? state.detail.info.label : "Measurement records"
-        }}</strong>
-        <button
-          class="button small danger"
-          aria-label="Discard records"
-          title="Discard this draft and return to Measurements."
-          :disabled="busy || detailBusy || !state?.measurement_draft"
-          @click="emit('discardRecords')"
-        >
-          <AppIcon name="close" /><span>Discard records</span>
-        </button>
-        <button
-          class="button small primary"
-          aria-label="Apply records"
-          title="Apply records, links and properties to the working project as one undo step (Ctrl+Enter). Return to Measurements after applying. Save the project to retain them on disk."
-          :disabled="busy || detailBusy || !state?.measurement_draft"
-          @click="emit('applyRecords')"
-        >
-          <AppIcon name="check" /><span>Apply records</span>
-        </button>
-      </div>
-      <div v-if="isMeasurement && entryId" class="measurement-entry-heading">
-        <textarea
-          v-if="descriptionDraft !== undefined"
-          ref="measurementDescription"
-          v-model="descriptionDraft"
-          class="measurement-entry-title"
-          aria-label="Measurement description / remarks"
-          rows="1"
-          @blur="finishMeasurementDescription"
-          @keydown.esc.stop.prevent="descriptionDraft = undefined"
-        />
-        <h2
-          v-else
-          v-middle-ellipsis="fullMeasurementTitle || 'Measurement entry'"
-          class="measurement-entry-title five-line-description"
-          :title="fullMeasurementTitle"
-          :aria-label="fullMeasurementTitle"
-          @dblclick="editMeasurementDescription"
-        />
-        <button
-          class="button small secondary"
-          aria-label="Edit measurement description / remarks"
-          :disabled="busy || state?.detail?.id !== entryId"
-          @mousedown.prevent
-          @click="descriptionDraft === undefined ? editMeasurementDescription() : measurementDescription?.focus()"
-        >
-          <AppIcon name="edit" />Edit description
-        </button>
-
-        <span class="draft-badge" :class="{ dirty: state?.measurement_draft?.dirty }">{{
-          state?.measurement_draft?.dirty ? "Unsaved records" : "Up to date"
-        }}</span>
-      </div>
-      <template v-if="isMeasurement && entryId && state && state.detail && state.detail.id === activeMeasurement">
-        <div class="measurement-links">
-          <label v-for="(link, index) in state.detail.links" :key="index" class="field"
-            >{{ link.label }} · Schedule code {{ Number(index) + 1 }}
-            <div class="file-input">
-              <input
-                :value="link.code"
-                :aria-label="'Schedule code ' + (Number(index) + 1)"
+        <template #links="{ detail }">
+          <div class="measurement-links">
+            <label v-for="(link, index) in detail.links" :key="index" class="field"
+              >{{ link.label }} · Schedule code {{ Number(index) + 1 }}
+              <div class="file-input">
+                <input
+                  :value="link.code"
+                  :aria-label="'Schedule code ' + (Number(index) + 1)"
+                  :disabled="busy"
+                  @change="
+                    command('link', {
+                      id: activeMeasurement,
+                      slot: Number(index),
+                      code: ($event.target as HTMLInputElement).value,
+                      remark: link.remark,
+                    })
+                  "
+                /><button
+                  class="icon-button"
+                  :aria-label="'Choose schedule item ' + (Number(index) + 1)"
+                  :disabled="busy"
+                  title="Search project schedule codes and descriptions for this measured quantity."
+                  @click="measurementPropertiesDialog?.showLinkPicker(Number(index))"
+                >
+                  <AppIcon name="search" />
+                </button>
+                <button
+                  class="icon-button"
+                  :aria-label="'Clear schedule link ' + (Number(index) + 1)"
+                  :disabled="busy || (!link.code && !link.missing)"
+                  title="Remove this schedule association while retaining measurement records and remarks."
+                  @click="
+                    command('link', { id: activeMeasurement, slot: Number(index), code: '', remark: link.remark })
+                  "
+                >
+                  <AppIcon name="close" />
+                </button>
+              </div>
+              <small
+                v-if="link.description"
+                v-middle-ellipsis="link.description + (link.unit ? ' (' + link.unit + ')' : '')"
+                class="five-line-description"
+                :title="link.description"
+              /><input
+                :value="link.remark"
+                :aria-label="'Schedule item remark ' + (Number(index) + 1)"
                 :disabled="busy"
+                placeholder="Item remark"
                 @change="
                   command('link', {
                     id: activeMeasurement,
                     slot: Number(index),
-                    code: ($event.target as HTMLInputElement).value,
-                    remark: link.remark,
+                    code: link.code,
+                    remark: ($event.target as HTMLInputElement).value,
                   })
                 "
-              /><button
-                class="icon-button"
-                :aria-label="'Choose schedule item ' + (Number(index) + 1)"
-                :disabled="busy"
-                title="Search project schedule codes and descriptions for this measured quantity."
-                @click="showLinkPicker(Number(index))"
-              >
-                <AppIcon name="search" />
-              </button>
-              <button
-                class="icon-button"
-                :aria-label="'Clear schedule link ' + (Number(index) + 1)"
-                :disabled="busy || (!link.code && !link.missing)"
-                title="Remove this schedule association while retaining measurement records and remarks."
-                @click="command('link', { id: activeMeasurement, slot: Number(index), code: '', remark: link.remark })"
-              >
-                <AppIcon name="close" />
-              </button>
-            </div>
-            <small
-              v-if="link.description"
-              v-middle-ellipsis="link.description + (link.unit ? ' (' + link.unit + ')' : '')"
-              class="five-line-description"
-              :title="link.description"
-            /><input
-              :value="link.remark"
-              :aria-label="'Schedule item remark ' + (Number(index) + 1)"
-              :disabled="busy"
-              placeholder="Item remark"
-              @change="
-                command('link', {
-                  id: activeMeasurement,
-                  slot: Number(index),
-                  code: link.code,
-                  remark: ($event.target as HTMLInputElement).value,
-                })
+              /><small v-if="link.missing" role="alert"
+                >The linked schedule item is missing. Select another code.</small
+              ></label
+            >
+          </div>
+        </template>
+        <template #default="{ detail }">
+          <div class="table-panel measurement-record-grid">
+            <DataTable
+              ref="recordTable"
+              drag-select-rows
+              :active="active && !!entryId"
+              :rows="recordRows"
+              :columns="recordColumns"
+              :busy="busy || detailBusy"
+              :select-ids="recordSelectionIds"
+              :label="detail.info.label + ' records'"
+              :actions="[
+                { label: 'Insert record', action: 'add' },
+                { label: 'Duplicate record', action: 'duplicate' },
+                { label: 'Copy record', action: 'copy' },
+                { label: 'Paste records here', action: 'paste' },
+                { label: 'Delete record', action: 'delete' },
+              ]"
+              @action="(operation) => recordAction(operation)"
+              @selection="
+                selectedRecords = $event;
+                selectedRecord = $event[0];
               "
-            /><small v-if="link.missing" role="alert"
-              >The linked schedule item is missing. Select another code.</small
-            ></label
-          >
-        </div>
-        <div class="measurement-record-summary"><strong>Measurement records</strong></div>
-        <div class="table-panel measurement-record-grid">
-          <DataTable
-            ref="recordTable"
-            drag-select-rows
-            :active="active && !!entryId"
-            :rows="recordRows"
-            :columns="recordColumns"
-            :busy="busy || detailBusy"
-            :select-ids="recordSelectionIds"
-            :label="state.detail.info.label + ' records'"
-            :actions="[
-              { label: 'Insert record', action: 'add' },
-              { label: 'Duplicate record', action: 'duplicate' },
-              { label: 'Copy record', action: 'copy' },
-              { label: 'Paste records here', action: 'paste' },
-              { label: 'Delete record', action: 'delete' },
-            ]"
-            @action="(operation) => recordAction(operation)"
-            @selection="
-              selectedRecords = $event;
-              selectedRecord = $event[0];
-            "
-            :save-cell="recordEdit"
-            @paste="pasteCells"
-            @paste-rows="
-              (data) =>
-                command('record_paste', {
-                  id: activeMeasurement,
-                  record_id: selectedRecord?.id,
-                  record_ids: selectedRecords.map((row) => row.id),
-                  clipboardData: data,
-                })
-            "
-          />
-        </div>
-        <div class="measurement-total-row" role="status" aria-label="All measurement records total">
-          <span>Total · all records</span
-          ><strong
-            ><template v-for="(total, index) in state.detail.totals" :key="index"
-              ><span v-if="index"> · </span>{{ state.detail.links[index]?.label || `Quantity ${Number(index) + 1}` }}:
-              {{ total }} {{ state.detail.links[index]?.unit || "" }}</template
-            ></strong
-          >
-        </div>
-        <div class="pagination">
-          <button
-            class="text-button"
-            :disabled="busy || detailBusy || !state.detail.offset"
-            @click="changeRecordPage(-1)"
-          >
-            Previous records
-          </button>
-          <span>{{ state.detail.total_records }} records · Page {{ Math.floor(state.detail.offset / 100) + 1 }}</span>
-          <button
-            class="text-button"
-            :disabled="busy || detailBusy || state.detail.offset + 100 >= state.detail.total_records"
-            @click="changeRecordPage(1)"
-          >
-            Next records
-          </button>
-        </div>
-      </template>
+              :save-cell="recordEdit"
+              @paste="pasteCells"
+              @paste-rows="
+                (data) =>
+                  command('record_paste', {
+                    id: activeMeasurement,
+                    record_id: selectedRecord?.id,
+                    record_ids: selectedRecords.map((row) => row.id),
+                    clipboardData: data,
+                  })
+              "
+            />
+          </div>
+        </template>
+      </MeasurementRecordLayout>
     </template>
     <ResourceEditingDialogs
       v-if="view === 'resources'"
@@ -1597,141 +1384,11 @@ watch(
         </div>
       </form>
     </Dialog>
-    <Dialog
-      v-model:visible="propertiesOpen"
-      modal
-      :header="propertiesCategory ? 'Edit measurement category' : 'Measurement properties'"
-      class="workspace-dialog measurement-properties-dialog"
-      :closable="!busy"
-      :close-on-escape="!busy"
-    >
-      <form @submit.prevent="saveProperties">
-        <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>
-        <label class="field"
-          >{{ propertiesCategory ? "Category name" : "Description / remarks"
-          }}<textarea
-            v-model="properties.description"
-            data-primary-input
-            autofocus
-            :disabled="busy"
-            :rows="propertiesCategory ? 1 : 3"
-          />
-        </label>
-        <div class="measurement-properties-fields">
-          <label v-for="(link, index) in properties.links" :key="index" class="field"
-            >{{ link.label }} · Schedule code {{ index + 1 }}
-            <div class="file-input">
-              <input v-model="link.code" :aria-label="'Property schedule code ' + (index + 1)" :disabled="busy" />
-              <button
-                type="button"
-                class="icon-button"
-                :aria-label="'Choose property schedule item ' + (index + 1)"
-                @click="showLinkPicker(index)"
-              >
-                <AppIcon name="search" />
-              </button>
-              <button
-                type="button"
-                class="icon-button"
-                :aria-label="'Clear property schedule link ' + (index + 1)"
-                @click="link.code = ''"
-              >
-                <AppIcon name="close" />
-              </button>
-            </div>
-            <input
-              v-model="link.remark"
-              :aria-label="'Property item remark ' + (index + 1)"
-              placeholder="Item remark / column label"
-              :disabled="busy"
-            />
-          </label>
-        </div>
-        <p v-if="propertiesDetail?.property_groups.length" class="field-hint">
-          Numeric constants accept arithmetic; saving stores the evaluated number.
-        </p>
-        <div class="measurement-property-groups">
-          <fieldset v-for="group in propertiesDetail?.property_groups || []" :key="group.label">
-            <legend>{{ group.label }}</legend>
-            <label v-for="field in group.fields" :key="field.index" class="field"
-              >{{ field.label
-              }}<input
-                v-model="properties.user_data[Number(field.index)]"
-                :aria-label="field.caption"
-                :inputmode="field.numeric ? 'decimal' : 'text'"
-                :disabled="busy"
-            /></label>
-          </fieldset>
-        </div>
-        <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
-        <div class="dialog-footer">
-          <button type="button" class="button secondary" :disabled="busy" @click="propertiesOpen = false">Cancel</button
-          ><button class="button primary" :disabled="busy">Save properties</button>
-        </div>
-      </form>
-    </Dialog>
-    <PersistentDialog
-      :busy="pickerBusy"
-      v-model:visible="pickerOpen"
-      modal
-      header="Choose schedule item"
-      class="workspace-dialog resource-dialog"
-    >
-      <form
-        class="search-field"
-        @submit.prevent="
-          pickerPage = 0;
-          searchLinks();
-        "
-      >
-        <input
-          v-model="pickerQuery"
-          data-primary-input
-          autofocus
-          aria-label="Find linked schedule item"
-          placeholder="Code or description…"
-        /><button class="button small secondary" :disabled="pickerBusy">Search</button>
-      </form>
-      <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
-      <div class="library-results">
-        <button
-          v-for="item in pickerItems"
-          :key="item.code"
-          class="library-item"
-          :disabled="pickerBusy"
-          :title="item.description"
-          @click="chooseLink(item.code)"
-        >
-          <span
-            ><b>{{ item.code }}</b
-            ><small v-middle-ellipsis="item.description" class="five-line-description" /></span
-          ><span>{{ item.unit }}</span>
-        </button>
-        <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
-      </div>
-      <div class="pagination">
-        <button
-          class="text-button"
-          :disabled="pickerBusy || !pickerPage"
-          @click="
-            pickerPage--;
-            searchLinks();
-          "
-        >
-          Previous</button
-        ><span>Page {{ pickerPage + 1 }}</span
-        ><button
-          class="text-button"
-          :disabled="pickerBusy || pickerItems.length < 100"
-          @click="
-            pickerPage++;
-            searchLinks();
-          "
-        >
-          Next
-        </button>
-      </div>
-    </PersistentDialog>
+    <MeasurementPropertiesDialog
+      ref="measurementPropertiesDialog"
+      :busy="busy"
+      :context="measurementPropertiesContext"
+    />
     <ProjectItemDialogs
       ref="projectItemDialogs"
       :view="view"

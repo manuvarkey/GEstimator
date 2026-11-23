@@ -23,6 +23,7 @@ interface RecordsContext {
   command: ViewCommand;
   run: (work: () => Promise<void>) => Promise<boolean>;
   focus: () => Promise<void>;
+  focusDescription: () => void;
   changed: () => void;
 }
 
@@ -46,20 +47,14 @@ export function useMeasurementRecords(context: RecordsContext) {
   let selectionRequest = 0;
   const activeMeasurement = ref<string | undefined>(context.entryId());
   const recordTable = ref<DataTableHandle<MeasurementRecord>>();
-  const measurementDescription = ref<HTMLTextAreaElement>();
   const descriptionDraft = ref<string>();
-  const fullMeasurementTitle = computed(() =>
-    state.value?.detail?.id === context.entryId()
-      ? state.value?.detail?.description || "Measurement entry"
-      : "Measurement entry",
-  );
 
   async function editMeasurementDescription() {
     const detail = state.value?.detail;
     if (busy.value || !detail || detail.id !== context.entryId()) return;
     descriptionDraft.value = detail.description;
     await nextTick();
-    measurementDescription.value?.focus({ preventScroll: true });
+    context.focusDescription();
   }
 
   async function finishMeasurementDescription() {
@@ -70,7 +65,7 @@ export function useMeasurementRecords(context: RecordsContext) {
     if (!(await command("edit", { id: detail.id, field: "description", value })) && context.entryId() === detail.id) {
       descriptionDraft.value = value;
       await nextTick();
-      measurementDescription.value?.focus({ preventScroll: true });
+      context.focusDescription();
     }
   }
 
@@ -221,9 +216,7 @@ export function useMeasurementRecords(context: RecordsContext) {
     recordsOpen,
     detailBusy,
     recordTable,
-    measurementDescription,
     descriptionDraft,
-    fullMeasurementTitle,
     recordRows,
     recordColumns,
     editMeasurementDescription,
