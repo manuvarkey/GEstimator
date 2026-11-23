@@ -209,6 +209,54 @@ def _insert_items(editor, meas, params, items):
     return dict(selected=identities)
 
 
+def _edit_selection(editor, meas, *, item_index, op, params):
+    """Copy or change a selection while retaining stable measurement identities."""
+    result = {}
+    ids = params.get("ids", [params.get("id")])
+    if (
+        not isinstance(ids, list)
+        or not ids
+        or any(not isinstance(identity, str) or identity not in editor.ids for identity in ids)
+    ):
+        raise ValueError("Select one or more measurement items")
+    selection = set(ids)
+    indexes = [position for position, identity in enumerate(editor.ids) if identity in selection]
+    if op == "copy":
+        editor.clipboard = ("measurement", [copy.deepcopy(meas.items[i]) for i in indexes])
+        return
+    if op == "duplicate":
+        items = [copy.deepcopy(meas.items[i]) for i in indexes]
+        result = _insert_items(editor, meas, params, items)
+    elif op == "delete":
+        for position in reversed(indexes):
+            meas.remove_item(position)
+            editor.record_ids.pop(editor.ids.pop(position), None)
+    else:
+        delta = params["delta"]
+        if type(delta) is not int or delta not in (-1, 1):
+            raise ValueError("Invalid move")
+        if params.get("category"):
+            starts = [i for i, row in enumerate(meas.items) if isinstance(row, measurement.MeasurementItemHeading)]
+            if item_index not in starts:
+                raise ValueError("Select a measurement category")
+            sibling = starts.index(item_index) + delta
+            if 0 <= sibling < len(starts):
+                first, second = sorted((starts.index(item_index), sibling))
+                a, b = starts[first], starts[second]
+                end = starts[second + 1] if second + 1 < len(starts) else len(editor.ids)
+                meas.items[a:end] = meas.items[b:end] + meas.items[a:b]
+                editor.ids[a:end] = editor.ids[b:end] + editor.ids[a:b]
+        else:
+            for position in indexes if delta < 0 else reversed(indexes):
+                other = position + delta
+                if 0 <= other < len(editor.ids) and editor.ids[other] not in selection:
+                    meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
+                    editor.ids[position], editor.ids[other] = editor.ids[other], editor.ids[position]
+    editor.set_measurement(meas)
+    editor.ensure_ids(meas)
+    return result
+
+
 def edit(editor, op, p):
     """Edit measurement items without owning their transaction or undo history."""
     # Step 1: resolve the current item from the draft-aware measurement model.
@@ -219,49 +267,7 @@ def edit(editor, op, p):
     # Step 2: apply the requested item operation, or delegate record-level work.
     result = {}
     if op in ("copy", "duplicate", "delete", "move"):
-        ids = p.get("ids", [p.get("id")])
-        if (
-            not isinstance(ids, list)
-            or not ids
-            or any(not isinstance(identity, str) or identity not in editor.ids for identity in ids)
-        ):
-            raise ValueError("Select one or more measurement items")
-        selection = set(ids)
-        indexes = [position for position, identity in enumerate(editor.ids) if identity in selection]
-        if op == "copy":
-            editor.clipboard = ("measurement", [copy.deepcopy(meas.items[i]) for i in indexes])
-            return
-        if op == "duplicate":
-            items = [copy.deepcopy(meas.items[i]) for i in indexes]
-            result = _insert_items(editor, meas, p, items)
-        elif op == "delete":
-            for position in reversed(indexes):
-                meas.remove_item(position)
-                editor.record_ids.pop(editor.ids.pop(position), None)
-        else:
-            delta = p["delta"]
-            if type(delta) is not int or delta not in (-1, 1):
-                raise ValueError("Invalid move")
-            if p.get("category"):
-                starts = [i for i, row in enumerate(meas.items) if isinstance(row, measurement.MeasurementItemHeading)]
-                if index not in starts:
-                    raise ValueError("Select a measurement category")
-                sibling = starts.index(index) + delta
-                if 0 <= sibling < len(starts):
-                    first, second = sorted((starts.index(index), sibling))
-                    a, b = starts[first], starts[second]
-                    end = starts[second + 1] if second + 1 < len(starts) else len(editor.ids)
-                    meas.items[a:end] = meas.items[b:end] + meas.items[a:b]
-                    editor.ids[a:end] = editor.ids[b:end] + editor.ids[a:b]
-            else:
-                for position in indexes if delta < 0 else reversed(indexes):
-                    other = position + delta
-                    if 0 <= other < len(editor.ids) and editor.ids[other] not in selection:
-                        meas.items[position], meas.items[other] = meas.items[other], meas.items[position]
-                        editor.ids[position], editor.ids[other] = editor.ids[other], editor.ids[position]
-        editor.set_measurement(meas)
-        editor.ensure_ids(meas)
-        return result
+        return _edit_selection(editor, meas, item_index=index, op=op, params=p)
     if op == "paste":
         if not editor.clipboard or editor.clipboard[0] != "measurement":
             raise ValueError("Copy a measurement item first")

@@ -10,6 +10,7 @@ import AppIcon from "./AppIcon.vue";
 import ProjectListRibbon from "./ProjectListRibbon.vue";
 import ProjectImportDialogs from "./ProjectImportDialogs.vue";
 import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
+import ScheduleRateDiscrepancies from "./ScheduleRateDiscrepancies.vue";
 import ScheduleEditingDialogs from "./ScheduleEditingDialogs.vue";
 import ProjectDeletionDialog from "./ProjectDeletionDialog.vue";
 import ProjectItemDialogs from "./ProjectItemDialogs.vue";
@@ -17,13 +18,12 @@ import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
 import type { DataTableHandle, TableRow } from "../dataTableTypes";
-import { groupMeasurementRows, highlightScheduleRates } from "../projectGridRows";
+import { groupMeasurementRows } from "../projectGridRows";
 import { resourceItemFields, scheduleItemFields } from "../projectViewTypes";
 import type {
   GridRow,
   GridState,
   ProjectItemField,
-  RateDiscrepancies,
   View,
   ViewMemory,
   MeasurementTemplate,
@@ -59,13 +59,7 @@ const emit = defineEmits<{
   discardRecords: [];
 }>();
 const state = ref<GridState>();
-const discrepancy = ref<RateDiscrepancies>();
-async function showDiscrepancies() {
-  await run(async () => {
-    const result = await request<RateDiscrepancies>("schedule.editor.discrepancies", {});
-    if (state.value?.revision === result.revision && !source.value) discrepancy.value = result;
-  });
-}
+const rateDiscrepancies = ref<InstanceType<typeof ScheduleRateDiscrepancies>>();
 
 const emptyRows: [] = [];
 watch(
@@ -112,9 +106,6 @@ const remembered = recallTabState<ViewMemory>(memoryKey);
 const query = ref(remembered?.query ?? "");
 const categoryFilters = ref<string[]>(remembered?.categoryFilters ?? []);
 const source = ref("");
-watch([() => state.value?.revision, source, () => props.view], () => {
-  discrepancy.value = undefined;
-});
 const usageOpen = ref(false);
 const usageCode = ref<string>();
 const page = ref(remembered?.page ?? 0);
@@ -153,12 +144,7 @@ const measurementCategories = computed(() =>
 const mainRows = computed<GridRow[]>(() => {
   if (isMeasurement.value) return measurementCategories.value;
   const rows = state.value?.rows ?? emptyRows;
-  return discrepancy.value && props.view === "schedule"
-    ? highlightScheduleRates(
-        rows.filter((row) => !!row.rowtype),
-        discrepancy.value,
-      )
-    : rows;
+  return rateDiscrepancies.value?.highlight(rows) ?? rows;
 });
 const recordLayout = ref<InstanceType<typeof MeasurementRecordLayout>>();
 // Measurement owners reuse this view's single command and busy/error boundary.
@@ -676,7 +662,7 @@ watch(
             @move="command('move', { delta: $event })"
             @edit-analysis="selectedSchedule && emit('analysis', selectedSchedule.code)"
             @import-analyses="projectImportDialogs?.show('analyses')"
-            @show-discrepancies="showDiscrepancies"
+            @show-discrepancies="rateDiscrepancies?.show()"
             @edit-analysis-rules="
               emit(
                 'analysisRules',
@@ -748,19 +734,13 @@ watch(
           @activate="activateRow"
         />
       </div>
-      <div v-if="view === 'schedule' && discrepancy" role="status">
-        {{ discrepancy.counts.items }} items · {{ discrepancy.counts.mismatch }} mismatches · ≤0.10:
-        {{ discrepancy.counts.small }} · ≤1.00: {{ discrepancy.counts.medium }} · >1.00:
-        {{ discrepancy.counts.large }} · Missing analysis: {{ discrepancy.counts.missing }}
-        <button class="button secondary" @click="discrepancy = undefined">Clear highlighting</button>
-        <details>
-          <summary>Stored / calculated rates</summary>
-          <div v-for="row in discrepancy.rows" :key="row.id">
-            {{ row.code }}: {{ formatMoney(row.stored) }} /
-            {{ row.calculated == null ? "Missing analysis" : formatMoney(row.calculated) }}
-          </div>
-        </details>
-      </div>
+      <ScheduleRateDiscrepancies
+        v-if="view === 'schedule'"
+        ref="rateDiscrepancies"
+        :revision="state?.revision"
+        :source="source"
+        :run="run"
+      />
       <div
         v-if="view === 'schedule' && state"
         class="schedule-estimate-total"

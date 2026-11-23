@@ -761,7 +761,11 @@ class ScheduleDatabase:
 
         def inner(*args, **kwargs):
             action = ScheduleDatabase._Action(generator, args, kwargs)
-            ret = action.do()
+            try:
+                ret = action.do()
+            except StopIteration as failure:
+                # Operations may return early after a rejected write. No action was recorded.
+                return failure.value
             args[0].stack.append(action)
             if isinstance(ret, tuple):
                 if len(ret) == 1:
@@ -1141,30 +1145,27 @@ class ScheduleDatabase:
 
     def insert_resource_category_atomic(self, category, path=None):
         """If path is None add as first item; If path[0] = -1, add as last item"""
-        with self.database.atomic():
-            if path:
-                # Path specified add at path
-                cat_len = self.ResourceCategoryTable.select().count()
-                if path[0] >= cat_len or path[0] == -1:
-                    order = cat_len
+        try:
+            with self.database.atomic():
+                if path:
+                    # Path specified add at path
+                    cat_len = self.ResourceCategoryTable.select().count()
+                    if path[0] >= cat_len or path[0] == -1:
+                        order = cat_len
+                    else:
+                        order = path[0] + 1
                 else:
-                    order = path[0] + 1
-            else:
-                # No path specified, add at start
-                order = 0
+                    # No path specified, add at start
+                    order = 0
 
-            self.ResourceCategoryTable.update(order=self.ResourceCategoryTable.order + 1).where(
-                self.ResourceCategoryTable.order >= order
-            ).execute()
-
-            new_cat = self.ResourceCategoryTable(description=category, order=order)
-            try:
-                new_cat.save()
-            except:
-                log.error("ScheduleDatabase - insert_resource_category - saving record failed for " + category)
-                return False
-
-            return order
+                self.ResourceCategoryTable.update(order=self.ResourceCategoryTable.order + 1).where(
+                    self.ResourceCategoryTable.order >= order
+                ).execute()
+                self.ResourceCategoryTable.create(description=category, order=order)
+        except peewee.IntegrityError:
+            log.error("ScheduleDatabase - insert_resource_category - saving record failed for %s", category)
+            return False
+        return order
 
     @undoable
     def insert_resource_category(self, category, path=None):
@@ -1486,20 +1487,14 @@ class ScheduleDatabase:
                     order = self.ResourceTable.select().where(self.ResourceTable.category == category_id).count()
                 except self.ResourceCategoryTable.DoesNotExist:
                     # Add new category at end and add item under it
-                    if self.insert_resource_category_atomic(category_name, path=[-1]) is not None:
-                        category = (
-                            self.ResourceCategoryTable.select()
-                            .where(self.ResourceCategoryTable.description == category_name)
-                            .get()
-                        )
-                        category_id = category.id
-                        res_category_added = category_name
-                        order = 0
-                    else:
-                        log.error(
-                            "ScheduleDatabase - insert_resource - category could not be set - " + str(category_name)
-                        )
+                    inserted = self.insert_resource_category_atomic(category_name, path=[-1])
+                    if inserted is False or inserted is None:
+                        log.error("ScheduleDatabase - insert_resource - category could not be set: %s", category_name)
                         return False
+                    category = self.ResourceCategoryTable.get(description=category_name)
+                    category_id = category.id
+                    res_category_added = category_name
+                    order = 0
 
             res = self.ResourceTable(
                 code=resource.code,
@@ -1527,11 +1522,9 @@ class ScheduleDatabase:
     def insert_resource(self, resource, path=None):
         with self.database.atomic():
             ret = self.insert_resource_atomic(resource, path)
-            if ret:
-                [path_added, res_category_added] = ret
-            else:
-                path_added = None
-                res_category_added = None
+            if not ret:
+                return False
+            [path_added, res_category_added] = ret
 
         yield "Add resource data item at path:'{}'".format(str(path)), [path_added, res_category_added]
 
@@ -1668,21 +1661,17 @@ class ScheduleDatabase:
                     # If there is a change in category, recalculate order
                     else:
                         order = self.ResourceTable.select().where(self.ResourceTable.category == category_id).count()
-                except:
+                except self.ResourceCategoryTable.DoesNotExist:
                     # Add new category at end and add resource under it
-                    if self.insert_resource_category_atomic(res_model.category, path=[-1]) is not None:
-                        category = (
-                            self.ResourceCategoryTable.select()
-                            .where(self.ResourceCategoryTable.description == res_model.category)
-                            .get()
-                        )
-                        category_id = category.id
-                        order = 0
-                    else:
+                    inserted = self.insert_resource_category_atomic(res_model.category, path=[-1])
+                    if inserted is False or inserted is None:
                         log.error(
-                            "ScheduleDatabase - update_resource - category could not be set - " + str(category_name)
+                            "ScheduleDatabase - update_resource - category could not be set: %s", res_model.category
                         )
                         return False
+                    category = self.ResourceCategoryTable.get(description=res_model.category)
+                    category_id = category.id
+                    order = 0
 
                 # Undo values
                 old_model = copy.copy(res_model)

@@ -16,6 +16,7 @@ formatting is presentation; the currency option does not convert prices.
 | Active document workspace lifetime | [`Root.vue`](../../modern/src/Root.vue) |
 | Document/session store and actions | [`documents.ts`](../../modern/src/documents.ts), [`useDocumentTabs.ts`](../../modern/src/useDocumentTabs.ts) |
 | Shell, ribbon/context, guarded navigation and coordination | [`App.vue`](../../modern/src/App.vue) |
+| Keyboard shortcut reference and its layout | [`KeyboardShortcutsDialog.vue`](../../modern/src/components/KeyboardShortcutsDialog.vue) |
 | Guarded file workflows, recent paths and recovery state | [`useProjectFiles.ts`](../../modern/src/useProjectFiles.ts) |
 | File chooser form, recent paths and recovery actions | [`ProjectFileDialog.vue`](../../modern/src/components/ProjectFileDialog.vue) |
 | View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
@@ -28,6 +29,7 @@ formatting is presentation; the currency option does not convert prices.
 | Analysis Schedule and Resources explorer | [`AnalysisExplorer.vue`](../../modern/src/components/AnalysisExplorer.vue) |
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| Rate discrepancy query, summary and grid highlighting | [`ScheduleRateDiscrepancies.vue`](../../modern/src/components/ScheduleRateDiscrepancies.vue) |
 | Schedule, Resources and Measurements list ribbon groups | [`ProjectListRibbon.vue`](../../modern/src/components/ProjectListRibbon.vue) |
 | Project editor shortcut recognition and precedence | [`projectViewShortcuts.ts`](../../modern/src/projectViewShortcuts.ts) |
 | Project grid loading, search, paging, delta refresh and table restoration | [`useProjectGrid.ts`](../../modern/src/useProjectGrid.ts) |
@@ -70,6 +72,11 @@ It receives the shell's draft guard and analysis-loading/focus callbacks, keepin
 one guard path. A new/replaced project or closed document forgets its old state.
 `useDocumentTabs` routes New/Open/Close and window close through that same guard;
 do not bypass it from a new button or native callback.
+File opens resolve the requested path with the backend before looking for an
+already open document. Opening that document activates its existing tab and
+preserves its working copy, drafts and history. A closed project clears its
+tab path. Resolving aliases at the time of the request lets a moved symlink
+select its current target.
 
 `useProjectFiles` owns New/Open/Save/Close orchestration, the file-dialog state,
 recent paths, recovery choices and OS-open completion/handoff state. It delegates

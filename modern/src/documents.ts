@@ -9,7 +9,6 @@ export interface DocumentTab {
   id: string;
   title: string;
   path: string | null;
-  canonicalPath?: string | null;
   open: boolean;
   dirty: boolean;
   view: "analysis" | "schedule" | "resources" | "measurement";
@@ -34,35 +33,15 @@ export const pendingPaths: string[] = [];
 let pending: DocumentAction | undefined;
 let switching = false;
 
-const canonicalCache = new Map<string, string>();
-
-/** Normalize slashes, trim trailing slashes, and case-fold Windows drive-letter paths. */
+/** Compare Windows path spellings while preserving POSIX filenames. */
 export function normalizePath(path: string): string {
-  const clean = path.replace(/\\/g, "/").replace(/\/+$/, "").trim();
-  return /^[a-zA-Z]:\//.test(clean) ? clean.toLowerCase() : clean;
+  return /^[a-zA-Z]:[\\/]|^\\\\/.test(path) ? path.replace(/\\/g, "/").toLowerCase() : path;
 }
 
 export function pathsEqual(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
   if (a === b) return true;
   return normalizePath(a) === normalizePath(b);
-}
-
-export async function canonicalizePath(path: string): Promise<string> {
-  const trimmed = path.trim();
-  if (!trimmed) return "";
-  const cached = canonicalCache.get(trimmed);
-  if (cached) return cached;
-  try {
-    const res = await request<{ canonical?: string }>("path.canonical", { path: trimmed });
-    if (res?.canonical) {
-      canonicalCache.set(trimmed, res.canonical);
-      return res.canonical;
-    }
-  } catch {
-    // Backend unavailable: return trimmed input.
-  }
-  return trimmed;
 }
 
 export function takeDocumentAction() {
@@ -74,23 +53,14 @@ export function updateDocument(id: string, values: Partial<DocumentTab>) {
   const tab = documents.value.find((item) => item.id === id);
   if (tab) Object.assign(tab, values);
 }
-export function documentForPath(path: string) {
-  const norm = normalizePath(path);
-  return documents.value.find(
-    (tab) =>
-      (tab.path && normalizePath(tab.path) === norm) ||
-      (tab.canonicalPath && normalizePath(tab.canonicalPath) === norm),
-  );
-}
+/** Resolve aliases on each open because the filesystem can redirect them between requests. */
 export async function findDocumentForPath(path: string): Promise<DocumentTab | undefined> {
-  const direct = documentForPath(path);
-  if (direct) return direct;
-  const canonical = await canonicalizePath(path);
-  if (canonical && canonical !== path) {
-    const matched = documentForPath(canonical);
-    if (matched) return matched;
-  }
-  return undefined;
+  if (!documents.value.some((tab) => tab.open && tab.path)) return;
+  const result = await request<{ canonical: string; exists: boolean }>("path.canonical", { path }).catch(
+    () => undefined,
+  );
+  if (!result?.exists) return;
+  return documents.value.find((tab) => tab.open && pathsEqual(tab.path, result.canonical));
 }
 export async function switchDocument(id: string, action?: DocumentAction) {
   if (switching || (id === activeDocument.value && !action)) return;
@@ -107,9 +77,7 @@ export async function switchDocument(id: string, action?: DocumentAction) {
 export async function createDocument(action?: DocumentAction) {
   const id = "doc-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   await request("session.open", { session: id }, id);
-  const tab = blank(id);
-  if (action?.type === "open") tab.path = action.path;
-  documents.value.push(tab);
+  documents.value.push(blank(id));
   await switchDocument(id, action);
   return id;
 }

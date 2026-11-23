@@ -35,12 +35,10 @@ export function useDocumentTabs(context: {
       ] as const,
     ([open, title, path, dirty]) => {
       if (state.value) {
-        const current = documents.value.find((tab) => tab.id === documentId);
         updateDocument(documentId, {
           open: !!open,
           title,
-          path: current?.path || path || null,
-          canonicalPath: path || null,
+          path: open ? path || null : null,
           dirty: !!dirty,
         });
       }
@@ -50,11 +48,10 @@ export function useDocumentTabs(context: {
   async function inNewDocument(action: DocumentAction) {
     if (action.type === "open") {
       const existing = await findDocumentForPath(action.path);
-      if (existing && existing.id !== documentId) {
-        await switchDocument(existing.id);
+      if (existing) {
+        if (existing.id !== documentId) await switchDocument(existing.id);
         return true;
       }
-      if (existing?.id === documentId) return false;
     }
     if (!state.value?.project_open) return false;
     try {

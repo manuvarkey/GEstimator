@@ -1650,3 +1650,45 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - All 238 Python tests passed (229 regression tests + 9 quality check tests).
   Documentation link/anchor check passed (`tools/check_docs.py`).
   Local quality checks (`tools/check_quality.py --fix` and `tools/check_quality.py`) passed.
+
+## 2026-11-24 — Document identity, project workflow extraction and Windows browser checks
+
+- The [hosted run](https://github.com/manuvarkey/GEstimator/actions/runs/45245676671)
+  passed formatting, backend and native jobs. Browser logs and screenshots
+  showed three failures. The ribbon caption was visible on two lines, but the
+  font's scroll box exceeded the test's tolerance. The measurement test text
+  fit in five lines at the initial width on Windows. The tree marker moved
+  1.328125 px between display and editing. The tests now count the ribbon's
+  laid-out lines and use a measurement title that exceeds five lines. The
+  editor aligns the same tree marker to its display position and retains the
+  existing one-pixel geometry check.
+- Browser regressions cover reselecting the active project from the dialog,
+  reopening the last closed project from an OS request, and opening the
+  current target of a moved directory alias. The alias fixture uses a junction
+  on Windows and a directory symlink on POSIX. A SQLite trigger exercises
+  failed resource category creation, resource insert and update rejection,
+  and unchanged undo history.
+- Extracted project file and report handlers, the schedule discrepancy panel,
+  the shortcut reference and its styles, and the measurement selection
+  operation. The file browser spec uses the same Python-backed harness as
+  the editor workflows. The extracted bodies of seven file commands and
+  three reports match the original Python syntax trees after accounting for
+  imports, receivers and service-owned guards. The browser spec split kept
+  every existing scenario and added two.
+- `.venv/bin/python -m unittest discover -s tests` passed all 240 tests.
+  `npm run --prefix modern test:e2e` passed 97 Chromium tests with the opt-in
+  performance scenario skipped in that run. The separate large-project
+  scenario passed with `GESTIMATOR_PERF=1`. A Linux system-font
+  fallback run passed all three affected scenarios. A seven-scenario rerun
+  with `CI=true` passed the affected browser, project-open, resource-edit and
+  rate discrepancy checks on Linux. The subsequent full Linux run with
+  `CI=true` also passed 97 scenarios and skipped the opt-in profile. The production build
+  passed with the existing 1.22 MB entry chunk warning (313 kB gzip).
+- DSR 2023 and DSR E&M 2025 rate discrepancies, resource usage and dependent
+  analyses matched the pre-change baseline before and after Save Copy and
+  reopen. Both original project files retained their hashes. The rebuilt
+  frozen Linux sidecar ran outside the checkout and passed project open,
+  reports, save, reopen and close. Rust formatting, locked offline tests
+  (five tests), Clippy, changed-file quality checks, broad Python correctness,
+  documentation links and diff checks passed. A hosted run of the revised
+  code and installed Windows UI checks remain separate verification.

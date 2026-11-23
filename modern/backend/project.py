@@ -3,14 +3,13 @@
 import copy
 import sqlite3
 from contextlib import closing
-from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
 from estimator import misc
-from estimator.data.schedule import Currency, ScheduleItemModel
+from estimator.data.schedule import ScheduleItemModel
 
-from . import libraries, library_import, measurements, project_edits, project_tables
+from . import libraries, library_import, measurements, project_edits, project_reports, project_tables
 from .insertion import keep_sub_analysis_last
 from .persistence import export_output
 from .validation import text
@@ -335,47 +334,7 @@ class ProjectEditor:
                     stack.extend((child, index) for index, child in enumerate(children.get((category, item.id), [])))
 
     def rate_discrepancies(self):
-        rows = []
-        counts = dict(items=0, mismatch=0, small=0, medium=0, large=0, missing=0)
-        colours = dict(
-            small=misc.MEAS_COLOR_LOCKED,
-            medium=misc.MEAS_COLOR_LOCKED_L1,
-            large=misc.MEAS_COLOR_LOCKED_L2,
-            missing=misc.MEAS_COLOR_MISSING,
-        )
-        for row in self.db.ScheduleTable.select():
-            if not row.unit:
-                continue
-            counts["items"] += 1
-            model = self.db.get_item(row.code, modify_res_code=False)
-            calculated = Currency(model.get_ana_rate()) if model.results else None
-            delta = abs(calculated - Currency(row.rate)) if calculated is not None else None
-            band = (
-                "missing"
-                if delta is None
-                else "equal"
-                if delta == 0
-                else "small"
-                if delta <= Decimal("0.1")
-                else "medium"
-                if delta <= 1
-                else "large"
-            )
-            if band != "equal":
-                counts[band] += 1
-                if band != "missing":
-                    counts["mismatch"] += 1
-            rows.append(
-                dict(
-                    id=str(row.id),
-                    code=row.code,
-                    stored=str(row.rate),
-                    calculated=None if calculated is None else str(calculated),
-                    band=band,
-                    colour=colours.get(band),
-                )
-            )
-        return dict(rows=rows, counts=counts, revision=self.owner.revision)
+        return project_reports.rate_discrepancies(self.db, self.owner.revision)
 
     def renumber_resources(self, exclude):
         if not isinstance(exclude, list) or any(not isinstance(v, str) for v in exclude):
@@ -516,60 +475,10 @@ class ProjectEditor:
         return dict(changed=len(changes), unchanged=len(rates) - len(changes), unmatched=len(records) - len(rates))
 
     def resource_usage(self, params):
-        offset = params.get("offset", 0)
-        if type(offset) is not int or offset < 0:
-            raise ValueError("Invalid resource usage page")
-        words = text(params.get("query", "")).casefold().split()
-        rows = []
-        for category, items in self.db.get_res_usage().items():
-            for code, (_, description, unit, quantity, base, vat, discount) in sorted(items.items()):
-                haystack = " ".join((code, description, unit, category)).casefold()
-                if not all(word in haystack for word in words):
-                    continue
-                rate = Currency(base * (1 + (vat or Decimal(0)) / 100) * (1 - (discount or Decimal(0)) / 100))
-                rows.append(
-                    dict(
-                        code=code,
-                        description=description,
-                        unit=unit,
-                        category=category,
-                        quantity=str(quantity),
-                        rate=str(rate),
-                        amount=str(Currency(rate * quantity)),
-                    )
-                )
-        return dict(rows=rows[offset : offset + 50], total=len(rows))
+        return project_reports.resource_usage(self.db, params)
 
     def resource_dependents(self, params):
-        code = text(params["code"])
-        offset = params.get("offset", 0)
-        if type(offset) is not int or offset < 0:
-            raise ValueError("Invalid analysis page")
-        schedule = self.db.ScheduleTable
-        resource = self.db.ResourceTable
-        entry = self.db.ResourceItemTable
-        references = {}
-        edges = (
-            entry.select(resource.code, schedule.code).join(resource).switch(entry).join(schedule).distinct().tuples()
-        )
-        for resource_code, analysis_code in edges:
-            references.setdefault(resource_code, set()).add(analysis_code)
-        direct = references.get(code, set())
-        reached = set(direct)
-        pending = list(direct)
-        while pending:
-            via = pending.pop()
-            new = references.get(via, set()) - reached
-            reached.update(new)
-            pending.extend(new)
-        matches = [
-            dict(code=item.code, description=item.description, indirect=item.code not in direct)
-            for item in schedule.select(schedule.code, schedule.description).order_by(
-                schedule.order, schedule.suborder, schedule.id
-            )
-            if item.code in reached
-        ]
-        return dict(rows=matches[offset : offset + 50], total=len(matches))
+        return project_reports.resource_dependents(self.db, params)
 
     def close(self):
         for name, db in self.libraries.values():

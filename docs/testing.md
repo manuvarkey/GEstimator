@@ -66,6 +66,9 @@ grep to an assumed bare title; Playwright may include file/project context.
 
 The suite substitutes only the Tauri transport and native interaction surface;
 commands use a real persistent Python subprocess and disposable project copies.
+The shared [workspace harness](../modern/e2e/workspaceHarness.ts) starts that
+bridge for both the [project file workflows](../modern/e2e/projectFiles.spec.ts)
+and the [editor workflows](../modern/e2e/workspace.spec.ts).
 It verifies integration behavior, not real OS dialogs, native clipboard access,
 window-manager events or every platform WebView. Native evidence must identify
 the platform/build and actual interaction performed.
@@ -106,16 +109,14 @@ current references. The checker is a link check, not proof that prose matches co
 
 ## CI and recording evidence
 
-[Code quality](../.github/workflows/quality.yml) runs two independent jobs on pull
-requests and master pushes: an advisory `formatting` job and a blocking `app` job.
-The formatting job checks changed-file formatting (Python, Prettier, Rustfmt) and
-reports diagnostics with warning annotations and job summaries without blocking
-functional validation or failing the overall workflow. The `app` job enforces
-mandatory correctness checks: Python syntax and high-confidence correctness linting
-(`tools/check_quality.py --mode correctness`), documentation links, Python regression
-tests, frontend types and production build, browser workflows, and native Rust
-compilation, tests and Clippy diagnostics. Advisory formatting differences should still
-be resolved locally with `tools/check_quality.py --fix` when practical.
+[Code quality](../.github/workflows/quality.yml) runs four independent jobs on
+pull requests and master pushes. On Ubuntu, the advisory `formatting` job reports
+changed-file diagnostics for Ruff, Prettier and rustfmt. On Windows, `backend`
+checks Python syntax and correctness, runs the Python suite and checks
+documentation links. The `browser` job builds the frontend, runs Chromium
+workflows and uploads reports and traces on failure. The `native` job bundles
+the Python sidecar and runs Rust tests and Clippy. Resolve formatting
+diagnostics locally with `tools/check_quality.py --fix` when practical.
 [Release](../.github/workflows/release.yml) builds tagged or manually dispatched packages.
 A locally passing command is not evidence of a successful hosted workflow or
 clean-machine installation.
