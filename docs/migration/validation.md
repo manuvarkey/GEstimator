@@ -1618,3 +1618,29 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - The full Chromium suite passed 95 tests and skipped the opt-in performance
   profile. Native clipboard behavior in the installed WebView remains
   unverified.
+
+## 2026-11-23 — Advisory CI formatting and blocking correctness validation
+
+- Fixed I001 import formatting violation in `estimator/undo.py` where an
+  unnecessary blank line existed between `import contextlib` and
+  `from collections import deque`.
+- Separated CI checks in `.github/workflows/quality.yml` into two independent
+  jobs: an advisory `formatting` job running on `ubuntu-latest` and a blocking
+  `app` job running on `windows-latest`.
+- Extended `tools/check_quality.py` with `--mode {all,formatting,correctness}`
+  and `--advisory` flags. In correctness mode, high-confidence syntax and
+  undefined-name checks (`E9,F63,F7,F82`) are enforced on changed Python files
+  without running cosmetic formatting checks or modifying source files. In
+  advisory mode, formatting violations print diagnostics, emit GitHub Actions
+  workflow warning annotations and a step summary, and exit 0 without failing CI.
+  Strict local runs without `--advisory` continue to return nonzero on formatting
+  violations. Handled invalid base references clearly with `SystemExit`.
+- Removed blocking `cargo fmt` check from the `app` job's native Rust step so
+  rustfmt differences do not fail functional application validation. Rust
+  formatting is checked in the advisory formatting job when Rust files change.
+- Added comprehensive unit tests in `tests/test_check_quality.py` covering
+  correctness linting, strict formatting failures, advisory formatting summaries,
+  invalid base references, argument validation, and `--fix` auto-formatting.
+- All 238 Python tests passed (229 regression tests + 9 quality check tests).
+  Documentation link/anchor check passed (`tools/check_docs.py`).
+  Local quality checks (`tools/check_quality.py --fix` and `tools/check_quality.py`) passed.

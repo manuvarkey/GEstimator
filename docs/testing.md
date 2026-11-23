@@ -41,6 +41,8 @@ again without `--fix`. Add `--base <ref>` to cover a branch's changes since its
 merge base. The script includes staged, unstaged and untracked source files.
 Ruff, Prettier and rustfmt configuration is owned by [AGENTS.md](../AGENTS.md)
 and the checked-in configuration files; do not add a conflicting local preset.
+The strict local quality checker returns nonzero when formatting differences exist,
+allowing developers to catch and format changes before committing.
 
 The production build includes `vue-tsc --noEmit`, so no separate duplicate type
 check is needed when it succeeds. Do not silence build warnings without fixing
@@ -104,11 +106,19 @@ current references. The checker is a link check, not proof that prose matches co
 
 ## CI and recording evidence
 
-[Code quality](../.github/workflows/quality.yml) covers PR/master formatting,
-documentation links, Python tests, frontend build, browser workflows and native
-Rust checks on Windows. [Release](../.github/workflows/release.yml) builds tagged
-or manually dispatched packages. A locally passing command is not evidence of a
-successful hosted workflow or clean-machine installation.
+[Code quality](../.github/workflows/quality.yml) runs two independent jobs on pull
+requests and master pushes: an advisory `formatting` job and a blocking `app` job.
+The formatting job checks changed-file formatting (Python, Prettier, Rustfmt) and
+reports diagnostics with warning annotations and job summaries without blocking
+functional validation or failing the overall workflow. The `app` job enforces
+mandatory correctness checks: Python syntax and high-confidence correctness linting
+(`tools/check_quality.py --mode correctness`), documentation links, Python regression
+tests, frontend types and production build, browser workflows, and native Rust
+compilation, tests and Clippy diagnostics. Advisory formatting differences should still
+be resolved locally with `tools/check_quality.py --fix` when practical.
+[Release](../.github/workflows/release.yml) builds tagged or manually dispatched packages.
+A locally passing command is not evidence of a successful hosted workflow or
+clean-machine installation.
 
 Record date, change, exact scope, commands/results, skips, warnings and remaining
 platform limits in [validation.md](migration/validation.md). Avoid fixed test
