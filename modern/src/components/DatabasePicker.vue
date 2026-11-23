@@ -254,7 +254,7 @@ async function applyRules(params: Record<string, unknown>) {
             autofocus
             v-model="query"
             aria-label="Find database items"
-            @keydown.up.down="pickerTable?.step($event)"
+            @keydown.up.down="pickerTable?.step($event, { focus: true })"
             placeholder="Code, description or category…"
           /><button class="button small secondary" :disabled="busy">Search</button>
         </form>

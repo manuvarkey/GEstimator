@@ -33,17 +33,29 @@ for (const { kind, title, gridLabel, codes, key, modify } of [
     const source = await refinementFixture(page);
     await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
     await attachDatabase(page, source, kind);
-    await page.locator(".ribbon").getByRole("button", { name: title, exact: true }).click();
+    await page.keyboard.press("Control+l");
     const picker = page.getByRole("dialog", { name: title, exact: true });
+    const search = picker.getByRole("textbox", { name: "Find database items" });
     const grid = picker.getByRole("grid", { name: gridLabel, exact: true });
     await expect(grid.locator('.tabulator-row[data-kind="Resource"]')).toHaveCount(2);
+    await expect(search).toBeFocused();
 
-    // Extend the keyboard selection across both items and their category rows.
-    await grid.press("Home");
-    await grid.press("Shift+End");
+    // Enter searches from the field. An arrow into the results starts row navigation.
+    const searches = () =>
+      frontendCalls.filter(({ method, params }) => method === kind + ".editor.state" && params.source).length;
+    const beforeSearch = searches();
+    await page.keyboard.press("Enter");
+    await expect.poll(searches).toBe(beforeSearch + 1);
+    await expect(picker.getByRole("button", { name: "Search", exact: true })).toBeEnabled();
+    await expect(picker).toBeVisible();
+    await expect(grid.locator(".tabulator-selected")).toHaveCount(0);
+    await page.keyboard.press("ArrowDown");
+    await expect(grid).toBeFocused();
+    await expect(grid.locator(".tabulator-selected")).toHaveCount(1);
+    await page.keyboard.press("Shift+End");
     await expect(grid.locator('.tabulator-selected[data-kind="Resource"]')).toHaveCount(2);
     await expect(grid.locator('.tabulator-selected[data-kind="Group"]').first()).toBeVisible();
-    await grid.press(key);
+    await page.keyboard.press(key);
     await expect(picker).not.toBeVisible();
 
     const command = frontendCalls.findLast(({ method }) => method === kind + ".editor.add_from_library");

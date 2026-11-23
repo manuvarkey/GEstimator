@@ -1719,3 +1719,28 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   the existing Vite warning for the 1.22 MB entry chunk (313 kB gzip).
   `npm run --prefix modern test:e2e` passed 100 Chromium scenarios and
   skipped the opt-in large-project performance profile.
+
+## 2026-11-24 — Start page text rendering and database picker focus
+
+- Mounted the current `ProjectLanding` component with the application styles
+  in a native GTK 3/WebKitGTK 2.52.6 window through the X11 backend, using
+  Iosevka 11 pt and the light theme. One recent project fit in the 620 px scroll
+  area. Ten projects increased its scroll height to 867 px. The intro text then
+  appeared heavier in the native display capture even though its computed
+  weight stayed at 400 and its bounds stayed fixed. Setting
+  `-webkit-font-smoothing: antialiased`
+  on that same overflowing region restored the earlier appearance. Returning
+  to `auto` reproduced the heavier crop pixel for pixel. This matches the
+  [earlier database dialog rasterization issue](#native-scroll-layer-font-smoothing--2026-11-18).
+  The Start page work was scoped to diagnosis.
+- The picker focused its search field when opened with Ctrl+L. Arrow keys
+  forwarded row selection without moving focus, leaving Enter routed to the
+  search form. The updated picker hands focus to the results grid after a
+  successful arrow selection. The regression opens each picker with Ctrl+L,
+  verifies Enter still searches from the input, then uses Down, Shift+End
+  and Enter to import the range. It also covers schedule Ctrl+Enter. The
+  existing project-table search keeps its prior arrow-key behavior.
+- Changed-file quality checks, documentation links and the diff check passed.
+  All 241 Python tests and 100 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite entry-chunk size warning.

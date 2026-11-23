@@ -13,7 +13,7 @@ export interface DataTableHandle<Row extends TableRow> {
   focus: () => Promise<void>;
   patchRows: (updates: TableRowPatch<Row>[]) => Promise<void>;
   redraw: (force?: boolean) => Promise<void>;
-  step: (event: KeyboardEvent) => Promise<void>;
+  step: (event: KeyboardEvent, options?: { focus: boolean }) => Promise<void>;
   scrollToTop: () => Promise<void>;
   clearSelection: () => Promise<void>;
   viewState: () => TableView;

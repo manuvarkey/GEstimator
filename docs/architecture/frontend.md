@@ -182,6 +182,8 @@ visibility and restores it when switching back to an open document tab.
 shared rate refresh picker mounted across editor switches. The project view
 supplies the selected IDs and revision when opening a picker and handles its
 apply command. The picker displays the view's command error if applying fails.
+Up or Down from the search field moves selection and keyboard focus into the
+results grid. Enter in the search field still runs a search.
 Enter in the results grid imports all selected item rows, skipping category
 headings. Schedule Enter uses Modify & Add. Ctrl+Enter (Command+Enter on macOS)
 adds the items unmodified. Double-click applies to the clicked item.

@@ -84,8 +84,9 @@ The Schedule holds the items of the estimate: code, description, unit, rate, qua
 3. Choose the database, search for the work (for example `cement plaster`) and narrow the list with **All categories** if needed.
 4. Select one or more items (Ctrl+click or Shift+click) and click **Add selected items**.
 
-In the Schedule and Resources database pickers, use Shift+Up or Shift+Down in
-the results grid to select a range, then press Enter to add the selected items.
+In the Schedule and Resources database pickers, press Up or Down from the
+search field to move into the results. Use Shift+Up or Shift+Down to select a
+range, then press Enter to add the selected items.
 In Schedule, Enter uses **Modify & Add**. Use Ctrl+Enter (Command+Enter on
 macOS) to add the selected schedule items with their original rates and analysis.
 

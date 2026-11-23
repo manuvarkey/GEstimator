@@ -181,10 +181,13 @@ defineExpose({
     }
   },
   redraw,
-  /** Move the row selection from a search box: Arrow Up/Down step through the rows. */
-  step: async (event: KeyboardEvent) => {
+  /** Let a search field move the selection and optionally hand keyboard focus to the grid. */
+  step: async (event: KeyboardEvent, options?: { focus: boolean }) => {
     await ready;
-    if (alive && table) tableSelection(event, table, props.busy, !!props.tree, true);
+    if (!alive || !table || !tableSelection(event, table, props.busy, !!props.tree, true)) return;
+    if (options?.focus && table.getSelectedRows().length && document.activeElement === event.target) {
+      element.value?.focus({ preventScroll: true });
+    }
   },
   /** Show the first rows, e.g. before loading new search results. */
   scrollToTop: async () => {
