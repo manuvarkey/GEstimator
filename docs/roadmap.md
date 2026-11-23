@@ -62,7 +62,9 @@ hosted-run status was checked during documentation cleanup.
   surface and skill resources are implemented. Current contracts are in the
   [architecture](architecture/README.md), [analysis-rule reference](features/analysis-rules.md)
   and [manual](manual/README.md).
-- Workspace navigation/history and MCP refresh have separate composables.
+- Workspace navigation/history, MCP refresh and guarded project file workflows
+  have separate composables. File dialogs, recent paths, recovery and queued
+  opens reuse the shell's draft guard and existing document-tab routing.
   Library attachment/import handling has separate backend modules while project
   transactions, snapshot lifetime and undo remain with the editor. Further
   shell/router extraction is still tracked in the quality audit.

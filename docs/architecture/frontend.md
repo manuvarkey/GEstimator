@@ -16,6 +16,7 @@ formatting is presentation; the currency option does not convert prices.
 | Active document workspace lifetime | [`Root.vue`](../../modern/src/Root.vue) |
 | Document/session store and actions | [`documents.ts`](../../modern/src/documents.ts), [`useDocumentTabs.ts`](../../modern/src/useDocumentTabs.ts) |
 | Shell, ribbon/context, guarded navigation and coordination | [`App.vue`](../../modern/src/App.vue) |
+| Project file dialogs, recent paths, recovery and guarded file workflows | [`useProjectFiles.ts`](../../modern/src/useProjectFiles.ts) |
 | View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
@@ -30,9 +31,9 @@ formatting is presentation; the currency option does not convert prices.
 
 Before adding behavior to a shell/view, check for an existing shared helper.
 Extract a separate concern into a composable or component with explicit inputs
-and cleanup. Navigation/history and MCP refresh now have separate composables;
-the [quality audit](../code-quality-audit.md) tracks the remaining shell and
-measurement view concerns.
+and cleanup. Navigation/history, project file workflows and MCP refresh have
+separate composables; the [quality audit](../code-quality-audit.md) tracks the
+remaining shell and measurement view concerns.
 
 ## Document and view lifetimes
 
@@ -48,6 +49,16 @@ It receives the shell's draft guard and analysis-loading/focus callbacks, keepin
 one guard path. A new/replaced project or closed document forgets its old state.
 `useDocumentTabs` routes New/Open/Close and window close through that same guard;
 do not bypass it from a new button or native callback.
+
+`useProjectFiles` owns New/Open/Save/Close orchestration, the file-dialog state,
+recent paths, recovery choices and OS-open completion/handoff state. It delegates
+session switching to `useDocumentTabs` and persistence to `useWorkspace`/Python.
+The shell supplies the same draft guard and a post-save continuation, retaining
+pending actions and measurement-view refresh in one place. Cancelling that guard
+also settles the composable's pending native open; displaying the dialog alone
+must not release the OS request queue. `projectOpening.ts` still owns native
+event/drop serialization; the shell installs it after reconnect and cleans up
+its listeners on unmount. New entry points reuse these paths.
 
 Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
 select ribbon context while preserving the active editor. Active project views

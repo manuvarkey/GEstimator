@@ -970,3 +970,32 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   ASTs, and the 43 remaining shell handlers retained normalized TypeScript syntax.
 - Documentation links/anchors, changed-source formatting and `git diff --check`
   passed. No Rust source changed; native tests were not rerun for this batch.
+
+## 2026-11-23 — Guarded project file workflow extraction
+
+- After `730d8fa`, extracted project file dialogs, recent paths, recovery choices,
+  New/Open/Save/Close and native-open completion/handoff into `useProjectFiles.ts`.
+  Explicit callbacks reuse the shell's one draft guard, document-tab routing and
+  post-save continuation. Native event/drop listener installation and cleanup
+  remain in the shell and `projectOpening.ts`. Cancelling the draft guard still
+  releases the pending native open, and queued paths still hand off across tabs.
+- File-dialog submission now reuses `openProjectPath` instead of duplicating its
+  tab/guard/load sequence. No request, database, calculation or template changed.
+  `App.vue` decreased from 2,052 to 1,903 lines. The composable setup retains a
+  closure over shared file/queue state; its individual workflow handlers remain
+  below the function-size review trigger. Architecture, audit and roadmap maps
+  now identify this owner and the remaining shell/view work.
+- A normalized TypeScript comparison verified all 14 moved handlers and the
+  29 remaining shell handlers against the previous commit after expanding the
+  explicit callbacks and shared open handler. The template is byte-for-byte
+  unchanged. Existing regression workflows are used for this mechanical move.
+- Full Python suite: **219 tests, OK, two skipped**. Backend/native source and
+  packaging inputs are unchanged; no sidecar rebuild or Rust checks were needed.
+- `npm run build` passed type checking and the production build. The existing
+  entry-chunk size warning remains (about 1.26 MB, 323 KB gzip). Changed-source
+  formatting, documentation checks across 36 Markdown files and `git diff --check`
+  passed. No installed WebView/OS-dialog or hosted CI validation was performed.
+- Full browser suite: **89 passed, one performance test skipped**. It covers
+  recent files, New/Open/Close document routing, Save Copy and in-place backups,
+  unsaved drafts, queued OS opens/invalid files, startup/error reveal and
+  inspector/record-view restoration after switching tabs.

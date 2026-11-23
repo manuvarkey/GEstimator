@@ -5,7 +5,7 @@ import { afterDialogsClose, focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
 import ApplicationHelp from "./components/ApplicationHelp.vue";
 import ThemedDropdowns from "./components/ThemedDropdowns.vue";
@@ -27,7 +27,7 @@ import {
   stopMCP,
   copyMCPConfig,
 } from "./mcp";
-import { restoreLibraries, savedLibraries } from "./libraryPreferences";
+import { savedLibraries } from "./libraryPreferences";
 import { programSettings, programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
 import RibbonToolbar from "./components/RibbonToolbar.vue";
@@ -38,14 +38,13 @@ import {
   activeDocument,
   activeTab as currentDocument,
   closeConfirmed,
-  documentForPath,
   documents,
   pendingPaths,
   startup,
   takeDocumentAction,
-  type DocumentAction,
 } from "./documents";
 import { useDocumentTabs } from "./useDocumentTabs";
+import { useProjectFiles } from "./useProjectFiles";
 import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigation";
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
 import { notify, statusNotice } from "./statusNotice";
@@ -145,6 +144,7 @@ async function librariesChanged() {
   }, "Refreshing libraries…");
 }
 const projectBusy = ref(false);
+const discardOpen = ref(false);
 const uiBusy = computed(() => busy.value || projectBusy.value);
 const documentId = activeDocument.value;
 const projectViews = shallowReactive<Partial<Record<ProjectView, InstanceType<typeof ProjectViews>>>>({});
@@ -230,6 +230,41 @@ const { inNewDocument, switchProjectTab, addProjectTab, closeProjectTab, cyclePr
     navigate: (action, project) => navigate(action, project),
   });
 
+// File workflows reuse the shell's guard and document-tab/session routing.
+const {
+  fileMode,
+  filePath,
+  recoveryProjects,
+  recentProjects,
+  setRecentProjects,
+  openOsProject,
+  showFile,
+  openProjectPath,
+  browseProject,
+  refreshRecovery,
+  recoverProject,
+  browse,
+  submitFile,
+  saveProject,
+  newProject,
+  closeProject,
+  runDocumentAction,
+  cancelPendingOpen,
+} = useProjectFiles({
+  workspace: w,
+  documentId,
+  uiBusy,
+  discardOpen,
+  navigate,
+  inNewDocument,
+  closeProjectTab,
+  continueAfterSave,
+  showSchedule: () => {
+    activeView.value = "schedule";
+    activeTab.value = "schedule";
+  },
+});
+
 let pendingProject = false;
 const duplicateCode = ref("");
 const duplicateOpen = ref(false);
@@ -299,28 +334,6 @@ const shortcutGroups = [
     ],
   },
 ];
-const fileMode = ref<"open" | "save" | null>(null);
-const recoveryProjects = ref<{ id: string; updated: number }[]>([]);
-const recentProjects = ref<string[]>([]);
-try {
-  const stored = JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]");
-  if (Array.isArray(stored))
-    recentProjects.value = stored.filter((path): path is string => typeof path === "string").slice(0, 10);
-} catch {
-  // A missing or invalid preference can be rebuilt by opening a project.
-}
-function setRecentProjects(paths: string[]) {
-  recentProjects.value = paths;
-  try {
-    localStorage.setItem("gestimator.recent-projects", JSON.stringify(recentProjects.value));
-  } catch {
-    // The in-memory list still works when storage is unavailable.
-  }
-}
-function rememberProject(path: string) {
-  setRecentProjects([path, ...recentProjects.value.filter((item) => item !== path)].slice(0, 10));
-}
-const filePath = ref("");
 const resourceOpen = ref(false);
 const analysisResourcesOpen = ref(false);
 const form = ref({
@@ -336,10 +349,7 @@ const form = ref({
   remarks: "",
 });
 const groupId = ref("");
-const discardOpen = ref(false);
 let pending: ((discard: boolean) => Promise<unknown>) | undefined;
-let finishOsOpen: (() => void) | undefined;
-let switchingAway = false;
 let unsubscribers: UnlistenFn[] = [];
 const rowKinds: {
   kind: RowKind;
@@ -429,114 +439,7 @@ function cancelDiscard() {
   closeConfirmed.clear();
   pending = undefined;
   discardOpen.value = false;
-  finishOsOpen?.();
-  finishOsOpen = undefined;
-}
-async function openOsProject(path: string) {
-  while (uiBusy.value || discardOpen.value || fileMode.value !== null) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  if (switchingAway) {
-    pendingPaths.push(path);
-    return;
-  }
-  const existing = documentForPath(path);
-  if (existing?.id === documentId) return;
-  if (existing || state.value?.project_open) {
-    // The next tab's workspace drains the remaining OS requests.
-    switchingAway = true;
-    await inNewDocument({ type: "open", path });
-    if (activeDocument.value === documentId) switchingAway = false;
-    return;
-  }
-  await new Promise<void>((resolve, reject) => {
-    finishOsOpen = resolve;
-    void navigate(async (discard) => {
-      try {
-        if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
-      } finally {
-        finishOsOpen = undefined;
-        resolve();
-      }
-    }, true).catch((reason) => {
-      finishOsOpen = undefined;
-      reject(reason);
-    });
-  });
-}
-async function showFile(mode: "open" | "save") {
-  filePath.value =
-    mode === "save" ? state.value?.source_path?.replace(/\.eproj$/i, "-edited.eproj") || "estimate.eproj" : "";
-  if (mode === "open") {
-    await refreshRecovery();
-    if (recentProjects.value.length || recoveryProjects.value.length) {
-      fileMode.value = mode;
-      return;
-    }
-  }
-  try {
-    const filters = [{ name: "GEstimator project", extensions: ["eproj"] }];
-    const path =
-      mode === "open" ? await open({ multiple: false, filters }) : await save({ filters, defaultPath: filePath.value });
-    if (typeof path !== "string") return;
-    if (mode === "open") await openProjectPath(path);
-    else if (await w.saveCopy(path)) {
-      rememberProject(path);
-      await continueAfterSave();
-    }
-  } catch (reason) {
-    error.value = String(reason);
-  }
-}
-async function openProjectPath(path: string) {
-  if (await inNewDocument({ type: "open", path })) return;
-  await navigate(async (discard) => {
-    if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
-  }, true);
-}
-/** Landing page: go straight to the system picker; recent projects are already listed there. */
-async function browseProject() {
-  try {
-    const path = await open({ multiple: false, filters: [{ name: "GEstimator project", extensions: ["eproj"] }] });
-    if (typeof path === "string") await openProjectPath(path);
-  } catch (reason) {
-    error.value = String(reason);
-  }
-}
-async function refreshRecovery() {
-  recoveryProjects.value = await request<typeof recoveryProjects.value>("recovery.list").catch(() => []);
-}
-async function recoverProject(id: string) {
-  fileMode.value = null;
-  if (await inNewDocument({ type: "recover", id })) return;
-  await navigate((discard) => w.openProject(id, discard, true), true);
-}
-async function browse() {
-  try {
-    const filters = [{ name: "GEstimator project", extensions: ["eproj"] }];
-    const path =
-      fileMode.value === "open"
-        ? await open({ multiple: false, filters })
-        : await save({ filters, defaultPath: filePath.value || undefined });
-    if (typeof path === "string") filePath.value = path;
-  } catch (e) {
-    error.value = String(e);
-  }
-}
-async function submitFile() {
-  const path = filePath.value.trim();
-  if (!path) return;
-  if (fileMode.value === "open") {
-    fileMode.value = null;
-    if (await inNewDocument({ type: "open", path })) return;
-    await navigate(async (discard) => {
-      if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
-    }, true);
-  } else if (await w.saveCopy(path)) {
-    rememberProject(path);
-    fileMode.value = null;
-    await continueAfterSave();
-  }
+  cancelPendingOpen();
 }
 async function continueAfterSave() {
   if (measurementEntry.value) await projectViews.measurement?.reload();
@@ -546,10 +449,6 @@ async function continueAfterSave() {
     discardOpen.value = false;
     await action(false);
   }
-}
-async function saveProject() {
-  if (!state.value?.source_path) showFile("save");
-  else if (await w.saveProject()) await continueAfterSave();
 }
 function addResource(kind: "library" | "custom" = "custom") {
   groupId.value = destinationGroup.value?.id || groups.value[0]?.id || "";
@@ -699,44 +598,6 @@ function keyboard(event: KeyboardEvent) {
     event.preventDefault();
     void w.command("delete");
   } else if (event.key === "Escape") analysisTable.value?.clearSelection();
-}
-async function newProject() {
-  if (await inNewDocument({ type: "new" })) return;
-  await navigate(async (discard) => {
-    await w.run(async () => {
-      await request("project.new", { discard });
-      await restoreLibraries();
-      await w.refresh();
-      projectSession.value++;
-      schedule.value = [];
-      resources.value = [];
-      scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
-      schedulePage.value = resourcePage.value = 0;
-      selected.value = [];
-      activeView.value = "schedule";
-      activeTab.value = "schedule";
-    });
-  }, true);
-}
-/** Close the project (Save/Discard first). With other tabs open, the tab closes too. */
-async function closeProject() {
-  if (!state.value?.project_open || uiBusy.value) return;
-  if (documents.value.length > 1) {
-    await closeProjectTab(documentId);
-    return;
-  }
-  await navigate(async (discard) => {
-    await w.run(async () => {
-      await request("project.close", { discard });
-      await w.refresh();
-      projectSession.value++;
-      schedule.value = [];
-      resources.value = [];
-      selected.value = [];
-      activeView.value = "schedule";
-      activeTab.value = "schedule";
-    }, "Closing project…");
-  }, true);
 }
 async function showSettings() {
   if (state.value?.project_open) settingsOpen.value = true;
@@ -928,16 +789,6 @@ onMounted(async () => {
   }
   if (isTauri()) await getCurrentWindow().show();
 });
-/** Work handed over by the tab that created or activated this one. */
-async function runDocumentAction(action: DocumentAction) {
-  await nextTick();
-  if (action.type === "new") await newProject();
-  else if (action.type === "open") await openProjectPath(action.path);
-  else if (action.type === "recover") await recoverProject(action.id);
-  else if (action.type === "close-tab") await closeProjectTab(documentId);
-  else if (action.type === "close-window") await getCurrentWindow().close();
-  while (pendingPaths.length && !switchingAway) await openOsProject(pendingPaths.shift()!);
-}
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", keyboard);
   window.removeEventListener("beforeunload", beforeUnload);
