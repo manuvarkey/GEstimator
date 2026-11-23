@@ -2,7 +2,7 @@
 // Owns the analysis dialogs for one mounted document workspace.
 import { computed, ref } from "vue";
 import Dialog from "primevue/dialog";
-import { save } from "@tauri-apps/plugin-dialog";
+import { exportWithWorkbookChooser } from "../workbookExport";
 import { request } from "../backend";
 import type { useWorkspace } from "../useWorkspace";
 import AnalysisBatchDialog from "./AnalysisBatchDialog.vue";
@@ -102,20 +102,17 @@ function showRules(ids: string[], code: string) {
   rulesOpen.value = true;
 }
 
-async function exportWorkbook() {
-  try {
-    const path = await save({
-      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-      defaultPath: (state.value?.code || "analysis") + ".xlsx",
-    });
-    if (typeof path === "string") {
-      await run(async () => {
-        await request("analysis.export_xlsx", { path, replace_selected: true });
-      }, "Exporting analysis…");
-    }
-  } catch (reason) {
-    error.value = String(reason);
-  }
+function exportWorkbook() {
+  return exportWithWorkbookChooser(
+    (state.value?.code || "analysis") + ".xlsx",
+    (destination) =>
+      run(async () => {
+        await request("analysis.export_xlsx", destination);
+      }, "Exporting analysis…"),
+    (message) => {
+      error.value = message;
+    },
+  );
 }
 
 // The shell dispatches workspace commands and guards shortcuts while the custom dialog opens.

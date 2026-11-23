@@ -21,6 +21,7 @@ formatting is presentation; the currency option does not convert prices.
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
 | Analysis resource, workbook, custom template and project analysis rules dialogs | [`AnalysisDialogs.vue`](../../modern/src/components/AnalysisDialogs.vue) |
+| Native save chooser for project and analysis workbooks | [`workbookExport.ts`](../../modern/src/workbookExport.ts) |
 | Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
@@ -74,6 +75,11 @@ For an in-place Save of a dirty project with `source_requires_folder`,
 `useProjectFiles` asks for the project folder and passes the selected path to
 Python. Cancelling leaves the pending action and edits available. Python owns
 grant verification and reuse under the [save contract](database-format.md#working-copies-save-and-recovery).
+
+Project and analysis workbook exports share a native save chooser. Cancelling
+the chooser sends no export request. A returned path carries the chooser's
+replacement confirmation to Python, which owns export publication and
+replacement rules. Each view keeps its export command and error handling.
 
 Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
 select ribbon context while preserving the active editor. Active project views

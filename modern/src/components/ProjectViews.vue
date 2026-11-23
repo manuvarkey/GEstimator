@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import PersistentDialog from "./PersistentDialog.vue";
-import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
@@ -28,6 +27,7 @@ import { useMeasurementRecords } from "../useMeasurementRecords";
 import { useMeasurementProperties } from "../useMeasurementProperties";
 import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
+import { exportWithWorkbookChooser } from "../workbookExport";
 import { useLiveSearch } from "../liveSearch";
 import { formatMoney } from "../numberFormatting";
 import { quantityRoundingOptions } from "../quantityRounding";
@@ -760,21 +760,18 @@ async function importDone(result: { added: number; updated: number; skipped: num
     8000,
   );
 }
-async function exportWorkbook() {
-  try {
-    const path = await save({
-      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-      defaultPath: "estimate.xlsx",
-    });
-    if (typeof path === "string")
-      await command("project.export_xlsx", {
-        path,
-        replace_selected: true,
+function exportWorkbook() {
+  return exportWithWorkbookChooser(
+    "estimate.xlsx",
+    (destination) =>
+      command("project.export_xlsx", {
+        ...destination,
         break_lines: programSettings.value?.export_break_items ?? true,
-      });
-  } catch (reason) {
-    error.value = String(reason);
-  }
+      }),
+    (message) => {
+      error.value = message;
+    },
+  );
 }
 watch(
   () => props.view,

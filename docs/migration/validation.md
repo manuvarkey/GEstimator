@@ -1238,3 +1238,25 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - The full browser suite passed 91 tests and skipped the opt-in performance
   test. It used installed Chrome and the same temporary Vite source copy and
   alternate port as the deletion confirmation checks.
+
+## 2026-11-23 — Shared workbook export chooser
+
+- After `205cbda`, moved the native save chooser and its replacement flag to
+  `workbookExport.ts` for project and analysis exports. The project still uses
+  its description wrapping preference and shared view command. Analysis keeps
+  its draft export and workspace status handling. Python still publishes
+  the workbooks and applies the portal replacement rules.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`, documentation
+  checks across 36 Markdown files and `git diff --check` passed. The Python suite
+  ran 224 tests with 222 passing and two skipped. All five focused portal tests
+  passed, including preservation of the original workbook on export failure.
+  Strict frontend type checking and production build passed. Vite retained
+  the large-chunk warning (1.26 MB, 326 KB gzip).
+- Three focused browser tests passed. A temporary test verified the project
+  ribbon and analysis menu paths, native chooser filenames and filters,
+  cancellation without an export request, and the replacement flag and workbook
+  output for both commands. Existing tests verified project description
+  wrapping and workbook export from the ribbon.
+- The full browser suite passed 91 tests and skipped the opt-in performance
+  test. It used installed Chrome on the alternate port in the temporary Vite
+  source copy. The installed Flatpak chooser review remains pending.

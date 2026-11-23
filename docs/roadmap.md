@@ -73,8 +73,9 @@ hosted-run status was checked during documentation cleanup.
   separate composables. Typed measurement responses and a small column adapter
   preserve backend authority, the shared command boundary and document memory.
   Schedule and resource editing dialogs, item and category forms, and deletion
-  confirmation have dedicated components. Workbook export coordination and
-  dynamic table DTOs remain in the audit.
+  confirmation have dedicated components. Project and analysis exports share
+  the workbook chooser. Import entry points and dynamic table DTOs remain
+  in the audit.
 - The manual and README use modern screenshots. The earlier GTK-screenshot and
   DSR 2023 build checklist items are completed repository work, not open tasks.
 - Native desktop checks reported by the user on 2026-11-20 are historical
