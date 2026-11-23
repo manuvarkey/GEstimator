@@ -10,6 +10,7 @@ import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import MappedImport from "./MappedImport.vue";
 import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
+import ScheduleEditingDialogs from "./ScheduleEditingDialogs.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
@@ -27,6 +28,7 @@ import { afterDialogsClose } from "../uiActions";
 import { programSettings } from "../programSettings";
 import { useLiveSearch } from "../liveSearch";
 import { formatMoney } from "../numberFormatting";
+import { quantityRoundingOptions } from "../quantityRounding";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
 import { notify } from "../statusNotice";
@@ -124,6 +126,7 @@ const templates = ref<MeasurementTemplate[]>([]);
 const templateInfo = computed(() => templates.value.find((template) => template.code === form.value.template));
 const mainTable = ref<InstanceType<typeof DataTable>>();
 const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>();
+const scheduleEditingDialogs = ref<InstanceType<typeof ScheduleEditingDialogs>>();
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
 const formOpen = ref(false);
@@ -131,29 +134,6 @@ const formMode = ref("add");
 const form = ref<Record<string, string>>({});
 const categoryOpen = ref(false);
 const categoryName = ref("");
-const colourOpen = ref(false);
-const renumberOpen = ref(false);
-const rowColour = ref("#ffe082");
-const rowColours = [
-  "#ffffff",
-  "#eeeeee",
-  "#ffe082",
-  "#ffcc80",
-  "#ffab91",
-  "#f8bbd0",
-  "#e1bee7",
-  "#c5cae9",
-  "#bbdefb",
-  "#b2dfdb",
-  "#c8e6c9",
-  "#dcedc8",
-  "#795548",
-  "#455a64",
-  "#263238",
-  "#000000",
-];
-const scheduleQuantityOpen = ref(false);
-const scheduleRounding = ref("Round to 0");
 const deleteOpen = ref(false);
 const deletion = ref<{
   ids: string[];
@@ -168,20 +148,6 @@ const recordImportOpen = ref(false);
 const multiAnalysisImportOpen = ref(false);
 
 const quantityRounding = ref("Round to .000");
-const roundingOptions = [
-  "Round within 1%",
-  "Round within 5%",
-  "Round within 10%",
-  "Round to 10000",
-  "Round to 1000",
-  "Round to 100",
-  "Round to 10",
-  "Round to 0",
-  "Round to .0",
-  "Round to .00",
-  "Round to .000",
-  "No rounding",
-];
 const importFields = computed(() =>
   props.view === "resources"
     ? ["code", "description", "unit", "rate", "vat", "discount", "reference", "category"]
@@ -671,26 +637,6 @@ async function goToPage(index: number) {
   await mainTable.value?.scrollToTop();
   return load();
 }
-function showRowColour() {
-  rowColour.value = /^#[0-9a-f]{6}$/i.test(one.value?.colour ?? "") ? one.value?.colour.toLowerCase() : "#ffe082";
-  error.value = "";
-  colourOpen.value = true;
-}
-async function applyRowColour(colour: string | null) {
-  if (await command("colour", { ids: selectedScheduleIds.value, colour })) colourOpen.value = false;
-}
-async function renumberSchedule() {
-  if (await command("renumber")) renumberOpen.value = false;
-}
-async function updateSelectedQuantities() {
-  if (
-    await command("update_quantities", {
-      ids: selectedScheduleIds.value,
-      rounding: scheduleRounding.value,
-    })
-  )
-    scheduleQuantityOpen.value = false;
-}
 function showPriceUpdate() {
   showDatabase("rates");
 }
@@ -875,7 +821,7 @@ function keyboard(event: KeyboardEvent) {
     if (key === "m" && props.view === "schedule" && selectedScheduleIds.value.length) {
       event.preventDefault();
       event.stopPropagation();
-      showRowColour();
+      scheduleEditingDialogs.value?.showColour();
       return;
     }
   }
@@ -1299,10 +1245,7 @@ watch(
                     aria-label="Renumber schedule…"
                     title="Choose numbering options for the schedule hierarchy. Item links are preserved and the operation can be undone."
                     :disabled="busy || !state?.total"
-                    @click="
-                      error = '';
-                      renumberOpen = true;
-                    "
+                    @click="scheduleEditingDialogs?.showRenumber()"
                   >
                     <AppIcon name="calculate" /><span class="ribbon-label">Renumber schedule…</span>
                   </button>
@@ -1311,7 +1254,7 @@ watch(
                     aria-label="Row colour…"
                     title="Apply or clear a saved background colour for selected schedule items. Categories and unselected descendants are excluded."
                     :disabled="busy || !selectedScheduleIds.length"
-                    @click="showRowColour"
+                    @click="scheduleEditingDialogs?.showColour()"
                   >
                     <AppIcon name="colour" /><span class="ribbon-label">Row colour…</span>
                   </button>
@@ -1329,10 +1272,7 @@ watch(
                     aria-label="Quantities from measurements…"
                     title="Choose a rounding rule and update only the selected schedule items from their linked measurement totals."
                     :disabled="busy || !selectedScheduleIds.length"
-                    @click="
-                      error = '';
-                      scheduleQuantityOpen = true;
-                    "
+                    @click="scheduleEditingDialogs?.showQuantities()"
                   >
                     <AppIcon name="ruler" /><span class="ribbon-label">Measured quantities</span>
                   </button>
@@ -1431,7 +1371,7 @@ watch(
               <div v-if="isMeasurement" class="ribbon-group">
                 <div class="ribbon-actions ribbon-measure-actions">
                   <select v-model="quantityRounding" aria-label="Quantity rounding">
-                    <option v-for="option in roundingOptions" :key="option">
+                    <option v-for="option in quantityRoundingOptions" :key="option">
                       {{ option }}
                     </option>
                   </select>
@@ -2090,54 +2030,15 @@ watch(
       :selected-code="usageCode"
       @analysis="emit('analysis', $event)"
     />
-    <Dialog v-model:visible="renumberOpen" modal header="Renumber schedule" class="workspace-dialog">
-      <p class="dialog-intro">
-        Assign item codes in category and hierarchy order throughout the project. Sub-analysis codes are kept.
-      </p>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div class="dialog-footer">
-        <button class="button secondary" :disabled="busy" @click="renumberOpen = false">Cancel</button>
-        <button class="button primary" :disabled="busy" @click="renumberSchedule">Renumber</button>
-      </div>
-    </Dialog>
-    <Dialog v-model:visible="colourOpen" modal header="Schedule row colour" class="workspace-dialog">
-      <label class="field">
-        Row colour
-        <div class="colour-palette" role="group" aria-label="Row colour palette">
-          <button
-            v-for="colour in rowColours"
-            :key="colour"
-            type="button"
-            :aria-label="'Colour ' + colour"
-            :aria-pressed="rowColour === colour"
-            :style="{ backgroundColor: colour }"
-            @click="rowColour = colour"
-          />
-        </div>
-      </label>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div class="dialog-footer">
-        <button class="button secondary" :disabled="busy" @click="applyRowColour(null)">Clear colour</button>
-        <button class="button primary" :disabled="busy" @click="applyRowColour(rowColour)">Apply colour</button>
-      </div>
-    </Dialog>
-    <Dialog
-      v-model:visible="scheduleQuantityOpen"
-      modal
-      header="Update selected schedule quantities"
-      class="workspace-dialog"
-    >
-      <p class="dialog-intro">Use linked measurement totals for the selected schedule items.</p>
-      <label class="field">
-        Quantity rounding
-        <select v-model="scheduleRounding" :disabled="busy">
-          <option v-for="option in roundingOptions" :key="option">{{ option }}</option>
-        </select>
-      </label>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div class="dialog-footer">
-        <button class="button primary" :disabled="busy" @click="updateSelectedQuantities">Update quantities</button>
-      </div>
-    </Dialog>
+    <ScheduleEditingDialogs
+      v-if="view === 'schedule'"
+      ref="scheduleEditingDialogs"
+      :selected-ids="selectedScheduleIds"
+      :selected-colour="one?.colour"
+      :busy="busy"
+      :error="error"
+      :command="command"
+      @clear-error="error = ''"
+    />
   </section>
 </template>

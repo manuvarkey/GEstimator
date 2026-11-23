@@ -1164,3 +1164,31 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   copy of the test file with the two URLs pointed at the test server.
   Resource move and undo, prefix exclusions and database switches also passed
   on a focused rerun.
+
+## 2026-11-23 — Schedule editing dialogs
+
+- After `a8d4a1b`, moved schedule row colour, selected quantity updates and
+  renumbering to `ScheduleEditingDialogs.vue`. The view still owns selection,
+  revision, command errors, grid refresh and undo. The same rounding choices
+  serve the quantity dialog and the Measurements ribbon.
+  `ProjectViews.vue` decreased from 2,143 to 2,044 lines.
+- Compared the three normalized Vue dialog templates against the previous
+  markup. The labels, bindings and actions matched after the rounding option
+  binding was renamed.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`, documentation
+  checks across 36 Markdown files and `git diff --check` passed.
+  The Python suite ran 224 tests with 222 passing and two skipped.
+  `npm run build` passed strict type checking and the production build.
+  Vite retained the large-chunk warning (1.26 MB, 326 KB gzip).
+- The active development server held `esbuild.exe` open and blocked
+  `npm ci` in the checkout. The lockfile install succeeded in a temporary
+  directory, and the missing local dependencies were restored from it. The
+  initial focused browser run on the existing server timed out at startup.
+  After rebuilding its Vite dependency cache, three focused browser tests
+  passed, covering the colour keyboard shortcut, colour apply/clear and
+  undo/redo, renumbering and undo, and selected quantities with rounding.
+- The full browser suite passed 91 tests and skipped the opt-in performance
+  test. It used installed Chrome and a standalone Vite server in a temporary
+  source copy. The Vite and Playwright settings and the two clipboard context URLs
+  in that copy used the same alternate port. Installed WebView behavior
+  was outside this verification.

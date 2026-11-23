@@ -25,6 +25,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
+| Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
 | Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
@@ -128,6 +129,13 @@ and the database prefixes to exclude from renumbering. It loads prefixes
 through the project view's busy and error handling. Both edits use the view's
 shared command, which supplies the current revision and selection and refreshes
 the table and undo controls after a successful edit.
+
+`ScheduleEditingDialogs` stages the row colour, the quantity rounding choice
+and the renumber confirmation. The ribbon and the row colour keyboard shortcut
+open the same dialogs. The view supplies the selected schedule IDs, current
+revision and shared busy/error handling. After a successful command the view
+refreshes the grid and history, and the dialog closes. The quantity dialog and
+the Measurements ribbon share the [rounding choices](../../modern/src/quantityRounding.ts).
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,
