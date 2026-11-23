@@ -1260,3 +1260,28 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - The full browser suite passed 91 tests and skipped the opt-in performance
   test. It used installed Chrome on the alternate port in the temporary Vite
   source copy. The installed Flatpak chooser review remains pending.
+
+## 2026-11-23 — Project workbook import dialogs
+
+- After `c01f046`, moved the mapped schedule/resource import and the range
+  imports for multiple analyses and measurement records to
+  `ProjectImportDialogs.vue`. The view keeps ribbon routing, revision and
+  selection state, the shared command and the mapped-import refresh. Import
+  counts are still shown after refresh, and Python retains preview and write
+  ownership. `ProjectViews.vue` decreased from 1,820 to 1,790 lines.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`, documentation
+  checks across 36 Markdown files and `git diff --check` passed. The Python
+  suite ran 224 tests with 222 passing and two skipped. Strict frontend type
+  checking and production build passed. Vite retained the large-chunk warning
+  (1.26 MB, 326 KB gzip).
+- The three focused browser tests passed for mapped schedule import, multiple
+  analysis import and measurement record import. A temporary resource-import
+  scenario also passed, covering cancel and reopen, mapped preview, grid refresh,
+  the status message and Undo.
+- The full browser suite passed 91 tests and skipped the opt-in performance
+  test. It used installed Chrome and a temporary source copy with a clean
+  `npm ci` install. Vite, Playwright and the two clipboard context URLs used an
+  alternate port because the checkout's default port was occupied. The first
+  run stopped because the temporary copy lacked `LICENSE`, which is imported
+  by About. The complete rerun included that file. Installed native chooser
+  behavior remains outside browser verification.

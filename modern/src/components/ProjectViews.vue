@@ -5,8 +5,7 @@ import PersistentDialog from "./PersistentDialog.vue";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
-import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
-import MappedImport from "./MappedImport.vue";
+import ProjectImportDialogs from "./ProjectImportDialogs.vue";
 import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
 import ScheduleEditingDialogs from "./ScheduleEditingDialogs.vue";
 import ProjectDeletionDialog from "./ProjectDeletionDialog.vue";
@@ -130,14 +129,12 @@ const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>(
 const scheduleEditingDialogs = ref<InstanceType<typeof ScheduleEditingDialogs>>();
 const projectDeletionDialog = ref<InstanceType<typeof ProjectDeletionDialog>>();
 const projectItemDialogs = ref<InstanceType<typeof ProjectItemDialogs>>();
+const projectImportDialogs = ref<InstanceType<typeof ProjectImportDialogs>>();
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
-const importOpen = ref(false);
-const recordImportOpen = ref(false);
-const multiAnalysisImportOpen = ref(false);
 
 const quantityRounding = ref("Round to .000");
-const importFields = computed(() =>
+const editableFields = computed(() =>
   props.view === "resources"
     ? ["code", "description", "unit", "rate", "vat", "discount", "reference", "category"]
     : ["code", "description", "unit", "rate", "qty", "remarks", "category", "parent"],
@@ -750,15 +747,9 @@ function keyboard(event: KeyboardEvent) {
     else if (one.value && one.value.rowtype !== "Category") showForm("duplicate");
   } else if (isMeasurement.value || one.value) void command("move", { delta });
 }
-async function importDone(result: { added: number; updated: number; skipped: number; warning_count?: number }) {
-  await run(async () => {
-    await refresh();
-  });
+async function refreshAfterMappedImport() {
+  await run(refresh);
   emit("changed");
-  notify(
-    `Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped${result.warning_count ? `; ${result.warning_count} non-numeric values imported as 0` : ""}.`,
-    8000,
-  );
 }
 function exportWorkbook() {
   return exportWithWorkbookChooser(
@@ -912,10 +903,7 @@ watch(
                   class="ribbon-action"
                   aria-label="Import records…"
                   :disabled="busy || detailBusy"
-                  @click="
-                    error = '';
-                    recordImportOpen = true;
-                  "
+                  @click="projectImportDialogs?.show('records')"
                 >
                   <AppIcon name="import" /><span class="ribbon-label">Import records</span>
                 </button>
@@ -1108,7 +1096,7 @@ watch(
                     class="ribbon-action"
                     aria-label="Import multiple analyses"
                     :disabled="busy || !!source"
-                    @click="multiAnalysisImportOpen = true"
+                    @click="projectImportDialogs?.show('analyses')"
                   >
                     <AppIcon name="import" /><span class="ribbon-label">Import analyses</span>
                   </button>
@@ -1289,7 +1277,7 @@ watch(
                     aria-label="Import workbook"
                     title="Preview a schedule or resource worksheet, map columns and choose how duplicate codes are handled before importing."
                     :disabled="busy"
-                    @click="importOpen = true"
+                    @click="projectImportDialogs?.show('mapped')"
                   >
                     <AppIcon name="import" /><span class="ribbon-label">Import workbook</span>
                   </button>
@@ -1755,7 +1743,7 @@ watch(
       :categories="state?.categories"
       :measurement-categories="isMeasurement ? mainRows : emptyRows"
       :templates="templates"
-      :editable-fields="importFields"
+      :editable-fields="editableFields"
       :selected-item="one"
       :busy="busy"
       :error="error"
@@ -1770,35 +1758,17 @@ watch(
       :run="run"
       :command="command"
     />
-    <MappedImport
-      v-if="importOpen"
-      v-model="importOpen"
-      :kind="view === 'resources' ? 'resources' : 'schedule'"
-      :fields="importFields"
+    <ProjectImportDialogs
+      ref="projectImportDialogs"
+      :view="view"
+      :fields="editableFields"
       :revision="state?.revision"
-      @imported="importDone"
-    />
-    <SpreadsheetRangeImport
-      v-if="multiAnalysisImportOpen"
-      v-model="multiAnalysisImportOpen"
-      multiple
-      :apply="(params) => command('project.import_analysis_apply', params)"
-      :error="error"
-    />
-    <SpreadsheetRangeImport
-      v-if="recordImportOpen"
-      v-model="recordImportOpen"
-      measurement
       :measurement-id="activeMeasurement"
-      :apply="
-        (params) =>
-          command('record_import', {
-            ...params,
-            id: activeMeasurement,
-            record_id: selectedRecord?.id,
-          })
-      "
+      :record-id="selectedRecord?.id"
       :error="error"
+      :command="command"
+      :refresh-after-mapped-import="refreshAfterMappedImport"
+      @clear-error="error = ''"
     />
     <ResourceUsage
       v-if="view !== 'measurement'"

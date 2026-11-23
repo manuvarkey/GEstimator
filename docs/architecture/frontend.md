@@ -29,6 +29,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
 | Item and category forms | [`ProjectItemDialogs.vue`](../../modern/src/components/ProjectItemDialogs.vue) |
+| Schedule/resource workbook, multiple analysis and measurement record import dialogs | [`ProjectImportDialogs.vue`](../../modern/src/components/ProjectImportDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
 | Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
@@ -156,6 +157,13 @@ creation. It uses Python's selection-aware defaults for schedule and resource
 insertion. The view supplies the selection, category options and measurement
 templates, routes ribbon and keyboard actions, and runs the shared commands
 that handle errors, grid refresh and undo.
+
+`ProjectImportDialogs` opens the mapped schedule/resource workbook dialog and
+the range dialogs for multiple analyses and measurement records. The view
+supplies the current revision, editable fields and record selection. Mapped
+imports apply from their preview dialog, then refresh the view before showing
+the import counts. Range imports use the view's shared command and error
+handling. Python owns the preview and write rules for both paths.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,
