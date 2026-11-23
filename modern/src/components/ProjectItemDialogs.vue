@@ -4,14 +4,22 @@ import { computed, ref } from "vue";
 import Dialog from "primevue/dialog";
 import ThemedAutocomplete from "./ThemedAutocomplete.vue";
 import { request } from "../backend";
-import type { GridRow, MeasurementTemplate, ProjectItemMode, View, ViewCommand } from "../projectViewTypes";
+import type {
+  GridRow,
+  MeasurementGridCategory,
+  MeasurementTemplate,
+  ProjectItemField,
+  ProjectItemMode,
+  View,
+  ViewCommand,
+} from "../projectViewTypes";
 
 const props = defineProps<{
   view: View;
   categories?: string[];
-  measurementCategories: GridRow[];
+  measurementCategories: MeasurementGridCategory[];
   templates: MeasurementTemplate[];
-  editableFields: readonly string[];
+  editableFields: readonly ProjectItemField[];
   selectedItem?: GridRow;
   busy: boolean;
   error: string;
@@ -52,9 +60,8 @@ async function showItem(mode: ProjectItemMode, item: GridRow | undefined, ids: s
     form.value.category =
       item?.rowtype === "Category"
         ? item.description
-        : props.measurementCategories.find((category) =>
-            category._children?.some((row: GridRow) => row.id === item?.id),
-          )?.description || "";
+        : props.measurementCategories.find((category) => category._children.some((row) => row.id === item?.id))
+            ?.description || "";
   } else if (mode === "add") {
     const ok = await props.run(async () => {
       const defaults = await request<{ code: string; category: string; parent: string }>(
@@ -73,7 +80,7 @@ async function submit() {
     const item = props.selectedItem;
     if (!item) return;
     const edits = Object.entries(form.value)
-      .filter(([field, value]) => props.editableFields.includes(field) && value !== String(item[field] ?? ""))
+      .filter(([field, value]) => isEditableField(field) && value !== String(item[field] ?? ""))
       .map(([field, value]) => ({ id: item.id, field, value }));
     if (!edits.length || (await props.command("edit_many", { edits }))) formOpen.value = false;
     return;
@@ -90,6 +97,10 @@ async function submit() {
       }
     : { data: form.value };
   if (await props.command(operation, params)) formOpen.value = false;
+}
+
+function isEditableField(field: string): field is ProjectItemField {
+  return props.editableFields.some((editableField) => editableField === field);
 }
 
 function showCategory() {

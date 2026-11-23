@@ -13,9 +13,18 @@ import ProjectItemDialogs from "./ProjectItemDialogs.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
+import type { DataTableHandle, TableRow } from "../dataTableTypes";
+import { flattenGridRows, groupMeasurementRows, highlightScheduleRates } from "../projectGridRows";
+import { resourceItemFields, scheduleItemFields } from "../projectViewTypes";
 import type {
   GridRow,
   GridState,
+  MeasurementDetailState,
+  MeasurementListState,
+  ProjectItemField,
+  ProjectTableDelta,
+  ProjectTablePage,
+  RateDiscrepancies,
   View,
   ViewMemory,
   MeasurementTemplate,
@@ -52,15 +61,15 @@ const emit = defineEmits<{
   discardRecords: [];
 }>();
 const state = ref<GridState>();
-const discrepancy = ref<any>();
+const discrepancy = ref<RateDiscrepancies>();
 async function showDiscrepancies() {
   await run(async () => {
-    const result = await request<any>("schedule.editor.discrepancies", {});
+    const result = await request<RateDiscrepancies>("schedule.editor.discrepancies", {});
     if (state.value?.revision === result.revision && !source.value) discrepancy.value = result;
   });
 }
 
-const emptyRows: GridRow[] = [];
+const emptyRows: [] = [];
 watch(
   () => [state.value?.undo, state.value?.redo, state.value?.measurement_draft, props.entryId, props.active],
   () =>
@@ -124,7 +133,7 @@ const usageCode = ref<string>();
 const page = ref(remembered?.page ?? 0);
 const selected = ref<GridRow[]>([]);
 const templates = ref<MeasurementTemplate[]>([]);
-const mainTable = ref<InstanceType<typeof DataTable>>();
+const mainTable = ref<DataTableHandle<GridRow>>();
 const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>();
 const scheduleEditingDialogs = ref<InstanceType<typeof ScheduleEditingDialogs>>();
 const projectDeletionDialog = ref<InstanceType<typeof ProjectDeletionDialog>>();
@@ -134,12 +143,11 @@ const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
 
 const quantityRounding = ref("Round to .000");
-const editableFields = computed(() =>
-  props.view === "resources"
-    ? ["code", "description", "unit", "rate", "vat", "discount", "reference", "category"]
-    : ["code", "description", "unit", "rate", "qty", "remarks", "category", "parent"],
-);
+const editableFields = computed<ProjectItemField[]>(() => [
+  ...(props.view === "resources" ? resourceItemFields : scheduleItemFields),
+]);
 const one = computed(() => (selected.value.length === 1 ? selected.value[0] : undefined));
+const selectedSchedule = computed(() => (one.value?.rowtype === "Schedule" ? one.value : undefined));
 const selectedScheduleIds = computed(() =>
   selected.value.filter((row) => row.rowtype === "Schedule").map((row) => row.id),
 );
@@ -152,37 +160,18 @@ const title = computed(
     })[props.view],
 );
 const isMeasurement = computed(() => props.view === "measurement");
-const mainRows = computed(() => {
-  if (!isMeasurement.value) {
-    const marks = new Map((discrepancy.value?.rows || []).map((row: any) => [row.id, row.colour]));
-    const decorate = (row: GridRow): GridRow => ({
-      ...row,
-      ...(discrepancy.value && props.view === "schedule" && marks.has(row.id) ? { colour: marks.get(row.id) } : {}),
-      ...(row._children ? { _children: row._children.map(decorate) } : {}),
-    });
-    return discrepancy.value ? (state.value?.rows || []).map(decorate) : state.value?.rows || emptyRows;
-  }
-  const categories: GridRow[] = [];
-  let current: GridRow | undefined;
-  for (const row of state.value?.rows || []) {
-    if (row.type === "Heading") {
-      current = { ...row, rowtype: "Category", type: "", _children: [] };
-      categories.push(current);
-    } else {
-      if (!current) {
-        current = {
-          id: "measurement:uncategorised",
-          rowtype: "Category",
-          type: "",
-          description: "Uncategorised",
-          _children: [],
-        };
-        categories.push(current);
-      }
-      current._children.push(row);
-    }
-  }
-  return categories;
+const measurementCategories = computed(() =>
+  isMeasurement.value ? groupMeasurementRows(state.value?.rows.filter((row) => !row.rowtype) ?? emptyRows) : emptyRows,
+);
+const mainRows = computed<GridRow[]>(() => {
+  if (isMeasurement.value) return measurementCategories.value;
+  const rows = state.value?.rows ?? emptyRows;
+  return discrepancy.value && props.view === "schedule"
+    ? highlightScheduleRates(
+        rows.filter((row) => !!row.rowtype),
+        discrepancy.value,
+      )
+    : rows;
 });
 // Measurement owners reuse this view's single command and busy/error boundary.
 const {
@@ -254,7 +243,8 @@ async function focusTable() {
 }
 
 function editable(cell: CellComponent) {
-  return cell.getData().rowtype !== "Category";
+  const row: Pick<TableRow, "rowtype"> = cell.getData();
+  return row.rowtype !== "Category";
 }
 const columns = computed<ColumnDefinition[]>(() => {
   if (isMeasurement.value)
@@ -355,24 +345,31 @@ async function refresh(revealId?: string) {
   if (!isMeasurement.value) libraries.value = await request("library.list");
   const detailOnly = isMeasurement.value && !!props.entryId && !!state.value;
   searchedQuery = query.value;
-  const next = await request<GridState>(
-    isMeasurement.value ? (detailOnly ? "measurement.detail" : "measurement.state") : props.view + ".editor.state",
-    {
-      query: query.value,
-      categories: categoryFilters.value,
-      source: source.value,
-      offset: page.value * 100,
-      id: props.entryId ? activeMeasurement.value : undefined,
-      record_offset: recordPage.value * 100,
-      reveal_id: revealId,
-    },
-  );
-  state.value = detailOnly ? { ...state.value!, ...next } : next;
+  const params = {
+    query: query.value,
+    categories: categoryFilters.value,
+    source: source.value,
+    offset: page.value * 100,
+    id: props.entryId ? activeMeasurement.value : undefined,
+    record_offset: recordPage.value * 100,
+    reveal_id: revealId,
+  };
+  if (detailOnly) {
+    const detail = await request<MeasurementDetailState>("measurement.detail", params);
+    state.value = { ...state.value!, ...detail };
+  } else {
+    state.value = isMeasurement.value
+      ? await request<MeasurementListState>("measurement.state", params)
+      : await request<ProjectTablePage>(props.view + ".editor.state", params);
+  }
   if (props.entryId && state.value.detail && state.value.measurement_draft?.id !== props.entryId) {
     await request("measurement.draft.open", { id: props.entryId, revision: state.value.revision });
     Object.assign(
       state.value,
-      await request("measurement.detail", { id: props.entryId, record_offset: recordPage.value * 100 }),
+      await request<MeasurementDetailState>("measurement.detail", {
+        id: props.entryId,
+        record_offset: recordPage.value * 100,
+      }),
     );
     emit("changed");
   }
@@ -394,7 +391,7 @@ function selectedItemIds() {
     ...new Set(
       selected.value.flatMap((row) =>
         isMeasurement.value && row.rowtype === "Category"
-          ? [row.id, ...(row._children || []).map((item: GridRow) => item.id)]
+          ? [row.id, ...row._children.map((item) => item.id)]
           : [row.id],
       ),
     ),
@@ -489,14 +486,13 @@ function deleteSelection() {
 }
 async function revealCode(code: string) {
   if (isMeasurement.value) return;
-  const rows = (values: GridRow[]): GridRow[] => values.flatMap((row) => [row, ...rows(row._children || [])]);
-  let row = rows(state.value?.rows || []).find((row) => row.code === code);
+  let row = flattenGridRows(state.value?.rows || []).find((row) => row.code === code);
   if (!row) {
     const result = await request<{ id: string }>(props.view + ".editor.locate", { code });
     query.value = "";
     categoryFilters.value = [];
     await refresh(result.id);
-    row = rows(state.value?.rows || []).find((row) => row.id === result.id);
+    row = flattenGridRows(state.value?.rows || []).find((row) => row.id === result.id);
   }
   if (row) selectionIds.value = [row.id];
 }
@@ -504,7 +500,7 @@ async function revealCode(code: string) {
 async function findAcross(text: string, from: string | undefined, direction: 1 | -1) {
   if (isMeasurement.value || busy.value || !props.projectOpen) return false;
   try {
-    const next = await request<GridState & { found_id?: string | null }>(props.view + ".editor.state", {
+    const next = await request<ProjectTablePage>(props.view + ".editor.state", {
       query: searchedQuery,
       categories: categoryFilters.value,
       source: source.value,
@@ -527,10 +523,9 @@ async function refreshChanges() {
     await load();
     return;
   }
-  const flatten = (rows: GridRow[]): GridRow[] => rows.flatMap((row) => [row, ...flatten(row._children || [])]);
-  const current = flatten(state.value.rows);
+  const current = flattenGridRows(state.value.rows);
   const update = async () => {
-    const next = await request<GridState>(props.view + ".editor.state", {
+    const next = await request<ProjectTablePage | ProjectTableDelta>(props.view + ".editor.state", {
       since: state.value!.view_seq,
       visible_ids: current.map((row) => row.id),
       query: query.value,
@@ -538,7 +533,7 @@ async function refreshChanges() {
       offset: page.value * 100,
     });
     if (next.delta) {
-      for (const update of next.updates || []) Object.assign(current.find((row) => row.id === update.id) || {}, update);
+      for (const update of next.updates) Object.assign(current.find((row) => row.id === update.id) || {}, update);
       Object.assign(state.value!, {
         revision: next.revision,
         view_seq: next.view_seq,
@@ -547,7 +542,7 @@ async function refreshChanges() {
         enrichment: next.enrichment,
         grand_total: next.grand_total,
       });
-      await mainTable.value?.patchRows(next.updates || []);
+      await mainTable.value?.patchRows(next.updates);
     } else state.value = next;
     await nextTick();
     await mainTable.value?.redraw();
@@ -638,7 +633,7 @@ function activateRow(row: GridRow) {
     }
     return;
   }
-  if (props.view === "schedule") {
+  if (row.rowtype === "Schedule") {
     if (row.has_children) notify(`Item ${row.code} has subitems; open the analysis of a subitem instead.`);
     else emit("analysis", row.code);
   } else if (props.view === "resources") void showForm("edit");
@@ -1083,12 +1078,12 @@ watch(
                     class="ribbon-action"
                     aria-label="Edit analysis"
                     :title="
-                      one?.has_children
+                      selectedSchedule?.has_children
                         ? 'Items with subitems are priced through their subitems; select a subitem to edit its analysis.'
                         : 'Open the selected schedule item in the Analysis editor to inspect and edit its rate calculation.'
                     "
-                    :disabled="busy || !one || one.rowtype === 'Category' || one.has_children"
-                    @click="one && emit('analysis', one.code)"
+                    :disabled="busy || !selectedSchedule || selectedSchedule.has_children"
+                    @click="selectedSchedule && emit('analysis', selectedSchedule.code)"
                   >
                     <AppIcon name="edit" /><span class="ribbon-label">Edit analysis</span>
                   </button>
@@ -1741,7 +1736,7 @@ watch(
       ref="projectItemDialogs"
       :view="view"
       :categories="state?.categories"
-      :measurement-categories="isMeasurement ? mainRows : emptyRows"
+      :measurement-categories="measurementCategories"
       :templates="templates"
       :editable-fields="editableFields"
       :selected-item="one"
@@ -1780,7 +1775,7 @@ watch(
       v-if="view === 'schedule'"
       ref="scheduleEditingDialogs"
       :selected-ids="selectedScheduleIds"
-      :selected-colour="one?.colour"
+      :selected-colour="selectedSchedule?.colour"
       :busy="busy"
       :error="error"
       :command="command"

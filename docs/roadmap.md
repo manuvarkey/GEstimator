@@ -13,7 +13,7 @@ establish a published store version or successful installation on another machin
 | Area | Next work | Acceptance evidence |
 | --- | --- | --- |
 | Large shell/view/router modules | Follow the audit's bounded priorities for `App.vue`, `ProjectViews.vue`, `project.py` and `service.py` | Preserve drafts, identity, focus and undo. Follow the [Flatpak acceptance checks](code-quality-audit.md#flatpak-behavior-to-preserve) for affected file workflows. |
-| Frontend DTOs and shared CSS | Strengthen IPC/view types and consolidate repeated selectors without changing cascade behavior | Strict type/build checks and relevant dark/light/narrow UI verification |
+| Shared CSS | Consolidate repeated selectors without changing cascade behavior | Relevant dark/light/narrow UI verification |
 | Frontend bundle size | Measure startup and assess lazy loading of optional UI | A measured improvement with preserved startup/interaction behavior; do not silence the warning |
 | Shared engine maintenance | Narrow legacy error handling and extract persistence/export concerns when those areas change | Fixed calculation baselines, real-data/save/export comparisons and documented compatibility decisions |
 | Search enhancements | Embeddings/bulk AI enrichment remain proposals pending measured benefit and review | Compare against existing search evaluation; preserve exact definitions and optional-metadata fallback |
@@ -75,7 +75,7 @@ hosted-run status was checked during documentation cleanup.
   Schedule and resource editing dialogs, item and category forms, and deletion
   confirmation have dedicated components. Project and analysis exports share
   the workbook chooser. Project workbook import dialogs have a dedicated
-  coordinator. Dynamic table DTOs remain in the audit.
+  coordinator. Project table rows and callbacks share explicit contracts.
 - The manual and README use modern screenshots. The earlier GTK-screenshot and
   DSR 2023 build checklist items are completed repository work, not open tasks.
 - Native desktop checks reported by the user on 2026-11-20 are historical

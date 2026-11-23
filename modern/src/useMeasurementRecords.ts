@@ -1,8 +1,16 @@
 import { computed, nextTick, ref, watch, type Ref } from "vue";
-import type DataTable from "./components/DataTable.vue";
+import type { DataTableHandle } from "./dataTableTypes";
 import { request } from "./backend";
 import { measurementRecordColumns } from "./measurementColumns";
-import type { GridRow, GridState, MeasurementRecord, RecordViewMemory, ViewCommand } from "./projectViewTypes";
+import type {
+  GridRow,
+  GridState,
+  MeasurementDetailState,
+  MeasurementListState,
+  MeasurementRecord,
+  RecordViewMemory,
+  ViewCommand,
+} from "./projectViewTypes";
 
 interface RecordsContext {
   state: Ref<GridState | undefined>;
@@ -37,7 +45,7 @@ export function useMeasurementRecords(context: RecordsContext) {
   const detailBusy = ref(false);
   let selectionRequest = 0;
   const activeMeasurement = ref<string | undefined>(context.entryId());
-  const recordTable = ref<InstanceType<typeof DataTable>>();
+  const recordTable = ref<DataTableHandle<MeasurementRecord>>();
   const measurementDescription = ref<HTMLTextAreaElement>();
   const descriptionDraft = ref<string>();
   const fullMeasurementTitle = computed(() =>
@@ -107,10 +115,10 @@ export function useMeasurementRecords(context: RecordsContext) {
   async function finishRecords(operation: "apply" | "discard") {
     return run(async () => {
       await request("measurement.draft." + operation, { revision: state.value?.revision });
-      let next = await request<GridState>("measurement.state", {});
+      let next = await request<MeasurementListState>("measurement.state", {});
       if (operation === "apply" && next.measurement_draft) {
         await request("measurement.draft.close", { revision: next.revision });
-        next = await request<GridState>("measurement.state", {});
+        next = await request<MeasurementListState>("measurement.state", {});
       }
       state.value = next;
     });
@@ -122,14 +130,14 @@ export function useMeasurementRecords(context: RecordsContext) {
     const identity = activeMeasurement.value;
     detailBusy.value = true;
     try {
-      let detail = await request<Partial<GridState>>("measurement.detail", {
+      let detail = await request<MeasurementDetailState>("measurement.detail", {
         id: identity,
         record_offset: recordPage.value * 100,
       });
       if (context.entryId() && detail.detail && detail.measurement_draft?.id !== identity) {
         // Step 2: open the backend-owned draft before presenting editable records.
         await request("measurement.draft.open", { id: identity, revision: detail.revision });
-        detail = await request<Partial<GridState>>("measurement.detail", {
+        detail = await request<MeasurementDetailState>("measurement.detail", {
           id: identity,
           record_offset: recordPage.value * 100,
         });
@@ -140,7 +148,7 @@ export function useMeasurementRecords(context: RecordsContext) {
         token === selectionRequest &&
         identity === activeMeasurement.value &&
         state.value &&
-        (detail.revision ?? 0) >= state.value.revision
+        detail.revision >= state.value.revision
       ) {
         state.value = { ...state.value, ...detail };
         syncMeasurementSummary();

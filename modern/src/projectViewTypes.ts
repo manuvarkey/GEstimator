@@ -1,3 +1,5 @@
+import type { TableView } from "./dataTableTypes";
+
 /** Shared project-view contracts. Numeric measurement inputs remain raw strings;
  * calculated display strings, totals and template metadata come from Python.
  */
@@ -13,12 +15,92 @@ export interface ProjectDatabaseSelection {
   targetIds: string[];
 }
 
-/** Existing main-table row adapter. Its dynamic columns remain audit debt;
- * measurement detail below has a separate, explicit backend response contract.
- */
-export interface GridRow {
+export const scheduleItemFields = [
+  "code",
+  "description",
+  "unit",
+  "rate",
+  "qty",
+  "remarks",
+  "category",
+  "parent",
+] as const;
+export const resourceItemFields = [
+  "code",
+  "description",
+  "unit",
+  "rate",
+  "vat",
+  "discount",
+  "reference",
+  "category",
+] as const;
+export type ProjectItemField = (typeof scheduleItemFields)[number] | (typeof resourceItemFields)[number];
+
+interface ProjectRowBase extends Partial<Record<ProjectItemField, string>> {
   id: string;
-  [key: string]: any;
+  description: string;
+  type?: string;
+}
+
+interface PricedRow extends ProjectRowBase {
+  code: string;
+  unit: string;
+  rate: string;
+  category: string;
+  remarks: string;
+}
+
+export interface ScheduleRow extends PricedRow {
+  rowtype: "Schedule";
+  qty: string;
+  amount: string;
+  parent: string;
+  colour: string | null;
+  has_children: boolean;
+  _children: ProjectTableRow[];
+}
+
+export interface ResourceRow extends PricedRow {
+  rowtype: "Resource";
+  vat: string;
+  discount: string;
+  reference: string;
+  _children?: never;
+}
+
+interface ProjectTableCategory extends ProjectRowBase {
+  rowtype: "Category";
+  code: "";
+  _children: ProjectTableRow[];
+}
+
+export type ProjectTableRow = ProjectTableCategory | ScheduleRow | ResourceRow;
+
+/** Python sends the measurement list flat, with headings identified by type. */
+export interface MeasurementListRow extends ProjectRowBase {
+  rowtype?: never;
+  type: string;
+  totals: string;
+  count: number;
+  _children?: never;
+}
+
+/** The view projects measurement headings onto Tabulator's category tree. */
+export interface MeasurementGridCategory extends ProjectRowBase {
+  rowtype: "Category";
+  type: "";
+  totals?: string;
+  count?: number;
+  _children: MeasurementListRow[];
+}
+
+export type GridRow = ProjectTableRow | MeasurementListRow | MeasurementGridCategory;
+
+export interface RateDiscrepancies {
+  revision: number;
+  counts: Record<"items" | "mismatch" | "small" | "medium" | "large" | "missing", number>;
+  rows: { id: string; code: string; stored: string; calculated: string | null; colour: string | null }[];
 }
 
 export interface MeasurementTemplate {
@@ -64,25 +146,49 @@ export interface MeasurementDetail {
   totals: string[];
 }
 
-export interface GridState {
-  measurement_draft?: { id: string; dirty: boolean; undo: boolean; redo: boolean } | null;
-  view_seq?: number;
-  delta?: boolean;
-  updates?: GridRow[];
-  rows: GridRow[];
-  total?: number;
-  grand_total?: string;
-  offset?: number;
+interface GridHistory {
   undo: boolean;
   redo: boolean;
   revision: number;
-  caption?: string;
-  detail?: MeasurementDetail | null;
-  categories?: string[];
-  enrichment?: { ai_generated: boolean; summary: string } | null;
 }
 
-export type TableView = { ids: string[]; position: { top: number; left: number } };
+interface ProjectTableStatus extends GridHistory {
+  view_seq: number;
+  grand_total?: string;
+  enrichment: { ai_generated: boolean; summary: string } | null;
+}
+
+export interface ProjectTablePage extends ProjectTableStatus {
+  delta?: never;
+  rows: ProjectTableRow[];
+  categories: string[];
+  total: number;
+  offset: number;
+  found_id?: string | null;
+}
+
+/** Incremental updates carry values for existing rows and leave their children in place. */
+export interface ProjectTableDelta extends ProjectTableStatus {
+  delta: true;
+  updates: (Omit<ScheduleRow, "_children"> | ResourceRow)[];
+}
+
+export interface MeasurementDetailState extends GridHistory {
+  caption: string;
+  detail: MeasurementDetail | null;
+  measurement_draft: { id: string; dirty: boolean; undo: boolean; redo: boolean } | null;
+}
+
+export interface MeasurementListState extends MeasurementDetailState {
+  rows: MeasurementListRow[];
+}
+
+/** Local state holds the current page and merges detail or delta status into it. */
+export type GridState = GridHistory &
+  Partial<Omit<ProjectTablePage, "rows" | "delta"> & MeasurementDetailState> & {
+    rows: (ProjectTableRow | MeasurementListRow)[];
+  };
+
 export type RecordViewMemory = { entryId: string; page: number; table: TableView };
 export type ViewMemory = {
   query: string;

@@ -32,10 +32,11 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule/resource workbook, multiple analysis and measurement record import dialogs | [`ProjectImportDialogs.vue`](../../modern/src/components/ProjectImportDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
-| Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
+| Project table pages and deltas, measurement responses and tab memory | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
+| Measurement category projection, schedule rate highlighting and row traversal | [`projectGridRows.ts`](../../modern/src/projectGridRows.ts) |
 | Measurement column presentation and Tabulator type compatibility | [`measurementColumns.ts`](../../modern/src/measurementColumns.ts) |
 | JSON request transport and shared analysis types | [`backend.ts`](../../modern/src/backend.ts) |
-| Project and analysis grid lifecycle | [`DataTable.vue`](../../modern/src/components/DataTable.vue), [`AnalysisTable.vue`](../../modern/src/components/AnalysisTable.vue) |
+| Project and analysis grid lifecycle | [`DataTable.vue`](../../modern/src/components/DataTable.vue), [`dataTableTypes.ts`](../../modern/src/dataTableTypes.ts), [`AnalysisTable.vue`](../../modern/src/components/AnalysisTable.vue) |
 | Tab memory, row clipboard, cell navigation/editing and selection | [`tabMemory.ts`](../../modern/src/tabMemory.ts), [`rowClipboard.ts`](../../modern/src/rowClipboard.ts), [`cellNavigation.ts`](../../modern/src/cellNavigation.ts), [`tableTextEditor.ts`](../../modern/src/tableTextEditor.ts), [`tableSelection.ts`](../../modern/src/tableSelection.ts) |
 | Display formatting and appearance | [`numberFormatting.ts`](../../modern/src/numberFormatting.ts), [`appearance.ts`](../../modern/src/appearance.ts) |
 | Program settings and shared helpers | [`programSettings.ts`](../../modern/src/programSettings.ts), [`uiActions.ts`](../../modern/src/uiActions.ts), [`statusNotice.ts`](../../modern/src/statusNotice.ts) |
@@ -195,13 +196,16 @@ a separate form snapshot with the original revision. Its picker supports both
 staged properties and the active record editor's link action. Save uses the
 common command; validation, calculations and undo remain in Python.
 
-The measurement detail contract in `projectViewTypes.ts` distinguishes raw record
-strings, calculated display strings, template metadata, links, properties and
-totals. Extend it alongside the backend response. Main-table `GridRow`
-and the generic `DataTable` callbacks still have dynamic typing tracked by the
-audit. `measurementColumns.ts` isolates the existing Tabulator options missing
-from its published types (`editor: false` and DOM header tooltips). Keep the
-compatibility cast there and preserve text-node rendering for author data.
+The contracts in `projectViewTypes.ts` distinguish schedule items, resources,
+categories and flat measurement list rows. Full project table pages carry
+the row tree, while delta responses carry row values that preserve existing
+children. Measurement detail requests update records, links, properties and
+totals independently of the list. `projectGridRows.ts` projects measurement
+headings into display categories and overlays schedule discrepancy colours.
+`DataTable` uses its caller's row type for selection, activation, edits and
+patches. The adapter casts rows returned by Tabulator, which does not publish
+generic row types. `measurementColumns.ts` handles the existing column options
+missing from Tabulator's types and preserves text-node rendering for author data.
 
 ## Preferences, styles and text
 

@@ -1285,3 +1285,29 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   run stopped because the temporary copy lacked `LICENSE`, which is imported
   by About. The complete rerun included that file. Installed native chooser
   behavior remains outside browser verification.
+
+## 2026-11-23 — Typed project grid contracts
+
+- After `fb32288`, typed project table rows, paged responses, incremental
+  updates and rate discrepancies against the Python responses. Measurement
+  list and detail responses have separate types. The view keeps its existing
+  selection, refresh and draft coordination.
+- `DataTable` now carries each caller's row type through its callbacks and
+  patch method. Project views, measurement records and database pickers use
+  the typed bindings. Row grouping, highlight projection and traversal live
+  in `projectGridRows.ts`. The touched Vue files were formatted with the
+  pinned Prettier.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`,
+  `tools/check_docs.py` and `git diff --check` passed. The Python suite ran
+  224 tests with 222 passing and two skipped. The production build passed
+  strict type checking and retained Vite's large-chunk warning
+  (1.26 MB, 326 KB gzip).
+- Six focused browser tests passed for keyboard editing, both database picker
+  workflows, measurement categories, schedule rate discrepancies and type-ahead
+  across pages.
+- The full browser run in installed Chrome used a temporary Vite source copy
+  and alternate port with a clean `npm ci` install. It ended with 90 passed,
+  one skipped opt-in performance test and one failure. The final save-folder
+  scenario reported `write after end` from the test bridge's Python stdin.
+  The same test passed once in isolation and then three times with
+  `--repeat-each 3`, with the application and test source unchanged.
