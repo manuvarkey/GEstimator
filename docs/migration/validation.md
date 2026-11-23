@@ -1398,3 +1398,27 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - The full Linux browser suite passed 91 tests under Node 22.23.5 with
   Playwright's bundled headless Chromium. The opt-in performance test was
   skipped.
+
+## 2026-11-23 — Measurement record ribbon
+
+- After `3879a0ee`, moved the record editor's four ribbon groups into
+  `MeasurementRecordRibbon.vue`. `ProjectViews.vue` decreased from 1,442
+  to 1,351 lines. The groups still render as siblings in the shared host.
+  Compared the group order, button markup and disabled predicates with the
+  original. The view retains command routing, dialog state and keyboard
+  actions.
+- Five focused browser scenarios passed before extraction. The same
+  scenarios passed afterward along with three additional scenarios covering
+  clipboard actions, batch insertion and record movement.
+- A temporary browser scenario verified the four group captions in order,
+  fit at the 700 px workspace minimum, accessible import and insert actions,
+  and copy availability after selecting a record.
+- All 224 Python tests, changed-source formatting, documentation checks and
+  `git diff --check` passed. The production build passed under Node 22.23.5
+  with the existing Vite large-chunk warning (1.26 MB, 327 KB gzip).
+- The full Linux browser suite passed 91 tests under Node 22.23.5 and
+  skipped the opt-in performance test.
+- [Hosted run 45197823245](https://github.com/manuvarkey/GEstimator/actions/runs/45197823245)
+  on `3879a0ee` passed the Windows backend test step that had failed on the
+  previous revision. Documentation and the frontend build passed too.
+  Browser workflows were in progress at the time of this check.

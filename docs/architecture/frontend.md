@@ -34,6 +34,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule/resource workbook, multiple analysis and measurement record import dialogs | [`ProjectImportDialogs.vue`](../../modern/src/components/ProjectImportDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Measurement draft header, description field, totals and page controls | [`MeasurementRecordLayout.vue`](../../modern/src/components/MeasurementRecordLayout.vue) |
+| Measurement record editor ribbon groups | [`MeasurementRecordRibbon.vue`](../../modern/src/components/MeasurementRecordRibbon.vue) |
 | Staged measurement/category properties and schedule-link picker | [`MeasurementPropertiesDialog.vue`](../../modern/src/components/MeasurementPropertiesDialog.vue) |
 | Project table pages and deltas, measurement responses and tab memory | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
 | Measurement category projection, schedule rate highlighting and row traversal | [`projectGridRows.ts`](../../modern/src/projectGridRows.ts) |
@@ -93,6 +94,11 @@ Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
 select ribbon context while preserving the active editor. Active project views
 are retained within a mounted workspace to preserve their state. Keep this
 separate from document switching, which changes backend session and remounts it.
+
+`MeasurementRecordRibbon` renders the record editor's four ribbon groups as
+siblings in the shared ribbon host. `ProjectViews` chooses when to show them,
+supplies selected-record and busy state, and routes actions to the same
+commands and dialogs used by the editor.
 
 ## Requests, stale edits and refresh
 

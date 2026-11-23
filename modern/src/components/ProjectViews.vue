@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import MeasurementRecordLayout from "./MeasurementRecordLayout.vue";
+import MeasurementRecordRibbon from "./MeasurementRecordRibbon.vue";
 import MeasurementPropertiesDialog from "./MeasurementPropertiesDialog.vue";
 import type { ColumnDefinition, CellComponent } from "tabulator-tables";
 import DataTable from "./DataTable.vue";
@@ -663,111 +664,19 @@ watch(
       ><div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <Teleport to="#project-ribbon-tools"
         ><div v-show="active" class="view-ribbon-tools">
-          <template v-if="isMeasurement && entryId">
-            <div class="ribbon-group">
-              <div class="ribbon-actions">
-                <button
-                  class="ribbon-action"
-                  aria-label="Add record"
-                  :disabled="busy || detailBusy"
-                  @click="recordAction('add')"
-                >
-                  <AppIcon name="plus" /><span class="ribbon-label">Add record</span>
-                </button>
-                <button
-                  class="ribbon-action"
-                  aria-label="Add multiple records"
-                  :disabled="busy || detailBusy"
-                  @click="
-                    recordCount = 10;
-                    recordsOpen = true;
-                  "
-                >
-                  <AppIcon name="rows" /><span class="ribbon-label">Add multiple records</span>
-                </button>
-                <button
-                  class="ribbon-action"
-                  aria-label="Duplicate record"
-                  :disabled="busy || !selectedRecord"
-                  @click="recordAction('duplicate')"
-                >
-                  <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate record</span>
-                </button>
-              </div>
-              <small>CREATE</small>
-            </div>
-            <div class="ribbon-group">
-              <div class="ribbon-actions">
-                <button
-                  class="ribbon-action ribbon-icon"
-                  aria-label="Copy record"
-                  :disabled="busy || !selectedRecord"
-                  @click="recordAction('copy')"
-                >
-                  <AppIcon name="copy" /><span class="ribbon-label">Copy record</span>
-                </button>
-                <button
-                  class="ribbon-action ribbon-icon"
-                  aria-label="Paste record"
-                  :disabled="busy"
-                  @click="recordAction('paste')"
-                >
-                  <AppIcon name="paste" /><span class="ribbon-label">Paste record</span>
-                </button>
-                <button
-                  class="ribbon-action ribbon-icon danger"
-                  aria-label="Delete record"
-                  :disabled="busy || !selectedRecord"
-                  @click="recordAction('delete')"
-                >
-                  <AppIcon name="trash" /><span class="ribbon-label">Delete record</span>
-                </button>
-              </div>
-              <small>EDIT</small>
-            </div>
-            <div class="ribbon-group">
-              <div class="ribbon-actions">
-                <button
-                  class="ribbon-action ribbon-icon"
-                  aria-label="Move record up"
-                  :disabled="busy || !selectedRecord"
-                  @click="recordAction('move', -1)"
-                >
-                  <AppIcon name="up" /><span class="ribbon-label">Move up</span>
-                </button>
-                <button
-                  class="ribbon-action ribbon-icon"
-                  aria-label="Move record down"
-                  :disabled="busy || !selectedRecord"
-                  @click="recordAction('move', 1)"
-                >
-                  <AppIcon name="down" /><span class="ribbon-label">Move down</span>
-                </button>
-              </div>
-              <small>ARRANGE</small>
-            </div>
-            <div class="ribbon-group">
-              <div class="ribbon-actions">
-                <button
-                  class="ribbon-action"
-                  aria-label="Import records…"
-                  :disabled="busy || detailBusy"
-                  @click="projectImportDialogs?.show('records')"
-                >
-                  <AppIcon name="import" /><span class="ribbon-label">Import records</span>
-                </button>
-                <button
-                  class="ribbon-action"
-                  aria-label="Properties…"
-                  :disabled="busy || detailBusy"
-                  @click="measurementPropertiesDialog?.showProperties()"
-                >
-                  <AppIcon name="settings" /><span class="ribbon-label">Properties</span>
-                </button>
-              </div>
-              <small>MEASUREMENT</small>
-            </div>
-          </template>
+          <MeasurementRecordRibbon
+            v-if="isMeasurement && entryId"
+            :busy="busy"
+            :detail-busy="detailBusy"
+            :has-selection="!!selectedRecord"
+            @action="recordAction"
+            @insert-multiple="
+              recordCount = 10;
+              recordsOpen = true;
+            "
+            @import-records="projectImportDialogs?.show('records')"
+            @show-properties="measurementPropertiesDialog?.showProperties()"
+          />
           <template v-else>
             <div v-if="!isMeasurement" class="ribbon-group">
               <div class="ribbon-actions">
