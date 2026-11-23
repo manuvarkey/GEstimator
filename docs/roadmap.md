@@ -62,6 +62,10 @@ hosted-run status was checked during documentation cleanup.
   surface and skill resources are implemented. Current contracts are in the
   [architecture](architecture/README.md), [analysis-rule reference](features/analysis-rules.md)
   and [manual](manual/README.md).
+- Workspace navigation/history and MCP refresh have separate composables.
+  Library attachment/import handling has separate backend modules while project
+  transactions, snapshot lifetime and undo remain with the editor. Further
+  shell/router extraction is still tracked in the quality audit.
 - The manual and README use modern screenshots. The earlier GTK-screenshot and
   DSR 2023 build checklist items are completed repository work, not open tasks.
 - Native desktop checks reported by the user on 2026-11-20 are historical

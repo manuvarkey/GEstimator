@@ -16,6 +16,8 @@ and MCP adapters reuse the same service/editor operations.
 | Owner thread, bounded queue and document routing | [`runtime.py`](../../modern/backend/runtime.py) |
 | Project lifecycle, analysis draft, revisions and orchestration | [`service.py`](../../modern/backend/service.py) |
 | Project transactions, compound operations and snapshot undo | [`project.py`](../../modern/backend/project.py) |
+| Read-only library attachment, catalog and notes | [`libraries.py`](../../modern/backend/libraries.py) |
+| Library import policies, staging and dependencies | [`library_import.py`](../../modern/backend/library_import.py) |
 | Measurement list/detail and item operations | [`measurements.py`](../../modern/backend/measurements.py) |
 | Record edits and record identities | [`measurement_records.py`](../../modern/backend/measurement_records.py) |
 | Records draft history and acceptance | [`measurement_draft.py`](../../modern/backend/measurement_draft.py) |
@@ -34,6 +36,12 @@ and MCP adapters reuse the same service/editor operations.
 a named handler with explicit editor/service context, not another unrelated
 branch in a router. Helpers must not create their own commit/history system.
 See the [quality audit](../code-quality-audit.md) for remaining extraction work.
+
+Library attachment/import methods on `ProjectEditor` are compatibility forwards.
+The editor retains attachment handles, selection helpers and transaction/history
+ownership. `library_import` stages the complete batch before placement and final
+rate policy; its dependency helper preserves prefixed, zero-quantity SUB ANALYSIS
+copies even when the corresponding source item is explicitly selected too.
 
 ## Runtime and document sessions
 

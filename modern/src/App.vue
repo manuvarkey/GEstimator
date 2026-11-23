@@ -1,13 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onMounted,
-  onBeforeUnmount,
-  ref,
-  shallowReactive,
-  watch,
-} from "vue";
+import { computed, nextTick, onMounted, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
 import Dialog from "primevue/dialog";
 import { afterDialogsClose, focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
@@ -24,7 +16,17 @@ import AnalysisRulesDialog from "./components/AnalysisRulesDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
 import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
-import { mcpStatus, mcpBusy, mcpError, mcpMessage, initializeMCP, refreshMCP, startMCP, stopMCP, copyMCPConfig } from "./mcp";
+import {
+  mcpStatus,
+  mcpBusy,
+  mcpError,
+  mcpMessage,
+  initializeMCP,
+  refreshMCP,
+  startMCP,
+  stopMCP,
+  copyMCPConfig,
+} from "./mcp";
 import { restoreLibraries, savedLibraries } from "./libraryPreferences";
 import { programSettings, programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
@@ -32,9 +34,20 @@ import RibbonToolbar from "./components/RibbonToolbar.vue";
 import AppIcon from "./components/AppIcon.vue";
 import ProjectLanding from "./components/ProjectLanding.vue";
 import DocumentRail from "./components/DocumentRail.vue";
-import { activeDocument, activeTab as currentDocument, closeConfirmed, documentForPath, documents, pendingPaths, startup, takeDocumentAction, updateDocument, type DocumentAction } from "./documents";
+import {
+  activeDocument,
+  activeTab as currentDocument,
+  closeConfirmed,
+  documentForPath,
+  documents,
+  pendingPaths,
+  startup,
+  takeDocumentAction,
+  type DocumentAction,
+} from "./documents";
 import { useDocumentTabs } from "./useDocumentTabs";
-import { forgetTabState, recallTabState, rememberTabState } from "./tabMemory";
+import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigation";
+import { useWorkspaceMCP } from "./useWorkspaceMCP";
 import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
 import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
@@ -86,7 +99,10 @@ async function applyAnalysisRules(params: Record<string, unknown>) {
     await w.refresh();
     await projectView.value?.reload();
   }, "Updating project analyses…");
-  if (ok) { activeView.value = "schedule"; activeTab.value = "schedule"; }
+  if (ok) {
+    activeView.value = "schedule";
+    activeTab.value = "schedule";
+  }
   return ok;
 }
 const databasePickers = ref({
@@ -94,32 +110,48 @@ const databasePickers = ref({
   resources: { open: false, mode: "add" as "add" | "rates", revision: 0, targetIds: [] as string[] },
 });
 const databaseError = ref("");
-const databaseRatesPicker = ref({ open: false, kind: "resources" as "schedule" | "resources", revision: 0, targetIds: [] as string[] });
-function showDatabase(options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }) {
+const databaseRatesPicker = ref({
+  open: false,
+  kind: "resources" as "schedule" | "resources",
+  revision: 0,
+  targetIds: [] as string[],
+});
+function showDatabase(options: {
+  kind: "schedule" | "resources";
+  mode: "add" | "rates";
+  revision: number;
+  targetIds: string[];
+}) {
   databaseError.value = "";
-  if (options.mode === "rates") { Object.assign(databaseRatesPicker.value, options, { open: true }); return; }
+  if (options.mode === "rates") {
+    Object.assign(databaseRatesPicker.value, options, { open: true });
+    return;
+  }
   Object.assign(databasePickers.value[options.kind], options, { open: true });
 }
 async function applyDatabase(params: Record<string, unknown>) {
-  const ok = await projectView.value?.applyDatabase(params) ?? false;
-  databaseError.value = ok ? "" : projectView.value?.lastError() || "The import could not be applied. Close the picker, refresh the project and try again.";
+  const ok = (await projectView.value?.applyDatabase(params)) ?? false;
+  databaseError.value = ok
+    ? ""
+    : projectView.value?.lastError() ||
+      "The import could not be applied. Close the picker, refresh the project and try again.";
   return ok;
 }
-const unavailableLibraries = computed(() => savedLibraries.value.filter(library => library.error));
+const unavailableLibraries = computed(() => savedLibraries.value.filter((library) => library.error));
 async function librariesChanged() {
   await w.run(async () => {
     await w.refresh();
     await projectView.value?.reload();
   }, "Refreshing libraries…");
 }
-type ProjectView = "schedule" | "resources" | "measurement";
+const projectBusy = ref(false);
+const uiBusy = computed(() => busy.value || projectBusy.value);
+const documentId = activeDocument.value;
 const projectViews = shallowReactive<Partial<Record<ProjectView, InstanceType<typeof ProjectViews>>>>({});
-const visitedViews = ref<ProjectView[]>([]);
-const projectView = computed(() => activeView.value === "analysis" ? undefined : projectViews[activeView.value]);
+const projectView = computed(() => (activeView.value === "analysis" ? undefined : projectViews[activeView.value]));
 
 const libraryManager = ref<InstanceType<typeof LibraryManager>>();
 const mcpSettingsOpen = ref(false);
-let mcpPoll: ReturnType<typeof setInterval> | undefined;
 const projectHistory = ref({ undo: false, redo: false });
 const allViews = [
   { key: "schedule", label: "Schedule" },
@@ -130,106 +162,73 @@ const allViews = [
   { key: "mcp", label: "MCP" },
 ] as const;
 // The MCP tab appears only after the user enables the server in Program Settings.
-const views = computed(() => allViews.filter(view => view.key !== "mcp" || !!programSettings.value?.mcp_enabled));
+const views = computed(() => allViews.filter((view) => view.key !== "mcp" || !!programSettings.value?.mcp_enabled));
 const settingsOpen = ref(false);
-// Start on Schedule: with no project open it shows the landing page.
-// Each project tab remounts this workspace; restore the tab's last editor.
-const activeView = ref<"analysis" | "schedule" | "resources" | "measurement">(
-  currentDocument.value.view,
-);
-type NavigationEntry = { view: typeof activeView.value; tab: (typeof allViews)[number]["key"]; code?: string; measurement?: string };
-type WorkspaceMemory = { tab: NavigationEntry["tab"]; measurementEntry?: string; navigation: NavigationEntry[]; navigationIndex: number; inspector: boolean };
-// View state saved when this tab was switched away (see tabMemory.ts).
-const remembered = recallTabState<WorkspaceMemory>("workspace");
-const activeTab = ref<NavigationEntry["tab"]>(remembered?.tab ?? currentDocument.value.view);
-watch(() => programSettings.value?.mcp_enabled, enabled => { if (!enabled && activeTab.value === "mcp") activeTab.value = activeView.value; });
-const documentId = activeDocument.value;
-watch(activeView, view => updateDocument(documentId, { view }));
-const measurementEntry = ref<string | undefined>(remembered?.measurementEntry);
+// Navigation keeps document-local view state; this shell remains the draft-guard owner.
+const {
+  activeView,
+  activeTab,
+  measurementEntry,
+  inspector,
+  visitedViews,
+  navigation,
+  navigationIndex,
+  travelNavigation,
+  returnToSchedule,
+  switchView,
+  loadAnalysis,
+  changeMeasurementEntry,
+} = useWorkspaceNavigation({
+  documentId,
+  initialView: currentDocument.value.view,
+  state,
+  projectSession,
+  uiBusy,
+  mcpEnabled: () => !!programSettings.value?.mcp_enabled,
+  guard: (action) => navigate(action),
+  load: w.load,
+  focusSchedule: async (code) => {
+    if (code) await projectView.value?.revealCode(code);
+    await projectView.value?.focus();
+  },
+});
 // Project views show the landing page (and no ribbon tools) until a project is open.
 const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
 const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
 let cancelAnalysisFocus: (() => void) | undefined;
-watch(activeView, async view => {
-  cancelAnalysisFocus?.();
-  if (view === "analysis") {
-    await nextTick();
-    cancelAnalysisFocus = afterDialogsClose(async () => { if (activeView.value === "analysis") await analysisTable.value?.focus(); });
-  }
-}, { flush: "post" });
-onBeforeUnmount(() => cancelAnalysisFocus?.());
-watch(activeView, view => { if (view !== "analysis" && !visitedViews.value.includes(view)) visitedViews.value.push(view); }, { immediate: true });
-watch(projectSession, () => { visitedViews.value = activeView.value === "analysis" ? [] : [activeView.value]; });
-function bindProjectView(view: ProjectView, instance: unknown) { projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined; }
-
-watch(activeTab, tab => { if (tab === "mcp") void refreshMCP(); });
-const navigation = ref<NavigationEntry[]>(remembered?.navigation ?? []);
-const navigationIndex = ref(remembered?.navigationIndex ?? -1);
-let restoringNavigation = false;
-watch([activeView, activeTab, measurementEntry, () => activeView.value === "analysis" ? state.value?.code : undefined], () => {
-  if (restoringNavigation) return;
-  const entry: NavigationEntry = { view: activeView.value, tab: activeTab.value, code: activeView.value === "analysis" ? state.value?.code : undefined, measurement: activeView.value === "measurement" ? measurementEntry.value : undefined };
-  if (JSON.stringify(navigation.value[navigationIndex.value]) === JSON.stringify(entry)) return;
-  navigation.value.splice(navigationIndex.value + 1);
-  navigation.value.push(entry);
-  navigationIndex.value = navigation.value.length - 1;
-}, { immediate: true, flush: "post" });
-watch(projectSession, () => { forgetTabState(documentId); navigation.value = [{ view: activeView.value, tab: activeTab.value }]; navigationIndex.value = 0; measurementEntry.value = undefined; });
-async function travelNavigation(delta: number) {
-  const index = navigationIndex.value + delta;
-  const entry = navigation.value[index];
-  if (!entry || uiBusy.value) return;
-  await navigate(async discard => {
-    restoringNavigation = true;
-    try {
-      if (entry.view === "analysis" && entry.code && entry.code !== state.value?.code) {
-        if (!await w.load(entry.code, discard)) return;
-      } else if (discard && state.value?.project) await w.load(state.value.code, true);
-      activeView.value = entry.view; activeTab.value = entry.tab;
-      measurementEntry.value = entry.measurement;
-      navigationIndex.value = index;
+watch(
+  activeView,
+  async (view) => {
+    cancelAnalysisFocus?.();
+    if (view === "analysis") {
       await nextTick();
-    } finally { restoringNavigation = false; }
-  });
-}
-async function returnToSchedule() {
-  const code = state.value?.code;
-  await navigate(async discard => {
-    if (discard && state.value?.project) await w.load(state.value.code, true);
-    activeView.value = "schedule"; activeTab.value = "schedule";
-    await nextTick();
-    if (code) await projectView.value?.revealCode(code);
-    await projectView.value?.focus();
-  });
-}
-
-let observedMCPChange = 0;
-let observedMCPProject = 0;
-async function syncMCPChanges() {
-  if (!mcpStatus.value || (!mcpStatus.value.running && mcpStatus.value.change_seq === observedMCPChange) || uiBusy.value || document.querySelector('.tabulator-editing,textarea.measurement-entry-title,[role="dialog"]')) return;
-  if (!await refreshMCP()) return;
-  if (mcpStatus.value.change_seq === observedMCPChange) return;
-  await w.run(async () => {
-    if (mcpStatus.value!.project_epoch !== observedMCPProject) {
-      projectSession.value++;
-      selected.value = [];
-      scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
-      schedulePage.value = resourcePage.value = 0;
+      cancelAnalysisFocus = afterDialogsClose(async () => {
+        if (activeView.value === "analysis") await analysisTable.value?.focus();
+      });
     }
-    await w.refresh();
-    await projectView.value?.reload();
-    if (state.value?.project_open) {
-      schedule.value = await request("schedule.list", { query: scheduleQuery.value, offset: schedulePage.value * 100 });
-      resources.value = await request("resources.search", { query: resourceQuery.value, offset: resourcePage.value * 100, source: resourceSource.value });
-    }
-    observedMCPChange = mcpStatus.value!.change_seq;
-    observedMCPProject = mcpStatus.value!.project_epoch;
-  }, "Updated by MCP");
+  },
+  { flush: "post" },
+);
+onBeforeUnmount(() => cancelAnalysisFocus?.());
+function bindProjectView(view: ProjectView, instance: unknown) {
+  projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined;
 }
-const projectBusy = ref(false);
-const uiBusy = computed(() => busy.value || projectBusy.value);
+const mcpRefresh = useWorkspaceMCP({
+  workspace: w,
+  uiBusy,
+  activeTab,
+  reloadProjectView: async () => projectView.value?.reload(),
+});
 const { inNewDocument, switchProjectTab, addProjectTab, closeProjectTab, cycleProjectTab, continueWindowClose } =
-  useDocumentTabs({ documentId, state, projectName, recordsDirty, uiBusy, error, navigate: (action, project) => navigate(action, project) });
+  useDocumentTabs({
+    documentId,
+    state,
+    projectName,
+    recordsDirty,
+    uiBusy,
+    error,
+    navigate: (action, project) => navigate(action, project),
+  });
 
 let pendingProject = false;
 const duplicateCode = ref("");
@@ -238,53 +237,67 @@ const importAnalysisOpen = ref(false);
 const exportAnalysisPath = ref("");
 const explorer = ref("schedule");
 const sidebar = ref(true);
-const inspector = ref(remembered?.inspector ?? true);
 const helpOpen = ref(false);
 const manualOpen = ref(false);
 const aboutOpen = ref(false);
 const shortcutGroups = [
-  { title: "Project and search", items: [
-    ["Open project", "Ctrl / ⌘ + O"],
-    ["Save project", "Ctrl / ⌘ + S"],
-    ["Save project copy", "Ctrl / ⌘ + Shift + S"],
-    ["Focus search in current view or selection dialog", "Ctrl / ⌘ + F"],
-    ["New project tab / Close project tab", "Ctrl / ⌘ + T / W"],
-    ["Next / previous project tab", "Ctrl / ⌘ + Tab / Shift + Tab"],
-  ] },
-  { title: "Rows and clipboard", items: [
-    ["Undo / Redo", "Ctrl / ⌘ + Z / Y"],
-    ["Copy / Paste rows", "Ctrl / ⌘ + C / V"],
-    ["Cut resources (Paste moves them)", "Ctrl / ⌘ + X"],
-    ["Repair stored item order", "Ctrl / ⌘ + Shift + R"],
-    ["Add item / measurement record / analysis resource", "Ctrl / ⌘ + I"],
-    ["Add schedule subitem / custom analysis resource", "Ctrl / ⌘ + Shift + I"],
-    ["Duplicate selected rows", "Ctrl / ⌘ + D"],
-    ["Delete selected rows", "Delete"],
-    ["Move project item or measurement record", "Alt + Up / Down"],
-  ] },
-  { title: "Cell editing and selection", items: [
-    ["Edit focused cell", "Enter / F2"],
-    ["Cancel cell edit and retain focus", "Escape"],
-    ["Accept and edit next / previous cell", "Tab / Shift + Tab"],
-    ["Move caret / select text while editing", "Arrow keys / Shift + arrows"],
-    ["Navigate cells outside editing", "Arrow keys"],
-    ["New line while editing text", "Shift / Ctrl + Enter"],
-    ["Navigate editable cells", "Tab / Shift + Tab"],
-    ["Select table rows", "Up / Down / Home / End"],
-    ["Extend table selection", "Shift + Up / Down / Home / End"],
-    ["Select current table page / Clear selection", "Ctrl / ⌘ + A / Escape"],
-  ] },
-  { title: "Editor actions", items: [
-    ["Open selected schedule analysis", "Ctrl / ⌘ + E"],
-    ["Colour selected schedule items", "Ctrl / ⌘ + M"],
-    ["Edit resource / Measurement properties", "Ctrl / ⌘ + E"],
-    ["Browse attached schedule / resource library", "Ctrl / ⌘ + L"],
-    ["Apply analysis or records / Confirm draft discard", "Ctrl / ⌘ + Enter / Escape"],
-  ] },
-  { title: "Ribbon navigation", items: [
-    ["Focus ribbon tabs", "Left / Right / Home / End"],
-    ["Activate focused ribbon tab", "Enter / Space"],
-  ] },
+  {
+    title: "Project and search",
+    items: [
+      ["Open project", "Ctrl / ⌘ + O"],
+      ["Save project", "Ctrl / ⌘ + S"],
+      ["Save project copy", "Ctrl / ⌘ + Shift + S"],
+      ["Focus search in current view or selection dialog", "Ctrl / ⌘ + F"],
+      ["New project tab / Close project tab", "Ctrl / ⌘ + T / W"],
+      ["Next / previous project tab", "Ctrl / ⌘ + Tab / Shift + Tab"],
+    ],
+  },
+  {
+    title: "Rows and clipboard",
+    items: [
+      ["Undo / Redo", "Ctrl / ⌘ + Z / Y"],
+      ["Copy / Paste rows", "Ctrl / ⌘ + C / V"],
+      ["Cut resources (Paste moves them)", "Ctrl / ⌘ + X"],
+      ["Repair stored item order", "Ctrl / ⌘ + Shift + R"],
+      ["Add item / measurement record / analysis resource", "Ctrl / ⌘ + I"],
+      ["Add schedule subitem / custom analysis resource", "Ctrl / ⌘ + Shift + I"],
+      ["Duplicate selected rows", "Ctrl / ⌘ + D"],
+      ["Delete selected rows", "Delete"],
+      ["Move project item or measurement record", "Alt + Up / Down"],
+    ],
+  },
+  {
+    title: "Cell editing and selection",
+    items: [
+      ["Edit focused cell", "Enter / F2"],
+      ["Cancel cell edit and retain focus", "Escape"],
+      ["Accept and edit next / previous cell", "Tab / Shift + Tab"],
+      ["Move caret / select text while editing", "Arrow keys / Shift + arrows"],
+      ["Navigate cells outside editing", "Arrow keys"],
+      ["New line while editing text", "Shift / Ctrl + Enter"],
+      ["Navigate editable cells", "Tab / Shift + Tab"],
+      ["Select table rows", "Up / Down / Home / End"],
+      ["Extend table selection", "Shift + Up / Down / Home / End"],
+      ["Select current table page / Clear selection", "Ctrl / ⌘ + A / Escape"],
+    ],
+  },
+  {
+    title: "Editor actions",
+    items: [
+      ["Open selected schedule analysis", "Ctrl / ⌘ + E"],
+      ["Colour selected schedule items", "Ctrl / ⌘ + M"],
+      ["Edit resource / Measurement properties", "Ctrl / ⌘ + E"],
+      ["Browse attached schedule / resource library", "Ctrl / ⌘ + L"],
+      ["Apply analysis or records / Confirm draft discard", "Ctrl / ⌘ + Enter / Escape"],
+    ],
+  },
+  {
+    title: "Ribbon navigation",
+    items: [
+      ["Focus ribbon tabs", "Left / Right / Home / End"],
+      ["Activate focused ribbon tab", "Enter / Space"],
+    ],
+  },
 ];
 const fileMode = ref<"open" | "save" | null>(null);
 const recoveryProjects = ref<{ id: string; updated: number }[]>([]);
@@ -373,34 +386,22 @@ const rowKinds: {
 ];
 const selectedKind = computed(() => selection.value?.kind.toLowerCase());
 const canEdit = computed(
-  () =>
-    connected.value &&
-    !busy.value &&
-    !projectBusy.value &&
-    !!state.value?.code &&
-    activeView.value === "analysis",
+  () => connected.value && !busy.value && !projectBusy.value && !!state.value?.code && activeView.value === "analysis",
 );
-const resourceTarget = computed(() =>
-  groups.value.find((g) => g.id === groupId.value),
-);
+const resourceTarget = computed(() => groups.value.find((g) => g.id === groupId.value));
 const selectionHint = computed(
   () =>
     ({
       Group: "Organize resources into a calculation group.",
       GroupTotal: "Total of the group's resources.",
-      Resource:
-        "Definition changes apply to every use of this resource when saved.",
+      Resource: "Definition changes apply to every use of this resource when saved.",
       Subtotal: "Sets the base for subsequent weighted additions.",
       Weight: "Adds a fraction of the latest group or subtotal base.",
-      Multiply:
-        "Replaces the total with the last base multiplied by this factor.",
+      Multiply: "Replaces the total with the last base multiplied by this factor.",
       Round: "Rounds the cumulative total using the existing currency rules.",
     })[selection.value?.kind || "Group"],
 );
-async function navigate(
-  action: (discard: boolean) => Promise<unknown>,
-  project = false,
-) {
+async function navigate(action: (discard: boolean) => Promise<unknown>, project = false) {
   if (projectBusy.value) return;
   pendingProject = project;
   if (state.value?.dirty || recordsDirty.value || (project && state.value?.workspace_dirty)) {
@@ -410,11 +411,14 @@ async function navigate(
 }
 async function discard() {
   if (recordsDirty.value) {
-    if (!await w.run(async () => {
-      await request("measurement.draft.discard", { revision: state.value?.revision });
-      await w.refresh();
-      await projectViews.measurement?.reload();
-    }, "Discarding records…")) return;
+    if (
+      !(await w.run(async () => {
+        await request("measurement.draft.discard", { revision: state.value?.revision });
+        await w.refresh();
+        await projectViews.measurement?.reload();
+      }, "Discarding records…"))
+    )
+      return;
   }
   const action = pending;
   pending = undefined;
@@ -430,9 +434,12 @@ function cancelDiscard() {
 }
 async function openOsProject(path: string) {
   while (uiBusy.value || discardOpen.value || fileMode.value !== null) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  if (switchingAway) { pendingPaths.push(path); return; }
+  if (switchingAway) {
+    pendingPaths.push(path);
+    return;
+  }
   const existing = documentForPath(path);
   if (existing?.id === documentId) return;
   if (existing || state.value?.project_open) {
@@ -444,30 +451,46 @@ async function openOsProject(path: string) {
   }
   await new Promise<void>((resolve, reject) => {
     finishOsOpen = resolve;
-    void navigate(async discard => {
+    void navigate(async (discard) => {
       try {
         if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
-      } finally { finishOsOpen = undefined; resolve(); }
-    }, true).catch(reason => { finishOsOpen = undefined; reject(reason); });
+      } finally {
+        finishOsOpen = undefined;
+        resolve();
+      }
+    }, true).catch((reason) => {
+      finishOsOpen = undefined;
+      reject(reason);
+    });
   });
 }
 async function showFile(mode: "open" | "save") {
-  filePath.value = mode === "save" ? state.value?.source_path?.replace(/\.eproj$/i, "-edited.eproj") || "estimate.eproj" : "";
+  filePath.value =
+    mode === "save" ? state.value?.source_path?.replace(/\.eproj$/i, "-edited.eproj") || "estimate.eproj" : "";
   if (mode === "open") {
     await refreshRecovery();
-    if (recentProjects.value.length || recoveryProjects.value.length) { fileMode.value = mode; return; }
+    if (recentProjects.value.length || recoveryProjects.value.length) {
+      fileMode.value = mode;
+      return;
+    }
   }
   try {
     const filters = [{ name: "GEstimator project", extensions: ["eproj"] }];
-    const path = mode === "open" ? await open({ multiple: false, filters }) : await save({ filters, defaultPath: filePath.value });
+    const path =
+      mode === "open" ? await open({ multiple: false, filters }) : await save({ filters, defaultPath: filePath.value });
     if (typeof path !== "string") return;
     if (mode === "open") await openProjectPath(path);
-    else if (await w.saveCopy(path)) { rememberProject(path); await continueAfterSave(); }
-  } catch (reason) { error.value = String(reason); }
+    else if (await w.saveCopy(path)) {
+      rememberProject(path);
+      await continueAfterSave();
+    }
+  } catch (reason) {
+    error.value = String(reason);
+  }
 }
 async function openProjectPath(path: string) {
   if (await inNewDocument({ type: "open", path })) return;
-  await navigate(async discard => {
+  await navigate(async (discard) => {
     if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
   }, true);
 }
@@ -476,11 +499,12 @@ async function browseProject() {
   try {
     const path = await open({ multiple: false, filters: [{ name: "GEstimator project", extensions: ["eproj"] }] });
     if (typeof path === "string") await openProjectPath(path);
-  } catch (reason) { error.value = String(reason); }
+  } catch (reason) {
+    error.value = String(reason);
+  }
 }
 async function refreshRecovery() {
-  recoveryProjects.value = await request<typeof recoveryProjects.value>("recovery.list")
-    .catch(() => []);
+  recoveryProjects.value = await request<typeof recoveryProjects.value>("recovery.list").catch(() => []);
 }
 async function recoverProject(id: string) {
   fileMode.value = null;
@@ -533,7 +557,10 @@ function addResource(kind: "library" | "custom" = "custom") {
   else resourceOpen.value = true;
 }
 async function addAnalysisResources(params: Record<string, unknown>) {
-  return w.command("analysis.resources_add", { ...params, id: destinationGroup.value?.id === groupId.value ? selected.value[0]?.id || groupId.value : groupId.value });
+  return w.command("analysis.resources_add", {
+    ...params,
+    id: destinationGroup.value?.id === groupId.value ? selected.value[0]?.id || groupId.value : groupId.value,
+  });
 }
 async function insertExplorerResource(code: string) {
   groupId.value = destinationGroup.value?.id || groups.value[0]?.id || "";
@@ -542,10 +569,7 @@ async function insertExplorerResource(code: string) {
 async function insertResource(libraryCode?: string) {
   if (
     await w.command("resource.add", {
-      id:
-        destinationGroup.value?.id === groupId.value
-          ? selected.value[0]?.id || groupId.value
-          : groupId.value,
+      id: destinationGroup.value?.id === groupId.value ? selected.value[0]?.id || groupId.value : groupId.value,
       library: !!libraryCode,
       source: resourceSource.value,
       ...form.value,
@@ -571,8 +595,7 @@ async function edit(row: AnalysisRow, field: string, value: string) {
   return w.command("edit", { id: row.id, field, value });
 }
 function editField(event: Event, field: string) {
-  if (selection.value)
-    void edit(selection.value, field, (event.target as HTMLInputElement).value);
+  if (selection.value) void edit(selection.value, field, (event.target as HTMLInputElement).value);
 }
 function beforeUnload(event: BeforeUnloadEvent) {
   if (state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty || projectBusy.value) {
@@ -588,13 +611,7 @@ function keyboard(event: KeyboardEvent) {
     return;
   }
   if (event.defaultPrevented || document.querySelector('[role="dialog"]')) return;
-  if (
-    resourceOpen.value ||
-    fileMode.value ||
-    discardOpen.value ||
-    helpOpen.value
-  )
-    return;
+  if (resourceOpen.value || fileMode.value || discardOpen.value || helpOpen.value) return;
   const key = event.key.toLowerCase();
   const mod = event.ctrlKey || event.metaKey;
   if (event.altKey && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
@@ -634,9 +651,7 @@ function keyboard(event: KeyboardEvent) {
   if (
     (event.ctrlKey || event.metaKey) &&
     ["z", "y"].includes(key) &&
-    !(event.target as HTMLElement).closest(
-      "input,textarea,select,[contenteditable=true]",
-    )
+    !(event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")
   ) {
     event.preventDefault();
     void historyAction(key === "y" || event.shiftKey ? "redo" : "undo");
@@ -646,12 +661,7 @@ function keyboard(event: KeyboardEvent) {
     projectView.value?.handleKeyboard(event);
     return;
   }
-  if (
-    (event.target as HTMLElement).closest(
-      "input,textarea,select,[contenteditable=true]",
-    )
-  )
-    return;
+  if ((event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true]")) return;
   if (mod && key === "i") {
     event.preventDefault();
     if (canEdit.value && groups.value.length) {
@@ -711,7 +721,10 @@ async function newProject() {
 /** Close the project (Save/Discard first). With other tabs open, the tab closes too. */
 async function closeProject() {
   if (!state.value?.project_open || uiBusy.value) return;
-  if (documents.value.length > 1) { await closeProjectTab(documentId); return; }
+  if (documents.value.length > 1) {
+    await closeProjectTab(documentId);
+    return;
+  }
   await navigate(async (discard) => {
     await w.run(async () => {
       await request("project.close", { discard });
@@ -728,34 +741,22 @@ async function closeProject() {
 async function showSettings() {
   if (state.value?.project_open) settingsOpen.value = true;
 }
-async function switchView(view: typeof activeTab.value) {
-  if (view === "analysis" && state.value?.dirty) {
-    activeView.value = "analysis"; activeTab.value = "analysis"; return;
-  }
-  if (view === "databases" || view === "mcp" || view === activeView.value) {
-    activeTab.value = view;
-    return;
-  }
-  await navigate(async (discard) => {
-    if (discard && state.value?.project) await w.load(state.value.code, true);
-    activeView.value = view;
-    activeTab.value = view;
-  });
-}
 function navigateTabs(event: KeyboardEvent, index: number) {
   const last = views.value.length - 1;
-  const next = event.key === "ArrowRight" ? (index + 1) % views.value.length
-    : event.key === "ArrowLeft" ? (index + last) % views.value.length
-    : event.key === "Home" ? 0 : event.key === "End" ? last : -1;
+  const next =
+    event.key === "ArrowRight"
+      ? (index + 1) % views.value.length
+      : event.key === "ArrowLeft"
+        ? (index + last) % views.value.length
+        : event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? last
+            : -1;
   if (next < 0) return;
   event.preventDefault();
   // Move focus without switching away from a draft; Enter/Space activates the tab.
   document.getElementById("view-" + views.value[next]!.key)?.focus();
-}
-async function loadAnalysis(code: string) {
-  await navigate(async (discard) => {
-    if (await w.load(code, discard)) { activeView.value = "analysis"; activeTab.value = "analysis"; }
-  });
 }
 async function applyAndContinue() {
   if (await (recordsDirty.value ? applyRecords() : w.command("analysis.apply"))) {
@@ -766,17 +767,14 @@ async function applyAndContinue() {
   }
 }
 async function applyRecords(returnToList = false) {
-  const result = await projectViews.measurement?.applyRecords(returnToList) ?? false;
+  const result = (await projectViews.measurement?.applyRecords(returnToList)) ?? false;
   await w.refresh();
   if (result && returnToList) measurementEntry.value = undefined;
   return result;
 }
-async function changeMeasurementEntry(id: string | undefined) {
-  await navigate(async () => { measurementEntry.value = id; });
-}
 async function discardRecords() {
   if (uiBusy.value) return;
-  const ok = await projectViews.measurement?.discardRecords() ?? false;
+  const ok = (await projectViews.measurement?.discardRecords()) ?? false;
   await w.refresh();
   if (ok) measurementEntry.value = undefined;
 }
@@ -789,14 +787,22 @@ async function discardAnalysis() {
 }
 async function chooseAnalysisExport() {
   try {
-    const path = await save({ filters: [{ name: "Excel workbook", extensions: ["xlsx"] }], defaultPath: (state.value?.code || "analysis") + ".xlsx" });
-    if (typeof path === "string") { exportAnalysisPath.value = path; await exportAnalysis(); }
-  } catch (reason) { error.value = String(reason); }
+    const path = await save({
+      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
+      defaultPath: (state.value?.code || "analysis") + ".xlsx",
+    });
+    if (typeof path === "string") {
+      exportAnalysisPath.value = path;
+      await exportAnalysis();
+    }
+  } catch (reason) {
+    error.value = String(reason);
+  }
 }
 async function exportAnalysis() {
   await w.run(async () => {
-      await request("analysis.export_xlsx", { path: exportAnalysisPath.value });
-    }, "Exporting analysis…");
+    await request("analysis.export_xlsx", { path: exportAnalysisPath.value });
+  }, "Exporting analysis…");
 }
 async function historyAction(method: "undo" | "redo") {
   if (uiBusy.value) return;
@@ -865,16 +871,10 @@ onMounted(async () => {
       }
       setPlatformFont(font);
       unsubscribers.push(
-        await listen<{ family?: string; size?: string }>(
-          "desktop-font",
-          (event) => setPlatformFont(event.payload),
-        ),
+        await listen<{ family?: string; size?: string }>("desktop-font", (event) => setPlatformFont(event.payload)),
       );
       unsubscribers.push(
-        await listen<{ message: string }>(
-          "backend-progress",
-          (e) => (status.value = e.payload.message),
-        ),
+        await listen<{ message: string }>("backend-progress", (e) => (status.value = e.payload.message)),
       );
       unsubscribers.push(
         await getCurrentWindow().onCloseRequested(async (event) => {
@@ -890,7 +890,7 @@ onMounted(async () => {
               closeConfirmed.add(documentId);
               await continueWindowClose();
             }, true);
-          } else if (documents.value.some(tab => tab.id !== documentId && tab.dirty && !closeConfirmed.has(tab.id))) {
+          } else if (documents.value.some((tab) => tab.id !== documentId && tab.dirty && !closeConfirmed.has(tab.id))) {
             event.preventDefault();
             await continueWindowClose();
           }
@@ -898,11 +898,12 @@ onMounted(async () => {
       );
     }
     await w.reconnect();
-    unsubscribers.push(await installProjectOpening(openOsProject, message => { error.value = message; }));
-    await initializeMCP();
-    // Changes made before this workspace mounted are already in its state.
-    if (mcpStatus.value) { observedMCPChange = mcpStatus.value.change_seq; observedMCPProject = mcpStatus.value.project_epoch; }
-    mcpPoll = setInterval(() => { void syncMCPChanges(); }, 1500);
+    unsubscribers.push(
+      await installProjectOpening(openOsProject, (message) => {
+        error.value = message;
+      }),
+    );
+    await mcpRefresh.start();
     const action = takeDocumentAction();
     if (!startup.done) {
       startup.done = true;
@@ -938,8 +939,6 @@ async function runDocumentAction(action: DocumentAction) {
   while (pendingPaths.length && !switchingAway) await openOsProject(pendingPaths.shift()!);
 }
 onBeforeUnmount(() => {
-  rememberTabState(documentId, "workspace", { tab: activeTab.value, measurementEntry: measurementEntry.value, navigation: navigation.value, navigationIndex: navigationIndex.value, inspector: inspector.value } satisfies WorkspaceMemory);
-  if (mcpPoll) clearInterval(mcpPoll);
   window.removeEventListener("keydown", keyboard);
   window.removeEventListener("beforeunload", beforeUnload);
   unsubscribers.forEach((fn) => fn());
@@ -951,15 +950,29 @@ onBeforeUnmount(() => {
       <ApplicationMenu
         :busy="uiBusy"
         :project-open="!!state?.project_open"
-        :can-export="
-          activeView === 'analysis' ? !!state?.project : !!state?.project_open
-        "
+        :can-export="activeView === 'analysis' ? !!state?.project : !!state?.project_open"
         :analysis="activeView === 'analysis'"
         @action="applicationAction"
       />
       <div class="quick-actions" role="toolbar" aria-label="Common actions">
-        <button class="icon-button" aria-label="Go back" title="Back (Alt+Left)" :disabled="uiBusy || navigationIndex <= 0" @click="travelNavigation(-1)"><AppIcon name="back" /></button>
-        <button class="icon-button" aria-label="Go forward" title="Forward (Alt+Right)" :disabled="uiBusy || navigationIndex + 1 >= navigation.length" @click="travelNavigation(1)"><AppIcon name="forward" /></button>
+        <button
+          class="icon-button"
+          aria-label="Go back"
+          title="Back (Alt+Left)"
+          :disabled="uiBusy || navigationIndex <= 0"
+          @click="travelNavigation(-1)"
+        >
+          <AppIcon name="back" />
+        </button>
+        <button
+          class="icon-button"
+          aria-label="Go forward"
+          title="Forward (Alt+Right)"
+          :disabled="uiBusy || navigationIndex + 1 >= navigation.length"
+          @click="travelNavigation(1)"
+        >
+          <AppIcon name="forward" />
+        </button>
         <span class="quick-actions-separator" />
 
         <button
@@ -994,10 +1007,7 @@ onBeforeUnmount(() => {
           class="icon-button"
           aria-label="Undo"
           title="Undo the last analysis or records draft edit, or the last project operation in other views (Ctrl+Z)."
-          :disabled="
-            uiBusy ||
-            !(activeView === 'analysis' ? state?.undo : projectHistory.undo)
-          "
+          :disabled="uiBusy || !(activeView === 'analysis' ? state?.undo : projectHistory.undo)"
           @click="historyAction('undo')"
         >
           <AppIcon name="undo" />
@@ -1006,16 +1016,12 @@ onBeforeUnmount(() => {
           class="icon-button"
           aria-label="Redo"
           title="Restore the last undone change in the active editing context (Ctrl+Y)."
-          :disabled="
-            uiBusy ||
-            !(activeView === 'analysis' ? state?.redo : projectHistory.redo)
-          "
+          :disabled="uiBusy || !(activeView === 'analysis' ? state?.redo : projectHistory.redo)"
           @click="historyAction('redo')"
         >
           <AppIcon name="redo" />
         </button>
         <span class="quick-actions-separator" />
-
       </div>
       <div class="titlebar-project" data-tauri-drag-region>
         <AppIcon name="folder" :size="15" /><span>{{ projectName }}</span
@@ -1029,12 +1035,8 @@ onBeforeUnmount(() => {
         <span class="version-tag">DESKTOP PREVIEW</span
         ><button
           class="icon-button"
-          :title="
-            theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-          "
-          :aria-label="
-            theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
-          "
+          :title="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+          :aria-label="theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
           @click="toggleTheme"
         >
           <AppIcon :name="theme === 'dark' ? 'sun' : 'moon'" /></button
@@ -1048,9 +1050,31 @@ onBeforeUnmount(() => {
         </button>
       </div>
       <div v-if="isTauri()" class="window-controls" role="toolbar" aria-label="Window controls">
-        <button class="icon-button" aria-label="Minimize window" title="Minimize" @click="getCurrentWindow().minimize()"><AppIcon name="minimize" /></button>
-        <button class="icon-button" aria-label="Maximize or restore window" title="Maximize or restore" @click="getCurrentWindow().toggleMaximize()"><AppIcon name="maximize" :size="15" /></button>
-        <button class="icon-button window-close" aria-label="Close window" title="Close" :disabled="uiBusy" @click="getCurrentWindow().close()"><AppIcon name="close" /></button>
+        <button
+          class="icon-button"
+          aria-label="Minimize window"
+          title="Minimize"
+          @click="getCurrentWindow().minimize()"
+        >
+          <AppIcon name="minimize" />
+        </button>
+        <button
+          class="icon-button"
+          aria-label="Maximize or restore window"
+          title="Maximize or restore"
+          @click="getCurrentWindow().toggleMaximize()"
+        >
+          <AppIcon name="maximize" :size="15" />
+        </button>
+        <button
+          class="icon-button window-close"
+          aria-label="Close window"
+          title="Close"
+          :disabled="uiBusy"
+          @click="getCurrentWindow().close()"
+        >
+          <AppIcon name="close" />
+        </button>
       </div>
     </header>
     <div class="ribbon-tabs" role="tablist" aria-label="Workspace views">
@@ -1071,12 +1095,8 @@ onBeforeUnmount(() => {
       >
         {{ view.label }}
       </button>
-      <span class="spacer" /><span
-        class="engine-status"
-        :class="{ online: connected }"
-        ><i />{{
-          connected ? "Calculation engine connected" : "Engine disconnected"
-        }}</span
+      <span class="spacer" /><span class="engine-status" :class="{ online: connected }"
+        ><i />{{ connected ? "Calculation engine connected" : "Engine disconnected" }}</span
       >
     </div>
     <RibbonToolbar
@@ -1086,16 +1106,35 @@ onBeforeUnmount(() => {
       :id="'tools-' + activeTab"
       role="tabpanel"
       :aria-labelledby="'view-' + activeTab"
-      :aria-label="
-        (views.find((view) => view.key === activeTab)?.label || '') + ' tools'
-      "
+      :aria-label="(views.find((view) => view.key === activeTab)?.label || '') + ' tools'"
     >
       <template v-if="activeTab === 'analysis'">
         <div class="ribbon-group">
           <div class="ribbon-actions">
-            <button class="ribbon-action" aria-label="Add resources from database" :disabled="!canEdit || !groups.length" @click="addResource('library')"><AppIcon name="database" /><span class="ribbon-label">From database</span></button>
-            <button class="ribbon-action" aria-label="Add custom resource" :disabled="!canEdit || !groups.length" @click="addResource('custom')"><AppIcon name="resource" /><span class="ribbon-label">Custom resource</span></button>
-            <button class="ribbon-action" aria-label="Duplicate" :disabled="!canEdit || !selected.length" @click="w.command('duplicate')"><AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span></button>
+            <button
+              class="ribbon-action"
+              aria-label="Add resources from database"
+              :disabled="!canEdit || !groups.length"
+              @click="addResource('library')"
+            >
+              <AppIcon name="database" /><span class="ribbon-label">From database</span>
+            </button>
+            <button
+              class="ribbon-action"
+              aria-label="Add custom resource"
+              :disabled="!canEdit || !groups.length"
+              @click="addResource('custom')"
+            >
+              <AppIcon name="resource" /><span class="ribbon-label">Custom resource</span>
+            </button>
+            <button
+              class="ribbon-action"
+              aria-label="Duplicate"
+              :disabled="!canEdit || !selected.length"
+              @click="w.command('duplicate')"
+            >
+              <AppIcon name="duplicate" /><span class="ribbon-label">Duplicate</span>
+            </button>
           </div>
           <small>RESOURCES</small>
         </div>
@@ -1110,17 +1149,27 @@ onBeforeUnmount(() => {
               :disabled="!canEdit"
               @click="w.command('add', { kind: row.kind, value: row.value })"
             >
-              <AppIcon :name="row.icon" /><span class="ribbon-label">{{
-                row.label
-              }}</span>
+              <AppIcon :name="row.icon" /><span class="ribbon-label">{{ row.label }}</span>
             </button>
-            <button class="ribbon-action" aria-label="Default analysis rows"
-              title="Insert the default calculation rows configured in Program Settings into this draft. Undo restores the previous draft." :disabled="!canEdit"
-              @click="w.command('analysis.insert_template')">
+            <button
+              class="ribbon-action"
+              aria-label="Default analysis rows"
+              title="Insert the default calculation rows configured in Program Settings into this draft. Undo restores the previous draft."
+              :disabled="!canEdit"
+              @click="w.command('analysis.insert_template')"
+            >
               <AppIcon name="file" /><span class="ribbon-label">Default rows</span>
             </button>
-            <button class="ribbon-action" aria-label="Custom analysis template…" title="Configure, save and preview reusable calculation rows before inserting them as one undoable batch."
-              :disabled="!canEdit" @click="analysisTemplateMode = true; analysisBatchOpen = true">
+            <button
+              class="ribbon-action"
+              aria-label="Custom analysis template…"
+              title="Configure, save and preview reusable calculation rows before inserting them as one undoable batch."
+              :disabled="!canEdit"
+              @click="
+                analysisTemplateMode = true;
+                analysisBatchOpen = true;
+              "
+            >
               <AppIcon name="settings" /><span class="ribbon-label">Custom template</span>
             </button>
           </div>
@@ -1128,17 +1177,34 @@ onBeforeUnmount(() => {
         </div>
         <div class="ribbon-group">
           <div class="ribbon-actions ribbon-pairs">
-            <button class="ribbon-action ribbon-icon" aria-label="Copy rows" title="Copy selected analysis rows and resource definitions to the system clipboard for use in another GEstimator window (Ctrl+C)."
-              :disabled="!canEdit || !selected.length" @click="w.command('copy')">
-              <AppIcon name="copy" /><span class="ribbon-label">Copy rows</span></button>
-            <button class="ribbon-action ribbon-icon" aria-label="Paste rows" title="Insert analysis rows copied from this or another GEstimator window at the current selection. Existing project resource definitions are reused by code (Ctrl+V)."
-              :disabled="!canEdit" @click="w.command('paste')">
-              <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span></button>
+            <button
+              class="ribbon-action ribbon-icon"
+              aria-label="Copy rows"
+              title="Copy selected analysis rows and resource definitions to the system clipboard for use in another GEstimator window (Ctrl+C)."
+              :disabled="!canEdit || !selected.length"
+              @click="w.command('copy')"
+            >
+              <AppIcon name="copy" /><span class="ribbon-label">Copy rows</span>
+            </button>
+            <button
+              class="ribbon-action ribbon-icon"
+              aria-label="Paste rows"
+              title="Insert analysis rows copied from this or another GEstimator window at the current selection. Existing project resource definitions are reused by code (Ctrl+V)."
+              :disabled="!canEdit"
+              @click="w.command('paste')"
+            >
+              <AppIcon name="paste" /><span class="ribbon-label">Paste rows</span>
+            </button>
 
-            <button class="ribbon-action ribbon-icon danger" aria-label="Delete" title="Remove the selected rows from this analysis draft. Use Undo to restore them."
-              :disabled="!canEdit || !selected.length" @click="w.command('delete')">
-              <AppIcon name="trash" /><span class="ribbon-label">Delete</span></button>
-
+            <button
+              class="ribbon-action ribbon-icon danger"
+              aria-label="Delete"
+              title="Remove the selected rows from this analysis draft. Use Undo to restore them."
+              :disabled="!canEdit || !selected.length"
+              @click="w.command('delete')"
+            >
+              <AppIcon name="trash" /><span class="ribbon-label">Delete</span>
+            </button>
           </div>
           <small>EDIT</small>
         </div>
@@ -1166,14 +1232,30 @@ onBeforeUnmount(() => {
         </div>
         <div class="ribbon-group">
           <div class="ribbon-actions">
-            <button class="ribbon-action" :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'" @click="sidebar = !sidebar"><AppIcon name="panel-left" /><span class="ribbon-label">{{ sidebar ? 'Hide explorer' : 'Show explorer' }}</span></button>
-            <button class="ribbon-action"
+            <button
+              class="ribbon-action"
+              :aria-label="sidebar ? 'Hide explorer' : 'Show explorer'"
+              @click="sidebar = !sidebar"
+            >
+              <AppIcon name="panel-left" /><span class="ribbon-label">{{
+                sidebar ? "Hide explorer" : "Show explorer"
+              }}</span>
+            </button>
+            <button
+              class="ribbon-action"
               :aria-label="inspector ? 'Hide analysis inspector' : 'Show analysis inspector'"
-              :title="inspector ? 'Hide the selected-row inspector to give the analysis table more room.' : 'Show the inspector to edit the selected analysis row and resource definition.'"
-              :class="{ pressed: !inspector }" :aria-pressed="!inspector"
-              @click="inspector = !inspector">
+              :title="
+                inspector
+                  ? 'Hide the selected-row inspector to give the analysis table more room.'
+                  : 'Show the inspector to edit the selected analysis row and resource definition.'
+              "
+              :class="{ pressed: !inspector }"
+              :aria-pressed="!inspector"
+              @click="inspector = !inspector"
+            >
               <AppIcon name="panel" />
-              <span class="ribbon-label">{{ inspector ? "Hide inspector" : "Show inspector" }}</span></button>
+              <span class="ribbon-label">{{ inspector ? "Hide inspector" : "Show inspector" }}</span>
+            </button>
           </div>
           <small>VIEW</small>
         </div>
@@ -1188,9 +1270,16 @@ onBeforeUnmount(() => {
             >
               <AppIcon name="export" /><span class="ribbon-label">Export analysis</span>
             </button>
-            <button class="ribbon-action" aria-label="Import analysis" title="Preview an Excel worksheet range and insert its calculation rows into this draft. The import can be undone."
+            <button
+              class="ribbon-action"
+              aria-label="Import analysis"
+              title="Preview an Excel worksheet range and insert its calculation rows into this draft. The import can be undone."
               :disabled="!canEdit || !state?.project"
-              @click="error = ''; importAnalysisOpen = true">
+              @click="
+                error = '';
+                importAnalysisOpen = true;
+              "
+            >
               <AppIcon name="import" /><span class="ribbon-label">Import analysis</span>
             </button>
           </div>
@@ -1198,12 +1287,86 @@ onBeforeUnmount(() => {
         </div>
       </template>
       <template v-else-if="activeTab === 'databases'">
-        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Attach database…" title="Bundled and folder databases attach automatically. Open the database manager to attach other databases, retry saved paths or forget entries. The editor stays in place." @click="libraryManagerOpen = true"><AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button><button class="ribbon-action" aria-label="Open database folder" title="Open the custom database folder in your file manager. Open the database manager to rescan after adding files." @click="libraryManager?.openDirectory()"><AppIcon name="folder" /><span class="ribbon-label">Database folder</span></button></div><small>DATABASES</small></div>
+        <div class="ribbon-group">
+          <div class="ribbon-actions">
+            <button
+              class="ribbon-action"
+              aria-label="Attach database…"
+              title="Bundled and folder databases attach automatically. Open the database manager to attach other databases, retry saved paths or forget entries. The editor stays in place."
+              @click="libraryManagerOpen = true"
+            >
+              <AppIcon name="attach" /><span class="ribbon-label">Attach database…</span></button
+            ><button
+              class="ribbon-action"
+              aria-label="Open database folder"
+              title="Open the custom database folder in your file manager. Open the database manager to rescan after adding files."
+              @click="libraryManager?.openDirectory()"
+            >
+              <AppIcon name="folder" /><span class="ribbon-label">Database folder</span>
+            </button>
+          </div>
+          <small>DATABASES</small>
+        </div>
       </template>
       <template v-else-if="activeTab === 'mcp'">
-        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Start MCP server" title="Start the authenticated local MCP server using the access mode selected in Configure server." :disabled="mcpBusy || !mcpStatus || mcpStatus.running" @click="startMCP"><AppIcon name="play" /><span class="ribbon-label">Start server</span></button><button class="ribbon-action" aria-label="Stop MCP server" title="Stop listening and prevent further MCP requests. The current project and editor stay open." :disabled="mcpBusy || !mcpStatus?.running" @click="stopMCP"><AppIcon name="stop" /><span class="ribbon-label">Stop server</span></button></div><small>SERVER</small></div>
-        <div class="ribbon-group"><div class="ribbon-actions"><button class="ribbon-action" aria-label="Configure MCP server" title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration." :disabled="mcpBusy" @click="mcpSettingsOpen = true"><AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button><button class="ribbon-action" aria-label="Copy MCP client configuration" title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client." :disabled="mcpBusy || !mcpStatus" @click="copyMCPConfig"><AppIcon name="copy" /><span class="ribbon-label">Client config</span></button><button class="ribbon-action" aria-label="Refresh MCP status" title="Refresh server status and client activity without changing the project." :disabled="mcpBusy" @click="refreshMCP"><AppIcon name="refresh" /><span class="ribbon-label">Refresh status</span></button></div><small>CONNECTION</small></div>
-        <span class="ribbon-note" role="status">{{ mcpStatus?.running ? 'Running' : 'Stopped' }} · {{ mcpStatus?.access === 'read-write' ? 'Read and write' : 'Read only' }}<br />{{ mcpStatus?.url || 'Connecting…' }}</span>
+        <div class="ribbon-group">
+          <div class="ribbon-actions">
+            <button
+              class="ribbon-action"
+              aria-label="Start MCP server"
+              title="Start the authenticated local MCP server using the access mode selected in Configure server."
+              :disabled="mcpBusy || !mcpStatus || mcpStatus.running"
+              @click="startMCP"
+            >
+              <AppIcon name="play" /><span class="ribbon-label">Start server</span></button
+            ><button
+              class="ribbon-action"
+              aria-label="Stop MCP server"
+              title="Stop listening and prevent further MCP requests. The current project and editor stay open."
+              :disabled="mcpBusy || !mcpStatus?.running"
+              @click="stopMCP"
+            >
+              <AppIcon name="stop" /><span class="ribbon-label">Stop server</span>
+            </button>
+          </div>
+          <small>SERVER</small>
+        </div>
+        <div class="ribbon-group">
+          <div class="ribbon-actions">
+            <button
+              class="ribbon-action"
+              aria-label="Configure MCP server"
+              title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration."
+              :disabled="mcpBusy"
+              @click="mcpSettingsOpen = true"
+            >
+              <AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button
+            ><button
+              class="ribbon-action"
+              aria-label="Copy MCP client configuration"
+              title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client."
+              :disabled="mcpBusy || !mcpStatus"
+              @click="copyMCPConfig"
+            >
+              <AppIcon name="copy" /><span class="ribbon-label">Client config</span></button
+            ><button
+              class="ribbon-action"
+              aria-label="Refresh MCP status"
+              title="Refresh server status and client activity without changing the project."
+              :disabled="mcpBusy"
+              @click="refreshMCP"
+            >
+              <AppIcon name="refresh" /><span class="ribbon-label">Refresh status</span>
+            </button>
+          </div>
+          <small>CONNECTION</small>
+        </div>
+        <span class="ribbon-note" role="status"
+          >{{ mcpStatus?.running ? "Running" : "Stopped" }} ·
+          {{ mcpStatus?.access === "read-write" ? "Read and write" : "Read only" }}<br />{{
+            mcpStatus?.url || "Connecting…"
+          }}</span
+        >
       </template>
       <div
         id="project-ribbon-tools"
@@ -1213,21 +1376,29 @@ onBeforeUnmount(() => {
     </RibbonToolbar>
     <div v-if="error" class="error-banner" role="alert">
       <AppIcon name="help" /><span>{{ error }}</span
-      ><button
-        class="icon-button"
-        aria-label="Dismiss error"
-        @click="error = ''"
-      >
+      ><button class="icon-button" aria-label="Dismiss error" @click="error = ''">
         <AppIcon name="close" :size="16" />
       </button>
     </div>
     <div v-if="programSettingsWarning" class="library-warning program-settings-warning" role="status">
       <span>{{ programSettingsWarning }}</span>
-      <button class="text-button" :disabled="uiBusy" @click="programSettingsOpen = true">Review program settings</button>
+      <button class="text-button" :disabled="uiBusy" @click="programSettingsOpen = true">
+        Review program settings
+      </button>
     </div>
-    <div v-if="mcpError && !mcpSettingsOpen" class="error-banner mcp-error" role="alert"><span>{{ mcpError }}</span><button class="text-button" :disabled="mcpBusy" @click="mcpSettingsOpen = true">Review MCP settings</button><button class="icon-button" aria-label="Dismiss MCP error" @click="mcpError = ''"><AppIcon name="close" :size="16" /></button></div>
+    <div v-if="mcpError && !mcpSettingsOpen" class="error-banner mcp-error" role="alert">
+      <span>{{ mcpError }}</span
+      ><button class="text-button" :disabled="mcpBusy" @click="mcpSettingsOpen = true">Review MCP settings</button
+      ><button class="icon-button" aria-label="Dismiss MCP error" @click="mcpError = ''">
+        <AppIcon name="close" :size="16" />
+      </button>
+    </div>
     <div v-if="state?.project_open && unavailableLibraries.length" class="library-warning" role="status">
-      <span>{{ unavailableLibraries.length }} saved {{ unavailableLibraries.length === 1 ? 'library is' : 'libraries are' }} unavailable. The project is open and available libraries are attached.</span>
+      <span
+        >{{ unavailableLibraries.length }} saved
+        {{ unavailableLibraries.length === 1 ? "library is" : "libraries are" }} unavailable. The project is open and
+        available libraries are attached.</span
+      >
       <button class="text-button" :disabled="uiBusy" @click="libraryManagerOpen = true">Manage libraries</button>
     </div>
     <div class="workspace">
@@ -1238,9 +1409,7 @@ onBeforeUnmount(() => {
           <span class="project-icon"><AppIcon name="folder" :size="20" /></span>
           <div>
             <strong>{{ projectName }}</strong
-            ><small>{{
-              state?.project_open ? "Project working copy" : "No project open"
-            }}</small>
+            ><small>{{ state?.project_open ? "Project working copy" : "No project open" }}</small>
           </div>
         </div>
         <div class="explorer-tabs" role="tablist" aria-label="Explorer">
@@ -1263,12 +1432,7 @@ onBeforeUnmount(() => {
             <AppIcon name="library" :size="15" />Resources
           </button>
         </div>
-        <form
-          class="search-field"
-          @submit.prevent="
-            explorer === 'schedule' ? w.searchSchedule() : w.searchResources()
-          "
-        >
+        <form class="search-field" @submit.prevent="explorer === 'schedule' ? w.searchSchedule() : w.searchResources()">
           <AppIcon name="search" :size="15" /><input
             v-if="explorer === 'schedule'"
             id="navigator-search"
@@ -1293,22 +1457,10 @@ onBeforeUnmount(() => {
           </button>
         </form>
         <div class="explorer-caption">
-          <span>{{
-            explorer === "schedule" ? "SCHEDULE ITEMS" : "RESOURCE LIBRARY"
-          }}</span
-          ><span
-            >{{
-              (explorer === "schedule" ? schedule : resources).length
-            }}
-            shown</span
-          >
+          <span>{{ explorer === "schedule" ? "SCHEDULE ITEMS" : "RESOURCE LIBRARY" }}</span
+          ><span>{{ (explorer === "schedule" ? schedule : resources).length }} shown</span>
         </div>
-        <nav
-          class="item-list"
-          :aria-label="
-            explorer === 'schedule' ? 'Schedule items' : 'Resource library'
-          "
-        >
+        <nav class="item-list" :aria-label="explorer === 'schedule' ? 'Schedule items' : 'Resource library'">
           <template v-if="explorer === 'schedule'"
             ><button
               v-for="item in schedule"
@@ -1320,9 +1472,7 @@ onBeforeUnmount(() => {
             >
               <span class="item-code"
                 ><AppIcon name="file" :size="14" />{{ item.code
-                }}<span
-                  v-if="state?.code === item.code"
-                  class="item-active-dot" /></span
+                }}<span v-if="state?.code === item.code" class="item-active-dot" /></span
               ><span class="item-description">{{ item.description }}</span
               ><span class="item-unit">{{ item.unit || "Heading" }}</span>
             </button></template
@@ -1333,27 +1483,16 @@ onBeforeUnmount(() => {
               :key="item.code"
               class="item-card"
               :disabled="uiBusy || !canEdit || !groups.length"
-              @click="
-                insertExplorerResource(item.code);
-              "
+              @click="insertExplorerResource(item.code)"
             >
-              <span class="item-code"
-                ><AppIcon name="resource" :size="14" />{{ item.code }}</span
+              <span class="item-code"><AppIcon name="resource" :size="14" />{{ item.code }}</span
               ><span class="item-description">{{ item.description }}</span
               ><span class="item-unit">{{ formatMoney(item.rate) }} / {{ item.unit }}</span>
             </button></template
           >
-          <div
-            v-if="!(explorer === 'schedule' ? schedule : resources).length"
-            class="empty-explorer"
-          >
-            <AppIcon
-              :name="state?.project_open ? 'search' : 'folder'"
-              :size="30"
-            /><strong>{{
-              state?.project_open
-                ? "No items to show"
-                : "Your project starts here"
+          <div v-if="!(explorer === 'schedule' ? schedule : resources).length" class="empty-explorer">
+            <AppIcon :name="state?.project_open ? 'search' : 'folder'" :size="30" /><strong>{{
+              state?.project_open ? "No items to show" : "Your project starts here"
             }}</strong>
             <p>
               {{
@@ -1362,12 +1501,7 @@ onBeforeUnmount(() => {
                   : "Open a GEstimator project to explore its schedule and resources."
               }}
             </p>
-            <button
-              v-if="!state?.project_open"
-              class="button secondary"
-              :disabled="uiBusy"
-              @click="showFile('open')"
-            >
+            <button v-if="!state?.project_open" class="button secondary" :disabled="uiBusy" @click="showFile('open')">
               Open project
             </button>
           </div>
@@ -1376,43 +1510,21 @@ onBeforeUnmount(() => {
           <button
             class="icon-button"
             aria-label="Previous page"
-            :disabled="
-              busy ||
-              (explorer === 'schedule' ? schedulePage : resourcePage) === 0
-            "
-            @click="
-              explorer === 'schedule'
-                ? w.searchSchedule(schedulePage - 1)
-                : w.searchResources(resourcePage - 1)
-            "
+            :disabled="busy || (explorer === 'schedule' ? schedulePage : resourcePage) === 0"
+            @click="explorer === 'schedule' ? w.searchSchedule(schedulePage - 1) : w.searchResources(resourcePage - 1)"
           >
             <AppIcon name="up" :size="15" /></button
-          ><span
-            >Page
-            {{
-              (explorer === "schedule" ? schedulePage : resourcePage) + 1
-            }}</span
+          ><span>Page {{ (explorer === "schedule" ? schedulePage : resourcePage) + 1 }}</span
           ><button
             class="icon-button"
             aria-label="Next page"
-            :disabled="
-              busy ||
-              (explorer === 'schedule' ? schedule : resources).length < 100
-            "
-            @click="
-              explorer === 'schedule'
-                ? w.searchSchedule(schedulePage + 1)
-                : w.searchResources(resourcePage + 1)
-            "
+            :disabled="busy || (explorer === 'schedule' ? schedule : resources).length < 100"
+            @click="explorer === 'schedule' ? w.searchSchedule(schedulePage + 1) : w.searchResources(resourcePage + 1)"
           >
             <AppIcon name="down" :size="15" />
           </button>
         </div>
-        <div class="explorer-foot">
-          <AppIcon name="check" :size="14" /><span
-            >Isolated working copy</span
-          >
-        </div>
+        <div class="explorer-foot"><AppIcon name="check" :size="14" /><span>Isolated working copy</span></div>
       </aside>
       <main class="editor-pane">
         <ProjectLanding
@@ -1429,7 +1541,7 @@ onBeforeUnmount(() => {
         <ProjectViews
           v-for="view in visitedViews"
           :key="projectSession + ':' + view"
-          :ref="instance => bindProjectView(view, instance)"
+          :ref="(instance) => bindProjectView(view, instance)"
           v-show="activeView === view && !!state?.project_open"
           :active="activeView === view"
           :entry-id="view === 'measurement' ? measurementEntry : undefined"
@@ -1448,22 +1560,47 @@ onBeforeUnmount(() => {
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
           <div class="draft-headerbar" role="region" aria-label="Analysis draft">
-            <strong>Rate analysis <span v-if="state?.code" class="code-tag">{{ state.code }}</span></strong>
+            <strong
+              >Rate analysis <span v-if="state?.code" class="code-tag">{{ state.code }}</span></strong
+            >
             <span class="spacer" />
-            <button class="button small danger" aria-label="Discard analysis" title="Discard this draft and return to Schedule." :disabled="uiBusy || !state?.project" @click="discardAnalysis"><AppIcon name="close" :size="16" />Discard analysis</button>
-            <button class="button small primary" aria-label="Save analysis without leaving" title="Save this analysis to the working project and update dependent rates without leaving the editor. Save the project to retain changes on disk." :disabled="uiBusy || !canEdit || !state?.project" @click="w.command('analysis.apply')"><AppIcon name="save" :size="16" />Save analysis</button>
-            <button class="button small apply" aria-label="Apply analysis" title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Return to Schedule after applying. Save the project to retain changes on disk." :disabled="uiBusy || !canEdit || !state?.project" @click="applyAnalysis"><AppIcon name="check" :size="16" />Apply analysis</button>
+            <button
+              class="button small danger"
+              aria-label="Discard analysis"
+              title="Discard this draft and return to Schedule."
+              :disabled="uiBusy || !state?.project"
+              @click="discardAnalysis"
+            >
+              <AppIcon name="close" :size="16" />Discard analysis
+            </button>
+            <button
+              class="button small primary"
+              aria-label="Save analysis without leaving"
+              title="Save this analysis to the working project and update dependent rates without leaving the editor. Save the project to retain changes on disk."
+              :disabled="uiBusy || !canEdit || !state?.project"
+              @click="w.command('analysis.apply')"
+            >
+              <AppIcon name="save" :size="16" />Save analysis
+            </button>
+            <button
+              class="button small apply"
+              aria-label="Apply analysis"
+              title="Apply this draft to the project working copy and update dependent rates (Ctrl+Enter). Return to Schedule after applying. Save the project to retain changes on disk."
+              :disabled="uiBusy || !canEdit || !state?.project"
+              @click="applyAnalysis"
+            >
+              <AppIcon name="check" :size="16" />Apply analysis
+            </button>
           </div>
           <div class="analysis-intro">
             <div class="breadcrumbs">
-              Workspace<AppIcon name="chevron" :size="12" />{{ projectName
-              }}<AppIcon name="chevron" :size="12" /><span>Rate analysis</span>
+              Workspace<AppIcon name="chevron" :size="12" />{{ projectName }}<AppIcon name="chevron" :size="12" /><span
+                >Rate analysis</span
+              >
             </div>
             <div class="analysis-heading">
               <div>
-                <div class="eyebrow">
-                  RATE ANALYSIS
-                </div>
+                <div class="eyebrow">RATE ANALYSIS</div>
                 <h1>{{ state?.description || "Select a schedule item" }}</h1>
                 <p>
                   {{
@@ -1474,28 +1611,15 @@ onBeforeUnmount(() => {
                 </p>
               </div>
               <span class="draft-badge" :class="{ dirty: state?.dirty }"
-                ><i />{{
-                  state?.dirty ? "Unsaved changes" : "Up to date"
-                }}</span
+                ><i />{{ state?.dirty ? "Unsaved changes" : "Up to date" }}</span
               >
             </div>
             <div class="analysis-metadata">
-              <span
-                ><AppIcon name="resource" :size="14" />{{
-                  resourceCount
-                }}
-                resources</span
-              ><span
-                ><AppIcon name="group" :size="14" />{{
-                  groups.length
-                }}
-                groups</span
+              <span><AppIcon name="resource" :size="14" />{{ resourceCount }} resources</span
+              ><span><AppIcon name="group" :size="14" />{{ groups.length }} groups</span
               ><span v-if="state?.unit"
                 >Unit <b>{{ state.unit }}</b></span
-              ><span class="metadata-last"
-                ><AppIcon name="check" :size="14" />Calculated in project
-                order</span
-              >
+              ><span class="metadata-last"><AppIcon name="check" :size="14" />Calculated in project order</span>
             </div>
           </div>
           <label class="analysis-remarks"
@@ -1514,19 +1638,15 @@ onBeforeUnmount(() => {
             <div class="table-toolbar">
               <div>
                 <strong>Analysis breakdown</strong
-                ><span>{{
-                  selected.length
-                    ? selected.length + " selected"
-                    : "Double-click a cell to edit"
-                }}</span>
+                ><span>{{ selected.length ? selected.length + " selected" : "Double-click a cell to edit" }}</span>
               </div>
               <button
                 class="button small secondary"
                 :disabled="!canEdit || !groups.length"
                 @click="addResource('custom')"
               >
-                <AppIcon name="plus" :size="15" />Add resource</button
-              >
+                <AppIcon name="plus" :size="15" />Add resource
+              </button>
             </div>
             <AnalysisTable
               ref="analysisTable"
@@ -1538,20 +1658,15 @@ onBeforeUnmount(() => {
               @action="w.command($event)"
             />
             <div class="table-caption">
-              <span><i class="legend-dot group" />Group</span
-              ><span><i class="legend-dot subtotal" />Subtotal</span
-              ><span><i class="legend-dot adjustment" />Adjustment</span
-              ><span class="spacer" /><span
+              <span><i class="legend-dot group" />Group</span><span><i class="legend-dot subtotal" />Subtotal</span
+              ><span><i class="legend-dot adjustment" />Adjustment</span><span class="spacer" /><span
                 >{{ state?.rows.length || 0 }} calculation rows</span
               >
             </div>
           </section>
           <div class="rate-summary">
             <div class="summary-icon"><AppIcon name="sum" :size="22" /></div>
-            <div>
-              <strong>Calculated unit rate</strong
-              ><small>Final result of the analysis sequence</small>
-            </div>
+            <div><strong>Calculated unit rate</strong><small>Final result of the analysis sequence</small></div>
             <span class="spacer" />
             <div class="summary-value">
               <strong>{{ formatMoney(state?.rate || "0.00") }}</strong
@@ -1563,33 +1678,19 @@ onBeforeUnmount(() => {
       <aside v-show="inspector && activeView === 'analysis'" class="inspector">
         <div class="panel-heading">
           <span>INSPECTOR</span
-          ><button
-            class="icon-button"
-            aria-label="Hide inspector"
-            @click="inspector = false"
-          >
+          ><button class="icon-button" aria-label="Hide inspector" @click="inspector = false">
             <AppIcon name="close" :size="15" />
           </button>
         </div>
         <div v-if="selection" class="inspector-body" :key="selection.id">
-          <span class="row-badge" :class="'kind-' + selectedKind">{{
-            selection.kind
-          }}</span>
+          <span class="row-badge" :class="'kind-' + selectedKind">{{ selection.kind }}</span>
           <h2>
             {{ selection.code || selection.description || selection.kind }}
           </h2>
           <p class="inspector-hint">{{ selectionHint }}</p>
-          <label
-            v-if="selection.kind === 'Group' || selection.kind === 'Resource'"
-            class="field"
-            >{{
-              selection.kind === "Group"
-                ? "Group code"
-                : "Resource code (replace entry)"
-            }}<input
-              :value="selection.code"
-              :disabled="uiBusy"
-              @change="editField($event, 'code')"
+          <label v-if="selection.kind === 'Group' || selection.kind === 'Resource'" class="field"
+            >{{ selection.kind === "Group" ? "Group code" : "Resource code (replace entry)"
+            }}<input :value="selection.code" :disabled="uiBusy" @change="editField($event, 'code')"
           /></label>
           <label class="field"
             >Description<textarea
@@ -1601,11 +1702,7 @@ onBeforeUnmount(() => {
           ><template v-if="!['Group', 'Subtotal'].includes(selection.kind)"
             ><label class="field"
               >{{
-                selection.kind === "Resource"
-                  ? "Quantity"
-                  : selection.kind === "Round"
-                    ? "Rounding places"
-                    : "Factor"
+                selection.kind === "Resource" ? "Quantity" : selection.kind === "Round" ? "Rounding places" : "Factor"
               }}<input
                 :value="selection.value"
                 :disabled="uiBusy"
@@ -1614,10 +1711,7 @@ onBeforeUnmount(() => {
           ><template v-if="selection.kind === 'Resource'"
             ><div class="field-pair">
               <label class="field"
-                >Unit<input
-                  :value="selection.unit"
-                  :disabled="uiBusy"
-                  @change="editField($event, 'unit')" /></label
+                >Unit<input :value="selection.unit" :disabled="uiBusy" @change="editField($event, 'unit')" /></label
               ><label class="field"
                 >Base rate<input
                   :value="selection.rate"
@@ -1642,41 +1736,25 @@ onBeforeUnmount(() => {
               /></label>
             </div>
             <div class="inspector-result">
-              <span>Effective rate</span
-              ><strong>{{ formatMoney(selection.effective_rate) }}</strong>
+              <span>Effective rate</span><strong>{{ formatMoney(selection.effective_rate) }}</strong>
             </div></template
           >
           <div class="inspector-result">
-            <span>Calculated amount</span
-            ><strong>{{ formatMoney(selection.amount) }}</strong>
+            <span>Calculated amount</span><strong>{{ formatMoney(selection.amount) }}</strong>
           </div>
           <div class="inspector-actions">
-            <button
-              class="button secondary"
-              :disabled="uiBusy"
-              @click="w.command('move', { delta: -1 })"
-            >
+            <button class="button secondary" :disabled="uiBusy" @click="w.command('move', { delta: -1 })">
               <AppIcon name="up" :size="15" />Move up</button
-            ><button
-              class="button secondary"
-              :disabled="uiBusy"
-              @click="w.command('move', { delta: 1 })"
-            >
+            ><button class="button secondary" :disabled="uiBusy" @click="w.command('move', { delta: 1 })">
               <AppIcon name="down" :size="15" />Move down
             </button>
           </div>
-          <button
-            class="button danger full-width"
-            :disabled="uiBusy"
-            @click="w.command('delete')"
-          >
+          <button class="button danger full-width" :disabled="uiBusy" @click="w.command('delete')">
             <AppIcon name="trash" :size="15" />Delete row
           </button>
         </div>
         <div v-else class="inspector-empty">
-          <span class="inspector-empty-icon"
-            ><AppIcon name="panel" :size="28"
-          /></span>
+          <span class="inspector-empty-icon"><AppIcon name="panel" :size="28" /></span>
           <h3>
             {{ selected.length ? "Multiple rows selected" : "A closer look" }}
           </h3>
@@ -1688,17 +1766,12 @@ onBeforeUnmount(() => {
             }}
           </p>
           <div class="inspector-tip">
-            <AppIcon name="help" :size="17" /><span
-              >Use Ctrl / ⌘ + click to select multiple rows.</span
-            >
+            <AppIcon name="help" :size="17" /><span>Use Ctrl / ⌘ + click to select multiple rows.</span>
           </div>
         </div>
         <div class="inspector-bottom">
           <span class="eyebrow">CALCULATION NOTES</span>
-          <p>
-            Weighted additions use the latest group or subtotal as their base.
-            Totals follow the row sequence.
-          </p>
+          <p>Weighted additions use the latest group or subtotal as their base. Totals follow the row sequence.</p>
           <button class="text-button" @click="helpOpen = true">
             Keyboard shortcuts<AppIcon name="chevron" :size="12" />
           </button>
@@ -1706,19 +1779,13 @@ onBeforeUnmount(() => {
       </aside>
     </div>
     <footer class="statusbar" role="status">
-      <span
-        class="status-indicator"
-        :class="{ working: busy, offline: !connected }"
-      /><span :class="{ 'status-notice': statusNotice }">{{ statusNotice || status }}</span
-      ><span
-        v-if="state?.dirty || recordsDirty || state?.workspace_dirty"
-        class="status-unsaved"
-        >Unsaved draft</span
-      ><span class="spacer" /><span>Tab to navigate</span
-      ><span class="status-divider" /><span>Ctrl / ⌘ + F to find</span
-      ><span class="status-divider" /><span>{{
-        state?.unit || "GEstimator"
-      }}</span>
+      <span class="status-indicator" :class="{ working: busy, offline: !connected }" /><span
+        :class="{ 'status-notice': statusNotice }"
+        >{{ statusNotice || status }}</span
+      ><span v-if="state?.dirty || recordsDirty || state?.workspace_dirty" class="status-unsaved">Unsaved draft</span
+      ><span class="spacer" /><span>Tab to navigate</span><span class="status-divider" /><span
+        >Ctrl / ⌘ + F to find</span
+      ><span class="status-divider" /><span>{{ state?.unit || "GEstimator" }}</span>
     </footer>
   </div>
   <Dialog
@@ -1739,12 +1806,9 @@ onBeforeUnmount(() => {
         >Project file
         <div class="file-input">
           <input
-            v-model="filePath" data-primary-input
-            :placeholder="
-              fileMode === 'open'
-                ? '/path/to/project.eproj'
-                : '/path/to/project-edited.eproj'
-            "
+            v-model="filePath"
+            data-primary-input
+            :placeholder="fileMode === 'open' ? '/path/to/project.eproj' : '/path/to/project-edited.eproj'"
             required
             autofocus
           /><button type="button" class="button secondary" @click="browse">
@@ -1762,8 +1826,11 @@ onBeforeUnmount(() => {
       </p>
       <label v-if="fileMode === 'open' && recentProjects.length" class="field">
         Recent projects
-        <select aria-label="Recent projects" :value="recentProjects.includes(filePath) ? filePath : ''"
-          @change="filePath = ($event.target as HTMLSelectElement).value">
+        <select
+          aria-label="Recent projects"
+          :value="recentProjects.includes(filePath) ? filePath : ''"
+          @change="filePath = ($event.target as HTMLSelectElement).value"
+        >
           <option value="">Choose a recent project</option>
           <option v-for="path in recentProjects" :key="path" :value="path">{{ path }}</option>
         </select>
@@ -1771,38 +1838,40 @@ onBeforeUnmount(() => {
       </label>
       <div v-if="fileMode === 'open' && recoveryProjects.length" class="field">
         <strong>Recover unsaved work</strong>
-        <button v-for="copy in recoveryProjects" :key="copy.id" type="button"
-          class="button secondary" :disabled="uiBusy" @click="recoverProject(copy.id)">
+        <button
+          v-for="copy in recoveryProjects"
+          :key="copy.id"
+          type="button"
+          class="button secondary"
+          :disabled="uiBusy"
+          @click="recoverProject(copy.id)"
+        >
           Recover project from {{ new Date(copy.updated * 1000).toLocaleString() }}
         </button>
       </div>
       <div class="dialog-footer">
-        <button type="button" class="button secondary" @click="fileMode = null">
-          Cancel</button
+        <button type="button" class="button secondary" @click="fileMode = null">Cancel</button
         ><button class="button primary" :disabled="uiBusy || !filePath.trim()">
-          <AppIcon
-            :name="fileMode === 'open' ? 'folder' : 'save'"
-            :size="16"
-          />{{
-            busy
-              ? "Working…"
-              : fileMode === "open"
-                ? "Open project"
-                : "Save copy"
+          <AppIcon :name="fileMode === 'open' ? 'folder' : 'save'" :size="16" />{{
+            busy ? "Working…" : fileMode === "open" ? "Open project" : "Save copy"
           }}
         </button>
       </div>
     </form></Dialog
   >
-  <DatabasePicker v-model="analysisResourcesOpen" analysis kind="resources" mode="add" :revision="state?.revision || 0" :target-ids="[]" :apply="addAnalysisResources" :parent-error="error" @manage="libraryManagerOpen = true" />
-  <Dialog
-    v-model:visible="resourceOpen"
-    modal
-    header="Add custom resource"
-    class="workspace-dialog resource-dialog"
-    ><p class="dialog-intro">
-      Create a resource definition and insert it into the selected analysis group.
-    </p>
+  <DatabasePicker
+    v-model="analysisResourcesOpen"
+    analysis
+    kind="resources"
+    mode="add"
+    :revision="state?.revision || 0"
+    :target-ids="[]"
+    :apply="addAnalysisResources"
+    :parent-error="error"
+    @manage="libraryManagerOpen = true"
+  />
+  <Dialog v-model:visible="resourceOpen" modal header="Add custom resource" class="workspace-dialog resource-dialog"
+    ><p class="dialog-intro">Create a resource definition and insert it into the selected analysis group.</p>
     <label class="field"
       >Destination group<select v-model="groupId">
         <option v-for="group in groups" :key="group.id" :value="group.id">
@@ -1812,16 +1881,13 @@ onBeforeUnmount(() => {
     >
     <form @submit.prevent="insertResource()">
       <div class="field-pair">
-        <label class="field"
-          >Resource code<input
-            v-model="form.code"
-            placeholder="Automatic if blank" /></label
-        ><label class="field"
-          >Unit<input v-model="form.unit" required placeholder="e.g. kg"
-        /></label>
+        <label class="field">Resource code<input v-model="form.code" placeholder="Automatic if blank" /></label
+        ><label class="field">Unit<input v-model="form.unit" required placeholder="e.g. kg" /></label>
       </div>
       <label class="field"
-        >Description<textarea data-primary-input autofocus
+        >Description<textarea
+          data-primary-input
+          autofocus
           v-model="form.description"
           required
           rows="3"
@@ -1829,30 +1895,16 @@ onBeforeUnmount(() => {
         />
       </label>
       <div class="field-pair">
-        <label class="field"
-          >Base rate<input
-            v-model="form.rate"
-            inputmode="decimal"
-            required /></label
-        ><label class="field"
-          >Quantity<input v-model="form.qty" inputmode="decimal" required
-        /></label>
+        <label class="field">Base rate<input v-model="form.rate" inputmode="decimal" required /></label
+        ><label class="field">Quantity<input v-model="form.qty" inputmode="decimal" required /></label>
       </div>
       <div class="field-pair">
-        <label class="field"
-          >Tax %<input v-model="form.vat" inputmode="decimal" /></label
-        ><label class="field"
-          >Discount %<input v-model="form.discount" inputmode="decimal"
-        /></label>
+        <label class="field">Tax %<input v-model="form.vat" inputmode="decimal" /></label
+        ><label class="field">Discount %<input v-model="form.discount" inputmode="decimal" /></label>
       </div>
       <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
       <div class="dialog-footer">
-        <button
-          type="button"
-          class="button secondary"
-          @click="resourceOpen = false"
-        >
-          Cancel</button
+        <button type="button" class="button secondary" @click="resourceOpen = false">Cancel</button
         ><button class="button primary" :disabled="uiBusy || !resourceTarget">
           <AppIcon name="plus" :size="16" />Add resource
         </button>
@@ -1870,14 +1922,8 @@ onBeforeUnmount(() => {
     </p>
     <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
     <div class="dialog-footer">
-      <button
-        class="button secondary"
-        :disabled="uiBusy"
-        @click="cancelDiscard"
-      >
-        Keep editing</button
-      ><button class="button danger" :disabled="uiBusy" @click="discard">
-        Discard changes</button
+      <button class="button secondary" :disabled="uiBusy" @click="cancelDiscard">Keep editing</button
+      ><button class="button danger" :disabled="uiBusy" @click="discard">Discard changes</button
       ><button
         v-if="!pendingProject && (state?.project || recordsDirty)"
         class="button secondary"
@@ -1885,42 +1931,31 @@ onBeforeUnmount(() => {
         @click="applyAndContinue"
       >
         Apply and continue</button
-      ><button
-        v-if="state?.source_path"
-        class="button secondary"
-        :disabled="uiBusy"
-        @click="saveProject"
-      >
-        Save project
-      </button><button
-        class="button primary"
-        :disabled="uiBusy || !state?.project_open"
-        @click="showFile('save')"
-      >
+      ><button v-if="state?.source_path" class="button secondary" :disabled="uiBusy" @click="saveProject">
+        Save project</button
+      ><button class="button primary" :disabled="uiBusy || !state?.project_open" @click="showFile('save')">
         Save copy…
       </button>
     </div></Dialog
   >
-  <Dialog
-    v-model:visible="helpOpen"
-    modal
-    header="Keyboard shortcuts"
-    class="workspace-dialog shortcuts-dialog"
+  <Dialog v-model:visible="helpOpen" modal header="Keyboard shortcuts" class="workspace-dialog shortcuts-dialog"
     ><div class="shortcut-groups">
       <section v-for="group in shortcutGroups" :key="group.title" class="shortcut-group" :aria-label="group.title">
         <h3>{{ group.title }}</h3>
         <div class="shortcut-list">
-          <div v-for="[label, key] in group.items" :key="label"><span>{{ label }}</span><kbd>{{ key }}</kbd></div>
+          <div v-for="[label, key] in group.items" :key="label">
+            <span>{{ label }}</span
+            ><kbd>{{ key }}</kbd>
+          </div>
         </div>
       </section>
     </div>
     <p class="field-hint">
-      Text fields keep their normal editing shortcuts. Copied rows can be pasted in
-      the same editor in another GEstimator window. Measurement records require
-      the same template; whole-item schedule links match codes in the destination.
-      Analysis resource paste uses the selected resource group. In project tables, Ctrl+D duplicates and Delete
-      removes selected items; these shortcuts apply to records when the measurement
-      record table has focus. Spreadsheet cell paste keeps its normal Ctrl+V behavior.
+      Text fields keep their normal editing shortcuts. Copied rows can be pasted in the same editor in another
+      GEstimator window. Measurement records require the same template; whole-item schedule links match codes in the
+      destination. Analysis resource paste uses the selected resource group. In project tables, Ctrl+D duplicates and
+      Delete removes selected items; these shortcuts apply to records when the measurement record table has focus.
+      Spreadsheet cell paste keeps its normal Ctrl+V behavior.
     </p></Dialog
   >
 
@@ -1930,40 +1965,88 @@ onBeforeUnmount(() => {
     header="Duplicate resource definition"
     class="workspace-dialog file-dialog"
     ><p class="dialog-intro">
-      Creates an independent definition under a new code, inserted after this
-      entry with zero quantity.
+      Creates an independent definition under a new code, inserted after this entry with zero quantity.
     </p>
-    <label class="field"
-      >New resource code<input v-model="duplicateCode" data-primary-input autofocus
-    /></label>
+    <label class="field">New resource code<input v-model="duplicateCode" data-primary-input autofocus /></label>
     <div v-if="error" class="dialog-error">{{ error }}</div>
     <div class="dialog-footer">
       <button
         class="button primary"
         :disabled="uiBusy || !duplicateCode"
         @click="
-          w
-            .command('resource.duplicate', { code: duplicateCode })
-            .then((ok) => {
-              if (ok) duplicateOpen = false;
-            })
+          w.command('resource.duplicate', { code: duplicateCode }).then((ok) => {
+            if (ok) duplicateOpen = false;
+          })
         "
       >
         Create independent resource
       </button>
     </div></Dialog
   >
-  <SpreadsheetRangeImport v-if="importAnalysisOpen" v-model="importAnalysisOpen"
-    :apply="(params) => w.command('analysis.import_xlsx', params)" :error="error" />
-  <ProjectSettings v-if="settingsOpen" v-model="settingsOpen" :revision="state?.revision" :busy="uiBusy" @saved="w.refresh()" />
-  <LibraryManager ref="libraryManager" v-model="libraryManagerOpen" :project-open="!!state?.project_open" @changed="librariesChanged" />
+  <SpreadsheetRangeImport
+    v-if="importAnalysisOpen"
+    v-model="importAnalysisOpen"
+    :apply="(params) => w.command('analysis.import_xlsx', params)"
+    :error="error"
+  />
+  <ProjectSettings
+    v-if="settingsOpen"
+    v-model="settingsOpen"
+    :revision="state?.revision"
+    :busy="uiBusy"
+    @saved="w.refresh()"
+  />
+  <LibraryManager
+    ref="libraryManager"
+    v-model="libraryManagerOpen"
+    :project-open="!!state?.project_open"
+    @changed="librariesChanged"
+  />
   <MCPSettings v-model="mcpSettingsOpen" />
-  <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">{{ mcpMessage }}</div>
+  <div v-if="activeTab === 'mcp' && !mcpSettingsOpen && mcpMessage" class="mcp-feedback" role="status">
+    {{ mcpMessage }}
+  </div>
   <ThemedDropdowns />
   <ApplicationHelp v-model:manual="manualOpen" v-model:about="aboutOpen" />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
-  <DatabasePicker v-for="kind in (['schedule', 'resources'] as const)" :key="projectSession + kind" v-model="databasePickers[kind].open" :kind="kind" :mode="databasePickers[kind].mode" :revision="databasePickers[kind].revision" :target-ids="databasePickers[kind].targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />
-  <DatabasePicker :key="projectSession + 'rates'" v-model="databaseRatesPicker.open" :kind="databaseRatesPicker.kind" mode="rates" :revision="databaseRatesPicker.revision" :target-ids="databaseRatesPicker.targetIds" :apply="applyDatabase" :parent-error="databaseError" @manage="libraryManagerOpen = true" />
-  <AnalysisBatchDialog v-if="analysisBatchOpen && state" v-model="analysisBatchOpen" :template="analysisTemplateMode" :selected="selected" :state="state" :apply="params => w.command('analysis.batch', params)" />
-  <AnalysisRulesDialog v-if="analysisRulesOpen && state" v-model="analysisRulesOpen" :revision="state.revision" :ids="analysisRuleIds" :code="analysisRuleCode" :dirty="state.dirty" :apply="applyAnalysisRules" />
+  <DatabasePicker
+    v-for="kind in ['schedule', 'resources'] as const"
+    :key="projectSession + kind"
+    v-model="databasePickers[kind].open"
+    :kind="kind"
+    :mode="databasePickers[kind].mode"
+    :revision="databasePickers[kind].revision"
+    :target-ids="databasePickers[kind].targetIds"
+    :apply="applyDatabase"
+    :parent-error="databaseError"
+    @manage="libraryManagerOpen = true"
+  />
+  <DatabasePicker
+    :key="projectSession + 'rates'"
+    v-model="databaseRatesPicker.open"
+    :kind="databaseRatesPicker.kind"
+    mode="rates"
+    :revision="databaseRatesPicker.revision"
+    :target-ids="databaseRatesPicker.targetIds"
+    :apply="applyDatabase"
+    :parent-error="databaseError"
+    @manage="libraryManagerOpen = true"
+  />
+  <AnalysisBatchDialog
+    v-if="analysisBatchOpen && state"
+    v-model="analysisBatchOpen"
+    :template="analysisTemplateMode"
+    :selected="selected"
+    :state="state"
+    :apply="(params) => w.command('analysis.batch', params)"
+  />
+  <AnalysisRulesDialog
+    v-if="analysisRulesOpen && state"
+    v-model="analysisRulesOpen"
+    :revision="state.revision"
+    :ids="analysisRuleIds"
+    :code="analysisRuleCode"
+    :dirty="state.dirty"
+    :apply="applyAnalysisRules"
+  />
 </template>

@@ -929,3 +929,44 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   state and clean-machine packages were not observed. The roadmap records that
   the current locked Prettier dependency is absent from the offline Flathub Node
   source list; that build input still needs regeneration/verification.
+
+## 2026-11-23 — Workspace navigation/MCP and library handler extraction
+
+- Documentation cleanup was committed separately as `cf04477` before this
+  refactoring batch. Current architecture maps, audit status and roadmap now
+  reflect the new owners.
+- `useWorkspaceNavigation.ts` owns editor/ribbon state, visited views, history,
+  measurement-entry identity, inspector visibility and document memory. Its
+  explicit callbacks use the existing shell draft guard and analysis-load/focus
+  path; there is no second unsaved-work guard. `useWorkspaceMCP.ts` owns the
+  mounted workspace's change/project counters, status polling, refresh ordering
+  and interval cleanup. Initial counters still suppress replay of agent writes
+  that occurred before a document remounted.
+- `libraries.py` owns read-only attachment snapshots, catalog, source summaries
+  and notes. `library_import.py` owns import staging/rate policies, with separate
+  source-order and dependency helpers. `ProjectEditor` retains its methods as
+  forwarding API, attachment handles, transaction/undo and placement helpers.
+  Selected dependencies still import separately from their prefixed zero-quantity
+  SUB ANALYSIS copies. `project.py` shrank from 1,869 to 1,527 lines.
+- The five initial library extractions matched the original AST excluding
+  receiver names/import placement. After factoring source order and dependencies,
+  reconstructing the helper stage also matched the entire original import
+  coordinator AST. No schema, calculation or public desktop/MCP method changed.
+- Required formatting was applied to touched source only. Prettier expanded
+  compact App markup, so its physical line count rose while responsibility moved
+  into the two composables. The audit documents the retained size-review triggers
+  for the staged import coordinator and cohesive composable setup.
+- Focused backend tests passed (three sub-analysis ordering tests and five
+  database workflow tests). Full Python suite: **219 tests, OK, two skipped**.
+  Type checking/production build passed with the existing entry-chunk size warning.
+  Extra Ruff unused-import/undefined-name checks passed for extracted backend code.
+- Rebuilt the frozen sidecar and ran it outside the checkout: external and
+  bundled attachment, selected dependency import, project undo/redo, save and
+  shutdown passed. The external source database's SHA-256 hash was unchanged.
+  PyInstaller's platform-guarded macOS framework warnings remain on Windows.
+- Full browser suite: **89 passed, one performance test skipped**. This includes
+  MCP refresh, unsaved draft guards, navigation history, database imports and
+  document-tab restoration. The other 45 `ProjectEditor` methods retained identical
+  ASTs, and the 43 remaining shell handlers retained normalized TypeScript syntax.
+- Documentation links/anchors, changed-source formatting and `git diff --check`
+  passed. No Rust source changed; native tests were not rerun for this batch.

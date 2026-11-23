@@ -149,6 +149,7 @@ The transport retains MCP 2025-11-25 Streamable HTTP JSON responses and negotiat
 | Packaged skill discovery and safe resource reads | [`mcp_skills.py`](../../modern/backend/mcp_skills.py) |
 | Serialized dispatch and active document selection | [`runtime.py`](../../modern/backend/runtime.py) |
 | UI connection controls and preference restoration | [`mcp.ts`](../../modern/src/mcp.ts) |
+| Mounted workspace change polling and authoritative refresh | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 
 The schema registry is authoritative for public names, enums and size bounds.
 Do not expose another desktop method as a tool without reviewing the existing

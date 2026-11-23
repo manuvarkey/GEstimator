@@ -16,6 +16,8 @@ formatting is presentation; the currency option does not convert prices.
 | Active document workspace lifetime | [`Root.vue`](../../modern/src/Root.vue) |
 | Document/session store and actions | [`documents.ts`](../../modern/src/documents.ts), [`useDocumentTabs.ts`](../../modern/src/useDocumentTabs.ts) |
 | Shell, ribbon/context, guarded navigation and coordination | [`App.vue`](../../modern/src/App.vue) |
+| View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
+| MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | JSON request transport and shared analysis types | [`backend.ts`](../../modern/src/backend.ts) |
@@ -28,8 +30,9 @@ formatting is presentation; the currency option does not convert prices.
 
 Before adding behavior to a shell/view, check for an existing shared helper.
 Extract a separate concern into a composable or component with explicit inputs
-and cleanup. The [quality audit](../code-quality-audit.md) identifies navigation,
-MCP refresh and measurement view state as remaining extraction candidates.
+and cleanup. Navigation/history and MCP refresh now have separate composables;
+the [quality audit](../code-quality-audit.md) tracks the remaining shell and
+measurement view concerns.
 
 ## Document and view lifetimes
 
@@ -39,9 +42,12 @@ workspace and mounts another. Backend projects and drafts remain alive; local
 component state does not automatically survive remounting.
 
 `tabMemory.ts` stores document-specific navigation, selection, paging and scroll
-state for restoration. A new/replaced project or closed document forgets its
-old state. `useDocumentTabs` routes New/Open/Close and window close through the
-workspace guard; do not bypass it from a new button or native callback.
+state for restoration. `useWorkspaceNavigation` owns editor/ribbon state, history,
+record-page identity, inspector visibility and the workspace memory snapshot.
+It receives the shell's draft guard and analysis-loading/focus callbacks, keeping
+one guard path. A new/replaced project or closed document forgets its old state.
+`useDocumentTabs` routes New/Open/Close and window close through that same guard;
+do not bypass it from a new button or native callback.
 
 Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
 select ribbon context while preserving the active editor. Active project views
@@ -60,10 +66,13 @@ valid. Do not use a visible row index as an item identity. Hidden category
 contents and off-page rows are resolved by backend selection expansion; frontend
 filtering cannot define deletion, import or total scope.
 
-MCP polls change sequence/project epoch and refreshes the active workspace.
+`useWorkspaceMCP` polls change sequence/project epoch and refreshes the active workspace.
 Refresh is deferred around human edits and dialogs. A stale edit is rejected
 with its input retained for correction; do not silently overwrite it with an
-agent's new value. See [MCP synchronization](mcp.md#desktop-synchronization-and-transport)
+agent's new value. Poll state is local to the mounted workspace, seeded from
+current MCP status after initialization and cleared on unmount. Do not replay
+earlier agent writes as project replacements when switching back to a document.
+See [MCP synchronization](mcp.md#desktop-synchronization-and-transport)
 and [backend revisions](backend.md#revisions-and-write-boundaries).
 
 ## Grids and drafts
