@@ -110,7 +110,7 @@ async function exportWorkbook() {
     });
     if (typeof path === "string") {
       await run(async () => {
-        await request("analysis.export_xlsx", { path });
+        await request("analysis.export_xlsx", { path, replace_selected: true });
       }, "Exporting analysis…");
     }
   } catch (reason) {

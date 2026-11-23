@@ -1094,3 +1094,23 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   focus and restoration of inspector visibility after switching project tabs.
 - Changed-source formatting, documentation checks across 36 Markdown files
   and `git diff --check` passed.
+
+
+## Flatpak file access — 2026-11-23
+
+**Linux review pending.** Complete the [installed Flatpak smoke test](../../packaging/flathub/README.md#linux-desktop-review) before resubmitting to Flathub.
+
+- Windows Python suite ran 224 tests with 222 passing and two skipped. The
+  portal regressions cover both mount paths, folder and file identity checks,
+  sibling backups, WAL rejection and rollback of a failed workbook overwrite.
+- The full Chromium integration run passed 90 tests with the opt-in performance
+  test skipped. A separate targeted run passed the folder-picker cancellation
+  test. The full run included the remembered-library reselection test.
+- The production frontend, changed-file formatting, documentation checks,
+  native Rust formatting, five Windows Rust tests and Windows Clippy passed.
+  Vite retained its bundle-size warning. The rebuilt Windows sidecar saved a
+  project and attached it as a read-only library in a smoke test.
+- Locked Cargo feature resolution selected the portal backend on both Linux
+  architectures. Manifest generation and offline Cargo source checks passed.
+  The installed Linux Flatpak and its real file chooser, file-manager
+  forwarding and Documents mount still require a desktop smoke test.

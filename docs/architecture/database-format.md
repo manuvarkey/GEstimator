@@ -132,6 +132,9 @@ user/library databases. Their columns are owned by
 - Save Copy exclusively creates a new destination. Save checks the original's
   fingerprint/journals, stages a complete snapshot, preserves a numbered sibling
   backup and replaces the original under an advisory save lock.
+  On Flatpak, a project opened through a file grant needs a folder grant for
+  the first in-place Save. GEstimator verifies that both grants identify the
+  same unchanged project before writing through the folder grant.
 - Recovery writes staged snapshots and uses per-copy OS claims to keep active
   documents in other processes from offering/deleting the same recovery copy.
   Recovery includes pending analysis/record drafts; it does not persist undo history.

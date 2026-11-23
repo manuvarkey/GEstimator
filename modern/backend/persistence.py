@@ -3,10 +3,10 @@
 import errno
 import hashlib
 import os
-from pathlib import Path
 import shutil
-from tempfile import NamedTemporaryFile
 from contextlib import contextmanager
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 
 def fingerprint(path):
@@ -36,10 +36,96 @@ def verify_source(path, expected):
         raise ValueError("Project has an active SQLite journal. Close other editors or save a copy.")
 
 
+def portal_parts(path):
+    """Return the path within the app's filtered Documents mount."""
+    if not os.environ.get("FLATPAK_ID"):
+        return ()
+    roots = [Path("/run/flatpak/doc")]
+    if runtime := os.environ.get("XDG_RUNTIME_DIR"):
+        roots.append(Path(runtime) / "doc")
+    for root in roots:
+        try:
+            return Path(path).relative_to(root).parts
+        except ValueError:
+            continue
+    return ()
+
+
+def flatpak_document(path):
+    """Identify a document root by its document ID and filename."""
+    return len(portal_parts(path)) == 2
+
+
+def resolve_input(path):
+    """Explain how to grant access when an incoming host path is unavailable."""
+    try:
+        return Path(path).resolve(strict=True)
+    except FileNotFoundError as error:
+        if os.environ.get("FLATPAK_ID"):
+            raise ValueError("File unavailable. Use Browse to select it again.") from error
+        raise
+
+
+def check_database_access(path):
+    """A single-file export can hide SQLite's committed WAL transactions."""
+    if flatpak_document(path):
+        with path.open("rb") as source:
+            header = source.read(20)
+        if header.startswith(b"SQLite format 3\x00") and 2 in header[18:20]:
+            raise ValueError("This SQLite database uses a write-ahead log. Select a standalone SQLite backup instead.")
+
+
+def save_target(source, expected, directory):
+    """Confirm that a folder grant exposes the same unchanged project."""
+    if not directory:
+        raise ValueError("Choose the project folder in GEstimator to save in place, or use Save Copy.")
+    directory = Path(directory).resolve(strict=True)
+    destination = directory / source.name
+    if len(portal_parts(directory)) < 2 or not directory.is_dir() or destination.is_symlink():
+        raise ValueError("Choose the folder containing the open project.")
+    try:
+        # The portal exposes the host path as metadata. All I/O uses sandbox paths.
+        attribute = "user.document-portal.host-path"
+        original = os.getxattr(source, attribute)
+        selected = os.getxattr(destination, attribute)
+    except OSError as error:
+        raise ValueError("Could not identify the original project in this folder. Try Save Copy.") from error
+    if original != selected:
+        raise ValueError("Choose the folder containing the open project.")
+    verify_source(source, expected)
+    actual = fingerprint(destination)
+    # The file and folder grants have different virtual inode identities.
+    if any(actual[1:]) or (actual[0][0][2:], actual[0][1]) != (expected[0][0][2:], expected[0][1]):
+        raise ValueError("Project changed on disk. Reopen it or save a copy.")
+    return destination, actual
+
+
 def temporary_sibling(path):
-    with NamedTemporaryFile(prefix=".gestimator-", suffix=".tmp", dir=path.parent,
-                            delete=False) as stream:
+    with NamedTemporaryFile(prefix=".gestimator-", suffix=".tmp", dir=path.parent, delete=False) as stream:
         return Path(stream.name)
+
+
+@contextmanager
+def export_output(destination, replace_selected=False):
+    """Publish a chooser-confirmed replacement only after a complete export."""
+    if replace_selected and flatpak_document(destination):
+        staged = temporary_sibling(destination)
+        try:
+            yield staged
+            with staged.open("rb+") as stream:
+                os.fsync(stream.fileno())
+            staged.replace(destination)
+        finally:
+            staged.unlink(missing_ok=True)
+        return
+
+    with destination.open("xb"):
+        pass
+    try:
+        yield destination
+    except Exception:
+        destination.unlink()
+        raise
 
 
 def write_recovery(path, write):

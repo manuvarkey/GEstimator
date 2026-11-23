@@ -4294,6 +4294,37 @@ test("long first-level items retain typography and indentation through Enter and
   expect(await readFile(path)).toEqual(original);
 });
 
+test("reselecting a remembered library replaces its unavailable path", async ({ page }) => {
+  const oldPath = resolve(directory, "unavailable.eproj");
+  const newPath = resolve(directory, "library.eproj");
+  await call("project.new");
+  await call("project.save_copy", { path: newPath });
+  await page.addInitScript((path) => {
+    localStorage.setItem(
+      "gestimator.libraries.v1",
+      JSON.stringify({
+        version: 1,
+        libraries: [{ name: "External library", path }],
+      }),
+    );
+  }, oldPath);
+  await page.goto("/");
+  const manager = await openDatabaseManager(page);
+  const saved = manager.locator(".saved-libraries");
+  await expect(saved.getByText(oldPath)).toBeVisible();
+
+  nativeDialogResults.push(null, newPath);
+  const reselect = manager.getByRole("button", { name: "Reselect library External library" });
+  await reselect.click();
+  await expect(saved.getByText(oldPath)).toBeVisible();
+  await reselect.click();
+  await expect(saved.getByText(newPath)).toBeVisible();
+  await expect(saved.getByText(oldPath)).toHaveCount(0);
+  await expect(manager.locator(".attached-database")).toHaveCount(1);
+  const preferences = await page.evaluate(() => JSON.parse(localStorage.getItem("gestimator.libraries.v1") || "{}"));
+  expect(preferences.libraries).toEqual([{ name: "library", path: newPath }]);
+});
+
 test("arrows edit text within a cell and toolbar SVGs use two-tone engineering icons", async ({ page }) => {
   await refinementFixture(page);
   const checkCaret = async (cell: ReturnType<Page["locator"]>) => {
@@ -5452,4 +5483,45 @@ test("project tabs keep the analysis inspector and measurement record view", asy
   await expect(records.locator(".tabulator-row.tabulator-selected")).toHaveCount(1);
   await expect.poll(() => records.locator(".tabulator-row.tabulator-selected").innerText()).toBe(selectedText);
   await expect.poll(() => holder.evaluate((element) => element.scrollTop)).toBeGreaterThan(top - 40);
+});
+
+test("in-place save waits for folder selection and keeps edits on cancellation", async ({ page }) => {
+  const project = await refinementFixture(page);
+  await page.evaluate(() => {
+    const internals = (window as any).__TAURI_INTERNALS__;
+    const invoke = internals.invoke;
+    internals.invoke = async (command: string, params: unknown) => {
+      const reply = await invoke(command, params);
+      if (command === "backend_request" && reply?.result?.source_path && "source_requires_folder" in reply.result) {
+        reply.result.source_requires_folder = true;
+      }
+      return reply;
+    };
+  });
+
+  const quantity = page
+    .locator(".project-view:visible .tabulator-row")
+    .filter({ has: page.locator('[tabulator-field="code"]').filter({ hasText: /^A$/ }) })
+    .locator('[tabulator-field="qty"]');
+  await quantity.dblclick();
+  await quantity.locator("input").fill("2");
+  await quantity.locator("input").press("Enter");
+  await expect(page.getByRole("status", { name: "Overall estimate total", exact: true })).toContainText("45.00");
+
+  async function saveProject() {
+    await page.getByRole("button", { name: "Application menu", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Save project", exact: true }).click();
+    await expect.poll(() => nativeDialogResults.length).toBe(0);
+  }
+
+  nativeDialogResults.push(null);
+  await saveProject();
+  expect(frontendCalls.some(({ method }) => method === "project.save")).toBe(false);
+  expect((await call("state")).result.workspace_dirty).toBe(true);
+
+  nativeDialogResults.push(directory);
+  await saveProject();
+  await expect.poll(() => frontendCalls.find(({ method }) => method === "project.save")?.params).toEqual({ directory });
+  await expect.poll(async () => (await call("state")).result.workspace_dirty).toBe(false);
+  expect(await readFile(project + ".bak")).not.toEqual(await readFile(project));
 });

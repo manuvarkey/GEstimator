@@ -8,8 +8,17 @@ Files for the Flathub repository [flathub/com.kavilgroup.gestimator](https://git
 - `cargo-sources.json`, `node-sources.json` and `python-sources.json` list every Rust crate, npm package and Python package with its checksum. Regenerate them with `python3 packaging/flathub/generate-sources.py` after changing `modern/src-tauri/Cargo.lock`, `modern/package-lock.json` or `requirements.txt`.
 - The frontend is built with Vite and the Tauri binary with `cargo build --offline`. The backend runs from source on the runtime's Python (`gestimator-backend` wrapper) instead of the PyInstaller executable used by the other packages.
 - peewee is installed without its optional C extensions (`NO_SQLITE=1`); they do not build with the SDK's Cython and GEstimator does not use them.
+- The Flatpak enables Tauri's XDG FileChooser backend and uses Flatpak file forwarding for file-manager opens. The [database format contract](../../docs/architecture/database-format.md#working-copies-save-and-recovery) covers folder grants for in-place saves.
 
 Test the manifest with the working tree: `packaging/flathub/build-local.sh` (writes `local.json`, builds `gestimator.flatpak`). The Release workflow runs the same build.
+
+## Linux desktop review
+
+Test the installed Flatpak without a filesystem override. Open a project with
+the chooser and by double-clicking it in the file manager. Save in place after
+selecting the project folder and verify the sibling backup. Attach and remember
+an external library, restart the app, and check that it is attached again.
+Export a workbook to a new file and to an existing file after confirmation.
 
 For a release:
 

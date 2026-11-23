@@ -183,8 +183,27 @@ export function useProjectFiles(context: ProjectFilesContext) {
   }
 
   async function saveProject() {
-    if (!state.value?.source_path) showFile("save");
-    else if (await w.saveProject()) await continueAfterSave();
+    if (!state.value?.source_path) {
+      await showFile("save");
+      return;
+    }
+    let directory: string | undefined;
+    const dirty = state.value.workspace_dirty || state.value.dirty || state.value.measurement_draft?.dirty;
+    if (state.value.source_requires_folder && dirty) {
+      try {
+        const selected = await open({
+          title: "Choose the project folder to save and keep backups",
+          directory: true,
+          multiple: false,
+        });
+        if (typeof selected !== "string") return;
+        directory = selected;
+      } catch (reason) {
+        error.value = String(reason);
+        return;
+      }
+    }
+    if (await w.saveProject(directory)) await continueAfterSave();
   }
 
   async function newProject() {

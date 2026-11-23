@@ -13,8 +13,7 @@
         "--socket=fallback-x11",
         "--device=dri",
         "--share=ipc",
-        "--share=network",
-        "--filesystem=home"
+        "--share=network"
     ],
     "modules": [
         {
@@ -52,7 +51,7 @@
                 "cd modern && npm ci --no-audit --no-fund",
                 "cd modern && npx vite build",
                 "install -Dm755 packaging/flathub/gestimator-backend modern/src-tauri/binaries/gestimator-backend-$(rustc -vV | sed -n 's/^host: //p')",
-                "cd modern/src-tauri && cargo build --offline --release --features custom-protocol",
+                "cd modern/src-tauri && cargo build --offline --release --no-default-features --features custom-protocol,flatpak-portal",
                 "install -Dm755 modern/src-tauri/target/release/gestimator -t ${FLATPAK_DEST}/bin/",
                 "install -Dm755 packaging/flathub/gestimator-backend -t ${FLATPAK_DEST}/bin/",
                 "mkdir -p ${FLATPAK_DEST}/share/gestimator/modern",
@@ -61,6 +60,7 @@
                 "find ${FLATPAK_DEST}/share/gestimator -name __pycache__ -prune -exec rm -rf {} +",
                 "python3 -m compileall -q ${FLATPAK_DEST}/share/gestimator",
                 "install -Dm644 packaging/linux/applications/${FLATPAK_ID}.desktop -t ${FLATPAK_DEST}/share/applications/",
+                "sed -i 's/^Exec=gestimator %F$/Exec=gestimator @@ %F @@/' \"${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop\"",
                 "install -Dm644 packaging/flathub/fontconfig-local.conf ${FLATPAK_DEST}/etc/fonts/local.conf",
                 "install -Dm644 packaging/linux/metainfo/${FLATPAK_ID}.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/",
                 "install -Dm644 packaging/linux/mime/${FLATPAK_ID}.xml -t ${FLATPAK_DEST}/share/mime/packages/",

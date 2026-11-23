@@ -1,27 +1,33 @@
 """Serialized, authoritative analysis session; no GTK or frontend calculations."""
 
 from __future__ import annotations
+
 import copy
+import json
+import sqlite3
+import tempfile
 from contextlib import closing
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-import sqlite3
-import json
-import tempfile
-from uuid import uuid4
 from typing import Any
-from estimator.data.schedule import (
-    ScheduleDatabase,
-    ScheduleItemModel,
-    ResourceItemModel,
-    Currency,
-)
-from estimator.undo import Stack
-from estimator import misc
+from uuid import uuid4
 
+from estimator import misc
+from estimator.data.schedule import Currency, ResourceItemModel, ScheduleDatabase, ScheduleItemModel
+from estimator.undo import Stack
 
 from .numbers import decimal, tax_text
-from .persistence import RecoveryClaim, fingerprint, save_existing, write_recovery
+from .persistence import (
+    RecoveryClaim,
+    check_database_access,
+    export_output,
+    fingerprint,
+    flatpak_document,
+    resolve_input,
+    save_existing,
+    save_target,
+    write_recovery,
+)
 
 
 def text(value: Any) -> str:
@@ -33,6 +39,7 @@ def text(value: Any) -> str:
 class Service:
     def __init__(self, recovery_dir=None, dispatch=None, mcp=None, peers=None):
         from .mcp_server import MCPServer
+
         # Document sessions share one MCP listener owned by the runtime.
         self.owns_mcp = mcp is None
         self.mcp = mcp if mcp is not None else MCPServer(dispatch)
@@ -43,6 +50,7 @@ class Service:
         self.loaded = False
         self.workspace_dirty = False
         self.source_path = None
+        self.source_save_path = None
         self.source_fingerprint = None
         self.recovery_dir = recovery_dir
         self.recovery_id = uuid4().hex
@@ -84,21 +92,15 @@ class Service:
     def guard_draft(self, params, project=False, records=True):
         if records and self.records_dirty and params.get("discard") is not True:
             raise ValueError("Unsaved measurement records: apply or discard the draft first")
-        if (self.dirty or (project and self.workspace_dirty)) and params.get(
-            "discard"
-        ) is not True:
-            raise ValueError(
-                "Unsaved analysis: save the project or explicitly discard the draft first"
-            )
+        if (self.dirty or (project and self.workspace_dirty)) and params.get("discard") is not True:
+            raise ValueError("Unsaved analysis: save the project or explicitly discard the draft first")
 
     def identify(self):
         for row in self.model.ana_items:
             row.setdefault("_id", uuid4().hex)
             if row["itemtype"] == 0:
                 # Resource records remain legacy lists; identities live on their group.
-                row.setdefault(
-                    "_resource_ids", [uuid4().hex for _ in row["resource_list"]]
-                )
+                row.setdefault("_resource_ids", [uuid4().hex for _ in row["resource_list"]])
 
     def locate(self, identity):
         for i, row in enumerate(self.model.ana_items):
@@ -114,9 +116,7 @@ class Service:
         for row, result in zip(self.model.ana_items, self.model.results):
             data = dict(
                 id=row["_id"],
-                kind=["Group", "Subtotal", "Weight", "Multiply", "Round"][
-                    row["itemtype"]
-                ],
+                kind=["Group", "Subtotal", "Weight", "Multiply", "Round"][row["itemtype"]],
                 description=row["description"] or "",
                 code=row.get("code") or "",
                 value=str(row.get("value", "")),
@@ -124,9 +124,7 @@ class Service:
             )
             if row["itemtype"] == 0:
                 data["_children"] = []
-                for identity, entry, res_result in zip(
-                    row["_resource_ids"], row["resource_list"], result[:-1]
-                ):
+                for identity, entry, res_result in zip(row["_resource_ids"], row["resource_list"], result[:-1]):
                     res = self.model.resources[entry[0]]
                     data["_children"].append(
                         dict(
@@ -158,18 +156,19 @@ class Service:
             project=self.db is not None and self.loaded,
             project_open=self.db is not None,
             source_path=self.source_path,
+            source_requires_folder=bool(
+                self.source_path and not self.source_save_path and flatpak_document(self.source_path)
+            ),
             unit=self.model.unit or "",
             dirty=self.dirty,
-            measurement_draft=(self.project_editor.measurement_draft.state() if self.db and self.project_editor.measurement_draft else None),
-            libraries=(
-                self.project_editor.sources() if hasattr(self, "project_editor") else []
+            measurement_draft=(
+                self.project_editor.measurement_draft.state()
+                if self.db and self.project_editor.measurement_draft
+                else None
             ),
+            libraries=(self.project_editor.sources() if hasattr(self, "project_editor") else []),
             workspace_dirty=self.workspace_dirty,
-            project_name=(
-                self.db.get_project_settings().get("project_name", "")
-                if self.db
-                else ""
-            ),
+            project_name=(self.db.get_project_settings().get("project_name", "") if self.db else ""),
             ana_remarks=self.model.ana_remarks or "",
         )
 
@@ -187,36 +186,45 @@ class Service:
                 return self.mcp.stop()
             if method == "mcp.rotate_token":
                 from secrets import token_urlsafe
+
                 return self.mcp.configure(dict(token=token_urlsafe(32)))
             if method == "mcp.read":
                 if "_listener" in p and (self.mcp.server is None or p["_listener"] != self.mcp.generation):
                     raise ValueError("MCP listener stopped; reconnect and read state before retrying")
                 from .mcp_server import read_tool
+
                 return read_tool(self, p.get("name"), p.get("arguments", {}))
             raise ValueError("Unknown MCP operation")
         if method == "search.warm":
             # Build search indexes after opening so the first search is quick.
             if self.db:
-                from .search import search
                 from .program_settings import library_directory
+                from .search import search
+
                 user = library_directory().parent / "dictionary.user.json"
                 for kind in ("schedule", "resource"):
                     search(self, self.db, kind, "warm", 1, user_path=user)
             return dict(ok=True)
         if method == "workbook.sheet":
             from .importing import sheet_preview
+
             return sheet_preview(p)
         if method.startswith("program."):
             from . import program_settings
+
             if method == "program.desktop_font":
                 from .system_fonts import desktop_font
+
                 return desktop_font()
             if method == "program.settings":
-                return dict(settings=program_settings.defaults(), library_directory=str(program_settings.library_directory()))
+                return dict(
+                    settings=program_settings.defaults(), library_directory=str(program_settings.library_directory())
+                )
             if method == "program.libraries":
                 return program_settings.library_catalog()
             if method == "program.fonts":
                 from .system_fonts import installed_families
+
                 return installed_families()
             if method == "program.settings.validate":
                 settings = program_settings.validate(p.get("settings"))
@@ -232,9 +240,13 @@ class Service:
             return self.state()
         if method == "analysis.template_rows":
             kinds = ["Group", "Subtotal", "Weight", "Multiply", "Round"]
-            return [dict(kind=kinds[row["itemtype"]], description=row["description"], value=str(row.get("value", ""))) for row in misc.ana_default_add_items]
+            return [
+                dict(kind=kinds[row["itemtype"]], description=row["description"], value=str(row.get("value", "")))
+                for row in misc.ana_default_add_items
+            ]
         if method == "analysis.rules.validate":
             from .analysis_rules import validate
+
             return validate(p.get("rules"))
         if method == "recovery.list":
             return self.recovery_projects()
@@ -255,7 +267,7 @@ class Service:
             except Exception:
                 claim.release()
                 raise
-            self.source_path = self.source_fingerprint = None
+            self.source_path = self.source_save_path = self.source_fingerprint = None
             self.workspace_dirty = True
             self.recovered_path = recovery
             self.recovered_claim = claim
@@ -277,7 +289,7 @@ class Service:
                 self.db.close_database()
             self.db = None
             self.loaded = False
-            self.source_path = self.source_fingerprint = self.recovered_path = None
+            self.source_path = self.source_save_path = self.source_fingerprint = self.recovered_path = None
             self.workspace_dirty = False
             self.model = ScheduleItemModel("DEMO", "Untitled rate analysis", "m³")
             self.model.add_ana_group("MATERIALS")
@@ -304,7 +316,7 @@ class Service:
                 self.db.close_database()
             self.db = new
             self.loaded = False
-            self.source_path = None
+            self.source_path = self.source_save_path = None
             self.source_fingerprint = None
             self.recovered_path = None
             self.workspace_dirty = True
@@ -324,29 +336,18 @@ class Service:
             settings = self.db.get_project_settings()
             return {
                 key: settings.get(key, "")
-                for key in (
-                    "project_name",
-                    "project_item_code",
-                    "project_resource_code",
-                    "project_metadata",
-                )
+                for key in ("project_name", "project_item_code", "project_resource_code", "project_metadata")
             }
         if method == "project.open":
             self.guard_draft(p, project=True)
-            source = Path(text(p["path"])).resolve(strict=True)
+            source = resolve_input(text(p["path"]))
+            check_database_access(source)
             before = fingerprint(source)
             progress("Copying project into isolated workspace")
             target = Path(self.temp.name) / (uuid4().hex + ".eproj")
-            with closing(
-                sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)
-            ) as src:
-                version = src.execute(
-                    "SELECT value FROM ProjectTable WHERE key='file_version'"
-                ).fetchone()
-                if version not in (
-                    (misc.PROJECT_FILE_VER,),
-                    ("GESTIMATOR_FILE_REFERENCE_VER_1",),
-                ):
+            with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as src:
+                version = src.execute("SELECT value FROM ProjectTable WHERE key='file_version'").fetchone()
+                if version not in ((misc.PROJECT_FILE_VER,), ("GESTIMATOR_FILE_REFERENCE_VER_1",)):
                     raise ValueError("Unsupported project file version")
                 with closing(sqlite3.connect(target)) as dst:
                     src.backup(dst)
@@ -361,6 +362,7 @@ class Service:
             new.open_database(str(target))
             # Display order only: earlier projects can hold SUB ANALYSIS first.
             from .insertion import keep_sub_analysis_last
+
             keep_sub_analysis_last(new)
             if p.get("discard") is True:
                 self.clear_recovery()
@@ -375,6 +377,7 @@ class Service:
 
             self.project_editor = ProjectEditor(self)
             self.source_path = str(source)
+            self.source_save_path = None
             self.source_fingerprint = before
             self.recovered_path = None
             self.loaded = False
@@ -407,52 +410,44 @@ class Service:
         if method == "analysis.import_preview":
             if not self.loaded:
                 raise ValueError("Load an analysis first")
-            from .analysis_import import import_analysis
+            from .analysis_import import analysis_rows, import_analysis
 
-            from .analysis_import import analysis_rows
             warnings = []
             draft = import_analysis(self.model, p, warnings)
-            return dict(rows=len(draft.ana_items), resources=len(draft.resources),
-                        rate=str(draft.get_ana_rate()), items=analysis_rows(draft), warnings=warnings[:200])
+            return dict(
+                rows=len(draft.ana_items),
+                resources=len(draft.resources),
+                rate=str(draft.get_ana_rate()),
+                items=analysis_rows(draft),
+                warnings=warnings[:200],
+            )
         if method in ("schedule.list", "resources.search"):
             if not self.db:
                 raise ValueError("Open a project first")
             limit = p.get("limit", 100)
             offset = p.get("offset", 0)
-            if (
-                type(limit) is not int
-                or not 1 <= limit <= 200
-                or type(offset) is not int
-                or offset < 0
-            ):
+            if type(limit) is not int or not 1 <= limit <= 200 or type(offset) is not int or offset < 0:
                 raise ValueError("Invalid page")
             selected_db = (
                 self.project_editor.libraries[p["source"]][1]
                 if p.get("source") in self.project_editor.libraries
                 else self.db
             )
-            table = (
-                selected_db.ScheduleTable
-                if method == "schedule.list"
-                else selected_db.ResourceTable
-            )
+            table = selected_db.ScheduleTable if method == "schedule.list" else selected_db.ResourceTable
             query = text(p.get("query", ""))
             if query.strip():
                 from .search import desktop_codes
-                codes, _ = desktop_codes(self, selected_db, "schedule" if method == "schedule.list" else "resources", query)
-                positions = {code: index for index, code in enumerate(codes[offset:offset + limit])}
-                records = sorted(table.select().where(table.code.in_(list(positions))), key=lambda row: positions[row.code])
+
+                codes, _ = desktop_codes(
+                    self, selected_db, "schedule" if method == "schedule.list" else "resources", query
+                )
+                positions = {code: index for index, code in enumerate(codes[offset : offset + limit])}
+                records = sorted(
+                    table.select().where(table.code.in_(list(positions))), key=lambda row: positions[row.code]
+                )
             else:
                 records = table.select().order_by(table.id).offset(offset).limit(limit)
-            return [
-                dict(
-                    code=r.code,
-                    description=r.description,
-                    unit=r.unit,
-                    rate=str(r.rate),
-                )
-                for r in records
-            ]
+            return [dict(code=r.code, description=r.description, unit=r.unit, rate=str(r.rate)) for r in records]
         if method == "analysis.load":
             self.guard_draft(p)
             if not self.db:
@@ -476,28 +471,29 @@ class Service:
         if method == "project.save":
             if not self.source_path or not self.source_fingerprint:
                 raise ValueError("Choose a location with Save project copy first")
-            destination = Path(self.source_path)
             if not (self.workspace_dirty or (self.loaded and self.dirty) or self.records_dirty):
-                return dict(saved=str(destination))
+                return dict(saved=self.source_path)
+            destination = Path(self.source_save_path or self.source_path)
+            expected = self.source_fingerprint
+            if flatpak_document(destination):
+                destination, expected = save_target(destination, expected, p.get("directory"))
             progress("Saving project and preserving a backup")
-            backup = save_existing(
-                destination, self.source_fingerprint, self.write_project_snapshot
-            )
+            backup = save_existing(destination, expected, self.write_project_snapshot)
             self.source_fingerprint = fingerprint(destination)
+            self.source_save_path = str(destination)
             self.finish_project_save()
-            return dict(saved=str(destination), backup=str(backup))
+            return dict(saved=self.source_path, backup=str(backup))
         if method == "project.save_copy":
             if not self.db:
                 raise ValueError("Open a project first")
             destination = Path(text(p["path"])).resolve()
-            # Reserve the output before writing it.
-            with destination.open("xb"):
-                pass
             try:
-                progress("Saving analysis and updating dependent rates")
-                self.write_project_snapshot(destination)
-            except Exception:
-                destination.unlink()
+                with export_output(destination) as output:
+                    progress("Saving analysis and updating dependent rates")
+                    self.write_project_snapshot(output)
+            except FileExistsError as error:
+                if flatpak_document(destination):
+                    raise FileExistsError("Save Copy needs a new filename. Choose another name.") from error
                 raise
             self.finish_project_save()
             if not self.source_path:
@@ -508,6 +504,7 @@ class Service:
             raise ValueError("Stale edit; reload analysis state")
         if method in ("clipboard.export", "clipboard.paste"):
             from . import clipboard
+
             return clipboard.export(self, p) if method == "clipboard.export" else clipboard.paste(self, p)
         if self.records_dirty:
             raise ValueError("Apply or discard unsaved measurement records first")
@@ -522,19 +519,13 @@ class Service:
         if method == "analysis.apply":
             if not self.loaded:
                 raise ValueError("Load an analysis first")
-            self.project_editor.mutate(
-                lambda: self.write_analysis(self.db), reload=False
-            )
+            self.project_editor.mutate(lambda: self.write_analysis(self.db), reload=False)
             self.sync_analysis()
             self.saved_signature = copy.deepcopy(self.signature())
             self.revision += 1
             return self.state()
         if method in ("undo", "redo"):
-            source, dest = (
-                (self.history, self.future)
-                if method == "undo"
-                else (self.future, self.history)
-            )
+            source, dest = (self.history, self.future) if method == "undo" else (self.future, self.history)
             if source:
                 dest.append(copy.deepcopy(self.model))
                 self.model = source.pop()
@@ -608,6 +599,7 @@ class Service:
             position = self.locate(p["id"])[0] + 1 if p.get("id") else 0
             if "rows" in p:
                 from .program_settings import legacy_rows
+
                 rows = legacy_rows(p["rows"])
             else:
                 rows = copy.deepcopy(misc.ana_default_add_items)
@@ -644,12 +636,9 @@ class Service:
             elif kind in ("Weight", "Multiply", "Round"):
                 value = decimal(p["value"])
                 if kind == "Round" and (
-                    abs(value) > 12
-                    or (value != int(value) and int((value - int(value)) * 10) == 0)
+                    abs(value) > 12 or (value != int(value) and int((value - int(value)) * 10) == 0)
                 ):
-                    raise ValueError(
-                        "Use rounding places from -12 to 12 with a non-zero tenth for interval rounding"
-                    )
+                    raise ValueError("Use rounding places from -12 to 12 with a non-zero tenth for interval rounding")
                 {
                     "Weight": self.model.add_ana_weight,
                     "Multiply": self.model.add_ana_times,
@@ -667,9 +656,7 @@ class Service:
             if method == "resource.duplicate":
                 if child is None:
                     raise ValueError("Select a resource entry to duplicate")
-                resource = copy.deepcopy(
-                    self.model.resources[group["resource_list"][child][0]]
-                )
+                resource = copy.deepcopy(self.model.resources[group["resource_list"][child][0]])
                 resource.code = text(p["code"])
                 if (
                     not resource.code
@@ -685,19 +672,11 @@ class Service:
                     if p.get("source") in self.project_editor.libraries
                     else self.db
                 )
-                prefix = (
-                    source.get_project_settings().get("project_resource_code", "")
-                    if source is not self.db
-                    else ""
-                )
-                resource = source.get_resource(
-                    text(p["code"]), modify_code=bool(prefix)
-                )
+                prefix = source.get_project_settings().get("project_resource_code", "") if source is not self.db else ""
+                resource = source.get_resource(text(p["code"]), modify_code=bool(prefix))
                 if resource:
                     resource = (
-                        self.model.resources.get(resource.code)
-                        or self.db.get_resource(resource.code)
-                        or resource
+                        self.model.resources.get(resource.code) or self.db.get_resource(resource.code) or resource
                     )
                 if resource is None:
                     raise ValueError("Unknown resource")
@@ -721,34 +700,21 @@ class Service:
                 )
             self.model.resources[resource.code] = resource
             pos = child + 1 if child is not None else 0
-            self.model.add_ana_res(
-                [resource.code, decimal(p.get("qty", "0")), text(p.get("remarks", ""))],
-                i,
-                pos,
-            )
+            self.model.add_ana_res([resource.code, decimal(p.get("qty", "0")), text(p.get("remarks", ""))], i, pos)
             group["_resource_ids"].insert(pos, uuid4().hex)
             return
         if method in ("copy", "delete", "duplicate", "paste"):
             ids = p.get("ids", [])
             if not isinstance(ids, list) or len(ids) > 1000:
                 raise ValueError("Invalid selection")
-            locations = sorted(
-                set(self.locate(x) for x in ids),
-                key=lambda x: (x[0], -1 if x[1] is None else x[1]),
-            )
+            locations = sorted(set(self.locate(x) for x in ids), key=lambda x: (x[0], -1 if x[1] is None else x[1]))
             if method in ("copy", "duplicate"):
                 self.clipboard = []
                 for i, j in locations:
-                    entry = copy.deepcopy(
-                        self.model.get_item([i] if j is None else [i, j], deep=False)
-                    )
+                    entry = copy.deepcopy(self.model.get_item([i] if j is None else [i, j], deep=False))
                     self.clipboard.append(entry)
             if method == "delete":
-                locations = [
-                    x
-                    for x in locations
-                    if x[1] is None or (x[0], None) not in locations
-                ]
+                locations = [x for x in locations if x[1] is None or (x[0], None) not in locations]
                 for i, j in reversed(locations):
                     self.model.delete_item([i] if j is None else [i, j])
                     if j is not None:
@@ -800,9 +766,7 @@ class Service:
                 row["resource_list"][j][1] = decimal(value)
             elif field == "code":
                 code = text(value)
-                replacement = self.model.resources.get(code) or (
-                    self.db.get_resource(code) if self.db else None
-                )
+                replacement = self.model.resources.get(code) or (self.db.get_resource(code) if self.db else None)
                 if replacement is None:
                     raise ValueError("Resource code not found")
                 self.model.resources.setdefault(code, replacement)
@@ -820,8 +784,7 @@ class Service:
         elif field == "value" and row["itemtype"] in (2, 3, 4):
             value = decimal(value)
             if row["itemtype"] == 4 and (
-                abs(value) > 12
-                or (value != int(value) and int((value - int(value)) * 10) == 0)
+                abs(value) > 12 or (value != int(value) and int((value - int(value)) * 10) == 0)
             ):
                 raise ValueError("Unsupported rounding places")
             row[field] = value
@@ -844,12 +807,7 @@ class Service:
         model.evaluate_results()
         model.update_rate()
         with db.database.atomic():
-            used = {
-                entry[0]
-                for group in model.ana_items
-                if group["itemtype"] == 0
-                for entry in group["resource_list"]
-            }
+            used = {entry[0] for group in model.ana_items if group["itemtype"] == 0 for entry in group["resource_list"]}
             changed = set()
             for code in used:
                 resource = model.resources[code]
@@ -861,21 +819,11 @@ class Service:
                         changed.add(code)
                     else:
                         for column, field in enumerate(
-                            (
-                                "description",
-                                "unit",
-                                "rate",
-                                "vat",
-                                "discount",
-                                "reference",
-                            ),
-                            1,
+                            ("description", "unit", "rate", "vat", "discount", "reference"), 1
                         ):
                             value = getattr(resource, field)
                             if value != getattr(existing, field):
-                                if not db.update_resource(
-                                    code, newvalue=value, column=column
-                                ):
+                                if not db.update_resource(code, newvalue=value, column=column):
                                     raise ValueError("Unable to update resource")
                                 if field in ("rate", "vat", "discount"):
                                     changed.add(code)
@@ -902,9 +850,7 @@ class Service:
         if self.records_dirty:
             self.project_editor.measurement_draft.accept(self.project_editor)
         if self.loaded and self.dirty:
-            self.project_editor.mutate(
-                lambda: self.write_analysis(self.db), reload=False
-            )
+            self.project_editor.mutate(lambda: self.write_analysis(self.db), reload=False)
             self.sync_analysis()
         self.workspace_dirty = False
         self.saved_signature = copy.deepcopy(self.signature())
@@ -967,20 +913,26 @@ class Service:
     def instance_code(self):
         """GTK MainWindow.get_instance_code: a short per-document identity."""
         from hashlib import blake2b
+
         seed = self.source_path or self.recovery_id
         return blake2b(seed.encode("utf-8"), digest_size=2).hexdigest().upper()
 
     def update_dependent_rates(self, db, resources=(), schedules=()):
         from .rates import update_dependents
+
         update_dependents(db, resources, schedules)
 
     def export_analysis(self, params, progress):
         if not self.loaded:
             raise ValueError("Load an analysis first")
         destination = Path(text(params["path"])).resolve()
-        with destination.open("xb"):
-            pass
         scratch = ScheduleDatabase(Stack())
+        with export_output(destination, params.get("replace_selected") is True) as output:
+            self.write_analysis_export(scratch, output, progress)
+        return dict(saved=str(destination))
+
+    def write_analysis_export(self, scratch, output, progress):
+        """Write one workbook using a disposable copy of the working database."""
         try:
             target = Path(self.temp.name) / (uuid4().hex + ".eproj")
             with closing(sqlite3.connect(target)) as dst:
@@ -993,13 +945,9 @@ class Service:
             sheet.set_title("Analysis")
             sheet.set_column_widths([12, 65, 10, 12, 12, 14])
             sheet.set_page_settings(font="Consolas")
-            sheet.save(destination)
-        except Exception:
-            destination.unlink()
-            raise
+            sheet.save(output)
         finally:
             scratch.close_database()
-        return dict(saved=str(destination))
 
     def clear_mcp_indexes(self):
         for _, index in getattr(self, "_mcp_search", {}).values():

@@ -16,6 +16,7 @@ from estimator.data.schedule import Currency, ResourceItemModel, ScheduleItemMod
 from . import libraries, library_import, measurements
 from .insertion import keep_sub_analysis_last
 from .numbers import decimal, tax_text
+from .persistence import export_output
 from .validation import text
 
 
@@ -1495,9 +1496,7 @@ class ProjectEditor:
 
     def export(self, p, progress):
         destination = Path(text(p["path"])).resolve()
-        with destination.open("xb"):
-            pass
-        try:
+        with export_output(destination, p.get("replace_selected") is True) as output:
 
             class Progress:
                 def add_message(self, message):
@@ -1520,8 +1519,5 @@ class ProjectEditor:
             self.db.export_res_usage_spreadsheet(sheet)
             progress("Exporting analyses")
             self.db.export_ana_spreadsheet(sheet, Progress(), [0.3, 0.9])
-            sheet.save(destination)
-        except Exception:
-            destination.unlink()
-            raise
+            sheet.save(output)
         return dict(saved=str(destination))

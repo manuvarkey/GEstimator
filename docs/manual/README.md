@@ -64,6 +64,11 @@ The bundled databases and every `.eproj` file in your database folder are attach
 3. Keep **Remember for future projects** ticked to attach it automatically next time.
 4. Click **Attach library**.
 
+In the Flatpak build, use **Browse** to grant access to an external library.
+If a remembered library becomes unavailable, choose **Reselect** to update
+its location. A database that uses a SQLite write-ahead log needs a
+standalone SQLite backup for single-file attachment.
+
 ![Attach a database](images/attach-database.png)
 
 **Database folder** opens the folder for your own databases. A `.eproj` file placed there is attached the next time a project opens, or use **Rescan database folder** in the dialog.
@@ -189,6 +194,10 @@ use their template's calculation and display rounding.
 - Several projects can be open at once, one per tab in the project rail. Each tab keeps its own project, undo history and view: switching back returns you to the same view, search and selection.
 - GEstimator saves a recovery copy of unsaved work. After a crash, the start page offers to recover it.
 - You are asked to save or discard unsaved changes before a project closes.
+
+On Flatpak, the first in-place save can ask you to choose the folder containing
+the open project. This lets GEstimator keep the backup beside the original.
+For **Save project copy**, choose a new filename.
 
 ## 10. Settings
 

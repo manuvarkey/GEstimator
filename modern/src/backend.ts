@@ -1,13 +1,6 @@
 import { debugAction } from "./uiActions";
 import { invoke } from "@tauri-apps/api/core";
-export type RowKind =
-  | "Group"
-  | "Resource"
-  | "Subtotal"
-  | "Weight"
-  | "Multiply"
-  | "Round"
-  | "GroupTotal"; // display-only "TOTAL of <group>" line after a group's resources
+export type RowKind = "Group" | "Resource" | "Subtotal" | "Weight" | "Multiply" | "Round" | "GroupTotal"; // display-only "TOTAL of <group>" line after a group's resources
 export interface AnalysisRow {
   id: string;
   kind: RowKind;
@@ -40,6 +33,7 @@ export interface AnalysisState {
   project: boolean;
   project_open: boolean;
   source_path: string | null;
+  source_requires_folder?: boolean;
   dirty: boolean;
   workspace_dirty: boolean;
   project_name: string;
@@ -58,8 +52,12 @@ interface Response<T> {
 }
 // Each open document tab is a backend session; requests go to the active tab.
 let backendSession = "main";
-export function setBackendSession(session: string) { backendSession = session; }
-export function currentBackendSession() { return backendSession; }
+export function setBackendSession(session: string) {
+  backendSession = session;
+}
+export function currentBackendSession() {
+  return backendSession;
+}
 export async function request<T>(
   method: string,
   params: Record<string, unknown> = {},
@@ -76,7 +74,11 @@ export async function request<T>(
     debugAction("request.failed", { method, ms: Math.round(performance.now() - started), code: "transport" });
     throw error;
   }
-  debugAction(response.error ? "request.failed" : "request.done", { method, ms: Math.round(performance.now() - started), code: response.error?.code });
+  debugAction(response.error ? "request.failed" : "request.done", {
+    method,
+    ms: Math.round(performance.now() - started),
+    code: response.error?.code,
+  });
   if (response.error) throw new Error(response.error.message);
   return response.result as T;
 }

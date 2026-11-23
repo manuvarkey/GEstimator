@@ -4,7 +4,14 @@ import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import DatabaseNotes from "./DatabaseNotes.vue";
 import { open } from "@tauri-apps/plugin-dialog";
-import { attachLibrary, forgetLibrary, restoreLibraries, savedLibraries, libraryStorageError, catalogWarnings } from "../libraryPreferences";
+import {
+  attachLibrary,
+  forgetLibrary,
+  restoreLibraries,
+  savedLibraries,
+  libraryStorageError,
+  catalogWarnings,
+} from "../libraryPreferences";
 import { request } from "../backend";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -23,56 +30,139 @@ async function refresh() {
 }
 defineExpose({ openDirectory });
 async function openDirectory() {
-  try { await invoke("open_library_directory", { path: await request("program.library_directory") }); }
-  catch (failure) { error.value = String(failure); visible.value = true; }
+  try {
+    await invoke("open_library_directory", { path: await request("program.library_directory") });
+  } catch (failure) {
+    error.value = String(failure);
+    visible.value = true;
+  }
 }
-async function attach(value = path.value) {
+async function attach(value = path.value, previousPath?: string) {
   if (busy.value) return;
   busy.value = true;
   error.value = "";
   try {
-    const source = await attachLibrary(value, remember.value);
+    const source = await attachLibrary(value, previousPath ? true : remember.value, previousPath);
     attached.value = await request("library.list");
     message.value = source.name + " attached. Ready for item selection and rate updates.";
     emit("changed");
-  } catch (failure) { error.value = String(failure); }
-  finally { busy.value = false; }
+  } catch (failure) {
+    error.value = String(failure);
+  } finally {
+    busy.value = false;
+  }
 }
-async function browse() {
+async function browse(previousPath?: string) {
   try {
     const selected = await open({ multiple: false, filters: [{ name: "GEstimator library", extensions: ["eproj"] }] });
-    if (typeof selected === "string") path.value = selected;
-  } catch (failure) { error.value = String(failure); }
+    if (typeof selected !== "string") return;
+    if (previousPath) await attach(selected, previousPath);
+    else path.value = selected;
+  } catch (failure) {
+    error.value = String(failure);
+  }
 }
 </script>
 
 <template>
-  <Dialog v-model:visible="visible" modal header="Attach resource / schedule library" class="workspace-dialog file-dialog library-manager-dialog" :closable="!busy" :close-on-escape="!busy" @show="refresh">
-    <p class="dialog-intro">Bundled databases and every database in the database folder are attached automatically. Attach another .eproj file here to browse it as a read-only snapshot. Imports and price updates change the working project; the library source stays unchanged.</p>
-    <button class="text-button library-rescan" :disabled="busy || !projectOpen" @click="refresh">Rescan database folder</button>
+  <Dialog
+    v-model:visible="visible"
+    modal
+    header="Attach resource / schedule library"
+    class="workspace-dialog file-dialog library-manager-dialog"
+    :closable="!busy"
+    :close-on-escape="!busy"
+    @show="refresh"
+  >
+    <p class="dialog-intro">
+      Bundled databases and every database in the database folder are attached automatically. Attach another .eproj file
+      here to browse it as a read-only snapshot. Imports and price updates change the working project; the library
+      source stays unchanged.
+    </p>
+    <button class="text-button library-rescan" :disabled="busy || !projectOpen" @click="refresh">
+      Rescan database folder
+    </button>
     <p v-for="warning in catalogWarnings" :key="warning" class="dialog-error" role="status">{{ warning }}</p>
-    <label class="field">Library project
-      <div class="file-input"><input v-model="path" data-primary-input autofocus aria-label="Library project" :disabled="busy" placeholder="Absolute path to a .eproj library" @keydown.enter.prevent="attach()" />
-        <button class="button secondary" :disabled="busy" @click="browse">Browse</button></div>
+    <label class="field"
+      >Library project
+      <div class="file-input">
+        <input
+          v-model="path"
+          data-primary-input
+          autofocus
+          aria-label="Library project"
+          :disabled="busy"
+          placeholder="Absolute path to a .eproj library"
+          @keydown.enter.prevent="attach()"
+        />
+        <button class="button secondary" :disabled="busy" @click="browse()">Browse</button>
+      </div>
     </label>
-    <label class="library-remember"><input v-model="remember" type="checkbox" :disabled="busy" />Remember for future projects</label>
+    <label class="library-remember"
+      ><input v-model="remember" type="checkbox" :disabled="busy" />Remember for future projects</label
+    >
     <p v-if="message" role="status">{{ message }}</p>
-    <div v-if="attached.length" class="attached-databases" aria-label="Attached databases"><h3>Attached databases</h3><template v-for="database in attached" :key="database.id"><div class="attached-database"><AppIcon name="database" /><span>{{ database.name }}</span><small>Ready for selection and rate updates</small></div><DatabaseNotes v-if="database.notes" :source="database.id" :name="database.name" /></template></div>
-    <p v-if="!projectOpen" class="field-hint">Open or create a project to attach libraries. Saved entries can be managed here at any time.</p>
+    <div v-if="attached.length" class="attached-databases" aria-label="Attached databases">
+      <h3>Attached databases</h3>
+      <template v-for="database in attached" :key="database.id"
+        ><div class="attached-database">
+          <AppIcon name="database" /><span>{{ database.name }}</span
+          ><small>Ready for selection and rate updates</small>
+        </div>
+        <DatabaseNotes v-if="database.notes" :source="database.id" :name="database.name"
+      /></template>
+    </div>
+    <p v-if="!projectOpen" class="field-hint">
+      Open or create a project to attach libraries. Saved entries can be managed here at any time.
+    </p>
     <div v-if="savedLibraries.length" class="saved-libraries" aria-label="Saved libraries">
       <h3>Saved libraries</h3>
-      <p class="field-hint">Reopened automatically with each project. Forget removes the saved path; an already attached snapshot remains available until the project closes.</p>
+      <p class="field-hint">
+        Reopened automatically with each project. Forget removes the saved path; an already attached snapshot remains
+        available until the project closes.
+      </p>
       <div v-for="library in savedLibraries" :key="library.path" class="saved-library">
-        <strong>{{ library.name }}</strong><code>{{ library.path }}</code>
+        <strong>{{ library.name }}</strong
+        ><code>{{ library.path }}</code>
         <p v-if="library.error" class="dialog-error" role="status">Unavailable: {{ library.error }}</p>
         <div class="project-tools">
-          <button class="button small secondary" :disabled="busy || !projectOpen" :aria-label="'Retry library ' + library.name" @click="attach(library.path)">Attach / retry</button>
-          <button class="button small secondary" :disabled="busy" :aria-label="'Forget library ' + library.name" @click="forgetLibrary(library.path)">Forget</button>
+          <button
+            class="button small secondary"
+            :disabled="busy || !projectOpen"
+            :aria-label="'Retry library ' + library.name"
+            @click="attach(library.path)"
+          >
+            Attach / retry
+          </button>
+          <button
+            v-if="library.error"
+            class="button small secondary"
+            :disabled="busy || !projectOpen"
+            :aria-label="'Reselect library ' + library.name"
+            @click="browse(library.path)"
+          >
+            Reselect
+          </button>
+          <button
+            class="button small secondary"
+            :disabled="busy"
+            :aria-label="'Forget library ' + library.name"
+            @click="forgetLibrary(library.path)"
+          >
+            Forget
+          </button>
         </div>
       </div>
     </div>
     <p v-if="libraryStorageError" class="dialog-error" role="status">{{ libraryStorageError }}</p>
     <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
-    <div class="dialog-footer"><button class="button secondary" :disabled="busy" @click="openDirectory">Open database folder</button><button class="button secondary" aria-label="Close database manager" :disabled="busy" @click="visible = false">Close</button><button class="button primary" :disabled="busy || !projectOpen || !path.trim()" @click="attach()">Attach library</button></div>
+    <div class="dialog-footer">
+      <button class="button secondary" :disabled="busy" @click="openDirectory">Open database folder</button
+      ><button class="button secondary" aria-label="Close database manager" :disabled="busy" @click="visible = false">
+        Close</button
+      ><button class="button primary" :disabled="busy || !projectOpen || !path.trim()" @click="attach()">
+        Attach library
+      </button>
+    </div>
   </Dialog>
 </template>

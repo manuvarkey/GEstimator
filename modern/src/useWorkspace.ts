@@ -2,12 +2,7 @@ import { computed, ref } from "vue";
 import { restoreLibraries } from "./libraryPreferences";
 import { initializeProgramSettings, programSettings } from "./programSettings";
 import { copyRows, pasteRows } from "./rowClipboard";
-import {
-  request,
-  type AnalysisRow,
-  type AnalysisState,
-  type LibraryItem,
-} from "./backend";
+import { request, type AnalysisRow, type AnalysisState, type LibraryItem } from "./backend";
 
 import { notify } from "./statusNotice";
 
@@ -36,30 +31,15 @@ export function useWorkspace() {
       "Untitled workspace",
   );
   const resourceCount = computed(
-    () =>
-      state.value?.rows.reduce(
-        (sum, row) => sum + (row._children?.length || 0),
-        0,
-      ) || 0,
+    () => state.value?.rows.reduce((sum, row) => sum + (row._children?.length || 0), 0) || 0,
   );
-  const groups = computed(
-    () => state.value?.rows.filter((row) => row.kind === "Group") || [],
-  );
-  const selection = computed(() =>
-    selected.value.length === 1 ? selected.value[0] : undefined,
-  );
+  const groups = computed(() => state.value?.rows.filter((row) => row.kind === "Group") || []);
+  const selection = computed(() => (selected.value.length === 1 ? selected.value[0] : undefined));
   const destinationGroup = computed(() => {
     const row = selected.value[0];
-    return groups.value.find(
-      (group) =>
-        group.id === row?.id ||
-        group._children?.some((child) => child.id === row?.id),
-    );
+    return groups.value.find((group) => group.id === row?.id || group._children?.some((child) => child.id === row?.id));
   });
-  async function run(
-    work: () => Promise<void>,
-    message = "Working…",
-  ): Promise<boolean> {
+  async function run(work: () => Promise<void>, message = "Working…"): Promise<boolean> {
     if (busy.value) return false;
     busy.value = true;
     error.value = "";
@@ -99,7 +79,12 @@ export function useWorkspace() {
     let feedback = "";
     const ok = await run(async () => {
       try {
-        const clipboardParams = { revision: state.value?.revision, ids: selected.value.map(row => row.id), id: selected.value[0]?.id, ...params };
+        const clipboardParams = {
+          revision: state.value?.revision,
+          ids: selected.value.map((row) => row.id),
+          id: selected.value[0]?.id,
+          ...params,
+        };
         if (method === "copy") {
           feedback = await copyRows("analysis", clipboardParams);
           return;
@@ -170,13 +155,16 @@ export function useWorkspace() {
     return run(async () => {
       await refresh(await request("analysis.load", { code, discard }));
       if (!state.value?.rows.length && programSettings.value?.ana_default_rows.length) {
-        await refresh(await request("analysis.insert_template", {
-          revision: state.value?.revision,
-          rows: programSettings.value.ana_default_rows,
-        }));
+        await refresh(
+          await request("analysis.insert_template", {
+            revision: state.value?.revision,
+            rows: programSettings.value.ana_default_rows,
+          }),
+        );
       }
       schedule.value = await request("schedule.list", {
-        query: scheduleQuery.value, offset: schedulePage.value * 100,
+        query: scheduleQuery.value,
+        offset: schedulePage.value * 100,
       });
       selected.value = [];
     }, "Loading rate analysis…");
@@ -189,10 +177,10 @@ export function useWorkspace() {
     if (saved) status.value = `Saved ${path}`;
     return saved;
   }
-  async function saveProject() {
+  async function saveProject(directory?: string) {
     let path = "";
     const saved = await run(async () => {
-      path = (await request<{ saved: string }>("project.save")).saved;
+      path = (await request<{ saved: string }>("project.save", directory ? { directory } : {})).saved;
       await refresh();
     }, "Saving project…");
     if (saved) status.value = `Saved ${path}`;

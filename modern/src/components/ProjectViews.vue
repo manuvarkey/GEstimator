@@ -928,7 +928,11 @@ async function exportWorkbook() {
       defaultPath: "estimate.xlsx",
     });
     if (typeof path === "string")
-      await command("project.export_xlsx", { path, break_lines: programSettings.value?.export_break_items ?? true });
+      await command("project.export_xlsx", {
+        path,
+        replace_selected: true,
+        break_lines: programSettings.value?.export_break_items ?? true,
+      });
   } catch (reason) {
     error.value = String(reason);
   }

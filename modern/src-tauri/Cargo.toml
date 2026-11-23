@@ -8,11 +8,13 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde_json = "1"
 tauri-plugin-single-instance = "2"
-tauri-plugin-dialog = "2"
+tauri-plugin-dialog = { version = "2", default-features = false }
 tauri-plugin-clipboard-manager = "2"
 
 [features]
+default = ["tauri-plugin-dialog/gtk3"]
 custom-protocol = ["tauri/custom-protocol"]
+flatpak-portal = ["tauri-plugin-dialog/xdg-portal"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"

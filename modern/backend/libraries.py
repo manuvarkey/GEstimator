@@ -14,6 +14,7 @@ from estimator import misc
 from estimator.data.schedule import ScheduleDatabase
 from estimator.undo import Stack
 
+from .persistence import check_database_access, resolve_input
 from .validation import text
 
 
@@ -27,11 +28,12 @@ def attach(editor, path):
             raise ValueError("Invalid bundled database name")
         source = Path(misc.abs_path("database", name)).resolve(strict=True)
     else:
-        source = Path(path).resolve(strict=True)
+        source = resolve_input(path)
     if source in editor.library_paths:
         selected = editor.library_paths[source]
         return [dict(item, attached=item["id"] == selected) for item in editor.sources()]
     # Step 2: copy first, then validate/migrate only the snapshot.
+    check_database_access(source)
     target = Path(editor.owner.temp.name) / (uuid4().hex + ".library")
     with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as src:
         version = src.execute("SELECT value FROM projecttable WHERE key='file_version'").fetchone()
