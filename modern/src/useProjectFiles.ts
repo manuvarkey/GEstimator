@@ -2,7 +2,15 @@ import { nextTick, ref, type Ref } from "vue";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { request } from "./backend";
-import { activeDocument, documentForPath, documents, pendingPaths, type DocumentAction } from "./documents";
+import {
+  activeDocument,
+  documents,
+  findDocumentForPath,
+  normalizePath,
+  pathsEqual,
+  pendingPaths,
+  type DocumentAction,
+} from "./documents";
 import { restoreLibraries } from "./libraryPreferences";
 import type { useDocumentTabs } from "./useDocumentTabs";
 import type { useWorkspace } from "./useWorkspace";
@@ -61,7 +69,9 @@ export function useProjectFiles(context: ProjectFilesContext) {
     }
   }
   function rememberProject(path: string) {
-    setRecentProjects([path, ...recentProjects.value.filter((item) => item !== path)].slice(0, 10));
+    if (!path.trim()) return;
+    const norm = normalizePath(path);
+    setRecentProjects([path, ...recentProjects.value.filter((item) => normalizePath(item) !== norm)].slice(0, 10));
   }
   const filePath = ref("");
 
@@ -74,7 +84,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
       pendingPaths.push(path);
       return;
     }
-    const existing = documentForPath(path);
+    const existing = await findDocumentForPath(path);
     if (existing?.id === documentId) return;
     if (existing || state.value?.project_open) {
       // Step 2: hand queued requests to the workspace mounted by document-tab routing.
@@ -88,7 +98,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
       finishOsOpen = resolve;
       void navigate(async (discard) => {
         try {
-          if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
+          if (await w.openProject(path, discard)) rememberProject(path || state.value?.source_path || "");
         } finally {
           finishOsOpen = undefined;
           resolve();
@@ -132,7 +142,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
   async function openProjectPath(path: string) {
     if (await inNewDocument({ type: "open", path })) return;
     await navigate(async (discard) => {
-      if (await w.openProject(path, discard)) rememberProject(state.value?.source_path || path);
+      if (await w.openProject(path, discard)) rememberProject(path || state.value?.source_path || "");
     }, true);
   }
 
@@ -203,7 +213,10 @@ export function useProjectFiles(context: ProjectFilesContext) {
         return;
       }
     }
-    if (await w.saveProject(directory)) await continueAfterSave();
+    if (await w.saveProject(directory)) {
+      if (state.value?.source_path) rememberProject(state.value.source_path);
+      await continueAfterSave();
+    }
   }
 
   async function newProject() {

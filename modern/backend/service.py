@@ -190,6 +190,20 @@ class Service:
 
                 return read_tool(self, p.get("name"), p.get("arguments", {}))
             raise ValueError("Unknown MCP operation")
+        if method == "path.canonical":
+            target = text(p.get("path", ""))
+            if not target:
+                return dict(path="", canonical="", exists=False)
+            # Resolve canonical filesystem identity, normalizing Windows 8.3 short names and symlinks.
+            try:
+                resolved = resolve_input(target)
+                return dict(path=str(resolved), canonical=str(resolved), exists=True)
+            except (FileNotFoundError, OSError, ValueError):
+                try:
+                    resolved = Path(target).resolve()
+                    return dict(path=str(resolved), canonical=str(resolved), exists=False)
+                except (OSError, ValueError):
+                    return dict(path=target, canonical=target, exists=False)
         if method == "search.warm":
             # Build search indexes after opening so the first search is quick.
             if self.db:

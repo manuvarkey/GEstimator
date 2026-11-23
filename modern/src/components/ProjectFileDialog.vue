@@ -2,6 +2,7 @@
 // The file workflow owns chooser actions and state shared with the native open queue.
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
+import { pathsEqual } from "../documents";
 
 const fileMode = defineModel<"open" | "save" | null>("mode", { required: true });
 const filePath = defineModel<string>("path", { required: true });
@@ -61,7 +62,7 @@ const emit = defineEmits<{
         Recent projects
         <select
           aria-label="Recent projects"
-          :value="recentProjects.includes(filePath) ? filePath : ''"
+          :value="recentProjects.find((item) => pathsEqual(item, filePath)) || ''"
           @change="filePath = ($event.target as HTMLSelectElement).value"
         >
           <option value="">Choose a recent project</option>

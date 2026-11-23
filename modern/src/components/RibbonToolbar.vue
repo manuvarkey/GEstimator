@@ -26,7 +26,8 @@ function sizeCaptions(element: HTMLElement) {
         Math.max(width(words.slice(0, split).join(" ")), width(words.slice(split).join(" "))),
       );
     }
-    caption = Math.min(80, Math.ceil(caption) + 1);
+    // Add a 3px margin over 2D canvas measurement to prevent subpixel word wrapping on Segoe UI while capping under 80px button width.
+    caption = Math.min(71, Math.ceil(caption) + 3);
     const padding = getComputedStyle(button);
     const total = caption + parseFloat(padding.paddingLeft) + parseFloat(padding.paddingRight);
     button.style.setProperty("--ribbon-caption-width", `${caption}px`);

@@ -1,6 +1,5 @@
 import hashlib
 import json
-from pathlib import Path
 import sqlite3
 import subprocess
 import sys
@@ -8,6 +7,8 @@ import tempfile
 import time
 import unittest
 from decimal import Decimal
+from pathlib import Path
+
 from estimator import misc
 from estimator.data.schedule import ScheduleDatabase
 from estimator.undo import Stack
@@ -68,12 +69,7 @@ class BackendTests(unittest.TestCase):
         code = db.ScheduleTable.select().join(db.SequenceTable).get().code
         state = self.s.call("analysis.load", dict(code=code))
         self.assertTrue(state["rows"])
-        self.command(
-            "edit",
-            id=state["rows"][0]["id"],
-            field="description",
-            value="Edited\nMaterials",
-        )
+        self.command("edit", id=state["rows"][0]["id"], field="description", value="Edited\nMaterials")
         resource_row = next(r for g in state["rows"] for r in g.get("_children", []))
         self.command("edit", id=resource_row["id"], field="rate", value="123.45")
         with tempfile.TemporaryDirectory() as d:
@@ -85,25 +81,17 @@ class BackendTests(unittest.TestCase):
             other = ScheduleDatabase(Stack())
             other.open_database(str(target))
             self.assertEqual(
-                other.get_item(code, modify_res_code=False).ana_items[0]["description"],
-                "Edited\nMaterials",
+                other.get_item(code, modify_res_code=False).ana_items[0]["description"], "Edited\nMaterials"
             )
-            self.assertEqual(
-                other.get_resource(resource_row["code"]).rate, Decimal("123.45")
-            )
+            self.assertEqual(other.get_resource(resource_row["code"]).rate, Decimal("123.45"))
             saved_item = other.get_item(code, modify_res_code=False)
             self.assertEqual(saved_item.rate, saved_item.get_ana_rate())
-            self.assertEqual(
-                dict(other.ProjectTable.select().tuples()),
-                dict(db.ProjectTable.select().tuples()),
-            )
+            self.assertEqual(dict(other.ProjectTable.select().tuples()), dict(db.ProjectTable.select().tuples()))
             sheet = misc.Spreadsheet()
             other.export_ana_item_spreadsheet(code, sheet)
             sheet.save(Path(d) / "analysis.xlsx")
             loaded = misc.Spreadsheet(Path(d) / "analysis.xlsx")
-            self.assertTrue(
-                any(str(c.value).startswith("=") for row in loaded.sheet for c in row)
-            )
+            self.assertTrue(any(str(c.value).startswith("=") for row in loaded.sheet for c in row))
             other.close_database()
         self.assertEqual(hashlib.sha256(FIXTURE.read_bytes()).hexdigest(), original)
 
@@ -114,9 +102,7 @@ class BackendTests(unittest.TestCase):
         original = row.rate
         with self.assertRaises(RuntimeError):
             with db.database.atomic():
-                db.ResourceTable.update(rate=999).where(
-                    db.ResourceTable.id == row.id
-                ).execute()
+                db.ResourceTable.update(rate=999).where(db.ResourceTable.id == row.id).execute()
                 raise RuntimeError()
         self.assertEqual(db.ResourceTable.get_by_id(row.id).rate, original)
         page = self.s.call("resources.search", dict(limit=2, offset=0))
@@ -145,13 +131,40 @@ class BackendTests(unittest.TestCase):
         code = self.s.db.ScheduleTable.select().join(self.s.db.SequenceTable).get().code
         state = self.s.call("analysis.load", dict(code=code))
         self.assertTrue(state["unit"])
-        self.command(
-            "edit", id=state["rows"][0]["id"], field="description", value="Dirty group"
-        )
+        self.command("edit", id=state["rows"][0]["id"], field="description", value="Dirty group")
         with self.assertRaisesRegex(ValueError, "Unsaved analysis"):
             self.s.call("analysis.load", dict(code=code))
         self.s.call("analysis.load", dict(code=code, discard=True))
         self.assertFalse(self.s.state()["dirty"])
+
+    def test_path_canonical_resolution(self):
+        # Step 1: verify existing file resolves canonical path and reports existence.
+        with tempfile.NamedTemporaryFile(suffix=".eproj") as tmp:
+            canonical = str(Path(tmp.name).resolve(strict=True))
+            result = self.s.call("path.canonical", dict(path=tmp.name))
+            self.assertEqual(result["canonical"], canonical)
+            self.assertTrue(result["exists"])
+
+            # Step 2: verify symlink resolves to canonical target identity.
+            symlink = Path(tmp.name).parent / f"link-{Path(tmp.name).name}"
+            try:
+                symlink.symlink_to(Path(tmp.name))
+                symlink_result = self.s.call("path.canonical", dict(path=str(symlink)))
+                self.assertEqual(symlink_result["canonical"], canonical)
+                self.assertTrue(symlink_result["exists"])
+            except (OSError, NotImplementedError):
+                pass
+            finally:
+                symlink.unlink(missing_ok=True)
+
+        # Step 3: verify non-existent path handles missing target gracefully.
+        missing = self.s.call("path.canonical", dict(path="nonexistent_project_path.eproj"))
+        self.assertFalse(missing["exists"])
+
+        # Step 4: verify empty path input returns empty response.
+        empty = self.s.call("path.canonical", dict(path=""))
+        self.assertFalse(empty["exists"])
+        self.assertEqual(empty["canonical"], "")
 
     def test_no_gtk_and_protocol_recovery(self):
         script = 'from modern.backend.service import Service; import sys; s=Service(); assert "gi" not in sys.modules; s.close()'
@@ -164,11 +177,7 @@ class BackendTests(unittest.TestCase):
             + "\n"
         )
         result = subprocess.run(
-            [sys.executable, "-m", "modern.backend"],
-            input=requests,
-            encoding="utf-8",
-            capture_output=True,
-            check=True,
+            [sys.executable, "-m", "modern.backend"], input=requests, encoding="utf-8", capture_output=True, check=True
         )
         lines = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(lines[0]["error"]["code"], "INVALID_REQUEST")

@@ -43,7 +43,71 @@ jobs:
             .venv/bin/python tools/check_quality.py --mode formatting --advisory --base HEAD~1
           fi
 
-  app:
+  backend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Python dependencies
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -r requirements-dev.txt
+      - name: Python syntax and correctness
+        shell: pwsh
+        env:
+          QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ($env:QUALITY_BASE -and $env:QUALITY_BASE -notmatch '^0+$') {
+            .venv/Scripts/python tools/check_quality.py --mode correctness --base $env:QUALITY_BASE
+          } else {
+            .venv/Scripts/python tools/check_quality.py --mode correctness --base HEAD~1
+          }
+      - name: Backend regression tests
+        run: .venv/Scripts/python -m unittest discover -s tests
+      - name: Documentation links and discovery
+        run: .venv/Scripts/python tools/check_docs.py
+
+  browser:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: modern/package-lock.json
+      - name: Dependencies
+        run: |
+          python -m venv .venv
+          .venv/Scripts/python -m pip install -r requirements-dev.txt
+          npm ci --prefix modern
+      - name: Frontend types and production build
+        run: npm run --prefix modern build
+      - name: Browser workflows
+        working-directory: modern
+        run: |
+          npx playwright install chromium
+          npm run test:e2e
+      - name: Upload browser test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            modern/playwright-report
+            modern/test-results
+          retention-days: 14
+
+  native:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,32 +127,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: modern/src-tauri
-      - name: Development dependencies
+      - name: Native build dependencies
         run: |
           python -m venv .venv
           .venv/Scripts/python -m pip install -r requirements-dev.txt pyinstaller==6.22.3
           npm ci --prefix modern
-      - name: Python syntax and correctness
-        shell: pwsh
-        env:
-          QUALITY_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          if ($env:QUALITY_BASE -and $env:QUALITY_BASE -notmatch '^0+$') {
-            .venv/Scripts/python tools/check_quality.py --mode correctness --base $env:QUALITY_BASE
-          } else {
-            .venv/Scripts/python tools/check_quality.py --mode correctness --base HEAD~1
-          }
-      - name: Backend regression tests
-        run: .venv/Scripts/python -m unittest discover -s tests
-      - name: Documentation links and discovery
-        run: .venv/Scripts/python tools/check_docs.py
-      - name: Frontend types and production build
-        run: npm run --prefix modern build
-      - name: Browser workflows
-        working-directory: modern
-        run: |
-          npx playwright install chromium
-          npm run test:e2e
       - name: Native sidecar and Rust checks
         working-directory: modern
         run: |

@@ -6,10 +6,14 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:1420",
     viewport: { width: 1600, height: 1000 },
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
       : {},
   },
+  reporter: process.env.CI ? [["html", { open: "never" }], ["list"]] : "list",
   webServer: {
     command: "npm run dev",
     url: "http://127.0.0.1:1420",
