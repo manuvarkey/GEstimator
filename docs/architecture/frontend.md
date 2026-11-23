@@ -21,6 +21,7 @@ formatting is presentation; the currency option does not convert prices.
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
 | Analysis resource, workbook, custom template and project analysis rules dialogs | [`AnalysisDialogs.vue`](../../modern/src/components/AnalysisDialogs.vue) |
+| Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
@@ -99,6 +100,11 @@ analysis rule dialog. It keeps the insertion group selected when a resource
 action starts and uses the selected row as the insertion point when that row
 belongs to the same group. The shell still handles keyboard routing, database
 manager requests and the schedule reload and navigation after applying rules.
+
+`AnalysisInspector` renders the workspace's selected analysis row and emits
+field edits and row actions. The shell routes field edits through the same
+callback as the analysis grid. `useWorkspaceNavigation` owns inspector
+visibility and restores it when switching back to an open document tab.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,

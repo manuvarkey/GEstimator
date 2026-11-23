@@ -10,6 +10,7 @@ import ApplicationHelp from "./components/ApplicationHelp.vue";
 import ThemedDropdowns from "./components/ThemedDropdowns.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisDialogs from "./components/AnalysisDialogs.vue";
+import AnalysisInspector from "./components/AnalysisInspector.vue";
 import DatabasePicker from "./components/DatabasePicker.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
 import ProjectSettings from "./components/ProjectSettings.vue";
@@ -366,21 +367,8 @@ const rowKinds: {
     value: "2",
   },
 ];
-const selectedKind = computed(() => selection.value?.kind.toLowerCase());
 const canEdit = computed(
   () => connected.value && !busy.value && !projectBusy.value && !!state.value?.code && activeView.value === "analysis",
-);
-const selectionHint = computed(
-  () =>
-    ({
-      Group: "Organize resources into a calculation group.",
-      GroupTotal: "Total of the group's resources.",
-      Resource: "Definition changes apply to every use of this resource when saved.",
-      Subtotal: "Sets the base for subsequent weighted additions.",
-      Weight: "Adds a fraction of the latest group or subtotal base.",
-      Multiply: "Replaces the total with the last base multiplied by this factor.",
-      Round: "Rounds the cumulative total using the existing currency rules.",
-    })[selection.value?.kind || "Group"],
 );
 async function navigate(action: (discard: boolean) => Promise<unknown>, project = false) {
   if (projectBusy.value) return;
@@ -423,9 +411,6 @@ async function continueAfterSave() {
 }
 async function edit(row: AnalysisRow, field: string, value: string) {
   return w.command("edit", { id: row.id, field, value });
-}
-function editField(event: Event, field: string) {
-  if (selection.value) void edit(selection.value, field, (event.target as HTMLInputElement).value);
 }
 function beforeUnload(event: BeforeUnloadEvent) {
   if (state.value?.dirty || recordsDirty.value || state.value?.workspace_dirty || projectBusy.value) {
@@ -1432,108 +1417,17 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </main>
-      <aside v-show="inspector && activeView === 'analysis'" class="inspector">
-        <div class="panel-heading">
-          <span>INSPECTOR</span
-          ><button class="icon-button" aria-label="Hide inspector" @click="inspector = false">
-            <AppIcon name="close" :size="15" />
-          </button>
-        </div>
-        <div v-if="selection" class="inspector-body" :key="selection.id">
-          <span class="row-badge" :class="'kind-' + selectedKind">{{ selection.kind }}</span>
-          <h2>
-            {{ selection.code || selection.description || selection.kind }}
-          </h2>
-          <p class="inspector-hint">{{ selectionHint }}</p>
-          <label v-if="selection.kind === 'Group' || selection.kind === 'Resource'" class="field"
-            >{{ selection.kind === "Group" ? "Group code" : "Resource code (replace entry)"
-            }}<input :value="selection.code" :disabled="uiBusy" @change="editField($event, 'code')"
-          /></label>
-          <label class="field"
-            >Description<textarea
-              :value="selection.description"
-              :disabled="uiBusy"
-              rows="4"
-              @change="editField($event, 'description')"
-            /></label
-          ><template v-if="!['Group', 'Subtotal'].includes(selection.kind)"
-            ><label class="field"
-              >{{
-                selection.kind === "Resource" ? "Quantity" : selection.kind === "Round" ? "Rounding places" : "Factor"
-              }}<input
-                :value="selection.value"
-                :disabled="uiBusy"
-                inputmode="decimal"
-                @change="editField($event, 'value')" /></label></template
-          ><template v-if="selection.kind === 'Resource'"
-            ><div class="field-pair">
-              <label class="field"
-                >Unit<input :value="selection.unit" :disabled="uiBusy" @change="editField($event, 'unit')" /></label
-              ><label class="field"
-                >Base rate<input
-                  :value="selection.rate"
-                  :disabled="uiBusy"
-                  inputmode="decimal"
-                  @change="editField($event, 'rate')"
-              /></label>
-            </div>
-            <div class="field-pair">
-              <label class="field"
-                >Tax %<input
-                  :value="selection.vat"
-                  :disabled="uiBusy"
-                  inputmode="decimal"
-                  @change="editField($event, 'vat')" /></label
-              ><label class="field"
-                >Discount %<input
-                  :value="selection.discount"
-                  :disabled="uiBusy"
-                  inputmode="decimal"
-                  @change="editField($event, 'discount')"
-              /></label>
-            </div>
-            <div class="inspector-result">
-              <span>Effective rate</span><strong>{{ formatMoney(selection.effective_rate) }}</strong>
-            </div></template
-          >
-          <div class="inspector-result">
-            <span>Calculated amount</span><strong>{{ formatMoney(selection.amount) }}</strong>
-          </div>
-          <div class="inspector-actions">
-            <button class="button secondary" :disabled="uiBusy" @click="w.command('move', { delta: -1 })">
-              <AppIcon name="up" :size="15" />Move up</button
-            ><button class="button secondary" :disabled="uiBusy" @click="w.command('move', { delta: 1 })">
-              <AppIcon name="down" :size="15" />Move down
-            </button>
-          </div>
-          <button class="button danger full-width" :disabled="uiBusy" @click="w.command('delete')">
-            <AppIcon name="trash" :size="15" />Delete row
-          </button>
-        </div>
-        <div v-else class="inspector-empty">
-          <span class="inspector-empty-icon"><AppIcon name="panel" :size="28" /></span>
-          <h3>
-            {{ selected.length ? "Multiple rows selected" : "A closer look" }}
-          </h3>
-          <p>
-            {{
-              selected.length
-                ? "Use the ribbon to copy, duplicate or delete your selection."
-                : "Select a row to edit its properties and inspect calculated values."
-            }}
-          </p>
-          <div class="inspector-tip">
-            <AppIcon name="help" :size="17" /><span>Use Ctrl / ⌘ + click to select multiple rows.</span>
-          </div>
-        </div>
-        <div class="inspector-bottom">
-          <span class="eyebrow">CALCULATION NOTES</span>
-          <p>Weighted additions use the latest group or subtotal as their base. Totals follow the row sequence.</p>
-          <button class="text-button" @click="helpOpen = true">
-            Keyboard shortcuts<AppIcon name="chevron" :size="12" />
-          </button>
-        </div>
-      </aside>
+      <AnalysisInspector
+        :visible="inspector && activeView === 'analysis'"
+        :selection="selection"
+        :multiple-selected="selected.length > 1"
+        :busy="uiBusy"
+        @edit="edit"
+        @move="w.command('move', { delta: $event })"
+        @delete="w.command('delete')"
+        @hide="inspector = false"
+        @shortcuts="helpOpen = true"
+      />
     </div>
     <footer class="statusbar" role="status">
       <span class="status-indicator" :class="{ working: busy, offline: !connected }" /><span

@@ -1070,3 +1070,27 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   An earlier run stopped after 56 passes when its Vite connection dropped.
 - Changed-source formatting, documentation checks across 36 Markdown files
   and `git diff --check` passed.
+
+## 2026-11-23 — Analysis inspector
+
+- After `dcadb57`, moved the selected-row inspector into
+  `AnalysisInspector.vue`. The component emits typed edit and row actions.
+  `App.vue` routes edits through the grid's existing callback and retains the
+  keyboard shortcuts dialog and workspace command routing. Selection remains
+  in the workspace, and inspector visibility remains in document-tab memory.
+- The inspector keeps its single keyed row form, visibility behavior, labels,
+  classes and DOM structure. The normalized Vue render output matched the
+  previous markup after substituting the new bindings. `App.vue` decreased
+  from 1,717 to 1,611 lines.
+- The full Python suite ran **219 tests, two skipped**. `npm run build` passed
+  type checking and the production build. The existing entry-chunk size
+  warning remains (1.26 MB, 325 KB gzip). This change touches Vue and
+  documentation. Installed WebView behavior was outside verification.
+- A focused browser check verified Move up, Move down, Delete row, Undo,
+  Hide inspector and reopening it from the ribbon against the real Python
+  bridge. Row selection followed the moved row.
+- Full browser suite: **89 passed, one opt-in performance test skipped**.
+  Coverage includes rejected and valid inspector edits, undo, keyboard
+  focus and restoration of inspector visibility after switching project tabs.
+- Changed-source formatting, documentation checks across 36 Markdown files
+  and `git diff --check` passed.
