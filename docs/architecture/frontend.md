@@ -269,7 +269,10 @@ draft activation and summary synchronization on the existing shared path.
 `MeasurementPropertiesDialog` stages description, links and template constants
 in a form snapshot with the original revision. The component owns both the
 properties form and its schedule-link picker. The view opens the same picker
-from the active record editor. Saving properties and changing a record link use
+from the active record editor. Results scroll independently of the search and
+page controls. Up or Down from search focuses a result. Arrow keys and
+Home/End navigate the page, and Enter selects the focused item. Saving
+properties and changing a record link use
 the view's common command. Python owns validation, calculations and undo.
 
 The contracts in `projectViewTypes.ts` distinguish schedule items, resources,

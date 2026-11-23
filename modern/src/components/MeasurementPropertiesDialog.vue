@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Share the schedule-link picker between staged properties and the record editor.
-import { ref, type ComputedRef, type Ref } from "vue";
+import { nextTick, ref, type ComputedRef, type Ref } from "vue";
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import PersistentDialog from "./PersistentDialog.vue";
@@ -33,6 +33,7 @@ const pickerSlot = ref(0);
 const pickerQuery = ref("");
 const pickerPage = ref(0);
 const pickerItems = ref<{ code: string; description: string; unit: string | null }[]>([]);
+const pickerResults = ref<HTMLElement>();
 const pickerBusy = ref(false);
 const pickerError = ref("");
 
@@ -68,6 +69,8 @@ async function searchLinks() {
   pickerError.value = "";
   try {
     pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: pickerPage.value * 100 });
+    await nextTick();
+    if (pickerResults.value) pickerResults.value.scrollTop = 0;
   } catch (reason) {
     pickerError.value = String(reason);
   } finally {
@@ -82,6 +85,26 @@ async function showLinkPicker(slot: number) {
   pickerPage.value = 0;
   pickerOpen.value = true;
   await searchLinks();
+}
+
+/** Move among result buttons. Their native Enter action selects the focused item. */
+function navigateLinks(event: KeyboardEvent) {
+  if (pickerBusy.value || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  const buttons = Array.from(pickerResults.value?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || []);
+  if (!buttons.length) return;
+  const current = buttons.findIndex((button) => button === document.activeElement);
+  const index =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? buttons.length - 1
+        : current === -1
+          ? event.key === "ArrowUp"
+            ? buttons.length - 1
+            : 0
+          : Math.max(0, Math.min(buttons.length - 1, current + (event.key === "ArrowUp" ? -1 : 1)));
+  event.preventDefault();
+  buttons[index]?.focus();
 }
 
 async function chooseLink(code: string) {
@@ -178,9 +201,8 @@ defineExpose({ showProperties, showLinkPicker });
   <PersistentDialog
     :busy="pickerBusy"
     v-model:visible="pickerOpen"
-    modal
     header="Choose schedule item"
-    class="workspace-dialog resource-dialog"
+    class="resource-dialog measurement-link-picker"
   >
     <form
       class="search-field"
@@ -195,10 +217,11 @@ defineExpose({ showProperties, showLinkPicker });
         autofocus
         aria-label="Find linked schedule item"
         placeholder="Code or description…"
+        @keydown.up.down="navigateLinks"
       /><button class="button small secondary" :disabled="pickerBusy">Search</button>
     </form>
     <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
-    <div class="library-results">
+    <div ref="pickerResults" class="library-results" @keydown.up.down.home.end="navigateLinks">
       <button
         v-for="item in pickerItems"
         :key="item.code"

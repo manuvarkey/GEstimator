@@ -1658,7 +1658,9 @@ kbd {
   display: grid;
   gap: 6px;
   max-height: 360px;
+  min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   margin-block: 12px;
   max-width: 100%;
   overflow-x: hidden;
@@ -1982,6 +1984,14 @@ textarea {
 }
 .persistent-dialog .p-dialog-content {
   overflow: auto;
+}
+.measurement-link-picker .p-dialog-content {
+  display: flex;
+  flex-direction: column;
+}
+.measurement-link-picker .search-field,
+.measurement-link-picker .pagination {
+  flex-shrink: 0;
 }
 .analysis-rules-dialog {
   width: min(96vw, 1050px);

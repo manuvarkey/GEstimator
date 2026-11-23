@@ -1744,3 +1744,39 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   All 241 Python tests and 100 Chromium scenarios passed. The opt-in
   performance profile was skipped. The production build passed with the
   existing Vite entry-chunk size warning.
+
+## 2026-11-24 — Measurement schedule picker and installed Flatpak review
+
+- The Chromium regression reproduced Down leaving focus in the measurement
+  link search field. The updated picker keeps the results scrollable between
+  the search and paging controls. The browser test scrolls and links an
+  off-screen item in the record entry view, then uses Down, End, Up and Enter
+  to stage a different link in Properties. In the installed Wayland app,
+  scrolling the list moved from L00 to L09 and tapping the visible L14
+  successfully changed and applied the measurement link.
+- The offline x86_64 Flatpak build completed against GNOME 51. The first
+  bundle failed installation on Flatpak 1.16.6 with `Invalid Exec argument @@`.
+  Removed the manual forwarding markers from the build. The rebuilt bundle
+  installed, and Flatpak generated `--file-forwarding` and the markers in the
+  exported desktop entry. The installed package used its declared permissions
+  without a filesystem override.
+- Native review on xdg-desktop-portal 1.21.1 and its GNOME 50 backend passed
+  chooser open, forwarding from the exported desktop launcher to a running
+  instance, external library attachment and reattachment after restart, and
+  workbook export both to a new file and after confirming replacement. Both
+  workbooks reopened with all five expected sheets. The packaged Python
+  sidecar created a project, listed eight measurement templates and three
+  bundled databases, and shut down cleanly.
+- **Release blocker.** In-place save rejected the correct folder after a
+  chooser open. A direct test on the granted Documents mount showed
+  `fcntl.flock` returning `ENOSYS`, which the UI presented as another window
+  saving. The original test project remained intact and no backup was
+  published. POSIX `lockf` succeeded but did not block a second sandbox in a
+  separate-process probe, so it did not establish a safe replacement. Save
+  Copy produced a valid new project after choosing a host folder manually.
+  Its initial chooser displayed a warning for the forwarded project's
+  sandbox-only `/run/flatpak/doc` starting path.
+- All 241 Python tests and 101 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation links,
+  desktop-entry and AppStream metadata validation, and diff checks passed.
