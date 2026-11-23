@@ -1192,3 +1192,26 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   source copy. The Vite and Playwright settings and the two clipboard context URLs
   in that copy used the same alternate port. Installed WebView behavior
   was outside this verification.
+
+## 2026-11-23 — Project deletion confirmation
+
+- After `bfdc275`, moved deletion preview, confirmation and staged revision
+  into `ProjectDeletionDialog.vue`. The view still supplies the selected IDs,
+  routes actions, and handles commands, errors, grid refresh and undo.
+  The normalized dialog template matched HEAD. `ProjectViews.vue` decreased
+  from 2,044 to 1,962 lines.
+- `tools/check_quality.py --fix`, `tools/check_quality.py`, documentation
+  checks across 36 Markdown files and `git diff --check` passed.
+  The Python suite ran 224 tests with 222 passing and two skipped.
+  Strict frontend type checking and production build passed. Vite retained
+  the large-chunk warning (1.26 MB, 326 KB gzip).
+- The category and used-resource browser workflow passed, including cancel,
+  deletion policies and undo. An additional scenario in a temporary test
+  copy verified matching preview and write IDs and revision, inline rejection
+  after a concurrent project edit, and measurement category deletion and undo.
+  Its initial assertion expected different wording for the stale-edit error.
+  The rerun passed after matching the existing message. No application code
+  changed between those runs.
+- The full browser suite passed 91 tests and skipped the opt-in performance
+  test. It used installed Chrome and the temporary Vite source copy on the
+  alternate port described above.

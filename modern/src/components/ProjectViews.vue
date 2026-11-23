@@ -11,6 +11,7 @@ import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import MappedImport from "./MappedImport.vue";
 import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
 import ScheduleEditingDialogs from "./ScheduleEditingDialogs.vue";
+import ProjectDeletionDialog from "./ProjectDeletionDialog.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
@@ -127,6 +128,7 @@ const templateInfo = computed(() => templates.value.find((template) => template.
 const mainTable = ref<InstanceType<typeof DataTable>>();
 const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>();
 const scheduleEditingDialogs = ref<InstanceType<typeof ScheduleEditingDialogs>>();
+const projectDeletionDialog = ref<InstanceType<typeof ProjectDeletionDialog>>();
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
 const formOpen = ref(false);
@@ -134,15 +136,6 @@ const formMode = ref("add");
 const form = ref<Record<string, string>>({});
 const categoryOpen = ref(false);
 const categoryName = ref("");
-const deleteOpen = ref(false);
-const deletion = ref<{
-  ids: string[];
-  revision: number;
-  items: number;
-  categories: number;
-  used_resources: string[];
-  measurement_references: number;
-}>();
 const importOpen = ref(false);
 const recordImportOpen = ref(false);
 const multiAnalysisImportOpen = ref(false);
@@ -488,55 +481,18 @@ async function command(operation: string, params: Record<string, unknown> = {}) 
     emit("changed");
   });
 }
-async function deleteSelection() {
+function deleteSelection() {
+  if (!state.value) return;
+  const revision = state.value.revision;
   if (isMeasurement.value) {
-    if (selected.value.some((row) => row.rowtype === "Category")) {
-      const ids = selectedItemIds();
-      deletion.value = {
-        ids,
-        revision: state.value!.revision,
-        items: ids.length,
-        categories: selected.value.filter((row) => row.rowtype === "Category").length,
-        used_resources: [],
-        measurement_references: 0,
-      };
-      deleteOpen.value = true;
-    } else await command("delete");
-    return;
+    const categories = selected.value.filter((row) => row.rowtype === "Category").length;
+    if (categories) return projectDeletionDialog.value?.show(selectedItemIds(), revision, categories);
+    return command("delete");
   }
-  const ids = selected.value.map((row) => row.id);
-  const revision = state.value!.revision;
-  const ok = await run(async () => {
-    const preview = await request<Omit<NonNullable<typeof deletion.value>, "ids" | "revision">>(
-      props.view + ".editor.delete_preview",
-      { ids, revision },
-    );
-    deletion.value = { ...preview, ids, revision };
-  });
-  if (!ok) return;
-  if (
-    deletion.value!.categories ||
-    deletion.value!.used_resources.length ||
-    deletion.value!.measurement_references ||
-    deletion.value!.items > 1
-  ) {
-    deleteOpen.value = true;
-  } else {
-    await confirmDeletion("protect");
-  }
-}
-async function confirmDeletion(policy: "protect" | "unused" | "all") {
-  if (!deletion.value) return;
-  if (
-    await command(isMeasurement.value ? "delete" : "delete_many", {
-      ids: deletion.value.ids,
-      revision: deletion.value.revision,
-      policy,
-    })
-  ) {
-    deleteOpen.value = false;
-    deletion.value = undefined;
-  }
+  return projectDeletionDialog.value?.show(
+    selected.value.map((row) => row.id),
+    revision,
+  );
 }
 async function revealCode(code: string) {
   if (isMeasurement.value) return;
@@ -1929,52 +1885,14 @@ watch(
         </div>
       </form></Dialog
     >
-    <Dialog
-      v-model:visible="deleteOpen"
-      modal
-      header="Delete selected items"
-      class="workspace-dialog file-dialog"
-      :closable="!busy"
-    >
-      <template v-if="deletion">
-        <p class="dialog-intro">
-          Delete {{ deletion.items }} item{{ deletion.items === 1 ? "" : "s"
-          }}{{
-            deletion.categories
-              ? ` and ${deletion.categories} ${deletion.categories === 1 ? "category" : "categories"}`
-              : ""
-          }}? Category contents and child items are included. You can undo this operation.
-        </p>
-        <p v-if="deletion.used_resources.length" class="dialog-intro">
-          {{ deletion.used_resources.length }}
-          {{ deletion.used_resources.length === 1 ? "resource is" : "resources are" }}
-          used in analyses. Deleting them also removes their analysis entries and recalculates dependent rates.
-        </p>
-        <p v-if="deletion.measurement_references" class="dialog-intro">
-          {{ deletion.measurement_references }} measurement associations will be cleared. Measurement records and
-          remarks will be retained.
-        </p>
-        <div v-if="error" class="dialog-error">{{ error }}</div>
-        <div class="dialog-footer">
-          <button class="button secondary" :disabled="busy" @click="deleteOpen = false">Cancel</button>
-          <button
-            v-if="deletion.used_resources.length"
-            class="button danger"
-            :disabled="busy"
-            @click="confirmDeletion('unused')"
-          >
-            Delete unused
-          </button>
-          <button
-            class="button danger"
-            :disabled="busy"
-            @click="confirmDeletion(deletion.used_resources.length ? 'all' : 'protect')"
-          >
-            {{ deletion.used_resources.length ? "Delete including used" : "Delete selected" }}
-          </button>
-        </div>
-      </template>
-    </Dialog>
+    <ProjectDeletionDialog
+      ref="projectDeletionDialog"
+      :view="view"
+      :busy="busy"
+      :error="error"
+      :run="run"
+      :command="command"
+    />
     <Dialog v-model:visible="categoryOpen" modal header="Add category" class="workspace-dialog file-dialog"
       ><label class="field">Category name<input v-model="categoryName" data-primary-input autofocus /></label>
       <div class="dialog-footer">

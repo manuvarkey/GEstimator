@@ -26,6 +26,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
+| Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
 | Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
@@ -136,6 +137,12 @@ open the same dialogs. The view supplies the selected schedule IDs, current
 revision and shared busy/error handling. After a successful command the view
 refreshes the grid and history, and the dialog closes. The quantity dialog and
 the Measurements ribbon share the [rounding choices](../../modern/src/quantityRounding.ts).
+
+`ProjectDeletionDialog` stages schedule and resource deletion using Python's
+preview, and also confirms deletion of selected measurement categories.
+It submits the original row IDs and revision through the view's shared
+command. The view owns selection, keyboard and menu routing, and refresh.
+The preview determines when schedule and resource deletion needs a dialog.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,
