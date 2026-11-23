@@ -9,6 +9,7 @@ import DataTable from "./DataTable.vue";
 import AppIcon from "./AppIcon.vue";
 import SpreadsheetRangeImport from "./SpreadsheetRangeImport.vue";
 import MappedImport from "./MappedImport.vue";
+import ResourceEditingDialogs from "./ResourceEditingDialogs.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
@@ -49,21 +50,10 @@ const emit = defineEmits<{
 }>();
 const state = ref<GridState>();
 const discrepancy = ref<any>();
-const excludedPrefixes = ref<string[]>([]);
-const resourceRenumberOpen = ref(false);
-const resourcePrefixes = ref<string[]>([]);
 async function showDiscrepancies() {
   await run(async () => {
     const result = await request<any>("schedule.editor.discrepancies", {});
     if (state.value?.revision === result.revision && !source.value) discrepancy.value = result;
-  });
-}
-async function showResourceRenumber() {
-  await run(async () => {
-    const result = await request<{ prefixes: string[] }>("resources.editor.prefixes", {});
-    resourcePrefixes.value = result.prefixes;
-    excludedPrefixes.value = [...result.prefixes];
-    resourceRenumberOpen.value = true;
   });
 }
 
@@ -133,10 +123,9 @@ const selected = ref<GridRow[]>([]);
 const templates = ref<MeasurementTemplate[]>([]);
 const templateInfo = computed(() => templates.value.find((template) => template.code === form.value.template));
 const mainTable = ref<InstanceType<typeof DataTable>>();
+const resourceEditingDialogs = ref<InstanceType<typeof ResourceEditingDialogs>>();
 const selectionIds = ref<string[]>();
 const workingSelection = ref<string[]>([]);
-const moveResourcesOpen = ref(false);
-const moveCategory = ref("");
 const formOpen = ref(false);
 const formMode = ref("add");
 const form = ref<Record<string, string>>({});
@@ -1226,10 +1215,7 @@ watch(
                       aria-label="Move resources…"
                       title="Move selected definitions to another category without making copies or breaking analysis links. Undo restores their previous categories."
                       :disabled="busy || !selected.length || selected.some((row) => row.rowtype === 'Category')"
-                      @click="
-                        moveCategory = state?.categories?.[0] || '';
-                        moveResourcesOpen = true;
-                      "
+                      @click="resourceEditingDialogs?.showMove()"
                     >
                       <AppIcon name="category" /><span class="ribbon-label">Move resources</span>
                     </button>
@@ -1404,7 +1390,7 @@ watch(
                     v-if="view === 'resources'"
                     class="ribbon-action"
                     :disabled="busy || !!source"
-                    @click="showResourceRenumber"
+                    @click="resourceEditingDialogs?.showRenumber()"
                   >
                     <AppIcon name="edit" /><span class="ribbon-label">Renumber resources</span>
                   </button>
@@ -1747,75 +1733,16 @@ watch(
         </div>
       </template>
     </template>
-    <Dialog
-      v-model:visible="moveResourcesOpen"
-      modal
-      header="Move resources"
-      class="workspace-dialog file-dialog"
-      :closable="!busy"
-    >
-      <form
-        @submit.prevent="
-          async () => {
-            if (await command('move_to', { category: moveCategory })) moveResourcesOpen = false;
-          }
-        "
-      >
-        <p>Move {{ selected.length }} selected resources, retaining their codes and analysis links.</p>
-        <label class="field"
-          >Destination category<select v-model="moveCategory" data-primary-input autofocus :disabled="busy">
-            <option v-for="category in state?.categories" :key="category">{{ category }}</option>
-          </select></label
-        >
-        <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
-        <div class="dialog-footer">
-          <button type="button" class="button secondary" :disabled="busy" @click="moveResourcesOpen = false">
-            Cancel</button
-          ><button class="button primary" :disabled="busy">Move resources</button>
-        </div>
-      </form>
-    </Dialog>
-    <Dialog v-model:visible="resourceRenumberOpen" modal header="Renumber resources" class="workspace-dialog">
-      <p>
-        Project resources are renumbered. Enable each database below to include its resources; excluded databases keep
-        their codes.
-      </p>
-      <div class="database-toggle-list">
-        <div v-for="prefix in resourcePrefixes" :key="prefix" class="database-toggle-row">
-          <span>{{ prefix }}</span
-          ><button
-            type="button"
-            class="button small secondary"
-            role="switch"
-            :aria-label="`Renumber ${prefix} resources`"
-            :aria-checked="!excludedPrefixes.includes(prefix)"
-            :disabled="busy"
-            @click="
-              excludedPrefixes = excludedPrefixes.includes(prefix)
-                ? excludedPrefixes.filter((value) => value !== prefix)
-                : [...excludedPrefixes, prefix]
-            "
-          >
-            {{ excludedPrefixes.includes(prefix) ? "Excluded" : "Enabled" }}
-          </button>
-        </div>
-      </div>
-      <p v-if="!resourcePrefixes.length" class="field-hint">No database-prefixed resources in this project.</p>
-      <div class="dialog-footer">
-        <button class="button secondary" :disabled="busy" @click="resourceRenumberOpen = false">Cancel</button
-        ><button
-          class="button primary"
-          :disabled="busy"
-          @click="
-            async () => {
-              if (await command('renumber', { exclude: excludedPrefixes })) resourceRenumberOpen = false;
-            }
-          "
-        >
-          Renumber resources
-        </button>
-      </div>
-    </Dialog>
+    <ResourceEditingDialogs
+      v-if="view === 'resources'"
+      ref="resourceEditingDialogs"
+      :categories="state?.categories"
+      :selection-count="selected.length"
+      :busy="busy"
+      :error="error"
+      :run="run"
+      :command="command"
+    />
     <Dialog
       v-model:visible="recordsOpen"
       modal

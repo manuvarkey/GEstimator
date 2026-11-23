@@ -24,6 +24,7 @@ formatting is presentation; the currency option does not convert prices.
 | Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
 | Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
 | Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
@@ -121,6 +122,12 @@ continues to open the database manager for picker requests.
 The database manager handles reselection of unavailable remembered paths.
 `libraryPreferences.ts` updates the saved entry after the replacement
 attachment succeeds.
+
+`ResourceEditingDialogs` stages the destination category for resource moves
+and the database prefixes to exclude from renumbering. It loads prefixes
+through the project view's busy and error handling. Both edits use the view's
+shared command, which supplies the current revision and selection and refreshes
+the table and undo controls after a successful edit.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,

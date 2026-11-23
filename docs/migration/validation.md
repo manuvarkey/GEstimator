@@ -1141,3 +1141,26 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   the engine to connect in the landing-page test. A focused rerun passed that
   test, the folder-picker cancellation test and remembered-library reselection.
   The installed Linux chooser and file-manager forwarding remain pending.
+
+## 2026-11-23 — Resource editing dialogs
+
+- After `3ad4ecd`, moved the resource category and renumbering dialogs to
+  `ResourceEditingDialogs.vue`, including destination selection and database
+  prefix switches. The resource view still supplies its current selection and
+  revision through the shared command. The prefix lookup uses the view's existing
+  busy/error path. `ProjectViews.vue` decreased from 2,216 to 2,143 lines.
+- A comparison of the Vue template trees matched the markup, labels, field
+  bindings and form submission directives.
+- Changed-source formatting, documentation checks across 36 Markdown files
+  and `git diff --check` passed. The full Python suite ran 224 tests with 222
+  passing and two skipped. Strict frontend type checking and the production
+  build passed. Vite retained the existing large-chunk warning
+  (about 1.26 MB, 326 KB gzip).
+- Ran the full browser suite with installed Chrome and a test server on an
+  alternate port while the native development session used the default port.
+  It finished with 89 passing, one opt-in performance test skipped and two
+  clipboard tests timing out when their second browser contexts loaded the
+  hard-coded default port. Both passed on a focused rerun using a temporary
+  copy of the test file with the two URLs pointed at the test server.
+  Resource move and undo, prefix exclusions and database switches also passed
+  on a focused rerun.
