@@ -1041,3 +1041,32 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   Apply/Discard/navigation/Save, all-record totals, keyboard/focus and measurement
   entry restoration after switching project tabs. The unchanged behavior is
   covered by existing regressions; no implementation-mirroring tests were added.
+
+## 2026-11-23 — Analysis workspace dialogs
+
+- After `786ef20`, moved the custom resource form, database resource picker,
+  workbook import and export, custom template and project analysis rules dialog
+  into `AnalysisDialogs.vue`. The resource workflows share the existing
+  insertion-target rule. The dialog owner uses the document workspace's state,
+  commands and errors. `App.vue` keeps the draft guard, routes shortcuts and
+  database management requests, and refreshes the schedule after rule changes.
+- Removed the duplicate-resource dialog whose visibility state had no opening
+  action. The active row-duplication commands remain available. `App.vue`
+  decreased from 1,903 to 1,717 lines. Architecture and audit pages record the
+  new owner and the remaining shell work.
+- All five moved dialog templates compile to the same Vue render code after
+  normalizing the new binding names.
+- Full Python suite ran **219 tests, two skipped**. `npm run build` passed strict
+  type checking and the production build. The existing entry-chunk warning
+  remains (1.26 MB, 325 KB gzip). Backend and native source did not change.
+  Installed WebView and OS-dialog behavior were outside this verification.
+- A focused browser check exercised analysis export from the ribbon and the
+  application menu. Both paths submitted the selected destination to the real
+  Python bridge and wrote an XLSX workbook using the stubbed file chooser.
+- Full browser suite with installed Chrome and a standalone Vite process
+  finished with **89 passed, one opt-in performance test skipped**. It covers
+  resource insertion and focus, Excel import and undo, custom template
+  persistence, project analysis rules, draft guards and tab restoration.
+  An earlier run stopped after 56 passes when its Vite connection dropped.
+- Changed-source formatting, documentation checks across 36 Markdown files
+  and `git diff --check` passed.

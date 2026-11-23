@@ -5,14 +5,12 @@ import { afterDialogsClose, focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { save } from "@tauri-apps/plugin-dialog";
 import ApplicationMenu from "./components/ApplicationMenu.vue";
 import ApplicationHelp from "./components/ApplicationHelp.vue";
 import ThemedDropdowns from "./components/ThemedDropdowns.vue";
 import LibraryManager from "./components/LibraryManager.vue";
-import AnalysisBatchDialog from "./components/AnalysisBatchDialog.vue";
+import AnalysisDialogs from "./components/AnalysisDialogs.vue";
 import DatabasePicker from "./components/DatabasePicker.vue";
-import AnalysisRulesDialog from "./components/AnalysisRulesDialog.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
 import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
@@ -49,7 +47,6 @@ import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigati
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
 import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
-import SpreadsheetRangeImport from "./components/SpreadsheetRangeImport.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
 import { installProjectOpening } from "./projectOpening";
@@ -57,6 +54,7 @@ import { request, type AnalysisRow, type RowKind } from "./backend";
 import { formatMoney } from "./numberFormatting";
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
+const analysisDialogs = ref<InstanceType<typeof AnalysisDialogs>>();
 const ribbonToolbar = ref<InstanceType<typeof RibbonToolbar>>();
 const emptyAnalysisRows: AnalysisRow[] = [];
 const {
@@ -77,20 +75,13 @@ const {
   resourceCount,
   groups,
   selection,
-  destinationGroup,
   projectSession,
 } = w;
 const libraryManagerOpen = ref(false);
 const programSettingsOpen = ref(false);
-const analysisBatchOpen = ref(false);
-const analysisTemplateMode = ref(false);
-const analysisRulesOpen = ref(false);
-const analysisRuleIds = ref<string[]>([]);
-const analysisRuleCode = ref("");
 function showAnalysisRules(ids: string[] = []) {
-  analysisRuleIds.value = ids;
-  analysisRuleCode.value = activeView.value === "analysis" && state.value?.project ? state.value.code : "";
-  analysisRulesOpen.value = true;
+  const code = activeView.value === "analysis" && state.value?.project ? state.value.code : "";
+  analysisDialogs.value?.showRules(ids, code);
 }
 async function applyAnalysisRules(params: Record<string, unknown>) {
   const ok = await w.run(async () => {
@@ -266,10 +257,6 @@ const {
 });
 
 let pendingProject = false;
-const duplicateCode = ref("");
-const duplicateOpen = ref(false);
-const importAnalysisOpen = ref(false);
-const exportAnalysisPath = ref("");
 const explorer = ref("schedule");
 const sidebar = ref(true);
 const helpOpen = ref(false);
@@ -334,21 +321,6 @@ const shortcutGroups = [
     ],
   },
 ];
-const resourceOpen = ref(false);
-const analysisResourcesOpen = ref(false);
-const form = ref({
-  code: "",
-  description: "",
-  unit: "",
-  rate: "0",
-  qty: "0",
-  vat: "0",
-  discount: "0",
-  reference: "",
-  category: "",
-  remarks: "",
-});
-const groupId = ref("");
 let pending: ((discard: boolean) => Promise<unknown>) | undefined;
 let unsubscribers: UnlistenFn[] = [];
 const rowKinds: {
@@ -398,7 +370,6 @@ const selectedKind = computed(() => selection.value?.kind.toLowerCase());
 const canEdit = computed(
   () => connected.value && !busy.value && !projectBusy.value && !!state.value?.code && activeView.value === "analysis",
 );
-const resourceTarget = computed(() => groups.value.find((g) => g.id === groupId.value));
 const selectionHint = computed(
   () =>
     ({
@@ -450,46 +421,6 @@ async function continueAfterSave() {
     await action(false);
   }
 }
-function addResource(kind: "library" | "custom" = "custom") {
-  groupId.value = destinationGroup.value?.id || groups.value[0]?.id || "";
-  if (kind === "library") analysisResourcesOpen.value = true;
-  else resourceOpen.value = true;
-}
-async function addAnalysisResources(params: Record<string, unknown>) {
-  return w.command("analysis.resources_add", {
-    ...params,
-    id: destinationGroup.value?.id === groupId.value ? selected.value[0]?.id || groupId.value : groupId.value,
-  });
-}
-async function insertExplorerResource(code: string) {
-  groupId.value = destinationGroup.value?.id || groups.value[0]?.id || "";
-  await insertResource(code);
-}
-async function insertResource(libraryCode?: string) {
-  if (
-    await w.command("resource.add", {
-      id: destinationGroup.value?.id === groupId.value ? selected.value[0]?.id || groupId.value : groupId.value,
-      library: !!libraryCode,
-      source: resourceSource.value,
-      ...form.value,
-      code: libraryCode || form.value.code,
-    })
-  ) {
-    resourceOpen.value = false;
-    form.value = {
-      code: "",
-      description: "",
-      unit: "",
-      rate: "0",
-      qty: "0",
-      vat: "0",
-      discount: "0",
-      reference: "",
-      category: "",
-      remarks: "",
-    };
-  }
-}
 async function edit(row: AnalysisRow, field: string, value: string) {
   return w.command("edit", { id: row.id, field, value });
 }
@@ -510,7 +441,7 @@ function keyboard(event: KeyboardEvent) {
     return;
   }
   if (event.defaultPrevented || document.querySelector('[role="dialog"]')) return;
-  if (resourceOpen.value || fileMode.value || discardOpen.value || helpOpen.value) return;
+  if (analysisDialogs.value?.customResourceOpen || fileMode.value || discardOpen.value || helpOpen.value) return;
   const key = event.key.toLowerCase();
   const mod = event.ctrlKey || event.metaKey;
   if (event.altKey && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
@@ -564,7 +495,7 @@ function keyboard(event: KeyboardEvent) {
   if (mod && key === "i") {
     event.preventDefault();
     if (canEdit.value && groups.value.length) {
-      addResource(event.shiftKey ? "custom" : "library");
+      analysisDialogs.value?.showResource(event.shiftKey ? "custom" : "library");
     }
     return;
   }
@@ -646,25 +577,6 @@ async function discardAnalysis() {
   if (!state.value?.project || uiBusy.value) return;
   if (await w.load(state.value.code, true)) await returnToSchedule();
 }
-async function chooseAnalysisExport() {
-  try {
-    const path = await save({
-      filters: [{ name: "Excel workbook", extensions: ["xlsx"] }],
-      defaultPath: (state.value?.code || "analysis") + ".xlsx",
-    });
-    if (typeof path === "string") {
-      exportAnalysisPath.value = path;
-      await exportAnalysis();
-    }
-  } catch (reason) {
-    error.value = String(reason);
-  }
-}
-async function exportAnalysis() {
-  await w.run(async () => {
-    await request("analysis.export_xlsx", { path: exportAnalysisPath.value });
-  }, "Exporting analysis…");
-}
 async function historyAction(method: "undo" | "redo") {
   if (uiBusy.value) return;
   if (activeView.value === "analysis") await w.command(method);
@@ -688,7 +600,7 @@ async function applicationAction(action: string) {
       await closeProject();
       break;
     case "export":
-      if (activeView.value === "analysis") await chooseAnalysisExport();
+      if (activeView.value === "analysis") await analysisDialogs.value?.exportWorkbook();
       else projectView.value?.exportWorkbook();
       break;
     case "settings":
@@ -966,7 +878,7 @@ onBeforeUnmount(() => {
               class="ribbon-action"
               aria-label="Add resources from database"
               :disabled="!canEdit || !groups.length"
-              @click="addResource('library')"
+              @click="analysisDialogs?.showResource('library')"
             >
               <AppIcon name="database" /><span class="ribbon-label">From database</span>
             </button>
@@ -974,7 +886,7 @@ onBeforeUnmount(() => {
               class="ribbon-action"
               aria-label="Add custom resource"
               :disabled="!canEdit || !groups.length"
-              @click="addResource('custom')"
+              @click="analysisDialogs?.showResource('custom')"
             >
               <AppIcon name="resource" /><span class="ribbon-label">Custom resource</span>
             </button>
@@ -1016,10 +928,7 @@ onBeforeUnmount(() => {
               aria-label="Custom analysis template…"
               title="Configure, save and preview reusable calculation rows before inserting them as one undoable batch."
               :disabled="!canEdit"
-              @click="
-                analysisTemplateMode = true;
-                analysisBatchOpen = true;
-              "
+              @click="analysisDialogs?.showTemplate()"
             >
               <AppIcon name="settings" /><span class="ribbon-label">Custom template</span>
             </button>
@@ -1117,7 +1026,7 @@ onBeforeUnmount(() => {
               aria-label="Export analysis"
               title="Export this analysis, including unapplied draft edits, to an Excel workbook."
               :disabled="!canEdit || !state?.project"
-              @click="chooseAnalysisExport"
+              @click="analysisDialogs?.exportWorkbook()"
             >
               <AppIcon name="export" /><span class="ribbon-label">Export analysis</span>
             </button>
@@ -1126,10 +1035,7 @@ onBeforeUnmount(() => {
               aria-label="Import analysis"
               title="Preview an Excel worksheet range and insert its calculation rows into this draft. The import can be undone."
               :disabled="!canEdit || !state?.project"
-              @click="
-                error = '';
-                importAnalysisOpen = true;
-              "
+              @click="analysisDialogs?.showImport()"
             >
               <AppIcon name="import" /><span class="ribbon-label">Import analysis</span>
             </button>
@@ -1334,7 +1240,7 @@ onBeforeUnmount(() => {
               :key="item.code"
               class="item-card"
               :disabled="uiBusy || !canEdit || !groups.length"
-              @click="insertExplorerResource(item.code)"
+              @click="analysisDialogs?.insertExplorerResource(item.code)"
             >
               <span class="item-code"><AppIcon name="resource" :size="14" />{{ item.code }}</span
               ><span class="item-description">{{ item.description }}</span
@@ -1494,7 +1400,7 @@ onBeforeUnmount(() => {
               <button
                 class="button small secondary"
                 :disabled="!canEdit || !groups.length"
-                @click="addResource('custom')"
+                @click="analysisDialogs?.showResource('custom')"
               >
                 <AppIcon name="plus" :size="15" />Add resource
               </button>
@@ -1710,58 +1616,13 @@ onBeforeUnmount(() => {
       </div>
     </form></Dialog
   >
-  <DatabasePicker
-    v-model="analysisResourcesOpen"
-    analysis
-    kind="resources"
-    mode="add"
-    :revision="state?.revision || 0"
-    :target-ids="[]"
-    :apply="addAnalysisResources"
-    :parent-error="error"
-    @manage="libraryManagerOpen = true"
+  <AnalysisDialogs
+    ref="analysisDialogs"
+    :workspace="w"
+    :busy="uiBusy"
+    :apply-rules="applyAnalysisRules"
+    @manage-libraries="libraryManagerOpen = true"
   />
-  <Dialog v-model:visible="resourceOpen" modal header="Add custom resource" class="workspace-dialog resource-dialog"
-    ><p class="dialog-intro">Create a resource definition and insert it into the selected analysis group.</p>
-    <label class="field"
-      >Destination group<select v-model="groupId">
-        <option v-for="group in groups" :key="group.id" :value="group.id">
-          {{ group.description }}
-        </option>
-      </select></label
-    >
-    <form @submit.prevent="insertResource()">
-      <div class="field-pair">
-        <label class="field">Resource code<input v-model="form.code" placeholder="Automatic if blank" /></label
-        ><label class="field">Unit<input v-model="form.unit" required placeholder="e.g. kg" /></label>
-      </div>
-      <label class="field"
-        >Description<textarea
-          data-primary-input
-          autofocus
-          v-model="form.description"
-          required
-          rows="3"
-          placeholder="Describe the material, labour or equipment"
-        />
-      </label>
-      <div class="field-pair">
-        <label class="field">Base rate<input v-model="form.rate" inputmode="decimal" required /></label
-        ><label class="field">Quantity<input v-model="form.qty" inputmode="decimal" required /></label>
-      </div>
-      <div class="field-pair">
-        <label class="field">Tax %<input v-model="form.vat" inputmode="decimal" /></label
-        ><label class="field">Discount %<input v-model="form.discount" inputmode="decimal" /></label>
-      </div>
-      <div v-if="error" class="dialog-error" role="alert">{{ error }}</div>
-      <div class="dialog-footer">
-        <button type="button" class="button secondary" @click="resourceOpen = false">Cancel</button
-        ><button class="button primary" :disabled="uiBusy || !resourceTarget">
-          <AppIcon name="plus" :size="16" />Add resource
-        </button>
-      </div>
-    </form></Dialog
-  >
   <Dialog
     :visible="discardOpen"
     modal
@@ -1810,36 +1671,6 @@ onBeforeUnmount(() => {
     </p></Dialog
   >
 
-  <Dialog
-    v-model:visible="duplicateOpen"
-    modal
-    header="Duplicate resource definition"
-    class="workspace-dialog file-dialog"
-    ><p class="dialog-intro">
-      Creates an independent definition under a new code, inserted after this entry with zero quantity.
-    </p>
-    <label class="field">New resource code<input v-model="duplicateCode" data-primary-input autofocus /></label>
-    <div v-if="error" class="dialog-error">{{ error }}</div>
-    <div class="dialog-footer">
-      <button
-        class="button primary"
-        :disabled="uiBusy || !duplicateCode"
-        @click="
-          w.command('resource.duplicate', { code: duplicateCode }).then((ok) => {
-            if (ok) duplicateOpen = false;
-          })
-        "
-      >
-        Create independent resource
-      </button>
-    </div></Dialog
-  >
-  <SpreadsheetRangeImport
-    v-if="importAnalysisOpen"
-    v-model="importAnalysisOpen"
-    :apply="(params) => w.command('analysis.import_xlsx', params)"
-    :error="error"
-  />
   <ProjectSettings
     v-if="settingsOpen"
     v-model="settingsOpen"
@@ -1882,22 +1713,5 @@ onBeforeUnmount(() => {
     :apply="applyDatabase"
     :parent-error="databaseError"
     @manage="libraryManagerOpen = true"
-  />
-  <AnalysisBatchDialog
-    v-if="analysisBatchOpen && state"
-    v-model="analysisBatchOpen"
-    :template="analysisTemplateMode"
-    :selected="selected"
-    :state="state"
-    :apply="(params) => w.command('analysis.batch', params)"
-  />
-  <AnalysisRulesDialog
-    v-if="analysisRulesOpen && state"
-    v-model="analysisRulesOpen"
-    :revision="state.revision"
-    :ids="analysisRuleIds"
-    :code="analysisRuleCode"
-    :dirty="state.dirty"
-    :apply="applyAnalysisRules"
   />
 </template>

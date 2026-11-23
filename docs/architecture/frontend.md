@@ -20,6 +20,7 @@ formatting is presentation; the currency option does not convert prices.
 | View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
+| Analysis resource, workbook, custom template and project analysis rules dialogs | [`AnalysisDialogs.vue`](../../modern/src/components/AnalysisDialogs.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
@@ -35,9 +36,8 @@ formatting is presentation; the currency option does not convert prices.
 
 Before adding behavior to a shell/view, check for an existing shared helper.
 Extract a separate concern into a composable or component with explicit inputs
-and cleanup. Navigation/history, project file workflows and MCP refresh have
-separate composables; the [quality audit](../code-quality-audit.md) tracks the
-remaining shell and measurement view concerns.
+and cleanup. The [quality audit](../code-quality-audit.md) tracks the remaining
+shell and project view concerns.
 
 ## Document and view lifetimes
 
@@ -91,6 +91,14 @@ See [MCP synchronization](mcp.md#desktop-synchronization-and-transport)
 and [backend revisions](backend.md#revisions-and-write-boundaries).
 
 ## Grids and drafts
+
+The analysis dialogs use the mounted workspace's selection, revision, commands
+and error state. `AnalysisDialogs` owns the custom resource form, database
+resource picker, workbook import and export, custom template, and project
+analysis rule dialog. It keeps the insertion group selected when a resource
+action starts and uses the selected row as the insertion point when that row
+belongs to the same group. The shell still handles keyboard routing, database
+manager requests and the schedule reload and navigation after applying rules.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,
