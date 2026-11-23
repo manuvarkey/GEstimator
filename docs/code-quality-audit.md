@@ -30,6 +30,7 @@ crossed an unsafe execution boundary; that warranted an immediate fix.
 | P2 | Project file dialogs, recovery, recent paths and OS-open completion/handoff also lived in `App.vue`. | Extracted `useProjectFiles.ts` with explicit guard, tab-action and post-save callbacks. Reused the guarded open handler for file-dialog submission. Native listener installation/cleanup and the single pending-action guard remain in the shell. `App.vue` decreased from 2,052 to 1,903 lines without template changes. |
 | P2 | Analysis resources, workbook operations, custom templates and project analysis rules put dialog state and form markup in the shell. | Extracted `AnalysisDialogs.vue` with a shared resource insertion target and a typed workspace interface. Shared commands, error state and the shell's post-rule navigation are reused. `App.vue` decreased from 1,903 to 1,717 lines. |
 | P2 | The analysis inspector mixed selected-row presentation and field handlers with shell coordination. | Extracted `AnalysisInspector.vue` with typed row and visibility inputs and events. The shell reuses the grid's edit callback and retains the navigation binding. `App.vue` decreased from 1,717 to 1,611 lines. |
+| P2 | Schedule and resource database picker state and errors lived in the shell. | Extracted `ProjectDatabasePickers.vue` with a typed selection carrying the original revision, separate picker instances and the existing project-view command and error path. `App.vue` decreased from 1,611 to 1,563 lines. |
 | P2 | `ProjectViews.vue` combined main-table coordination with record-page/detail loading, description editing, measurement properties and link-picker state. | Extracted `useMeasurementRecords.ts` and `useMeasurementProperties.ts`, retaining the common command/error boundary and parent-owned memory snapshot. `projectViewTypes.ts` types nullable measurement detail, metadata, records, links and properties. `measurementColumns.ts` isolates the existing Tabulator typing gaps and text-safe column presentation. |
 | P2 | `ProjectEditor` also owned attachment snapshots, catalog/notes presentation and a large library import pipeline. | Extracted `libraries.py` and `library_import.py`; factored the dependency stage and source ordering into helpers. Editor methods remain forwards, and the editor retains attachment lifetime and transaction/undo ownership. The factoring reconstructs the original import AST; focused and full backend regressions cover its behavior. |
 | P2 | No root agent rules, no formatter configuration, inconsistent imports/spacing, and failing `cargo fmt --check`. | Added root rules and compatible Ruff, Prettier, rustfmt, EditorConfig and Git newline settings. Applied formatting to the changed Python files and the small Rust crate. Existing license headers are retained. |
@@ -53,9 +54,9 @@ use standard math approximations. Custom installed templates should use
 
 | Priority | Area | Next bounded change and acceptance check |
 | --- | --- | --- |
-| P2 | `modern/src/App.vue` — 1,611 formatted lines | Navigation, MCP refresh, file workflows, analysis dialogs and the inspector are extracted. The shell's schedule/resource database picker coordination is a bounded candidate for further extraction. Preserve each picker's state, revision handling and view-specific errors. |
-| P2 | `modern/src/components/ProjectViews.vue` — 2,205 formatted lines | Record-page state and measurement properties are extracted. Next separate schedule/resource-specific dialog state. Required formatting expanded previously compressed markup; the formatted baseline would be 2,437 lines. Preserve focus, selection, paging and tab memory; do not duplicate `DataTable` behavior. |
-| P2 | `modern/backend/project.py` — 1,527 lines; `service.py` — 1,023 | Library snapshot/import handling is extracted. Next separate schedule/resource edit families or analysis draft operations. Keep `call`, revision checks, transaction scopes and undo ownership easy to find. Current measurement dispatchers retain related operation variants; split by operation family when extended. |
+| P2 | `modern/src/components/ProjectViews.vue` — 2,216 formatted lines | Record-page state and measurement properties are extracted. Next separate schedule or resource editing dialogs, starting with one that involves no file chooser. Preserve focus, selection, paging and tab memory. When moving workbook export, keep its chooser-confirmed replacement handling. |
+| P2 | `modern/src/App.vue` — 1,563 formatted lines | Navigation, MCP refresh, file workflows, analysis dialogs, the inspector and project database pickers are extracted. The shell still renders project file and recovery dialogs for `useProjectFiles` workflows. Move their markup with the shared draft guard, queued native open completion and folder-grant behavior intact. |
+| P2 | `modern/backend/project.py` — 1,523 lines; `service.py` — 971 | Library snapshot/import handling is extracted. Next separate schedule/resource edit families or analysis draft operations. Keep `call`, revision checks, transaction scopes and undo ownership easy to find. The service and persistence modules retain portal file operations. Split measurement dispatchers by operation family when extended. |
 | P2 | `library_import.import_items` — 255 lines; navigation, project-file and measurement composable setup | The import coordinator retains coupled conflict, batch numbering and final rate policies so it does not publish per row; split policy families when next extended. Composable setup keeps one closure for related state/lifetimes and smaller nested operations. File workflows share dialog/open completion state; measurement owners share record/detail lifetimes or staged form/picker state. These owners exceed the function-size review trigger for an explicit ownership reason, not because the trigger was disabled. |
 | P2 | `modern/src/style.css` — 2,375 lines | Consolidate repeated selectors by feature while preserving cascade order. Separate table, ribbon, dialog and document-rail rules only with dark/light/narrow visual verification. Do not move rules merely to reduce line counts. |
 | P2 | Main-table `GridRow` and generic table callbacks in `ProjectViews.vue`/`DataTable.vue` | Measurement detail and records now have explicit types in `projectViewTypes.ts`. Next discriminate schedule/resource/measurement-list DTOs and type the generic table callbacks. Keep Tabulator compatibility at its adapter, keep `vue-tsc` strict and do not add broad casts to hide disagreements with the backend. |
@@ -67,6 +68,29 @@ The remaining items are explicit follow-up debt, not completed refactors. A
 single broad rewrite of all large files would make behavior changes harder to
 review and validate. The root rules require extracting new concerns before
 growing these hotspots further.
+
+### Flatpak behavior to preserve
+
+The file chooser changes in `f1d55d3` add acceptance checks for refactors that
+touch file workflows, library management or workbook export. The project database
+pickers still use attached database IDs. The database manager owns path selection
+and library reselection.
+
+- Keep portal paths from the chooser and file-manager forwarding on the guarded
+  project-open path. A cancelled folder chooser leaves edits and any pending
+  Save/Discard action intact. In-place save verifies the first folder grant,
+  reuses it for later saves, and keeps backups beside the project.
+- Keep remembered-library reselection tied to its original entry. A successful
+  attachment replaces the saved path, and a cancellation or failure leaves the
+  original entry available to retry.
+- Keep SQLite write-ahead-log rejection for single-file grants. Save Copy
+  requires a new filename. A chooser-confirmed workbook replacement is
+  published only after a complete export.
+
+Run the relevant [portal persistence tests](../tests/test_portal_files.py) and
+[browser workflows](testing.md#browser-integration-suite) when moving these
+paths. Use the [installed Flatpak review](../packaging/flathub/README.md#linux-desktop-review)
+to verify native chooser behavior, file forwarding and Documents mount access.
 
 ## Enforcement
 

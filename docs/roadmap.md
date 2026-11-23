@@ -12,7 +12,7 @@ establish a published store version or successful installation on another machin
 
 | Area | Next work | Acceptance evidence |
 | --- | --- | --- |
-| Large shell/view/router modules | Extract new concerns before extending `App.vue`, `ProjectViews.vue`, `project.py` or `service.py`; follow the audit's bounded priorities | Existing behavior, drafts, identity, focus and undo preserved; focused regressions and app checks |
+| Large shell/view/router modules | Follow the audit's bounded priorities for `App.vue`, `ProjectViews.vue`, `project.py` and `service.py` | Preserve drafts, identity, focus and undo. Follow the [Flatpak acceptance checks](code-quality-audit.md#flatpak-behavior-to-preserve) for affected file workflows. |
 | Frontend DTOs and shared CSS | Strengthen IPC/view types and consolidate repeated selectors without changing cascade behavior | Strict type/build checks and relevant dark/light/narrow UI verification |
 | Frontend bundle size | Measure startup and assess lazy loading of optional UI | A measured improvement with preserved startup/interaction behavior; do not silence the warning |
 | Shared engine maintenance | Narrow legacy error handling and extract persistence/export concerns when those areas change | Fixed calculation baselines, real-data/save/export comparisons and documented compatibility decisions |
@@ -38,10 +38,11 @@ Detailed structural findings are maintained once in the
   tag and regenerated source lists, including aarch64 evidence. The local manifest
   and [packaging instructions](../packaging/flathub/README.md) are inputs, not proof
   that an external repository has merged/published them.
+- Complete the [installed Flatpak desktop review](../packaging/flathub/README.md#linux-desktop-review)
+  before Flathub resubmission.
 - Keep offline package source lists synchronized with lock/runtime requirements;
-  validate the resulting offline build after dependency changes. At this review,
-  the locked Prettier dependency has no entry in `packaging/flathub/node-sources.json`;
-  regenerate the offline Node inputs before claiming the current lock builds there.
+  validate the resulting offline build after dependency changes. The current
+  offline Node inputs include the locked Prettier tarball.
 - Verify the published website/manual and downloadable older databases against
   the intended release. Repository files and live publication are separate states.
 

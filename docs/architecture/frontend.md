@@ -22,6 +22,7 @@ formatting is presentation; the currency option does not convert prices.
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
 | Analysis resource, workbook, custom template and project analysis rules dialogs | [`AnalysisDialogs.vue`](../../modern/src/components/AnalysisDialogs.vue) |
 | Selected analysis row fields, amounts and inspector actions | [`AnalysisInspector.vue`](../../modern/src/components/AnalysisInspector.vue) |
+| Schedule and resource database picker coordination | [`ProjectDatabasePickers.vue`](../../modern/src/components/ProjectDatabasePickers.vue) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
 | Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
 | Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
@@ -65,6 +66,11 @@ must not release the OS request queue. `projectOpening.ts` still owns native
 event/drop serialization; the shell installs it after reconnect and cleans up
 its listeners on unmount. New entry points reuse these paths.
 
+For an in-place Save of a dirty project with `source_requires_folder`,
+`useProjectFiles` asks for the project folder and passes the selected path to
+Python. Cancelling leaves the pending action and edits available. Python owns
+grant verification and reuse under the [save contract](database-format.md#working-copies-save-and-recovery).
+
 Schedule/Analysis/Resources/Measurements select editors. Databases and MCP
 select ribbon context while preserving the active editor. Active project views
 are retained within a mounted workspace to preserve their state. Keep this
@@ -105,6 +111,16 @@ manager requests and the schedule reload and navigation after applying rules.
 field edits and row actions. The shell routes field edits through the same
 callback as the analysis grid. `useWorkspaceNavigation` owns inspector
 visibility and restores it when switching back to an open document tab.
+
+`ProjectDatabasePickers` keeps separate schedule and resource add pickers and a
+shared rate refresh picker mounted across editor switches. The project view
+supplies the selected IDs and revision when opening a picker and handles its
+apply command. The picker displays the view's command error if applying fails.
+An updated project session recreates the picker instances, and the shell
+continues to open the database manager for picker requests.
+The database manager handles reselection of unavailable remembered paths.
+`libraryPreferences.ts` updates the saved entry after the replacement
+attachment succeeds.
 
 Tabulator is a rendering/editing adapter. It does not own authoritative undo or
 calculation history. Reuse the table input, arrow/Tab navigation, selection,

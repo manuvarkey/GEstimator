@@ -1114,3 +1114,30 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   architectures. Manifest generation and offline Cargo source checks passed.
   The installed Linux Flatpak and its real file chooser, file-manager
   forwarding and Documents mount still require a desktop smoke test.
+
+## 2026-11-23 — Project database picker extraction and Flatpak plan review
+
+- Moved project database picker coordination from `App.vue` to
+  `ProjectDatabasePickers.vue`. Separate schedule and resource add pickers and
+  the shared rate refresh picker keep their existing lifetimes. The project
+  view still submits commands with the captured selection and revision.
+  `App.vue` decreased from 1,611 to 1,563 lines.
+- Reviewed the `f1d55d3` Flatpak changes. The picker extraction uses attached
+  IDs and the existing database manager handoff. The audit prioritizes
+  schedule and resource editing dialogs for the next extraction and records
+  the portal acceptance checks for affected file workflows. The roadmap now
+  points to the pending installed review and reflects the locked Prettier
+  tarball already present in the offline Node inputs.
+- Changed-file formatting, strict frontend type checking and production build
+  passed. Vite retained its existing large-chunk warning
+  (about 1.26 MB, 325 KB gzip). The Python suite ran 224 tests with 222 passing
+  and two skipped, including the portal persistence tests. Documentation
+  checks across 36 Markdown files and `git diff --check` passed.
+- A focused browser check against the real Python bridge verified that a
+  stale import uses the original revision, surfaces the project view error,
+  preserves the selected row and can hand off to the database manager.
+- The full browser run with installed Chrome and standalone Vite finished with
+  90 passing, one opt-in performance test skipped and one timeout waiting for
+  the engine to connect in the landing-page test. A focused rerun passed that
+  test, the folder-picker cancellation test and remembered-library reselection.
+  The installed Linux chooser and file-manager forwarding remain pending.

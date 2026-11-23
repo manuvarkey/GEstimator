@@ -4,6 +4,14 @@
 export type View = "schedule" | "resources" | "measurement";
 export type ViewCommand = (operation: string, params?: Record<string, unknown>) => Promise<boolean>;
 
+/** Project selection and revision captured when a database picker opens. */
+export interface ProjectDatabaseSelection {
+  kind: Exclude<View, "measurement">;
+  mode: "add" | "rates";
+  revision: number;
+  targetIds: string[];
+}
+
 /** Existing main-table row adapter. Its dynamic columns remain audit debt;
  * measurement detail below has a separate, explicit backend response contract.
  */

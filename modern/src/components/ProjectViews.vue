@@ -12,7 +12,14 @@ import MappedImport from "./MappedImport.vue";
 import ResourceUsage from "./ResourceUsage.vue";
 import CategoryFilter from "./CategoryFilter.vue";
 import { request } from "../backend";
-import type { GridRow, GridState, View, ViewMemory, MeasurementTemplate } from "../projectViewTypes";
+import type {
+  GridRow,
+  GridState,
+  View,
+  ViewMemory,
+  MeasurementTemplate,
+  ProjectDatabaseSelection,
+} from "../projectViewTypes";
 import { useMeasurementRecords } from "../useMeasurementRecords";
 import { useMeasurementProperties } from "../useMeasurementProperties";
 import { afterDialogsClose } from "../uiActions";
@@ -35,7 +42,7 @@ const emit = defineEmits<{
   entry: [id: string | undefined];
   history: [state: { undo: boolean; redo: boolean }];
   libraries: [];
-  database: [options: { kind: "schedule" | "resources"; mode: "add" | "rates"; revision: number; targetIds: string[] }];
+  database: [selection: ProjectDatabaseSelection];
   analysisRules: [ids: string[]];
   applyRecords: [];
   discardRecords: [];
@@ -698,7 +705,7 @@ async function updateSelectedQuantities() {
 function showPriceUpdate() {
   showDatabase("rates");
 }
-function showDatabase(mode: "add" | "rates" = "add") {
+function showDatabase(mode: ProjectDatabaseSelection["mode"] = "add") {
   if (!state.value || isMeasurement.value) return;
   error.value = "";
   emit("database", {

@@ -11,7 +11,7 @@ import ThemedDropdowns from "./components/ThemedDropdowns.vue";
 import LibraryManager from "./components/LibraryManager.vue";
 import AnalysisDialogs from "./components/AnalysisDialogs.vue";
 import AnalysisInspector from "./components/AnalysisInspector.vue";
-import DatabasePicker from "./components/DatabasePicker.vue";
+import ProjectDatabasePickers from "./components/ProjectDatabasePickers.vue";
 import ProgramSettings from "./components/ProgramSettings.vue";
 import ProjectSettings from "./components/ProjectSettings.vue";
 import MCPSettings from "./components/MCPSettings.vue";
@@ -56,6 +56,7 @@ import { formatMoney } from "./numberFormatting";
 const w = useWorkspace();
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
 const analysisDialogs = ref<InstanceType<typeof AnalysisDialogs>>();
+const projectDatabasePickers = ref<InstanceType<typeof ProjectDatabasePickers>>();
 const ribbonToolbar = ref<InstanceType<typeof RibbonToolbar>>();
 const emptyAnalysisRows: AnalysisRow[] = [];
 const {
@@ -94,38 +95,6 @@ async function applyAnalysisRules(params: Record<string, unknown>) {
     activeView.value = "schedule";
     activeTab.value = "schedule";
   }
-  return ok;
-}
-const databasePickers = ref({
-  schedule: { open: false, mode: "add" as "add" | "rates", revision: 0, targetIds: [] as string[] },
-  resources: { open: false, mode: "add" as "add" | "rates", revision: 0, targetIds: [] as string[] },
-});
-const databaseError = ref("");
-const databaseRatesPicker = ref({
-  open: false,
-  kind: "resources" as "schedule" | "resources",
-  revision: 0,
-  targetIds: [] as string[],
-});
-function showDatabase(options: {
-  kind: "schedule" | "resources";
-  mode: "add" | "rates";
-  revision: number;
-  targetIds: string[];
-}) {
-  databaseError.value = "";
-  if (options.mode === "rates") {
-    Object.assign(databaseRatesPicker.value, options, { open: true });
-    return;
-  }
-  Object.assign(databasePickers.value[options.kind], options, { open: true });
-}
-async function applyDatabase(params: Record<string, unknown>) {
-  const ok = (await projectView.value?.applyDatabase(params)) ?? false;
-  databaseError.value = ok
-    ? ""
-    : projectView.value?.lastError() ||
-      "The import could not be applied. Close the picker, refresh the project and try again.";
   return ok;
 }
 const unavailableLibraries = computed(() => savedLibraries.value.filter((library) => library.error));
@@ -1297,7 +1266,7 @@ onBeforeUnmount(() => {
           @apply-records="applyRecords(true)"
           @discard-records="discardRecords"
           @libraries="libraryManagerOpen = true"
-          @database="showDatabase"
+          @database="projectDatabasePickers?.show($event)"
           @analysis-rules="showAnalysisRules"
         />
         <div v-show="activeView === 'analysis'" class="analysis-content">
@@ -1585,27 +1554,10 @@ onBeforeUnmount(() => {
   <ThemedDropdowns />
   <ApplicationHelp v-model:manual="manualOpen" v-model:about="aboutOpen" />
   <ProgramSettings v-if="programSettingsOpen" v-model="programSettingsOpen" />
-  <DatabasePicker
-    v-for="kind in ['schedule', 'resources'] as const"
-    :key="projectSession + kind"
-    v-model="databasePickers[kind].open"
-    :kind="kind"
-    :mode="databasePickers[kind].mode"
-    :revision="databasePickers[kind].revision"
-    :target-ids="databasePickers[kind].targetIds"
-    :apply="applyDatabase"
-    :parent-error="databaseError"
-    @manage="libraryManagerOpen = true"
-  />
-  <DatabasePicker
-    :key="projectSession + 'rates'"
-    v-model="databaseRatesPicker.open"
-    :kind="databaseRatesPicker.kind"
-    mode="rates"
-    :revision="databaseRatesPicker.revision"
-    :target-ids="databaseRatesPicker.targetIds"
-    :apply="applyDatabase"
-    :parent-error="databaseError"
+  <ProjectDatabasePickers
+    ref="projectDatabasePickers"
+    :project-session="projectSession"
+    :project-view="projectView"
     @manage="libraryManagerOpen = true"
   />
 </template>
