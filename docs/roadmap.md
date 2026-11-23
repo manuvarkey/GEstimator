@@ -68,6 +68,10 @@ hosted-run status was checked during documentation cleanup.
   Library attachment/import handling has separate backend modules while project
   transactions, snapshot lifetime and undo remain with the editor. Further
   shell/router extraction is still tracked in the quality audit.
+- Measurement record-page/detail loading and properties/link-picker state have
+  separate composables. Typed measurement responses and a small column adapter
+  preserve backend authority, the shared command boundary and document memory.
+  Schedule/resource dialog state and dynamic table DTOs remain in the audit.
 - The manual and README use modern screenshots. The earlier GTK-screenshot and
   DSR 2023 build checklist items are completed repository work, not open tasks.
 - Native desktop checks reported by the user on 2026-11-20 are historical

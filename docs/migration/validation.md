@@ -999,3 +999,45 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   recent files, New/Open/Close document routing, Save Copy and in-place backups,
   unsaved drafts, queued OS opens/invalid files, startup/error reveal and
   inspector/record-view restoration after switching tabs.
+
+## 2026-11-23 — Measurement view state and response types
+
+- After `d2ab69c`, extracted `useMeasurementRecords.ts` for record paging,
+  selection, draft-aware detail loading, description editing and record memory.
+  `useMeasurementProperties.ts` owns the staged properties form, revision and
+  schedule-link picker. Both receive the existing view command/busy/error path;
+  `ProjectViews` retains main-table state, command routing, focus coordination,
+  history notifications and the combined document-memory snapshot. Python still
+  owns drafts, calculations, validation and undo. Request-token, item-ID and
+  revision checks on asynchronous detail publication remain in place.
+- Added explicit measurement detail/template/record/link/property and memory
+  contracts in `projectViewTypes.ts`. `GridState.detail` and properties detail
+  now account for the backend's nullable detail; linked/picker schedule units
+  retain their database nullability. The legacy dynamic `GridRow`
+  adapter is retained as recorded main-table typing debt.
+- `measurementColumns.ts` preserves raw editable strings, calculated display
+  strings, serial numbers, dimensions and literal DOM title/tooltip rendering.
+  The installed Tabulator 6.3 implementation accepts `editor: false` and an
+  HTMLElement header tooltip, but its published types omit them. The narrow
+  column adapter documents and isolates that compatibility cast; the table's
+  row callback is typed at the same boundary. Type checking initially exposed
+  these gaps; no `any` was added to the measurement response or composables.
+- Normalized runtime AST comparisons verified the 13 moved and 34 retained
+  handlers after expanding callback/restoration calls and erasing types.
+  Formatting-normalized templates match the previous commit. Required Prettier
+  adoption expanded compressed markup: the file has 2,205 lines compared with
+  1,716 originally or 2,437 for the formatted original. Composable setup retains
+  shared state in one closure with smaller handlers, as documented in the audit.
+- Full Python suite: **219 tests, OK, two skipped**. `npm run build` passed
+  strict type checking and the production build. The existing entry-chunk size
+  warning remains (about 1.26 MB, 324 KB gzip). Changed-source formatting, local
+  documentation links/anchors across 36 Markdown files and `git diff --check`
+  passed. Backend/native code and packaging inputs did not change, so sidecar
+  rebuild and Rust checks were not rerun. Installed WebView/OS and hosted CI
+  validation were not performed.
+- Full browser suite: **89 passed, one performance test skipped**. Coverage
+  includes properties and schedule-link picking, paged batch records and atomic
+  undo, description/category editing, literal markup, clipboard/import, draft
+  Apply/Discard/navigation/Save, all-record totals, keyboard/focus and measurement
+  entry restoration after switching project tabs. The unchanged behavior is
+  covered by existing regressions; no implementation-mirroring tests were added.

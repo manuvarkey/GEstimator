@@ -21,6 +21,10 @@ formatting is presentation; the currency option does not convert prices.
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |
 | Schedule/resource/measurement workspaces | [`ProjectViews.vue`](../../modern/src/components/ProjectViews.vue) |
+| Measurement record page, detail loading, description edit and record memory | [`useMeasurementRecords.ts`](../../modern/src/useMeasurementRecords.ts) |
+| Staged measurement/category properties and schedule-link picker | [`useMeasurementProperties.ts`](../../modern/src/useMeasurementProperties.ts) |
+| Project-view/measurement response and tab-memory types | [`projectViewTypes.ts`](../../modern/src/projectViewTypes.ts) |
+| Measurement column presentation and Tabulator type compatibility | [`measurementColumns.ts`](../../modern/src/measurementColumns.ts) |
 | JSON request transport and shared analysis types | [`backend.ts`](../../modern/src/backend.ts) |
 | Project and analysis grid lifecycle | [`DataTable.vue`](../../modern/src/components/DataTable.vue), [`AnalysisTable.vue`](../../modern/src/components/AnalysisTable.vue) |
 | Tab memory, row clipboard, cell navigation/editing and selection | [`tabMemory.ts`](../../modern/src/tabMemory.ts), [`rowClipboard.ts`](../../modern/src/rowClipboard.ts), [`cellNavigation.ts`](../../modern/src/cellNavigation.ts), [`tableTextEditor.ts`](../../modern/src/tableTextEditor.ts), [`tableSelection.ts`](../../modern/src/tableSelection.ts) |
@@ -103,6 +107,28 @@ changes the working project; Save publishes a project file. A failed acceptance
 retains the editor and draft. Dirty drafts must be guarded during navigation,
 project replacement and close. Detailed action placement, keyboard semantics,
 numeric formatting and accessible states belong in the [UI guidelines](../ui-guidelines.md).
+
+`useMeasurementRecords` owns the record page, selection, table/description refs,
+description edit recovery and draft-aware detail loading. Its request-token,
+item-ID and revision checks reject superseded detail responses before replacing
+view state. `ProjectViews` still owns the common command, busy/error recovery,
+main-table state and document-memory snapshot. The composable contributes its
+matching record-page memory to that snapshot and restores it after detail loads.
+It delegates focus, change notifications and commands through explicit callbacks;
+it does not create another draft history or navigation guard.
+
+`useMeasurementProperties` stages description, links and template constants in
+a separate form snapshot with the original revision. Its picker supports both
+staged properties and the active record editor's link action. Save uses the
+common command; validation, calculations and undo remain in Python.
+
+The measurement detail contract in `projectViewTypes.ts` distinguishes raw record
+strings, calculated display strings, template metadata, links, properties and
+totals. Extend it alongside the backend response. Main-table `GridRow`
+and the generic `DataTable` callbacks still have dynamic typing tracked by the
+audit. `measurementColumns.ts` isolates the existing Tabulator options missing
+from its published types (`editor: false` and DOM header tooltips). Keep the
+compatibility cast there and preserve text-node rendering for author data.
 
 ## Preferences, styles and text
 
