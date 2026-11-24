@@ -2217,3 +2217,72 @@ Extended the IN library from eight to eleven skills. Checked the masonry and ins
 - The full Python suite passed (249 tests). The MCP tests select the installed IN set, resolve resource links and run the sizing card's SQL through the read-only public query tool. Cases include an exact conduit limit, an exhausted shortlist and a missing correction factor. The frontend build and targeted skill-library browser test passed; Vite reported its large-chunk warning.
 - The two-storey example returns six room boards, twelve final circuits, a 25 mm bent conduit for three 4 mm² wires, and a first overload-qualified Al candidate of 70 mm² at 120.90 A. The utility fault duty remains open.
 - A local harness read the resources from the GEstimator HTTP listener and prompted the installed Ollama llama3.1:8b model. Client connections were restricted to loopback. The harness selected the cards and executed the example queries. In the final trial the model reproduced the board counts, Al size and pending fault status but reported 4 mm² for the 1.5 mm² lighting circuit and 20 mm for the 25 mm socket conduit. Preserve the keyed calculation rows for review. Autonomous model tool selection and packaged-desktop offline inference remain unverified.
+
+
+## 2026-11-24 — Report rendering experiment (phase 1)
+
+Added an isolated optional Jinja2 3.1.6 / WeasyPrint 70.0 prototype and a linked
+report-module proposal. Default and locally overridden facing/abstract templates
+support an embedded organization logo. Sample reports include selectable ordered
+sections, contents page references, repeated schedule headings, page counts and
+signoff. No desktop commands, project storage or application dependencies changed.
+
+- Installed the pinned prototype requirements into the local virtual environment.
+  The first logo render exposed a WeasyPrint 70 response API mismatch; replaced
+  the old dictionary fetcher with URLFetcher/URLFetcherResponse and reran it.
+- `.venv/bin/python -m unittest tools.report_prototype.test_render`: five tests
+  passed, covering per-item Currency rounding, input preservation, escaping,
+  section order/validation, custom templates, external asset denial and actual
+  five-page PDF generation with an embedded logo.
+- `.venv/bin/python -m tools.report_prototype.render
+  /tmp/gestimator-report-prototype-final --logo /tmp/gestimator-report-logo.png`
+  generated offline HTML and an 11-page A4 PDF. Poppler pdfinfo/pdftotext confirmed
+  page count, abstract/schedule total 13641.16, and contents targets 3, 4 and 11.
+  Poppler PNGs of facing, contents, abstract, schedule and signoff were visually
+  inspected for alignment, logo, wrapping and page numbering. The sample uses
+  Latin accents and m²; other script coverage remains unverified.
+- Changed-file quality fix/check passed. Pinned Prettier formatted the HTML/CSS
+  templates. Documentation links and `git diff --check` passed.
+- Full app/backend/browser/native suites were not run: this is an isolated
+  development experiment, with no app behavior changes. Real-project selection
+  and parity, persistence compatibility, render limits/cancellation, Excel report
+  rendering, UI workflows and installed Windows/Linux/Flatpak packaging remain
+  future gates. This evidence does not establish production export support.
+
+
+## 2026-11-24 — Windows WeasyPrint binary investigation
+
+Verified the official Windows installation guidance and v70.0 GitHub release
+API. The release supplies onedir (32,271,073 bytes) and onefile (31,510,667
+bytes) ZIP assets. Updated the report proposal to evaluate bundling the official
+onedir distribution rather than assuming native DLLs must be packaged into the
+GEstimator Python sidecar. CLI asset restrictions, lifecycle and clean-Windows
+execution remain unverified. This read-only investigation changed documentation
+only; documentation links and diff whitespace checks passed.
+
+
+## 2026-11-24 — Executable report renderer
+
+Added an optional managed CLI adapter to the isolated report experiment. Native
+WeasyPrint imports now live in a separate library renderer, loaded only for the
+in-process route. CLI runs use UTF-8 stdin, data-only protocol access, scratch
+output, a finite process deadline, diagnostics and PDF validation. There is no
+application IPC, UI or package configuration change.
+
+- Downloaded the official Windows v70.0 onedir archive in memory with a network
+  timeout. SHA-256 matched the release digest
+  ab1151f210b4e6bb7aa7a79e91a67e8ddb760094c107bfda55241b6aaefe7d53.
+  ZIP inspection confirmed weasyprint.exe and Pango/HarfBuzz/Fontconfig DLLs.
+  No Windows executable was executed or added to the repository.
+- Ran the prototype with `--executable .venv/bin/weasyprint`, using the sample
+  organization logo. Poppler confirmed 11 A4 pages; extracted text compared
+  byte-for-byte equal to the library-rendered sample (including contents and totals).
+- With `.venv/bin` on PATH, `python -m unittest
+  tools.report_prototype.test_render tools.report_prototype.test_executable`
+  passed all eight tests with no skips. Real CLI tests exercised PDF generation,
+  denied file/HTTP images and timeout scratch cleanup.
+- Changed-file quality fix/check, documentation routing and diff whitespace
+  checks passed. Full app/browser/native suites were not run for this isolated
+  development tool change. Clean Windows execution, packaged deployment, active
+  cancellation and hard resource quotas remain unverified. The CLI policy permits
+  data URI assets generally, while the library experiment permits raster logos.

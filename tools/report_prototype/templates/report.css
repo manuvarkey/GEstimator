@@ -1,0 +1,119 @@
+@page {
+  size: A4;
+  margin: 20mm 15mm;
+  @top-left {
+    content: "GEstimator · Estimate report";
+    font-size: 8pt;
+    color: #46546a;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 8pt;
+  }
+}
+@page :first {
+  @top-left {
+    content: none;
+  }
+  @bottom-right {
+    content: none;
+  }
+}
+body {
+  font:
+    10pt "DejaVu Sans",
+    sans-serif;
+  color: #243247;
+  line-height: 1.4;
+}
+h1 {
+  font-size: 22pt;
+  color: #174e67;
+}
+h2 {
+  font-size: 17pt;
+  font-weight: normal;
+}
+.facing {
+  padding-top: 22mm;
+}
+.logo {
+  max-width: 60mm;
+  max-height: 30mm;
+}
+.organization {
+  font-size: 15pt;
+  font-weight: bold;
+}
+dt {
+  font-weight: bold;
+  margin-top: 5mm;
+}
+dd {
+  margin-left: 0;
+}
+.notice {
+  margin-top: 20mm;
+  font-size: 9pt;
+}
+.section {
+  break-before: page;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 9pt;
+}
+thead {
+  display: table-header-group;
+}
+th {
+  background: #e4eef2;
+  text-align: left;
+}
+th,
+td {
+  border-bottom: 0.3mm solid #ccd6dc;
+  padding: 2mm;
+  vertical-align: top;
+}
+tr {
+  break-inside: avoid;
+}
+.number {
+  text-align: right;
+  white-space: nowrap;
+}
+.total {
+  font-weight: bold;
+  text-align: right;
+}
+.signatories {
+  display: flex;
+  gap: 8mm;
+  break-inside: avoid;
+  margin-top: 25mm;
+}
+.signature {
+  flex: 1;
+  border-top: 0.3mm solid #46546a;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+@media print {
+  .toc a::after {
+    content: leader(".") target-counter(attr(href), page);
+  }
+}
+@media screen {
+  body {
+    max-width: 1000px;
+    margin: 2rem auto;
+    padding: 1rem;
+  }
+  .section {
+    margin-top: 3rem;
+  }
+}

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="GEstimator report prototype" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'" />
+    <title>{{ title }} — {{ project }}</title>
+    <style>
+      {% include "report.css" %}
+    </style>
+  </head>
+  <body>
+    {% include "facing.html" %} {% if sections %}
+    <nav class="section toc" aria-label="Contents">
+      <h1>Contents</h1>
+      {% for section in sections %}
+      <p><a href="#{{ section }}">{{ section | title }}</a></p>
+      {% endfor %}
+    </nav>
+    {% endif %} {% for section in sections %}
+    <section class="section" id="{{ section }}">
+      {% if section == "abstract" %} {% include "abstract.html" %} {% elif section == "schedule" %}
+      <h1>Schedule</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Unit</th>
+            <th>Quantity</th>
+            <th>Rate</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in schedule %}
+          <tr>
+            <td>{{ row.code }}</td>
+            <td>{{ row.description }}</td>
+            <td>{{ row.unit }}</td>
+            <td class="number">{{ row.quantity }}</td>
+            <td class="number">{{ row.rate }}</td>
+            <td class="number">{{ row.amount }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="total">Estimate total: {{ total }}</p>
+      {% elif section == "signoff" %}
+      <h1>Signoff</h1>
+      <p>{{ project }} · {{ reference }} · {{ revision }}</p>
+      <div class="signatories">
+        {% for role in signatories %}
+        <div class="signature">
+          <p>{{ role }}</p>
+          <p>Name:</p>
+          <p>Designation:</p>
+          <p>Date:</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </body>
+</html>

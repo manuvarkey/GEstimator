@@ -1,0 +1,16 @@
+<header class="facing">
+  {% if logo %}<img class="logo" src="{{ logo }}" alt="Organization logo" />{% endif %}
+  <p class="organization">{{ organization }}</p>
+  <p>ESTIMATE REPORT</p>
+  <h1>{{ title }}</h1>
+  <h2>{{ project }}</h2>
+  <dl>
+    <dt>Reference</dt>
+    <dd>{{ reference }}</dd>
+    <dt>Revision</dt>
+    <dd>{{ revision }}</dd>
+    <dt>Issued</dt>
+    <dd>{{ date }}</dd>
+  </dl>
+  <p class="notice">Demonstration report · illustrative quantities and prices</p>
+</header>

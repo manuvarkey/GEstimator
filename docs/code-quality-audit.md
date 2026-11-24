@@ -171,3 +171,13 @@ to verify native chooser behavior, file forwarding and Documents mount access.
 
 Actual commands, results and platform limits are recorded in the
 [validation log](migration/validation.md).
+
+
+## 2026-11-24 report prototype audit limit
+
+The [report rendering experiment](report-module-plan.md) is isolated under tools;
+its optional dependencies are not yet shipped by the application. No oversized
+app module was extended. Before production integration, prove real-project amount
+parity and revision/draft preservation, bound custom-template rendering in an
+isolated worker, validate template bundles and saved definitions, and verify
+native font/Pango packaging. Sample-document success does not close those gates.

@@ -31,6 +31,7 @@ behavior, future work and historical evidence.
 | Change bulk analysis rules or their presets | [Analysis rules](features/analysis-rules.md), [backend](architecture/backend.md) |
 | Change expressions, numeric precision or measurement templates | [Numeric evaluation](architecture/backend.md#numeric-evaluation), [expression syntax](manual/README.md#numeric-expressions) |
 | Prepare verification or investigate a failure | [Testing guide](testing.md), [validation evidence](migration/validation.md) |
+| Plan formatted estimate reports or run the rendering experiment | [Report module proposal](report-module-plan.md) |
 | Prepare a release or update the website and distribution packages | [Release guide](releasing.md), [3.1 release notes](releases/3.1.0.md) |
 | Assess a large module or plan a refactor | [Development guidelines](development-guidelines.md), [quality audit](code-quality-audit.md) |
 | Explain how a user completes a workflow | [User manual](manual/README.md) |
