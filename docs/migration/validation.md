@@ -1808,3 +1808,27 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance profile was skipped. The production build passed with the
   existing Vite chunk-size warning. Changed-file quality, documentation and
   diff checks passed.
+
+## 2026-11-24 — Measurement picker focus outline and live search
+
+- Mounted the measurement picker and its application styles in WebKitGTK
+  2.52.6. Native GTK pointer and key events drove the same component through
+  pointer opening, Tab into results and keyboard opening with Enter. After
+  pointer opening, Down moved DOM focus through L0, L1 and L2. WebKit kept
+  `:focus-visible` false and the computed outline style stayed `none`. Tab
+  into the list and Enter on the launcher produced a visible outline during
+  the same arrow navigation. The picker handles arrows in Vue and focuses
+  ordinary result buttons inside a PrimeVue focus trap.
+- The result style now draws the existing outline from actual button focus.
+  The same GTK probe confirmed a solid 2 px outline on intermediate and
+  boundary results after pointer opening, even with `:focus-visible` false.
+  Tab entry and keyboard opening also retained the outline.
+- The picker now uses the existing debounced Search as you type helper.
+  The new Chromium regression reproduced the missing live request before the
+  change. It passed after the change, covering the setting off with Enter to
+  submit, switching the setting on, typing again during a held request and
+  retaining search focus after the most recent query loads.
+- All 241 Python tests and 102 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed.

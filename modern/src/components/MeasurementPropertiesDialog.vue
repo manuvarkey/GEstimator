@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Share the schedule-link picker between staged properties and the record editor.
-import { nextTick, ref, type ComputedRef, type Ref } from "vue";
+import { nextTick, ref, watch, type ComputedRef, type Ref } from "vue";
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import PersistentDialog from "./PersistentDialog.vue";
 import { request } from "../backend";
+import { useLiveSearch } from "../liveSearch";
 import { vMiddleEllipsis } from "../middleEllipsis";
 import type { GridRow, GridState, MeasurementDetail, ViewCommand } from "../projectViewTypes";
 
@@ -37,6 +38,17 @@ const pickerResults = ref<HTMLElement>();
 const pickerBusy = ref(false);
 const pickerError = ref("");
 let pendingNavigation: { key: string; from: EventTarget | null } | undefined;
+let searchedQuery = "";
+const liveSearch = useLiveSearch(
+  pickerQuery,
+  () => searchedQuery,
+  async () => {
+    if (pickerOpen.value) return searchLinks();
+  },
+);
+watch(pickerOpen, (opened) => {
+  if (!opened) liveSearch.cancel();
+});
 
 /** Open a form snapshot for the selected measurement or category. */
 async function showProperties() {
@@ -66,7 +78,9 @@ async function saveProperties() {
 }
 
 async function searchLinks(page = 0) {
-  if (pickerBusy.value) return;
+  if (pickerBusy.value) return false;
+  liveSearch.cancel();
+  searchedQuery = pickerQuery.value;
   pickerBusy.value = true;
   pickerError.value = "";
   pickerPage.value = page;
@@ -74,7 +88,7 @@ async function searchLinks(page = 0) {
   pickerItems.value = [];
   pickerResults.value?.scrollTo(0, 0);
   try {
-    pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: page * 100 });
+    pickerItems.value = await request("schedule.list", { query: searchedQuery, offset: page * 100 });
   } catch (reason) {
     pickerError.value = String(reason);
   } finally {

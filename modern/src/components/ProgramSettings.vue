@@ -189,8 +189,8 @@ async function reset() {
           ><input v-model="draft.live_search" type="checkbox" :disabled="busy" />Search as you type</label
         >
         <p class="field-hint">
-          Schedule, Resources and the database picker update their results shortly after you stop typing. When off,
-          press Enter or Search.
+          Schedule, Resources, the database picker and the measurement link picker update shortly after you stop typing.
+          Press Enter or Search when this setting is off.
         </p>
         <h3>Cell editing</h3>
         <label class="library-remember"

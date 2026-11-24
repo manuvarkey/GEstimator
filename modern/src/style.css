@@ -1681,6 +1681,10 @@ kbd {
   min-width: 0;
   align-items: start;
 }
+/* WebKit may retain pointer modality during scripted arrow navigation. */
+.library-item:focus {
+  outline: var(--focus-width) solid var(--accent);
+}
 .library-item span:first-child {
   min-width: 0;
 }

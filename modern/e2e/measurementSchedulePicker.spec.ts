@@ -29,7 +29,7 @@ async function holdScheduleLookup(page: Page) {
     });
 }
 
-test("measurement schedule picker scrolls and selects a link from both entry points", async ({ page }) => {
+async function openMeasurementFixture(page: Page) {
   const path = resolve(directory, "measurement-links.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
   const populate = `
@@ -51,7 +51,10 @@ db.close_database()
   await add.getByLabel("Description / remarks").fill("Linked measurement");
   await add.getByRole("button", { name: "Add item", exact: true }).click();
   await openMeasurementEntry(page);
+}
 
+test("measurement schedule picker scrolls and selects a link from both entry points", async ({ page }) => {
+  await openMeasurementFixture(page);
   const picker = page.getByRole("dialog", { name: "Choose schedule item", exact: true });
   const results = picker.locator(".library-results");
   const first = results.getByRole("button").first();
@@ -66,8 +69,13 @@ db.close_database()
   await page.keyboard.press("ArrowDown");
   await releaseFirst();
   await expect(first).toBeFocused();
+  await expect(first).toHaveCSS("outline-style", "solid");
+  await page.keyboard.press("ArrowDown");
+  const second = results.getByRole("button").nth(1);
+  await expect(second).toBeFocused();
+  await expect(second).toHaveCSS("outline-style", "solid");
 
-  const insets = await first.evaluate((button) => {
+  const insets = await second.evaluate((button) => {
     const item = button.getBoundingClientRect();
     const pane = button.parentElement!.getBoundingClientRect();
     const style = getComputedStyle(button);
@@ -109,7 +117,50 @@ db.close_database()
   await page.keyboard.press("End");
   await expect(last).toBeFocused();
   await page.keyboard.press("ArrowUp");
+  const previous = results.getByRole("button", { name: /Link candidate 28/ });
+  await expect(previous).toBeFocused();
+  await expect(previous).toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Enter");
   await expect(picker).not.toBeVisible();
   await expect(code).toHaveValue("L28");
+});
+
+test("measurement schedule picker honours Search as you type and retries a query while busy", async ({ page }) => {
+  await openMeasurementFixture(page);
+  await page.clock.install();
+  const find = page.getByRole("button", { name: "Choose schedule item 1", exact: true });
+  const picker = page.getByRole("dialog", { name: "Choose schedule item", exact: true });
+  const search = picker.getByRole("textbox", { name: "Find linked schedule item" });
+  const searchButton = picker.getByRole("button", { name: "Search", exact: true });
+  const results = picker.locator(".library-results");
+  const foundation = results.getByRole("button", { name: /Foundation/ });
+  const candidate = results.getByRole("button", { name: /Link candidate 20/ });
+  await find.click();
+  await expect(foundation).toBeVisible();
+  await search.fill("L20");
+  await page.clock.runFor(400);
+  await expect(foundation).toBeVisible();
+  await search.press("Enter");
+  await expect(results.getByRole("button")).toHaveCount(1);
+  await expect(candidate).toBeVisible();
+  await picker.getByRole("button", { name: "Close dialog", exact: true }).click();
+
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Program settings…", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Program settings", exact: true });
+  await settings.getByRole("checkbox", { name: "Search as you type", exact: true }).check();
+  await settings.getByRole("button", { name: "Save program settings" }).click();
+  await expect(settings).not.toBeVisible();
+
+  await find.click();
+  await expect(foundation).toBeVisible();
+  const release = await holdScheduleLookup(page);
+  await search.fill("Foundation");
+  await expect(searchButton).toBeDisabled();
+  await search.fill("L20");
+  await page.clock.runFor(400);
+  await release();
+  await expect(results.getByRole("button")).toHaveCount(1);
+  await expect(candidate).toBeVisible();
+  await expect(search).toBeFocused();
 });
