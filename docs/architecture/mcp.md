@@ -46,7 +46,7 @@ All writes accept optional integer `if_revision`. Supplying it rejects a stale w
 Select **Program settings → General → AI assistants (MCP) → Estimation skillset**.
 The choices come from discovered manifests. **Generic** (`generic`) is the default
 and follows project-specific measurement rules. **IN** (`in`) provides Indian
-building and infrastructure takeoff, preliminary lighting and LV distribution design, and schedule matching. The selected
+building and infrastructure takeoff, preliminary indoor lighting, LV distribution and lightning protection design, and schedule matching. The selected
 library is published together with the bundled `shared` library, which contains
 the rate-analysis skill. Shared is included automatically with any selection.
 

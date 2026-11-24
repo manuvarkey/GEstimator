@@ -19,6 +19,7 @@ IN = (
     "in/electrical-measurement-estimation",
     "in/external-electrical-estimation",
     "in/preliminary-lighting-design",
+    "in/preliminary-lightning-protection-design",
     "in/preliminary-lv-distribution-design",
     "in/roadworks-estimation",
     "in/site-water-drainage-estimation",

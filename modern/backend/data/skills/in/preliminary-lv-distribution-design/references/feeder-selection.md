@@ -12,6 +12,7 @@ Reference ratings in amperes at 30 °C in air. Each cell gives **two / three loa
 
 | Copper mm² | B1 PVC | B2 PVC | B2 XLPE |
 |---:|---:|---:|---:|
+| 1.5 | 17.5 / 15.5 | 16.5 / 15 | 22 / 19.5 |
 | 2.5 | 24 / 21 | 23 / 20 | 30 / 26 |
 | 4 | 32 / 28 | 30 / 27 | 40 / 35 |
 | 6 | 41 / 36 | 38 / 34 | 51 / 44 |
