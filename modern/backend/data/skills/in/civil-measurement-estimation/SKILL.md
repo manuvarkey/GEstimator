@@ -102,3 +102,5 @@ Write only when the user asks you to apply the estimate:
 - Group related writes in `batch` so they are one undo step. Pass `if_revision` from the last response. Use `preview: true` where a tool offers it before a large change.
 
 Fix validation errors from the field and hint they return. Do not retry the same call unchanged. Check `get_summary` after writing. The deliverable is the saved GEstimator project (`project action=save_copy` for a new project, then `save`). Make a workbook only when the user asks for one: export it with `project action=export_xlsx` and do not edit the exported file, because its total is GEstimator's total. The Schedule sheet ends with the imported analysis dependencies (the SUB ANALYSIS category) at zero quantity; they add nothing to the total. If a total looks different from `get_summary`, report it rather than correcting the file.
+
+For an early brief without structural drawings, use [concept quantities](gestimator://skills/in/civil-measurement-estimation/references/concept.md). Reconcile [shared building and site items](gestimator://skills/in/civil-measurement-estimation/references/package-interfaces.md) before combining BOQs.

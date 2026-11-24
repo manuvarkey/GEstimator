@@ -11,3 +11,5 @@ Start with the site plan, single-line diagram, cable and duct schedules, profile
 - [Takeoff and design checks](gestimator://skills/in/external-electrical-estimation/references/method.md)
 - [Standards and limits of coverage](gestimator://skills/in/external-electrical-estimation/references/standards.md)
 - [Worked example](gestimator://skills/in/external-electrical-estimation/references/worked-example.md)
+
+For a proposed lighting layout, use [streetlighting segments and pillar loading](gestimator://skills/in/external-electrical-estimation/references/streetlighting.md).

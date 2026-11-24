@@ -12,3 +12,5 @@ For each building, record the adopted standard edition, occupancy, site exposure
 - For an issued design, measure its actual routes and components, then use [electrical takeoff](gestimator://skills/in/electrical-measurement-estimation) for schedule matching and reviewed writes.
 
 Return the class and its basis, a roof/earth layout keyed to the drawing, equipment and conductor quantities, surge protection interfaces, testing provisions and unresolved checks.
+
+For a tank, PV array or new incoming service, use [roof alterations and shared protection](gestimator://skills/in/preliminary-lightning-protection-design/references/roof-alterations.md).

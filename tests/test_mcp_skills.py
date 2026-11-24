@@ -18,9 +18,12 @@ IN = (
     "in/civil-measurement-estimation",
     "in/electrical-measurement-estimation",
     "in/external-electrical-estimation",
+    "in/fire-services-estimation",
+    "in/internal-plumbing-estimation",
     "in/preliminary-lighting-design",
     "in/preliminary-lightning-protection-design",
     "in/preliminary-lv-distribution-design",
+    "in/preliminary-supply-planning",
     "in/roadworks-estimation",
     "in/site-water-drainage-estimation",
 )
@@ -247,6 +250,27 @@ class SkillResourcesOverHTTP(MCPFixture):
         status, message = self.http(message=dict(jsonrpc="2.0", id=9, method=method, params=params or {}))
         self.assertEqual(status, 200)
         return message
+
+    def test_local_sizing_examples_through_read_only_query(self):
+        """Run the published examples so card edits cannot silently break the offline checks."""
+        self.start()
+        self.runtime.call("mcp.enable", dict(enabled=True, estimation_skill_library="in"))
+        self.runtime.call("project.new")
+        uri = "gestimator://skills/in/preliminary-lv-distribution-design/references/local-checks.md"
+        card = self.rpc("resources/read", dict(uri=uri))["result"]["contents"][0]["text"]
+        counts, conduit, feeder = re.findall(r"```sql\n(.*?)\n```", card, re.DOTALL)
+        cases = [
+            (counts, [2, 3, 2], [["office", 6, 12]]),
+            (conduit, [3], [["A-P", 25, 5]]),
+            (conduit, [8], [["A-P", 32, 8]]),
+            (conduit, [9], []),
+            (feeder, [90, 100, 130, 0.93], [["annex", 70, 120.9], ["annex", 95, 143.22], ["annex", 120, 161.82]]),
+            (feeder, [90, 100, 130, None], []),
+        ]
+        for sql, params, expected in cases:
+            with self.subTest(params=params):
+                result = self.tool("query", dict(sql=sql, params=params))
+                self.assertEqual(result["structuredContent"]["data"]["rows"], expected)
 
     def test_listing_and_reading_without_a_project_in_read_only_mode(self):
         self.start()

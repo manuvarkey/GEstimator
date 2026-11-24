@@ -1,0 +1,17 @@
+---
+description: Screen maximum and minimum faults, disconnection, protective conductor thermal duty and earthing quantities for preliminary LV estimates.
+---
+
+# Fault protection and earthing
+
+Use IS 732:2019 protection against shock and overcurrent, its Table 1 and protective-conductor provisions, and IS 3043:2026 for earthing and bonding. Record earthing arrangement, voltage to earth, source operating modes, maximum prospective fault current at each board, remote minimum earth-fault current, clearing curves, PE material and route. Obtain utility/transformer data and include parallel sources. Generator or inverter operation may deliver a lower or time-limited fault current.
+
+- Compare declared breaking capacity at system voltage with maximum prospective fault current at the device. Check assembly short-circuit rating, making duty and any manufacturer-validated backup combination. For discrimination compare manufacturer selectivity data for the exact devices and settings across the relevant fault range.
+- For TN, compare worst-case loop impedance with U0/Ia, where Ia operates the device within the applicable time. Include source and hot outgoing/return impedances and conservative minimum supply voltage in the minimum-current screen. For TT with RCD protection check electrode plus protective-path resistance × rated residual operating current against the applicable touch-voltage limit and verify trip time. Select RCD type for load waveform; check overcurrent protection and upstream coordination. IT supplies need their own first/second fault assessment.
+- For short adiabatic duties within the standard’s applicability, S ≥ √(I²t)/k in mm². Use manufacturer let-through energy for a current-limiting device and k for actual metal, insulation and temperature range. Apply mechanical minima and continuity requirements. Verify both live conductor and PE duties. Exposure time and fault magnitude must refer to the same case.
+
+Example TN final circuit: supplied maximum 5 kA at breaker, proposed rating 6 kA at service voltage. Minimum source voltage 218 V, hot loop 1.20 Ω gives 182 A minimum. Supplier curve guarantees operation by 0.1 s at 160 A for this setting; this meets the example's adopted 0.4 s limit. Supplied maximum let-through 40,000 A²s and project-verified Cu/PVC k = 115 give S ≥ 1.74 mm². Next 2.5 mm² passes the thermal check only. Compare against the installed PE minimum and fault-loop assumptions. Missing utility fault data leaves the breaker kA rating and associated withstand provisional even when load and drop checks pass.
+
+For the BOQ identify main earthing terminal, PE and bonding segments, accessible links, electrode arrangement, inspection chambers, corrosion-compatible connections and tests. Establish soil resistivity, electrode layout and seasonal performance before fixing quantities dependent on earthing performance. Coordinate any common ring with lightning protection by segment ID. For example, if an approved ring already includes the common 30 m side, book only the additional measured branch to the main terminal and any excluded connection. Document measured continuity, earth/loop and RCD tests appropriate to the system.
+
+For preliminary same-material Cu line/PE selections under IS 732 Table 14, typical pairs in mm² are 4/4, 10/10, 25/16 and 70/35. Check the separate rules for independent protective conductors, mechanical protection, PEN and dissimilar materials. For an earth electrode BOQ include soil testing and access even when electrode geometry is provisional.
