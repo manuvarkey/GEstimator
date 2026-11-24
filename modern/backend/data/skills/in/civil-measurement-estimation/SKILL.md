@@ -5,11 +5,11 @@ description: Civil building takeoff for a GEstimator estimate (earthwork, concre
 
 # Civil measurement estimation
 
-Use this skill to turn civil drawings, schedules or model quantities into measurement lines and proposed schedule items. Measure to the applicable part of IS 1200, the project specification and the full description of the adopted schedule item. Where they differ, the contract documents govern: the project specification first, then the item description, then IS 1200.
+Use this skill to turn civil drawings, schedules or model quantities into measurement lines and proposed schedule items. Measure to the applicable part of IS 1200, the project specification and the full description of the adopted schedule item. Record the contract’s order of precedence. If two payment rules conflict and the contract does not resolve them, show both quantities and flag the disputed item. Establish statutory and local design requirements separately.
 
 **Work inside GEstimator.** The estimate is the GEstimator project: schedule items with linked measurement sheets. Record each quantity as measurement records with its dimensions or counts, deductions, location and source, so the project shows how it was derived. Do not compute quantities in a script or spreadsheet and enter only totals, and do not keep the estimate in a separate workbook; when a workbook is wanted, use `project action=export_xlsx`.
 
-**Order of work.** Read this skill and the references for the work first. Then read the database notes (`describe_source` overview, then `section=category:<name>` for each category) **before** searching for or choosing items, not afterwards to check them. Read a linked reference as an MCP resource, or with `describe_source section=<its gestimator:// link>`.
+**Order of work.** Read the reference for each trade you actually measure. Reuse its rules and the category notes across matching items within the same source edition. Then read the database notes (`describe_source` overview, then `section=category:<name>` for each category) **before** searching for or choosing items, not afterwards to check them. Read a linked reference as an MCP resource, or with `describe_source section=<its gestimator:// link>`.
 
 **Sources.** Use the GEstimator sources, their notes and these skills. Do not search the web for rates, schedule books, item texts or standards: the attached source is the adopted schedule, and these skills carry the standards checked for this work. Cite the schedule by the book and edition its notes give (`describe_source` overview). Where an item, criterion or clause is not covered, state the assumption and list it for review instead of looking it up.
 
@@ -27,7 +27,7 @@ If the user has not said which schedule applies, list the attached sources and a
 Work drawing by drawing, location by location (block, floor, grid, room). For each work item:
 
 - **Unit.** Use the unit of the adopted item. It normally follows IS 1200: cum for concrete and full-brick or thicker masonry, sqm for half-brick walls, formwork and plaster, kg for reinforcement. A compound unit ("cum per metre depth", "per bag of cement") means the quantity is that product.
-- **Dimensions.** Measure net as fixed in place. Book length, breadth or width, then height, depth or thickness. Round dimensions to 0.01 m and areas to 0.01 sqm. Round volumes to 0.01 cum; slab thickness goes to 0.005 m (IS 1200 Part 2, 2.4.1).
+- **Dimensions.** Measure net as fixed in place. Book length, breadth or width, then height, depth or thickness. Use the adopted trade rule for precision. For concrete, dimensions generally go to 0.01 m, areas to 0.01 sqm, volumes to 0.01 cum and slab thickness to 0.005 m (IS 1200 Part 2, 2.4.1).
 - **Gross quantity first, then deductions.** Measure the gross element, then list each deduction as its own line with the rule that requires it. Record openings that fall below a deduction threshold too, marked "not deducted (threshold)", so a reviewer can check them.
 - **Stages and conditions.** Keep work below and above ground or datum level separate where the item or specification requires it (IS 1200 Parts 2, 3 and 5, measurement in stages). Measure work in or under water, in liquid mud or in foul positions separately. Floor-level extras (for example DSR "above floor five level, for each four floors") are separate items for the same quantity.
 - **Included or separately payable.** Before you add a line, check whether the item already includes the work. Use the item text, the specification and the category notes. Examples: a DSR RCC item excludes formwork, reinforcement and finishing. Brickwork includes raking out joints for plaster and building in lintel ends (IS 1200 Part 3, 3.1.1). Give each excluded component its own line. Never measure an included component again.
@@ -37,6 +37,7 @@ Work-category rules and their checks are in the references:
 - [Concrete, formwork and reinforcement](gestimator://skills/in/civil-measurement-estimation/references/concrete.md)
 - [Masonry](gestimator://skills/in/civil-measurement-estimation/references/masonry.md)
 - [Plaster, pointing and finishes](gestimator://skills/in/civil-measurement-estimation/references/finishes.md)
+- [Floor and roof layers, openings and bar schedules](gestimator://skills/in/civil-measurement-estimation/references/building-assemblies.md)
 - [Earthwork](gestimator://skills/in/civil-measurement-estimation/references/earthwork.md)
 - [Standards register and verification status](gestimator://skills/in/civil-measurement-estimation/references/standards.md)
 
@@ -101,3 +102,5 @@ Write only when the user asks you to apply the estimate:
 - Group related writes in `batch` so they are one undo step. Pass `if_revision` from the last response. Use `preview: true` where a tool offers it before a large change.
 
 Fix validation errors from the field and hint they return. Do not retry the same call unchanged. Check `get_summary` after writing. The deliverable is the saved GEstimator project (`project action=save_copy` for a new project, then `save`). Make a workbook only when the user asks for one: export it with `project action=export_xlsx` and do not edit the exported file, because its total is GEstimator's total. The Schedule sheet ends with the imported analysis dependencies (the SUB ANALYSIS category) at zero quantity; they add nothing to the total. If a total looks different from `get_summary`, report it rather than correcting the file.
+
+For an early brief without structural drawings, use [concept quantities](gestimator://skills/in/civil-measurement-estimation/references/concept.md). Reconcile [shared building and site items](gestimator://skills/in/civil-measurement-estimation/references/package-interfaces.md) before combining BOQs.

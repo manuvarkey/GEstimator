@@ -2185,3 +2185,35 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   Vite retained its existing large-chunk warning.
 - The full Linux Chromium suite passed 115 tests, with the opt-in performance
   case skipped.
+
+## 2026-11-24 — India building and infrastructure estimation skills
+
+The IN catalogue exposes seven skills and the shared rate-analysis skill. New coverage includes roadworks, site water and drainage, external electrical takeoff and preliminary LV distribution. The updated building skills distinguish the adopted payment rules from the design basis. Standards registers identify the verified provisions and the decisions requiring local data.
+
+- Through the public MCP tools, imported DSR 2023 item 16.79 and DSR (E&M) 2025 item 8.7.4 into a disposable project. Entered a 100 × 5 × 0.20 m WMM layer and two rows of three luminaires as linked measurements. Recalculation returned 100 m³ and six fittings. The project summary equalled the sum of the measured items at their imported rates, ₹309,202.00, including after saving and reopening the project.
+- Local checks passed for all 248 Python tests, including skill discovery, resource links and compatibility. The frontend type/build check passed with the Vite chunk-size warning. The browser suite passed 115 tests and skipped the opt-in profiling test.
+- Changed-file quality, documentation navigation and diff whitespace checks passed. Project-specific utility approvals, actual photometry, soil and fault measurements, and adoption of local schedules remain inputs to individual estimates.
+
+## 2026-11-24 — Preliminary sizing and MCP reading cost
+
+Added bounded decision references to the IN feeder, road and water skills. Each can be read for one trade without opening an entire standards register. The worked choices are preliminary and retain their installation, material, authority and site assumptions.
+
+- A local MCP client read the skill entry and one relevant resource over HTTP for each task. With the o200k_base tokenizer the combined Markdown text measured 1342 tokens for the feeder, 803 for pressure water, 770 for foul sewer, 775 for storm drainage and 894 for access roads. These counts exclude catalogue discovery, tool schemas, transport envelopes and model output.
+- Independent arithmetic checks used the installed feeder shortlist. A 50 m single circuit selected 10 mm². Increasing only the route to 150 m selected 16 mm² on voltage drop. Returning to 50 m and changing to three grouped circuits selected 16 mm² on corrected ampacity. Capacity, drop and device operating-current checks used unrounded values.
+- Recomputed both pressure residual heads, six part-full gravity capacities and both road volumes. The full local Python suite passed (248 tests); the catalogue tests exercised MCP discovery and resource links. Changed-file quality, documentation navigation and whitespace checks passed.
+
+## 2026-11-24 — LV distribution choices and lightning protection
+
+Expanded the IN guide with IS 732 aluminium cable selection and practical selection of conduit, rising mains, room isolation, trays, external routes and streetlighting circuits. Distinguished CPWD wiring minima, CEA occupancy/height requirements and office preferences. Added an independently discoverable lightning protection guide with edition-specific risk assessment, interception, separation, earth termination, surge coordination and BOQ handoff.
+
+- Checked all 15 aluminium shortlist ratings against IS 732:2019 Tables 24 and 32. Recalculated the 90 A underground-duct example: 50 mm² falls below the 100 A device setting; 70 mm² provides 120.90 A corrected capacity and 2.44% cumulative drop at the stated conditions.
+- Recomputed the Class III rectangular-roof example: 150 m of roof conductor, eight down paths totalling 96 m, and a separately measured 108 m ring. The direct event frequency example is an input to the risk calculation; local density and the adopted protection class remain project inputs.
+- Full local Python suite passed (248 tests), including MCP discovery and resource links. The skill-library browser test originally connected to another application on port 1420; rerunning against a dedicated GEstimator server on port 1437 passed. Documentation routing, changed-file quality and staged diff checks passed.
+
+## 2026-11-24 — Offline preliminary sizing and cross-trade estimates
+
+Extended the IN library from eight to eleven skills. Checked the masonry and insulated-wall routing and ratings against IS 732:2019 Tables 19, 21 and 23; the conduit counts against CPWD Internal 2023 Table 4.1; and the toilet-block inputs against SP 7:2026 Part E Sections 1 and 2. Recomputed the building, streetlighting, pressure loss, foundation options and backup supply examples.
+
+- The full Python suite passed (249 tests). The MCP tests select the installed IN set, resolve resource links and run the sizing card's SQL through the read-only public query tool. Cases include an exact conduit limit, an exhausted shortlist and a missing correction factor. The frontend build and targeted skill-library browser test passed; Vite reported its large-chunk warning.
+- The two-storey example returns six room boards, twelve final circuits, a 25 mm bent conduit for three 4 mm² wires, and a first overload-qualified Al candidate of 70 mm² at 120.90 A. The utility fault duty remains open.
+- A local harness read the resources from the GEstimator HTTP listener and prompted the installed Ollama llama3.1:8b model. Client connections were restricted to loopback. The harness selected the cards and executed the example queries. In the final trial the model reproduced the board counts, Al size and pending fault status but reported 4 mm² for the 1.5 mm² lighting circuit and 20 mm for the 25 mm socket conduit. Preserve the keyed calculation rows for review. Autonomous model tool selection and packaged-desktop offline inference remain unverified.

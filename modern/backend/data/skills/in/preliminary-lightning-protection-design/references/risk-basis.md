@@ -1,0 +1,15 @@
+---
+description: Establish protection need and class, distinguish adopted IEC editions and carry unresolved risk inputs into a preliminary estimate.
+---
+
+# Risk and design basis
+
+Check the contract edition. CPWD Electrical Part I Internal 2023 §§9.1–9.5 and Appendix H use the IS/IEC 62305 series. Part 1 gives principles, Part 2 risk assessment, Part 3 physical protection and Part 4 protection of internal systems. SP 7:2026 Part D Section 2 §§11.1–11.4 explicitly references IEC 62305:2024. Record any conflict and use the assessment model, lightning-density definition, coefficients and tolerability criteria of one adopted edition throughout. IS 3043:2026 supports the earthing design; IS 732 covers the LV interface.
+
+1. Identify structure dimensions and exposure, location-specific lightning density with source/date, adjacent structures and connected overhead/buried power and signal lines. Divide the building into zones for occupancy, fire/explosion risk, evacuation, service criticality and equipment vulnerability. Identify existing bonding, screening, SPDs and their documented ratings.
+2. Under the CPWD Appendix H.2 / earlier Part 2 approach, assess strikes to and near the structure and incoming lines. For each applicable loss category, calculate each component as annual event frequency × damage probability × consequential loss; sum components for that loss and compare with its adopted tolerable annual risk. Include relevant line and internal-system contributions. Use the 2024 assessment procedure when that edition governs.
+3. Compare the unprotected case with candidate protection classes and coordinated measures. Rerun affected probabilities, document residual risk and retain the least extensive arrangement that meets every applicable criterion and mandatory authority/project requirements. Record the assessment report ID, inputs, edition and selected class. Building height alone does not determine class.
+
+For the earlier approach, CPWD Appendix J Tables J-10/J-11 illustrate the direct-strike input for an isolated rectangular structure on level ground. Collection area in m² is AD = LW + 6H(L + W) + π(3H)². Expected direct events per year ND = NG × AD × CD × 10⁻⁶, with NG in flashes/km²/year. For an illustrative 30 × 20 × 12 m structure, NG = 4 and location factor CD = 1 give AD ≈ 8,272 m² and ND ≈ 0.0331/year. This is an event frequency; combine it with the applicable probabilities and losses and add the other relevant contributions before choosing a class. Use actual local lightning data and geometry for the project.
+
+Example decision under the earlier approach: an engineer's completed assessment supplies total life risk 2.4 × 10⁻⁵/year and adopted threshold 1 × 10⁻⁵/year. The reported Class IV package gives 1.3 × 10⁻⁵; the Class III package with coordinated bonding/SPDs gives 0.8 × 10⁻⁵. Carry Class III to layout if all other relevant criteria are met. These are illustrative report outputs, not class reduction factors. Where site density or risk coefficients are unavailable, identify the missing input and provide explicitly class-based cost options rather than certifying a class.

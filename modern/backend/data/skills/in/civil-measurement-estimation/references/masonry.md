@@ -18,7 +18,7 @@ Governing part: **IS 1200 (Part 3):1976 Brickwork, third revision** (reaffirmed)
 
 - Brickwork is measured in **cum** unless otherwise stated (4.1).
 - Walls **one brick thick and less** are measured separately in **sqm**, stating the thickness (4.1.1). In DSR 2023, half-brick masonry is per sqm (6.12, 6.13). Full-brick and thicker walls are per cum (6.1 to 6.4).
-- Walls over one brick and up to three bricks thick are measured in **multiples of half a brick**, including mortar joints (4.1.2). Where a fraction of half a brick occurs, a small fraction is measured as actual and a larger one as a full half brick. The OCR copy reads the limit as one quarter brick; confirm it in the printed text.
+- Walls over one brick and up to three bricks thick are measured in **multiples of half a brick**, including mortar joints (4.1.2). For the remaining fraction, measure up to and including a quarter brick at actual thickness. Count a larger remainder as a half brick.
 - Walls over three bricks thick are measured at their actual thickness (4.1.3).
 - Measure net as built, to 0.01 m, with areas to 0.01 sqm and volumes to 0.01 cum (2.3).
 

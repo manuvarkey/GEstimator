@@ -4,7 +4,7 @@ description: Plaster, pointing and painting takeoff rules (IS 1200 Part 12) - wa
 
 # Plaster, pointing and finishes
 
-Governing part: **IS 1200 (Part 12):1976 Plastering and pointing, third revision** (reaffirmed). Clauses checked against that text. Painting and distempering are covered by IS 1200 Parts 13 and 15, which were **not** checked for this guidance. Measure them to the project specification and the adopted item.
+Governing part: **IS 1200 (Part 12):1976 Plastering and pointing, third revision** (reaffirmed). Clauses checked against that text. For whitewashing and distempering check Part 13:1994, 3.2, including the face treatment and opening size. For painting covered by Part 15:1987, 3.1.1, openings up to 0.5 sqm each stay in the area and their edges are included. Measure them to the project specification and the adopted item.
 
 ## Inputs
 

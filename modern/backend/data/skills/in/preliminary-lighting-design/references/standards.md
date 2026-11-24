@@ -24,7 +24,7 @@ Before you cite a clause, confirm the code and edition the project adopts.
 
 ## Codes adopted
 
-The skill uses NBCS 2026 (criteria and method) and ECSBC 2024 (lighting power and controls), the current codes. IS 3646 (Part 1):1992 supplies only the maintenance factor, which NBCS 2026 does not give. ECSBC 2024, 7.2.1, refers lighting quantity and quality to the latest IS 3646 (Part 1); BIS has a revision in preparation.
+The supplied SP 7:2026 copy contains volumes 1 and 2. This skill uses Part D Section 1 for indoor lighting. Confirm adoption of the lighting and energy provisions for the location, occupancy and project edition. IS 3646 (Part 1):1992 supplies only the maintenance factor, which NBCS 2026 does not give. ECSBC 2024, 7.2.1, refers lighting quantity and quality to the latest IS 3646 (Part 1); BIS has a revision in preparation.
 
 ## Still to verify
 
@@ -32,3 +32,5 @@ List these as review items in the draft. Do not look them up online during an es
 
 - ENS 2024, for residential buildings that ECSBC 2024 does not cover.
 - The contract's adopted code, where it is not NBCS 2026.
+
+For example, a contract citing CPWD Internal 2023 Table 8 can give a different teaching-space criterion from SP 7:2026. Identify the adopted edition, applicable state requirements and task in the room schedule. If the authority requires a higher target, record that decision and recalculate the layout count, achieved illuminance and installed power together.

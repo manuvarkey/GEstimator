@@ -8,7 +8,7 @@ Governing parts:
 
 - **IS 1200 (Part 2):1974 Concrete works, third revision** (reaffirmed). Clauses checked against that text. BIS has circulated a draft fourth revision.
 - **IS 1200 (Part 5):1982 Formwork, third revision** (reaffirmed). Clauses checked against that text.
-- Reinforcement: IS 1200 (Part 8) Steel work and iron work, called up by Part 2, 4.1.5. Its clauses were **not** checked for this guidance. Measure reinforcement to the project specification and the adopted item.
+- Reinforcement: IS 1200 (Part 8) Steel work and iron work, called up by Part 2, 4.1.5. Part 8:1993, 11.1–11.3, covers bars, authorised laps and chairs, fabric and binding wire. Measure reinforcement to the project specification and the adopted item.
 
 ## Inputs
 

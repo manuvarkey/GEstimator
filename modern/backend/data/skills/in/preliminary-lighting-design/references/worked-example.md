@@ -33,7 +33,7 @@ The values below show the method. The luminaire flux is assumed and the utilisat
 3. `RCR = 5 × 2.15 × (6.00 + 4.00) / 24.00 ≈ 4.48`. Interpolate between CU 0.74 at RCR 4 and CU 0.67 at RCR 5 to get about 0.7065.
 4. `N = (500 × 24.00) / (0.7065 × 0.8 × 4400) ≈ 4.83`. Use **6** for a regular 2 × 3 grid. Check `Eav = 6 × 4400 × 0.7065 × 0.8 / 24.00 ≈ 622 lux`, which meets 500 lux.
 5. Layout: 2 rows × 3 luminaires. Along the 6.00 m wall: spacing 2.00 m, 1.00 m to the end walls. Across the 4.00 m width: row spacing 2.00 m, 1.00 m to the side walls. Spacing 2.00 m ≈ Hm 2.15 m and end distance 1.00 m = 0.5 × spacing, as NBCS 4.3.2.4(a) describes. Confirm the datasheet's maximum spacing to height ratio.
-6. Quality: the proposed DSR (E&M) panel specification requires CRI > 80 and UGR < 19, which meets Ra 80 and RUGL 19. Uniformity Uo 0.60 is not verified (needs a point calculation).
+6. Quality: the proposed DSR (E&M) panel specification requires CRI > 80 and UGR < 19, as procurement criteria. Confirm Ra from the selected product data. Verify room glare and uniformity against the final layout and photometry.
 7. Load: `6 × 36 W = 216 W`; LPD `216 / 24.00 = 9.0 W/sqm`. This is within the ECSBC 2024 space function limit for an enclosed business space, 10.0 W/sqm (Table 7.4). It exceeds the ECSBC+ limit of 8.6 W/sqm (Table 7.5), so an ECSBC+ building needs fewer or more efficient luminaires.
 8. Controls (ECSBC 2024, 7.2.2):
    - The room is a habitable space under 30 sqm enclosed by walls, so it needs an **occupancy sensor** (7.2.2(b)2.i). The sensor must switch off or dim by at least 80 % within 15 minutes, and the fittings keep a wall-mounted manual switch (7.2.2(a)2).
