@@ -103,7 +103,16 @@ GEstimator copies each item with its rate analysis, the resources the analysis u
 ### Enter items directly
 
 - **Add item** (Ctrl+I) adds an item in the selected category; **Add subitem** (Ctrl+Shift+I) adds a child of the selected item.
-- **Add category** inserts after the category containing the last selected row. With no selection, it creates the first category. This also applies in Resources and Measurements. Use **Duplicate**, **Copy**, **Paste**, **Delete**, **Move up** and **Move down** to rearrange rows. Rows copied in one GEstimator window paste into another.
+- In Schedule, Resources and Measurements, **Add category** and pasting a copied
+  category insert a separate group after the category containing the last
+  selected row. With no selection, they insert before the first named category.
+  Copying a category includes its contents, and pasting multiple categories
+  keeps their order. When you add or paste a category with an existing name,
+  Schedule and Resources add ` (copy)`, ` (copy 2)`, and so on. Measurements
+  allows repeated names.
+- Paste ordinary rows onto a category header to insert them at the start of
+  that category. Rows and categories can be copied between GEstimator windows
+  in the same editor.
 - Edit any cell in place. Type quantities directly, or let measurements fill them (see [section 7](#7-record-measurements)).
 - **Renumber schedule…** renumbers item codes in order; **Row colour** highlights rows; **Rate discrepancies** lists items whose stored rate differs from their analysis.
 

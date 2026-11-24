@@ -2,6 +2,8 @@
 
 from estimator import misc
 
+from .validation import MAX_TEXT_LENGTH
+
 
 def keep_sub_analysis_last(db):
     """Keep the SUB ANALYSIS category (analysis dependencies imported or pasted
@@ -25,7 +27,11 @@ def keep_sub_analysis_last(db):
 
 def tables(editor, kind):
     db = editor.db
-    return (db.ResourceTable, db.ResourceCategoryTable) if kind == "resources" else (db.ScheduleTable, db.ScheduleCategoryTable)
+    return (
+        (db.ResourceTable, db.ResourceCategoryTable)
+        if kind == "resources"
+        else (db.ScheduleTable, db.ScheduleCategoryTable)
+    )
 
 
 def last_selected(editor, kind, params):
@@ -50,6 +56,37 @@ def last_selected(editor, kind, params):
                 current = current.parent if kind == "schedule" else None
             entries.append(((row.category.order, tuple(reversed(path))), row, False))
     return max(entries, key=lambda entry: entry[0])[1:] if entries else (None, False)
+
+
+def insert_categories(editor, kind, names, params, *, from_clipboard=False):
+    """Place a block after the last selected group, or at the start."""
+    _, table = tables(editor, kind)
+    selected, is_category = last_selected(editor, kind, params)
+    destination = selected if is_category else selected.category if selected is not None else None
+    start = destination.order + 1 if destination is not None else 0
+    used = {row.description for row in table.select(table.description)}
+    if from_clipboard:
+        # Pasting a copy must leave the reserved dependency group separate.
+        used.add(misc.SUB_ANA_TITLE)
+    inserted = {}
+    for original in names:
+        name = original
+        number = 1
+        while name in used:
+            suffix = " (copy)" if number == 1 else f" (copy {number})"
+            name = original[: MAX_TEXT_LENGTH - len(suffix)] + suffix
+            number += 1
+        inserted[original] = name
+        used.add(name)
+
+    # Open space once for the whole block and keep the copied category order.
+    table.update(order=table.order + len(inserted)).where(table.order >= start).execute()
+    table.insert_many(
+        [(name, start + offset) for offset, name in enumerate(inserted.values())],
+        fields=[table.description, table.order],
+    ).execute()
+    by_name = {row.description: row for row in table.select().where(table.description.in_(list(inserted.values())))}
+    return {original: by_name[name] for original, name in inserted.items()}
 
 
 def defaults(editor, kind, params):
@@ -95,11 +132,20 @@ def defaults(editor, kind, params):
         near = parent.code
         sibling = False
     if kind == "resources":
-        code = editor.db.get_new_resource_code(near_item_code=near if had_selection and near and ":" not in near and not category else None)
+        code = editor.db.get_new_resource_code(
+            near_item_code=near if had_selection and near and ":" not in near and not category else None
+        )
     else:
         code = editor.db.get_next_item_code(near_item_code=near, nextlevel=(bool(parent) and not sibling) or category)
-    return dict(code=code, category=parent.category.description if parent else (selected.description if category else selected.category.description) if selected else category_name,
-                parent=parent.code if parent else "")
+    return dict(
+        code=code,
+        category=parent.category.description
+        if parent
+        else (selected.description if category else selected.category.description)
+        if selected
+        else category_name,
+        parent=parent.code if parent else "",
+    )
 
 
 def prepare(editor, kind, item, params):

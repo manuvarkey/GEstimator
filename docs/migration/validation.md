@@ -1990,3 +1990,20 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   opt-in performance scenario was skipped. Type checking, the production
   build, Rust formatting, Clippy, changed-file quality, documentation and
   diff checks passed. Vite retained its existing chunk-size warning.
+
+## 2026-11-24 — Shared category placement
+
+- Schedule and Resources use the same placement for Add Category and category
+  paste. The new groups go after the last selected group in project order,
+  or first with no selection. Category paste creates independent groups in
+  source order and routes copied items to them. Both operations use a copy
+  suffix when the requested name is already in use. Measurements already
+  uses group boundaries and allows repeated heading names.
+- Focused backend checks covered duplicate names, empty and populated copies,
+  selected item and no-selection placement, schedule parent-child links,
+  rollback and undo. Browser regressions copied populated Schedule and
+  Resources categories and verified their position and contents.
+- All 247 Python tests and 113 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. Type checking, the production build,
+  changed-file quality, documentation and diff checks passed. Vite retained
+  its existing chunk-size warning.

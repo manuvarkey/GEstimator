@@ -29,6 +29,11 @@ class InsertionSelectionTests(unittest.TestCase):
                 self.assertEqual(
                     [row["description"] for row in self.call(prefix + "state")["rows"]], ["Front", original]
                 )
+                duplicate = self.call(prefix + "category_add", ids=[front], description=original)["selected"][0]
+                rows = self.call(prefix + "state")["rows"]
+                self.assertEqual([row["description"] for row in rows], ["Front", original + " (copy)", original])
+                self.assertEqual(rows[1]["id"], duplicate)
+                self.assertEqual(rows[1]["_children"], [])
 
     def test_measurement_insertion_preserves_category_boundaries_and_uses_last_selection(self):
         def add(label, *, item=False, **selection):

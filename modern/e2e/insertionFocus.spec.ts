@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { holdNextRequest, refinementFixture, requestTimings, useWorkspaceHarness } from "./workspaceHarness";
+import {
+  holdNextRequest,
+  refinementFixture,
+  requestTimings,
+  systemClipboard,
+  useWorkspaceHarness,
+} from "./workspaceHarness";
 
 useWorkspaceHarness();
 
@@ -55,6 +61,31 @@ for (const view of ["schedule", "resources", "measurement"] as const) {
       await expect(records.locator(".tabulator-row")).toHaveCount(3);
       await expect(records).toBeFocused();
     }
+  });
+}
+
+for (const [view, source, destination, item] of [
+  ["schedule", "Work", "Other", "Foundation"],
+  ["resources", "Materials", "Labour", "Material"],
+] as const) {
+  test(`${view} pastes a category and its items as a separate group`, async ({ page }) => {
+    await refinementFixture(page);
+    await page.locator("#view-" + view).click();
+    const grid = page.locator(".project-view:visible .project-main-grid").getByRole("grid");
+    const ribbon = page.locator(".ribbon");
+    const headings = grid.locator('.tabulator-row[data-kind="Group"] [tabulator-field="description"]');
+    await expect(headings.getByText(destination, { exact: true })).toBeVisible();
+    const expected = await headings.allTextContents();
+    expected.splice(expected.indexOf(destination) + 1, 0, source + " (copy)");
+
+    await headings.getByText(source, { exact: true }).click();
+    await ribbon.getByRole("button", { name: "Copy", exact: true }).click();
+    await expect.poll(() => (systemClipboard ? JSON.parse(systemClipboard).categories : [])).toEqual([source]);
+    await headings.getByText(destination, { exact: true }).click();
+    await ribbon.getByRole("button", { name: "Paste", exact: true }).click();
+
+    await expect(headings).toHaveText(expected);
+    await expect(grid.getByText(item, { exact: true })).toHaveCount(2);
   });
 }
 

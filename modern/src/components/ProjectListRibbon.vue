@@ -107,7 +107,7 @@ const hasScheduleSelection = computed(() => props.selected.some((row) => row.row
         <button
           class="ribbon-action"
           aria-label="Add category"
-          title="Create an empty category to organize items in the current project table."
+          title="Add a category after the selected group, or at the start with no selection."
           :disabled="busy"
           @click="emit('addCategory')"
         >
@@ -147,7 +147,7 @@ const hasScheduleSelection = computed(() => props.selected.some((row) => row.row
         ><button
           class="ribbon-action ribbon-icon"
           aria-label="Paste"
-          title="Paste rows copied from the same editor in any GEstimator window at the selection, numbered from it: schedule subitems go under a selected heading; rows from another project keep their resources under that project's code. Cut resources move. Undo restores the previous state (Ctrl+V)."
+          title="Paste items below the selection or first in a selected category. Paste copied categories as separate groups after the selected group, or at the start with no selection. Cut resources move (Ctrl+V)."
           :disabled="busy"
           @click="emit('paste')"
         >

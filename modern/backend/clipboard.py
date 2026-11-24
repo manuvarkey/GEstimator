@@ -8,8 +8,10 @@ from estimator import misc
 from estimator.data import measurement
 from estimator.data.schedule import ResourceItemModel, ScheduleItemModel
 
+from .insertion import insert_categories
 from .numbers import decimal, stored_decimal
 from .program_settings import legacy_rows, template_rows
+from .validation import MAX_TEXT_LENGTH
 
 FORMAT = "org.gestimator.rows"
 KINDS = ("analysis", "schedule", "resources", "measurement", "records")
@@ -17,8 +19,8 @@ MAX_TEXT = 500_000
 
 
 def text(value):
-    if not isinstance(value, str) or len(value) > 10000:
-        raise ValueError("Clipboard fields must be text of at most 10000 characters")
+    if not isinstance(value, str) or len(value) > MAX_TEXT_LENGTH:
+        raise ValueError(f"Clipboard fields must be text of at most {MAX_TEXT_LENGTH} characters")
     return value
 
 
@@ -237,7 +239,7 @@ def export(service, params):
         if kind in ("schedule", "resources"):
             # GTK copies only the selected rows; selected categories bring their contents.
             cats, records = editor.selection(kind, params.get("ids"), include_descendants=False)
-            categories = [cat.description for cat in cats]
+            categories = [cat.description for cat in sorted(cats, key=lambda cat: (cat.order, cat.id))]
             records.sort(key=order if kind == "schedule" else lambda row: (row.category.order, row.order, row.id))
             models = [
                 (
@@ -324,7 +326,7 @@ def decode(data, expected, service):
     if kind != expected or kind not in KINDS:
         raise ValueError("Clipboard rows belong to a different editor")
     values = array(document.get("items"))
-    categories = [text(value) for value in array(document.get("categories", []))]
+    categories = list(dict.fromkeys(text(value) for value in array(document.get("categories", []))))
     if kind not in ("schedule", "resources") and categories:
         raise ValueError("Categories cannot be pasted into this editor")
     if kind != "schedule" and array(document.get("dependencies", [])):
@@ -388,6 +390,21 @@ def decode(data, expected, service):
     return kind, items, categories, dependencies, missing, (instance, cut)
 
 
+def paste_categories(editor, kind, params, categories, items):
+    """Create independent category copies and route their contents to them."""
+    if not categories:
+        return []
+    inserted = insert_categories(editor, kind, categories, params, from_clipboard=True)
+    original_categories = {item.code: item.category for item in items} if kind == "schedule" else {}
+    for item in items:
+        if item.category in inserted:
+            # A category copy can only inherit schedule parents copied with it.
+            if kind == "schedule" and original_categories.get(item.parent) != item.category:
+                item.parent = None
+            item.category = inserted[item.category].description
+    return [f"cat:{row.id}" for row in inserted.values()]
+
+
 def paste(service, params):
     kind = params.get("kind")
     if params.get("source"):
@@ -418,15 +435,7 @@ def paste(service, params):
 
     def apply():
         if kind in ("schedule", "resources"):
-            table = service.db.ScheduleCategoryTable if kind == "schedule" else service.db.ResourceCategoryTable
-            insert = (
-                service.db.insert_schedule_category_atomic
-                if kind == "schedule"
-                else service.db.insert_resource_category_atomic
-            )
-            for category in categories:
-                if not table.select().where(table.description == category).exists() and insert(category, [-1]) is False:
-                    raise ValueError("Unable to paste category")
+            category_ids = paste_categories(editor, kind, params, categories, items)
             for dependency in dependencies:
                 if local is not None and ":" not in dependency.code:
                     dependency.code = local + "." + dependency.code
@@ -442,9 +451,11 @@ def paste(service, params):
                         raise ValueError("Unable to paste referenced sub-analysis")
             editor.clipboard = (kind, items)
             if items:
-                return editor.edit(
+                result = editor.edit(
                     kind, "paste", dict(params, preserve_categories=bool(categories), _local_res_code=local)
                 )
+                return dict(result, selected=category_ids + result["selected"])
+            return dict(selected=category_ids)
         elif kind == "measurement":
             editor.clipboard = (kind, items)
             return editor.measurement_edit("paste", params)
