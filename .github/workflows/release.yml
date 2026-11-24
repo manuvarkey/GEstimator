@@ -47,7 +47,7 @@ jobs:
         run: |
           python -m venv .venv
           if [ "$RUNNER_OS" = "Windows" ]; then py=.venv/Scripts/python.exe; else py=.venv/bin/python; fi
-          "$py" -m pip install -r requirements.txt pyinstaller==6.22.3
+          "$py" -m pip install -r requirements-dev.txt pyinstaller==6.22.3
       - name: Tests
         shell: bash
         run: |
