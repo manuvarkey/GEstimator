@@ -2159,3 +2159,14 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   large-chunk warning.
 - The full Chromium suite passed 115 tests with the opt-in performance case
   skipped.
+
+## 2026-11-24 — Release workflow test dependencies
+
+- The [v3.1.0 release run](https://github.com/manuvarkey/GEstimator/actions/runs/45378750386)
+  failed its Ubuntu and Windows desktop test steps. The release workflow
+  installed runtime requirements, but `test_check_quality` invokes Ruff.
+  Both job logs reported a missing Ruff module.
+- The shared desktop job now installs `requirements-dev.txt` before the
+  unchanged test step. A fresh Linux virtual environment installed those
+  requirements with the pinned PyInstaller and passed all 248 Python tests.
+  A hosted run of the corrected workflow is still needed.
