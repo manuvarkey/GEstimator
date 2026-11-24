@@ -230,9 +230,9 @@ export function useWorkspace(focusAnalysis: () => Promise<void>) {
       selected.value = [];
     }, "Loading rate analysis…");
   }
-  async function saveCopy(path: string) {
+  async function saveCopy(path: string, replaceSelected = false) {
     const saved = await run(async () => {
-      await request("project.save_copy", { path });
+      await request("project.save_copy", replaceSelected ? { path, replace_selected: true } : { path });
       await refresh();
     }, "Saving project copy…");
     if (saved) status.value = `Saved ${path}`;

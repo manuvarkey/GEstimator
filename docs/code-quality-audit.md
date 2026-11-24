@@ -116,14 +116,13 @@ and library reselection.
 
 - Keep portal paths from the chooser and file-manager forwarding on the guarded
   project-open path. A cancelled folder chooser leaves edits and any pending
-  Save/Discard action intact. In-place save verifies the first folder grant,
-  reuses it for later saves, and keeps backups beside the project.
+  Save/Discard action intact. Preserve the writable file grant and folder grant
+  behavior described in the [save contract](architecture/database-format.md#working-copies-save-and-recovery).
 - Keep remembered-library reselection tied to its original entry. A successful
   attachment replaces the saved path, and a cancellation or failure leaves the
   original entry available to retry.
-- Keep SQLite write-ahead-log rejection for single-file grants. Save Copy
-  requires a new filename. A chooser-confirmed workbook replacement is
-  published only after a complete export.
+- Keep SQLite write-ahead-log rejection for single-file grants. Publish a
+  chooser-confirmed replacement only after writing a complete project or workbook.
 
 Run the relevant [portal persistence tests](../tests/test_portal_files.py) and
 [browser workflows](testing.md#browser-integration-suite) when moving these

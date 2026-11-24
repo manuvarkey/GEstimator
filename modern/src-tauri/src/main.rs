@@ -8,6 +8,7 @@ use std::{
 };
 use tauri::{Emitter, Manager};
 
+mod desktop_clipboard;
 mod project_open;
 
 struct Backend {
@@ -224,6 +225,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             backend_request,
             desktop_font,
+            desktop_clipboard::read_clipboard_text,
+            desktop_clipboard::write_clipboard_text,
             open_library_directory,
             project_open::take_project_open_requests
         ])

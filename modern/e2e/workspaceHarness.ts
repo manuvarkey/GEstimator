@@ -114,6 +114,11 @@ export async function connectDesktop(page: Page, transport = call) {
           });
         if (method.startsWith("plugin:clipboard-manager|"))
           return (window as any).clipboardTransport(method.split("|")[1], args?.text);
+        if (method === "read_clipboard_text" || method === "write_clipboard_text")
+          return (window as any).clipboardTransport(
+            method === "read_clipboard_text" ? "read_text" : "write_text",
+            args?.text,
+          );
         if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
         if (method.startsWith("plugin:window|")) {
           ((window as any).windowCommands ||= []).push(method);

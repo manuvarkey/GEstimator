@@ -195,15 +195,20 @@ use their template's calculation and display rounding.
 
 ## 9. Save, tabs and recovery
 
-- **Save** (Ctrl+S) writes the working copy back to the project file and keeps a backup of the previous version. **Save project copy** (Ctrl+Shift+S) writes a new file.
+- **Save project** in the title bar (Ctrl+S) writes the working copy back to the
+  project file and keeps a backup of the previous version. The first save of a
+  new project asks for a filename. **Save project copy** in the application menu
+  (Ctrl+Shift+S) writes a separate file.
 - Every change is one step of **Undo** (Ctrl+Z) and **Redo** (Ctrl+Y).
 - Several projects can be open at once, one per tab in the project rail. Each tab keeps its own project, undo history and view: switching back returns you to the same view, search and selection.
 - GEstimator saves a recovery copy of unsaved work. After a crash, the start page offers to recover it.
 - You are asked to save or discard unsaved changes before a project closes.
 
-On Flatpak, the first in-place save can ask you to choose the folder containing
-the open project. This lets GEstimator keep the backup beside the original.
-For **Save project copy**, choose a new filename.
+On Flatpak, **Save project** writes directly when the file grant allows editing.
+Backups for a single-file grant are in the app's `project-backups` data
+directory. A read-only grant prompts you to choose the project folder, which
+lets GEstimator keep backups beside the original. **Save project copy** can
+replace an existing file after you confirm it in the Flatpak file chooser.
 
 ## 10. Settings
 

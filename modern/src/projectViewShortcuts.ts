@@ -39,6 +39,7 @@ export function projectViewShortcut(
   }
   if (mod && key === "l" && view !== "measurement") return "database";
   if (mod && key === "m" && view === "schedule" && selected.some((row) => row.rowtype === "Schedule")) return "colour";
+  if (mod && key === "v") return "paste";
 
   // Clipboard keys are captured even without a usable selection.
   if (!target.closest(".project-grid")) return;

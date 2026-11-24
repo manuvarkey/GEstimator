@@ -1775,7 +1775,8 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   separate-process probe, so it did not establish a safe replacement. Save
   Copy produced a valid new project after choosing a host folder manually.
   Its initial chooser displayed a warning for the forwarded project's
-  sandbox-only `/run/flatpak/doc` starting path.
+  sandbox-only `/run/flatpak/doc` starting path. See the
+  [follow-up fix](#2026-11-24--flatpak-portal-save-and-packaging).
 - All 241 Python tests and 101 Chromium scenarios passed. The opt-in
   performance profile was skipped. The production build passed with the
   existing Vite chunk-size warning. Changed-file quality, documentation links,
@@ -1919,3 +1920,73 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance scenario was skipped. Type checking, the production build,
   changed-file quality and documentation checks passed. Vite retained its
   existing chunk-size warning.
+
+## 2026-11-24 — Flatpak portal save and packaging
+
+- Reproduced `flock` returning `ENOSYS` on a real Documents portal folder
+  grant. Flatpak saves now coordinate through a lock in the shared app runtime
+  directory. Different grants for the same host path share the lock. Save
+  Copy gives the host chooser a suggested filename without a sandbox-only
+  starting directory. The local build excludes its generated manifest and
+  bundle from the source copy.
+- Built and installed the x86_64 working-tree bundle with Flatpak 1.16.6,
+  flatpak-builder 1.4.8 and GNOME 51. With the declared permissions and no
+  filesystem overrides, the desktop opened a project through a real file
+  grant. The packaged sidecar rejected a save while another sandbox held the
+  lock through a different grant, then saved twice after release. Both
+  numbered sibling backups matched the preceding versions byte for byte,
+  SQLite integrity passed and the original file grant reopened the updated
+  project. Flatpak generated file-forwarding arguments in the exported
+  launcher. Authenticated host HTTP reached the opt-in MCP listener, and
+  shutdown released the port.
+- [Flathub PR #12](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+  built both architectures for its submitted manifest. Its permission review
+  rejected the home-directory grant. The locally tested manifest uses the
+  FileChooser portal and retains network sharing for the optional loopback
+  MCP listener. The published listing still shows 2.7.0. The fixed candidate
+  needs a new release tag and a fresh Flathub build and permission review.
+- All 243 Python tests and 111 Chromium scenarios passed. The browser
+  regression checked the suggested Save Copy name and folder cancellation.
+  The opt-in performance scenario was skipped. Type checking, the production
+  build, changed-file quality, documentation, desktop entry and AppStream
+  checks passed. Vite retained its existing chunk-size warning.
+
+## 2026-11-24 — Title bar Save project
+
+- The title bar button now runs the same Save action as Ctrl+S. Save project
+  copy remains available through the application menu and Ctrl+Shift+S.
+- Chromium exercised the title bar against the real Python backend. The
+  first save set the new project's source, in-place save kept the previous
+  file as a backup, and the simulated Flatpak folder prompt preserved edits
+  on cancellation before a subsequent save succeeded.
+- All 243 Python tests and 111 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. The production build retained the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed. The rebuilt x86_64 Flatpak installed and its packaged
+  backend passed project creation, catalog and template discovery, and shutdown.
+
+## 2026-11-24 — Flatpak clipboard, save and grid text
+
+- Previously the grid's keyboard paste could use the WebKit paste event
+  while the ribbon read through a separate native clipboard. Project row
+  copy and paste now use GTK on Linux. Ribbon and keyboard paste share the
+  grid's row and cell handling. The installed x86_64 Flatpak on an isolated
+  X11 display pasted a Schedule row after keyboard Copy and a Resources row
+  after ribbon Copy. The paste used the opposite entry point in each case.
+  An independent GTK client also read the Resources payload.
+- Read-only portal grants still ask for a folder. On the installed package
+  without a filesystem override, a writable file grant saved twice without
+  a folder, produced numbered app-data backups matching the prior versions,
+  and reopened successfully. Save Copy rejected an unconfirmed overwrite and
+  replaced the selected file after confirmation, preserving the old contents.
+  Both saved files passed SQLite integrity checks.
+- In WebKitGTK 2.52.6, captured the same scrolling Schedule cell editor
+  with antialiasing, with automatic smoothing, and with antialiasing restored.
+  The computed weight stayed 400. Automatic smoothing changed the displayed
+  glyphs and introduced more color fringing. The two antialiased editor crops
+  were identical. Chromium also checked font weight and smoothing while the
+  grid overflowed.
+- All 246 Python tests, 5 Rust tests and 111 Chromium scenarios passed. The
+  opt-in performance scenario was skipped. Type checking, the production
+  build, Rust formatting, Clippy, changed-file quality, documentation and
+  diff checks passed. Vite retained its existing chunk-size warning.

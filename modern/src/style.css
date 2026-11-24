@@ -1123,6 +1123,10 @@ textarea::placeholder {
 .analysis-table .tabulator-row.tabulator-row-even {
   background: var(--workspace);
 }
+/* Keep glyph rasterization stable when WebKit composites a grid's scroll layer. */
+.analysis-table .tabulator-tableholder {
+  -webkit-font-smoothing: antialiased;
+}
 /* Line remarks are notes, set apart from the resource description. */
 .analysis-table .tabulator-row .tabulator-cell.analysis-line-remarks {
   font-style: italic;

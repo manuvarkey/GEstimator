@@ -18,16 +18,25 @@ before doing the desktop review.
 ## Linux desktop review
 
 Test the installed Flatpak without a filesystem override. Open a project with
-the chooser and by double-clicking it in the file manager. Save in place after
-selecting the project folder and verify the sibling backup. Attach and remember
-an external library, restart the app, and check that it is attached again.
-Export a workbook to a new file and to an existing file after confirmation.
+the chooser and by double-clicking it in the file manager. Save in place with a
+writable file grant and check the app's backup. Repeat from a read-only grant,
+select the folder when prompted, and check the sibling backup. Confirm
+replacement of a disposable project with Save Copy. Copy and paste schedule
+items and resources using both the ribbon and keyboard. Attach and remember an
+external library, restart the app, and check that it is attached again. Export a
+workbook to a new file and to an existing file after confirmation.
 
 For a release:
 
 1. Tag `vX.Y.Z` and push the tag.
 2. In the manifest, set the git source `tag` and `commit` (`git rev-parse vX.Y.Z^{commit}`).
+   The tag must include the portal save fix and the source desktop entry
+   with `Exec=gestimator %F`.
 3. In the Flathub repository, replace `com.kavilgroup.gestimator.json` and add `cargo-sources.json`, `node-sources.json`, `python-sources.json`; delete `python3-requirements.yaml` and `requirements.txt` (used by the GTK application).
-4. Open a pull request there. The Flathub test build must pass before merging.
+4. Update the [Tauri migration pull request](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+   if it is still open, or open a new one. Explain that FileChooser grants project
+   and library access and that network sharing lets host MCP clients reach the
+   optional loopback listener. The updated Flathub build and permission review
+   must pass before merging.
 
 After 3.0.0, the Flathub external data checker opens update pull requests from `x-checker-data` when a new tag is pushed; regenerate the source lists in that pull request when the lock files changed.

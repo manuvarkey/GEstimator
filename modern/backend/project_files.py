@@ -18,9 +18,13 @@ from .persistence import (
     export_output,
     fingerprint,
     flatpak_document,
+    portal_needs_folder,
+    portal_parts,
     resolve_input,
+    same_project_path,
     save_existing,
     save_target,
+    verified_alias,
 )
 from .project import ProjectEditor
 from .validation import request_text as text
@@ -176,31 +180,42 @@ def save_project(service, p, progress):
         return dict(saved=service.source_path)
     destination = Path(service.source_save_path or service.source_path)
     expected = service.source_fingerprint
-    if flatpak_document(destination):
+    if flatpak_document(destination) and (p.get("directory") or portal_needs_folder(destination)):
         destination, expected = save_target(destination, expected, p.get("directory"))
     progress("Saving project and preserving a backup")
-    backup = save_existing(destination, expected, service.write_project_snapshot)
-    service.source_fingerprint = fingerprint(destination)
+    backup, service.source_fingerprint = save_existing(destination, expected, service.write_project_snapshot)
     service.source_save_path = str(destination)
     service.finish_project_save()
     return dict(saved=service.source_path, backup=str(backup))
 
 
 def save_project_copy(service, p, progress):
-    """Publish to an unused filename and adopt it for previously unsaved projects."""
+    """Publish a copy, or replace a Flatpak destination confirmed by the chooser."""
     if not service.db:
         raise ValueError("Open a project first")
     destination = Path(text(p["path"])).resolve()
-    try:
+    source = service.source_save_path or service.source_path
+    replacing = p.get("replace_selected") is True and portal_parts(destination) and destination.exists()
+    is_source = False
+    current = None
+    if replacing:
+        check_database_access(destination)
+        original = Path(source) if source else None
+        is_source = original is not None and same_project_path(original, destination)
+        expected = (
+            verified_alias(original, service.source_fingerprint, destination) if is_source else fingerprint(destination)
+        )
+        progress("Saving project copy and preserving a backup")
+        _, current = save_existing(destination, expected, service.write_project_snapshot)
+    else:
         with export_output(destination) as output:
             progress("Saving analysis and updating dependent rates")
             service.write_project_snapshot(output)
-    except FileExistsError as error:
-        if flatpak_document(destination):
-            raise FileExistsError("Save Copy needs a new filename. Choose another name.") from error
-        raise
-    service.finish_project_save()
     if not service.source_path:
         service.source_path = str(destination)
-        service.source_fingerprint = fingerprint(destination)
+        service.source_fingerprint = current or fingerprint(destination)
+    elif is_source:
+        service.source_save_path = str(destination)
+        service.source_fingerprint = current
+    service.finish_project_save()
     return dict(saved=str(destination))

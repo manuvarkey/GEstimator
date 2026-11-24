@@ -15,6 +15,7 @@ module["sources"][0] = {
              "modern/src-tauri/target", "modern/src-tauri/binaries", "modern/.bundle",
              "modern/test-results", "packaging/flathub/build-dir",
              "packaging/flathub/repo", "packaging/flathub/.flatpak-builder",
+             "packaging/flathub/local.json", "packaging/flathub/gestimator.flatpak",
              "build-dir", "repo", ".flatpak-builder", "Other databases", "spreadsheets",
              "sources", "screenshots", "artifacts", "design documentation"],
 }

@@ -156,6 +156,7 @@ watch(
 );
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
+  pasteText,
   focus: async () => {
     await ready;
     await replacement;
@@ -319,15 +320,19 @@ function keyboard(event: KeyboardEvent) {
 function paste(event: ClipboardEvent) {
   if (props.busy || (event.target as HTMLElement).closest("input,textarea,[contenteditable=true]")) return;
   const text = event.clipboardData?.getData("text/plain");
-  if (text === undefined) return;
-  if (isRowClipboard(text)) {
-    event.preventDefault();
-    event.stopPropagation();
-    emit("pasteRows", text);
-    return;
-  }
-  if (!anchor) return;
+  if (text === undefined || !pasteText(text)) return;
   event.preventDefault();
+  event.stopPropagation();
+}
+
+/** Route row payloads and plain cell text the same way for every paste entry point. */
+function pasteText(text: string) {
+  if (!table || props.busy) return false;
+  if (isRowClipboard(text)) {
+    emit("pasteRows", text);
+    return true;
+  }
+  if (!anchor) return false;
   const rows: RowComponent[] = [];
   const flatten = (values: RowComponent[]) => {
     for (const row of values) {
@@ -337,10 +342,10 @@ function paste(event: ClipboardEvent) {
   };
   flatten(table.getRows());
   const start = rows.findIndex((row) => rowData(row).id === anchor!.id);
-  if (start < 0) return;
+  if (start < 0) return false;
   const columns = props.columns;
   const columnStart = columns.findIndex((column) => column.field === anchor!.field);
-  if (columnStart < 0) return;
+  if (columnStart < 0) return false;
   const selection = selectedData();
   const changes: { id: string; field: string; value: string }[] = [];
   const add = (row: RowComponent, field: string, value: string) => {
@@ -369,6 +374,7 @@ function paste(event: ClipboardEvent) {
     }
   }
   if (changes.length) emit("paste", changes);
+  return changes.length > 0;
 }
 
 watch(

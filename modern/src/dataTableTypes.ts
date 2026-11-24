@@ -11,6 +11,7 @@ export type TableView = { ids: string[]; position: { top: number; left: number }
 
 export interface DataTableHandle<Row extends TableRow> {
   focus: () => Promise<void>;
+  pasteText: (text: string) => boolean;
   patchRows: (updates: TableRowPatch<Row>[]) => Promise<void>;
   redraw: (force?: boolean) => Promise<void>;
   step: (event: KeyboardEvent, options?: { focus: boolean }) => Promise<void>;

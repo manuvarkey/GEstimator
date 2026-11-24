@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+PORTAL_HOST_PATH = "user.document-portal.host-path"
+
 
 def fingerprint(path):
     """Capture the main database and journal identity without changing either."""
@@ -56,6 +58,11 @@ def flatpak_document(path):
     return len(portal_parts(path)) == 2
 
 
+def portal_needs_folder(path):
+    """Only a read-only file grant needs an additional folder selection."""
+    return flatpak_document(path) and not os.access(path, os.W_OK)
+
+
 def resolve_input(path):
     """Explain how to grant access when an incoming host path is unavailable."""
     try:
@@ -83,21 +90,33 @@ def save_target(source, expected, directory):
     destination = directory / source.name
     if len(portal_parts(directory)) < 2 or not directory.is_dir() or destination.is_symlink():
         raise ValueError("Choose the folder containing the open project.")
-    try:
-        # The portal exposes the host path as metadata. All I/O uses sandbox paths.
-        attribute = "user.document-portal.host-path"
-        original = os.getxattr(source, attribute)
-        selected = os.getxattr(destination, attribute)
-    except OSError as error:
-        raise ValueError("Could not identify the original project in this folder. Try Save Copy.") from error
-    if original != selected:
+    if not same_project_path(source, destination):
         raise ValueError("Choose the folder containing the open project.")
+    return destination, verified_alias(source, expected, destination)
+
+
+def same_project_path(source, destination):
+    """Compare portal grant identities without accessing the underlying host paths."""
+    if source == destination:
+        return True
+    if not (portal_parts(source) and portal_parts(destination)):
+        return False
+    try:
+        return os.getxattr(source, PORTAL_HOST_PATH) == os.getxattr(destination, PORTAL_HOST_PATH)
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        raise ValueError("Could not identify the original project through the Documents portal.") from error
+
+
+def verified_alias(source, expected, destination):
+    """Verify both grants still expose the unchanged project opened by the editor."""
     verify_source(source, expected)
     actual = fingerprint(destination)
     # The file and folder grants have different virtual inode identities.
     if any(actual[1:]) or (actual[0][0][2:], actual[0][1]) != (expected[0][0][2:], expected[0][1]):
         raise ValueError("Project changed on disk. Reopen it or save a copy.")
-    return destination, actual
+    return actual
 
 
 def temporary_sibling(path):
@@ -173,12 +192,25 @@ def lock_exclusive(stream):
 
 @contextmanager
 def save_lock(source):
-    lock_path = source.with_name(f".{source.name}.gestimator-lock")
+    """Serialize saves for the same project, including through different folder grants."""
+    if portal_parts(source):
+        # The Documents mount does not implement flock. Use the shared per-app
+        # runtime directory and hash the host path so grant IDs share one lock.
+        try:
+            directory = Path(os.environ["XDG_RUNTIME_DIR"]) / "app" / os.environ["FLATPAK_ID"] / "project-locks"
+            directory.mkdir(mode=0o700, exist_ok=True)
+            lock_path = directory / portal_key(source)
+        except (KeyError, OSError) as exc:
+            raise ValueError("Could not lock this project through the Documents portal. Try Save Copy.") from exc
+    else:
+        lock_path = source.with_name(f".{source.name}.gestimator-lock")
     with lock_path.open("a+b") as lock:
         try:
             lock_exclusive(lock)
         except OSError as exc:
-            raise ValueError("Another GEstimator window is saving this project") from exc
+            if exc.errno in (errno.EACCES, errno.EAGAIN):
+                raise ValueError("Another GEstimator window is saving this project") from exc
+            raise
         yield
 
 
@@ -231,8 +263,25 @@ class RecoveryClaim:
 
 
 def save_existing(source, expected, write):
+    """Publish and capture the new fingerprint while the save lock is held."""
     with save_lock(source):
-        return replace_project(source, expected, write)
+        backup = replace_project(source, expected, write)
+        return backup, fingerprint(source)
+
+
+def portal_key(source):
+    """A stable key for the same host path exposed by different document grants."""
+    return hashlib.sha256(os.getxattr(source, PORTAL_HOST_PATH)).hexdigest()
+
+
+def backup_directory(source):
+    """Keep persistent backups in app data when the grant covers only one file."""
+    if not flatpak_document(source):
+        return source.parent
+    data = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    folder = data / "project-backups" / portal_key(source)
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return folder
 
 
 def replace_project(source, expected, write):
@@ -244,12 +293,13 @@ def replace_project(source, expected, write):
         write(staged)
         with staged.open("rb+") as stream:
             os.fsync(stream.fileno())
-        backup_staged = temporary_sibling(source)
+        backup_base = backup_directory(source) / source.name
+        backup_staged = temporary_sibling(backup_base)
         shutil.copyfile(source, backup_staged)
         with backup_staged.open("rb+") as stream:
             os.fsync(stream.fileno())
         verify_source(source, expected)
-        backup = source.with_name(source.name + ".bak")
+        backup = backup_base.with_suffix(backup_base.suffix + ".bak")
         os.chmod(staged, source.stat().st_mode)
         suffix = 1
         while True:
@@ -258,7 +308,7 @@ def replace_project(source, expected, write):
                 break
             except FileExistsError:
                 suffix += 1
-                backup = source.with_name(f"{source.name}.{suffix}.bak")
+                backup = backup_base.with_name(f"{source.name}.{suffix}.bak")
         verify_source(source, expected)
         staged.replace(source)
         return backup

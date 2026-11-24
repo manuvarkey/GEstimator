@@ -38,7 +38,7 @@ import { useProjectGrid } from "../useProjectGrid";
 import { projectViewShortcut } from "../projectViewShortcuts";
 import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
-import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
+import { clearRowClipboard, copyRows, pasteRows, readClipboardText, type ClipboardKind } from "../rowClipboard";
 import { notify } from "../statusNotice";
 import { activeDocument } from "../documents";
 import { recallTabState, rememberTabState } from "../tabMemory";
@@ -315,6 +315,7 @@ function rowAction(operation: string) {
     if (isMeasurement.value) measurementPropertiesDialog.value?.showProperties();
     else if (one.value?.rowtype !== "Category") void showForm("edit");
   } else if (operation === "delete") void deleteSelection();
+  else if (operation === "paste") void pasteGrid();
   else if (operation === "duplicate" && !isMeasurement.value) {
     if (one.value && one.value.rowtype !== "Category") void showForm("duplicate");
   } else void command(operation);
@@ -510,6 +511,22 @@ async function pasteCells(edits: { id: string; field: string; value: string }[])
     edits,
   });
 }
+async function pasteGrid() {
+  if (busy.value || (props.entryId && detailBusy.value)) return;
+  const entryId = props.entryId;
+  const table = entryId ? recordTable.value : mainTable.value;
+  try {
+    const data = await readClipboardText(entryId ? "records" : props.view);
+    if (props.active && props.entryId === entryId && table && !table.pasteText(data)) {
+      error.value = "Clipboard does not contain valid GEstimator rows. Select an editable cell to paste text.";
+    }
+  } catch (reason) {
+    error.value = String(reason);
+  }
+}
+function recordRibbonAction(operation: string, delta?: number) {
+  return operation === "paste" ? pasteGrid() : recordAction(operation, delta);
+}
 function historyAction(method: "undo" | "redo") {
   return command((props.entryId && state.value?.measurement_draft ? "draft." : "project.") + method);
 }
@@ -554,6 +571,8 @@ function keyboard(event: KeyboardEvent) {
       return void command("cut");
     case "copy":
       return void (editingRecords ? recordAction("copy") : command("copy"));
+    case "paste":
+      return void pasteGrid();
     case "duplicate":
       if (editingRecords) return void recordAction("duplicate");
       return void (isMeasurement.value ? command("duplicate") : showForm("duplicate"));
@@ -640,7 +659,7 @@ watch(
             :busy="busy"
             :detail-busy="detailBusy"
             :has-selection="!!selectedRecord"
-            @action="recordAction"
+            @action="recordRibbonAction"
             @insert-multiple="
               recordCount = 10;
               recordsOpen = true;
@@ -663,8 +682,8 @@ watch(
             @add-category="projectItemDialogs?.showCategory()"
             @duplicate="isMeasurement ? command('duplicate') : showForm('duplicate')"
             @cut="command('cut')"
-            @copy="command('copy', { ids: isMeasurement ? selectedItemIds() : selected.map((row) => row.id) })"
-            @paste="command('paste')"
+            @copy="command('copy')"
+            @paste="pasteGrid"
             @delete-selection="deleteSelection"
             @edit-resource="showForm('edit')"
             @move-resources="resourceEditingDialogs?.showMove()"
@@ -865,7 +884,7 @@ watch(
                 { label: 'Paste records here', action: 'paste' },
                 { label: 'Delete record', action: 'delete' },
               ]"
-              @action="(operation) => recordAction(operation)"
+              @action="recordRibbonAction"
               @selection="
                 selectedRecords = $event;
                 selectedRecord = $event[0];

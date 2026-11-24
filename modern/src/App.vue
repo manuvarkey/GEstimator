@@ -614,10 +614,10 @@ onBeforeUnmount(() => {
         </button>
         <button
           class="icon-button"
-          aria-label="Save copy"
-          title="Save the working project to a new file without replacing the opened source (Ctrl+Shift+S)."
+          aria-label="Save project"
+          title="Save the working project (Ctrl+S)."
           :disabled="uiBusy || !state?.project_open"
-          @click="showFile('save')"
+          @click="saveProject"
         >
           <AppIcon name="save" />
         </button>

@@ -1243,13 +1243,18 @@ for (const [view, description] of [
     await expect.poll(() => systemClipboard && JSON.parse(systemClipboard).kind).toBe(view);
     await page.keyboard.press("ArrowRight");
     await expect(table.locator(".cell-focused")).toBeFocused();
-    // The desktop bridge mocks native clipboard access. Project tables receive a paste event.
-    if (view === "analysis") await page.keyboard.press("ControlOrMeta+v");
-    else await pasteDocument(page, `${grid} .cell-focused`, systemClipboard);
+    await page.keyboard.press("ControlOrMeta+v");
     await expect(rows).toHaveCount(2);
     await expect(table).toHaveAttribute("aria-busy", "false");
     await page.keyboard.press("ArrowLeft");
     await expect(table.locator(".cell-focused")).toBeFocused();
+    if (view !== "analysis") {
+      await rows.last().click();
+      await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Rows copied to the system clipboard" })).toBeVisible();
+      await page.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+      await expect(rows).toHaveCount(3);
+    }
   });
 }
 
@@ -1331,7 +1336,9 @@ test("system row clipboard transfers schedule, resources and analysis between in
     ).toHaveCount(2);
     desktopControls.setClipboard("ordinary text");
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
-    await expect(destination.getByRole("alert")).toContainText("valid GEstimator rows");
+    await expect(destination.locator('.project-main-grid [tabulator-field="description"]')).toContainText([
+      "ordinary text",
+    ]);
     expect((await other.call("resources.editor.state")).result.rows[0]._children).toHaveLength(2);
 
     for (const editor of [page, destination]) {
@@ -2281,6 +2288,15 @@ test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by
     expect(Math.abs(position.scrollTop - previous)).toBeLessThanOrEqual(position.height + 2);
     previous = position.scrollTop;
   }
+  expect(await holder.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  const cell = grid.locator('.tabulator-row.tabulator-selected [tabulator-field="description"]');
+  await expect(cell).toHaveCSS("font-weight", "400");
+  await cell.dblclick();
+  const editor = cell.locator("textarea,input");
+  await expect(editor).toHaveCSS("font-weight", "400");
+  await expect(editor).toHaveCSS("-webkit-font-smoothing", "antialiased");
+  await editor.press("Escape");
+  await expect(cell).toHaveCSS("-webkit-font-smoothing", "antialiased");
 });
 
 test("native typography and schedule, resource and measurement editing", async ({ page }) => {
@@ -2313,6 +2329,15 @@ test("native typography and schedule, resource and measurement editing", async (
   await expect(quantity).toHaveText("7");
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(quantity).toHaveText("1");
+  for (const action of ["keyboard", "ribbon"]) {
+    desktopControls.setClipboard("7");
+    await quantity.click();
+    if (action === "keyboard") await page.keyboard.press("ControlOrMeta+v");
+    else await page.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await expect(quantity).toHaveText("7");
+    await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(quantity).toHaveText("1");
+  }
   await page.screenshot({ path: "test-results/schedule-desktop.png" });
   await page.locator(".ribbon-tabs").getByRole("tab", { name: "Resources", exact: true }).click();
   const rate = view.locator('.tabulator-row [tabulator-field="rate"]').last();
@@ -2449,7 +2474,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
 
 test("application menu and ribbon views share context-aware header actions", async ({ page }) => {
   const header = page.locator(".titlebar");
-  const quickActionNames = ["Go back", "Go forward", "New project", "Open project", "Save copy", "Undo", "Redo"];
+  const quickActionNames = ["Go back", "Go forward", "New project", "Open project", "Save project", "Undo", "Redo"];
   for (const name of quickActionNames) {
     const button = header.getByRole("button", { name, exact: true });
     expect((await button.textContent())?.trim()).toBe("");
@@ -3091,7 +3116,8 @@ test("feedback: scroll position, zero formatting, palette and native save/export
   await expect.poll(() => holder.evaluate((element) => element.scrollTop)).toBe(700);
   const copy = resolve(directory, "copied.eproj");
   nativeDialogResults.push(copy);
-  await page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }).click();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
   await expect
     .poll(async () =>
       readFile(copy)
@@ -4218,7 +4244,7 @@ test("clipboard icons and toolbar hover outlines remain sharp without changing b
     for (const button of [
       copy,
       ribbon.getByRole("button", { name: "Add item", exact: true }),
-      page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }),
+      page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }),
     ]) {
       const before = (await button.boundingBox())!;
       await button.hover();
@@ -4345,7 +4371,8 @@ test("feedback 5: records drafts apply discard guard navigation and save", async
   await ribbon.getByRole("button", { name: "Add record", exact: true }).click();
   const copy = resolve(directory, "draft-records.eproj");
   nativeDialogResults.push(copy);
-  await page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }).click();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
   await expect(page.getByText("Unsaved records", { exact: true })).toHaveCount(0);
   await expect
     .poll(async () =>

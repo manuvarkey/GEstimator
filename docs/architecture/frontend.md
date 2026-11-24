@@ -161,6 +161,12 @@ paste. Do not use a visible row index as an item identity. Hidden category
 contents and off-page rows are resolved by backend selection expansion; frontend
 filtering cannot define deletion, import or total scope.
 
+Project grid paste uses one text path for keyboard and ribbon actions. GEstimator
+row payloads go through the backend's editor-kind validation and plain text
+goes to the selected cells. Active text fields keep their normal editing
+shortcuts. On Linux the native clipboard uses GTK's display and input seat,
+shared with WebKit.
+
 `useWorkspaceMCP` polls change sequence/project epoch and refreshes the active workspace.
 Refresh is deferred around human edits and dialogs. A stale edit is rejected
 with its input retained for correction; do not silently overwrite it with an

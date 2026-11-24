@@ -63,6 +63,12 @@ export function useProjectFiles(context: ProjectFilesContext) {
   }
   const filePath = ref("");
 
+  function saveDialogPath(path: string): string {
+    // The host chooser cannot start in the app's filtered Documents mount.
+    // Keep the suggested name and let the portal pick the starting folder.
+    return /^\/(?:run\/flatpak\/doc|run\/user\/\d+\/doc)\//.test(path) ? path.slice(path.lastIndexOf("/") + 1) : path;
+  }
+
   async function openOsProject(path: string) {
     // Step 1: wait for the active input/guard before consuming the next OS request.
     while (uiBusy.value || discardOpen.value || fileMode.value !== null) {
@@ -115,10 +121,10 @@ export function useProjectFiles(context: ProjectFilesContext) {
       const path =
         mode === "open"
           ? await open({ multiple: false, filters })
-          : await save({ filters, defaultPath: filePath.value });
+          : await save({ filters, defaultPath: saveDialogPath(filePath.value) });
       if (typeof path !== "string") return;
       if (mode === "open") await openProjectPath(path);
-      else if (await w.saveCopy(path)) {
+      else if (await w.saveCopy(path, true)) {
         rememberProject(path);
         await continueAfterSave();
       }
@@ -160,7 +166,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
       const path =
         fileMode.value === "open"
           ? await open({ multiple: false, filters })
-          : await save({ filters, defaultPath: filePath.value || undefined });
+          : await save({ filters, defaultPath: saveDialogPath(filePath.value) || undefined });
       if (typeof path === "string") filePath.value = path;
     } catch (e) {
       error.value = String(e);
