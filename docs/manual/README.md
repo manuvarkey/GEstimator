@@ -230,7 +230,7 @@ replace an existing file after you confirm it in the Flatpak file chooser.
 
 GEstimator can run a local [Model Context Protocol](https://modelcontextprotocol.io) server so that an AI assistant (Claude, or any MCP client) reads and prepares estimates in the open project, using the same operations as the application.
 
-1. Tick **Enable the MCP server for AI assistants** in **Program settings → General**. The **MCP** tab appears. Choose a library under **Estimation skillset**.
+1. Tick **Enable the MCP server for AI assistants** in **Program settings → General** and save. In the **MCP** ribbon, use **Estimation skillset** to see or change the active library. The choice is saved and takes effect immediately, even while the server is running.
 2. Click **Configure server** to choose the port and the access mode: **Read only** or **Read and write**. Copy the client configuration (endpoint and connection token) into your AI client.
 3. Click **Start server**.
 
@@ -257,7 +257,7 @@ After adding the server to an AI client, **start a new session** in that client 
 1. On the **MCP** tab, click **Open user skill folder**.
 2. Add a library folder containing `library.json` and at least one skill folder with a `SKILL.md`. See the [manifest and folder format](../architecture/mcp.md#library-folders-and-manifest).
 3. Click **Refresh skills**. If the library does not appear, open **Configure server → Estimation skill libraries** to see any scan messages.
-4. Select the new library under **Program settings → General → AI assistants (MCP) → Estimation skillset** and save. The server can stay running.
+4. Select the new library in the **Estimation skillset** dropdown on the **MCP** ribbon.
 
 Refresh after editing or removing library files. If the active library is
 unavailable, GEstimator switches to Generic and displays the missing library.

@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { request } from "./backend";
 import { initializeProgramSettings, programSettings, type ProgramSettings } from "./programSettings";
+import { loadSkillLibraries } from "./skillLibraries";
 
 export interface MCPStatus {
   running: boolean;
@@ -107,6 +108,7 @@ export async function applyMCPPreferences(settings: ProgramSettings) {
     enabled: settings.mcp_enabled,
     estimation_skill_library: settings.estimation_skill_library,
   });
+  await loadSkillLibraries();
 }
 export async function initializeMCP() {
   await initializeProgramSettings();

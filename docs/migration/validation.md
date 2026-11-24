@@ -2142,3 +2142,20 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
 - Windows NSIS, the Ubuntu 22.04 release artifacts and the core22 Snap
   remain for the hosted build and clean-install checks. These local artifacts
   were built for verification before tagging.
+
+## 2026-11-24 — Active skillset on the MCP ribbon
+
+- The MCP ribbon shows the active backend skillset. Selection saves the same
+  program preference used by Program Settings and applies it to the current
+  MCP listener without restarting it.
+- The focused Chromium skill-library scenario passed. It covers keyboard
+  selection, retained focus, an unchanged listener port and token, and
+  persistence after reload. It also checks the ribbon switches to Generic
+  when the selected user library is removed and the catalog is refreshed.
+- Inspected the ribbon in light theme and the open dropdown in dark theme
+  at 700 px. The ribbon fit the narrow viewport.
+- All 248 Python tests, the production frontend build, changed-file
+  formatting and documentation checks passed. Vite retained its existing
+  large-chunk warning.
+- The full Chromium suite passed 115 tests with the opt-in performance case
+  skipped.
