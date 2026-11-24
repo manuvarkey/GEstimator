@@ -9,6 +9,8 @@ Use this skill only when the user asks for a preliminary lighting design, for ex
 
 Read a linked reference as an MCP resource, or with `describe_source section=<its gestimator:// link>`. Record the design results through the electrical measurement skill as GEstimator measurements, not in a separate spreadsheet. Use the criteria in this skill; do not search the web for lighting standards. For a room type the table does not list, follow section 2.
 
+Read the relevant criteria and utilisation data once for the project. Reuse them for rooms with matching use, luminaire and geometry; recompute room index, layout, achieved illuminance and load where inputs differ.
+
 Every output of this skill is **provisional**. It is a planning estimate, not a lighting design for construction. Say so in the draft, and keep the assumptions with the quantities.
 
 ## 1. Inputs per room
@@ -20,7 +22,7 @@ Every output of this skill is **provisional**. It is a planning estimate, not a 
 | Working plane height | Project criteria | 0.85 m above floor where the task height is not known; 0.75 m for industrial work places (NBCS 2026, Part D Section 1, 4.1.4.4) |
 | Mounting (recessed, surface, suspended) and suspension length | Ceiling design | Assume recessed or surface at ceiling height |
 | Surface reflectances (ceiling, walls, floor) | Finish schedule | Use the NBCS 2026 reflection factors (4.3.2.3(b)(2)): 0.7 white and very light colours, 0.5 light colours, 0.3 middle tints, 0.1 dark colours. Allow for windows, shelves and doors on the walls. Say which you assumed |
-| Lighting criteria | Project brief, adopted code | Use the NBCS 2026 Table 6 middle value for the room use (section 2) |
+| Lighting criteria | Project brief, adopted code | Record the adopted criterion. If unknown, label any Table 6 comparison provisional |
 | Luminaire data: type, wattage, luminous flux, utilisation factor table, maximum spacing to height ratio, CRI, UGR | Manufacturer datasheet, project luminaire schedule | Use a stated typical value and mark it provisional |
 | Control intent (switch groups, sensors, daylight zones) | Brief, energy code | Assume manual switching per row parallel to the windows, plus the sensors ECSBC 2024 requires (section 4) |
 | Energy code status | Brief: ECSBC 2024 applies to commercial and office buildings with a connected load of 100 kW or more, or a contract demand of 120 kVA or more, at the ECSBC, ECSBC+ or Super ECSBC level | Ask; it sets the power limit and the sensors |
@@ -60,7 +62,7 @@ Examples from Table 6 (checked against the published text):
 
 **Rooms not listed.** Table 6 has no row for dormitories, barracks, hostels or other sleeping rooms, or for residences. Use the values for a similar, comparable situation (4.1.4.1(b)) and name the row you used. For example: a security post or guard office as a surveillance station (3.3); a dormitory or barrack as resting rooms (2.2) for general lighting, with reading lighting (39.2) at beds or desks where reading is expected. State the choice as an assumption for review.
 
-Use NBCS 2026, the current code. Older documents give other values for some rooms: the CPWD Electrical Part I Internal 2023 specification refers to NBC 2016 Part 8 Section 1 (its Table 8: general offices 300-500-750, teaching spaces 200-300-500, corridors 50-100-150), and SP 30:2023, Part 3 Section 19, Table 1 gives single values (general offices 300 lux). Use an older value only when the contract adopts that document, and say so in the handoff.
+Use the listed criteria when the project adopts NBCS 2026. Establish location, occupancy, applicable statutory criteria and the contract edition first. Older documents give other values for some rooms: the CPWD Electrical Part I Internal 2023 specification refers to NBC 2016 Part 8 Section 1 (its Table 8: general offices 300-500-750, teaching spaces 200-300-500, corridors 50-100-150), and SP 30:2023, Part 3 Section 19, Table 1 gives single values (general offices 300 lux). Identify the governing requirement and any statutory conflict before using a different value. If unresolved, show the competing targets and hold the final count open.
 
 ## 3. Method (lumen method, NBCS 2026, 4.3.2)
 
@@ -73,7 +75,7 @@ For each room:
 5. Number of luminaires (4.3.2.3(c)): `N = (Eav × A) / (μ × d × Φ)`, where Eav is the design illuminance (lux), A the working plane area (sqm) and Φ the luminous flux of one luminaire (lumens).
 6. Round N up to a count that fits a regular grid. Recompute Eav for the chosen count and report it.
 7. Layout (4.3.2.4): space luminaires about `x ≈ Hm` apart in each direction, with the end luminaires `0.5 x` from the wall. Where kr is less than 1, keep x below Hm; two or four luminaires usually suit such rooms. Do not exceed the datasheet's maximum spacing to height ratio.
-8. Quality: check that the luminaire's CRI meets Ra and its UGR meets RUGL for the area. The lumen method gives the average only; the uniformity Uo needs a point calculation, so list it as unverified.
+8. Quality: check product Ra against the requirement. Verify glare and uniformity for the room layout with manufacturer photometry. Keep those checks open when only average illuminance has been calculated.
 9. Load: connected load = N × wattage; lighting power density (LPD) = load / A. Compare it with the energy code (section 4).
 
 Rooms with an irregular shape, high ceilings, strong daylight or special tasks need a point-by-point calculation or lighting software. Flag them instead of applying the lumen method.
@@ -111,7 +113,8 @@ Hand each room to the `electrical-measurement-estimation` skill as a record with
 |---|---|
 | Room / location | Office 1, first floor |
 | Fixture type | LED panel 2×2 ft, recessed |
-| Count | 6 |
+| Final layout and count | 2 rows × 3 = 6 |
+| Target / achieved average / load | 500 lux / about 622 lux / 216 W (worked example below) |
 | Rating | 36 W, about 4400 lm (provisional, no datasheet) |
 | Control assumptions | 2 switch groups of 3 at the entrance, window row separately switched, one occupancy sensor (ECSBC 7.2.2(b)2) |
 | Associated work | point wiring for 6 fittings, occupancy sensor, circuit wiring from the DB |

@@ -9,9 +9,11 @@ Use this skill to turn electrical layouts, schedules or model quantities into me
 
 **Work inside GEstimator.** The estimate is the GEstimator project: schedule items with linked measurement sheets. Record each quantity as measurement records with its dimensions or counts, deductions, location and source, so the project shows how it was derived. Do not compute quantities in a script or spreadsheet and enter only totals, and do not keep the estimate in a separate workbook; when a workbook is wanted, use `project action=export_xlsx`.
 
-**Order of work.** Read this skill and the references for the work first. Then read the database notes (`describe_source` overview, then `section=category:<name>` for each category) **before** searching for or choosing items, not afterwards to check them. Read a linked reference as an MCP resource, or with `describe_source section=<its gestimator:// link>`.
+**Order of work.** Read the reference for each trade you actually measure. Reuse its rules and the category notes across matching items within the same source edition. Then read the database notes (`describe_source` overview, then `section=category:<name>` for each category) **before** searching for or choosing items, not afterwards to check them. Read a linked reference as an MCP resource, or with `describe_source section=<its gestimator:// link>`.
 
 **Sources.** Use the GEstimator sources, their notes and these skills. Do not search the web for rates, schedule books, item texts or standards: the attached source is the adopted schedule, and these skills carry the standards checked for this work. Cite the schedule by the book and edition its notes give (`describe_source` overview). Where an item, criterion or clause is not covered, state the assumption and list it for review instead of looking it up.
+
+For design from loads, use [preliminary-lv-distribution-design](gestimator://skills/in/preliminary-lv-distribution-design). For a site route, use [external-electrical-estimation](gestimator://skills/in/external-electrical-estimation). Carry the single-line diagram revision, board, circuit, phase and destination onto each measurement. Reconcile outgoing ways to the board schedule and fixture counts to the room schedule. A 20 m multicore cable is 20 cable metres. Three separate single-core runs along the same path are 60 conductor metres. Apply that multiplier only to items paid per conductor.
 
 ## 1. Establish the basis
 

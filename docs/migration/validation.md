@@ -2185,3 +2185,19 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   Vite retained its existing large-chunk warning.
 - The full Linux Chromium suite passed 115 tests, with the opt-in performance
   case skipped.
+
+## 2026-11-24 — India building and infrastructure estimation skills
+
+The IN catalogue exposes seven skills and the shared rate-analysis skill. New coverage includes roadworks, site water and drainage, external electrical takeoff and preliminary LV distribution. The updated building skills distinguish the adopted payment rules from the design basis. Standards registers identify the verified provisions and the decisions requiring local data.
+
+- Through the public MCP tools, imported DSR 2023 item 16.79 and DSR (E&M) 2025 item 8.7.4 into a disposable project. Entered a 100 × 5 × 0.20 m WMM layer and two rows of three luminaires as linked measurements. Recalculation returned 100 m³ and six fittings. The project summary equalled the sum of the measured items at their imported rates, ₹309,202.00, including after saving and reopening the project.
+- Local checks passed for all 248 Python tests, including skill discovery, resource links and compatibility. The frontend type/build check passed with the Vite chunk-size warning. The browser suite passed 115 tests and skipped the opt-in profiling test.
+- Changed-file quality, documentation navigation and diff whitespace checks passed. Project-specific utility approvals, actual photometry, soil and fault measurements, and adoption of local schedules remain inputs to individual estimates.
+
+## 2026-11-24 — Preliminary sizing and MCP reading cost
+
+Added bounded decision references to the IN feeder, road and water skills. Each can be read for one trade without opening an entire standards register. The worked choices are preliminary and retain their installation, material, authority and site assumptions.
+
+- A local MCP client read the skill entry and one relevant resource over HTTP for each task. With the o200k_base tokenizer the combined Markdown text measured 1342 tokens for the feeder, 803 for pressure water, 770 for foul sewer, 775 for storm drainage and 894 for access roads. These counts exclude catalogue discovery, tool schemas, transport envelopes and model output.
+- Independent arithmetic checks used the installed feeder shortlist. A 50 m single circuit selected 10 mm². Increasing only the route to 150 m selected 16 mm² on voltage drop. Returning to 50 m and changing to three grouped circuits selected 16 mm² on corrected ampacity. Capacity, drop and device operating-current checks used unrounded values.
+- Recomputed both pressure residual heads, six part-full gravity capacities and both road volumes. The full local Python suite passed (248 tests); the catalogue tests exercised MCP discovery and resource links. Changed-file quality, documentation navigation and whitespace checks passed.

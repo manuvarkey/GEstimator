@@ -20,16 +20,16 @@ DSR (E&M) 2025 item codes, units and inclusions come from the DSR (E&M) 2025 dat
 
 ## Reviewed, not cited
 
-SP 30:2023 (National Electrical Code), IS 732:2019 (wiring installations) and IS 3043:2026 (earthing) were available but are design and installation codes; the measurement rules here come from the CPWD specification. Use them for design checks where the project is not under CPWD specifications.
+SP 30:2023 (National Electrical Code), IS 732:2019 (wiring installations) and IS 3043:2026 (earthing) were available but are design and installation codes; the measurement rules here come from the CPWD specification. Apply the relevant design checks alongside the adopted payment specification, including on CPWD projects. See [LV design sources](gestimator://skills/in/preliminary-lv-distribution-design/references/standards.md).
 
-## Superseded
+## Energy-code basis
 
-The CPWD specification's lighting power tables (2.10.2, Tables 2.1 to 2.6) quote ECBC 2018. ECSBC 2024 replaces them.
+The CPWD specification's lighting power tables (2.10.2, Tables 2.1 to 2.6) quote ECBC 2018. Identify the applicable energy code, state adoption, occupancy and contract edition before choosing a table.
 
 ## Still to verify
 
 List these as review items in the draft. Do not look them up online during an estimate.
 
-- CPWD General Specifications Part II External 2023 and the other parts the DSR (E&M) lists, for external and plant work.
+- Additional external and plant clauses beyond the [checked external work provisions](gestimator://skills/in/external-electrical-estimation/references/standards.md).
 - ENS 2024 (the residential code the DSR (E&M) 2025 also cites), for residential projects that ECSBC does not cover.
 - ECSBC 2024 sets no interior luminaire efficacy; the LED efficacy band comes from the project specification.

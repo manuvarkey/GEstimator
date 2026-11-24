@@ -14,7 +14,15 @@ from modern.backend.service import Service
 from tests.test_mcp_server import MCPFixture
 
 GENERIC = ("generic/civil-takeoff", "generic/electrical-takeoff")
-IN = ("in/civil-measurement-estimation", "in/electrical-measurement-estimation", "in/preliminary-lighting-design")
+IN = (
+    "in/civil-measurement-estimation",
+    "in/electrical-measurement-estimation",
+    "in/external-electrical-estimation",
+    "in/preliminary-lighting-design",
+    "in/preliminary-lv-distribution-design",
+    "in/roadworks-estimation",
+    "in/site-water-drainage-estimation",
+)
 SHARED = ("shared/rate-analysis",)
 LINK = re.compile(r"gestimator://skills/[^\s)\]>`'\"]+")
 
@@ -53,14 +61,14 @@ class PackagedSkills(unittest.TestCase):
             self.assertEqual(resource["mimeType"], "text/markdown")
             self.assertTrue(20 <= len(resource["description"]) <= 400, resource["uri"])
             self.assertGreater(resource["size"], 0)
-        for key in IN[:2]:
+        for key in ("in/civil-measurement-estimation", "in/electrical-measurement-estimation"):
             text = catalog.read_resource(mcp_skills.SCHEME + key)["contents"][0]["text"]
             self.assertIn("## 3. Design inputs and checks", text)
             self.assertIn("Present, then apply on request", text)
 
-        example = catalog.read_resource(mcp_skills.SCHEME + IN[2] + "/references/worked-example.md")["contents"][0][
-            "text"
-        ]
+        example = catalog.read_resource(
+            mcp_skills.SCHEME + "in/preliminary-lighting-design/references/worked-example.md"
+        )["contents"][0]["text"]
         for text in ("## Draft measurement", "## Proposed schedule item matches", "8.7.4", "1.10.3", "1.55.3"):
             self.assertIn(text, example)
 

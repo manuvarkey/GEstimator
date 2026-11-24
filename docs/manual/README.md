@@ -240,11 +240,13 @@ The assistant reads database notes before choosing items, searches databases, im
 
 ### Ask for an estimate
 
-The bundled libraries cover civil and electrical takeoff. The shared rate-analysis skill is available with every library. Choose **IN** for Indian specifications, schedules of rates and preliminary lighting criteria. **Generic** uses the project’s own measurement rules and adopted schedule. The assistant reads the guide that fits the request before it measures and chooses items. To try the **IN** skillset, use a request like one of these:
+The bundled libraries cover civil and electrical takeoff. The shared rate-analysis skill is available with every library. Choose **IN** for Indian building and road takeoffs, site water and drainage, external electrical works, preliminary indoor lighting and low-voltage feeder sizing. For example, supply a campus road section and utility profile and ask for chainage-based measurements with shared excavation and reinstatement counted once. **Generic** uses the project’s own measurement rules and adopted schedule. The assistant reads the guide that fits the request before it measures and chooses items. To try the **IN** skillset, use a request like one of these:
 
 - "Using DSR 2023, take off the brickwork and plaster for the ground floor from plan A-101 and propose BOQ items. Show me the draft first."
 - "Count the light and fan points for the first floor from this layout and match them to DSR (E&M) 2025 items."
 - "There is no lighting layout yet. Prepare a preliminary lighting design for these offices and draft the electrical estimate."
+
+For preliminary feeder sizing, supply the load, installation method, route length, device data and voltage-drop budget. For a site pipe, identify pressure water, foul sewer or stormwater and give the pressure or invert levels. The assistant can read one sizing reference for the applicable case and reuse it across similar runs.
 
 The assistant first shows draft measurements and proposed items. Each line lists the location, dimensions or count, calculation, source and assumptions. It also flags missing inputs and items that need your decision. It writes to the project only when you ask it to apply the estimate. Lighting design results are marked provisional.
 

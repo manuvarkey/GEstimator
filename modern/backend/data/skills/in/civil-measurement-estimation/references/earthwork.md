@@ -4,7 +4,7 @@ description: Earthwork takeoff (IS 1200 Part 1) - excavation by authorised dimen
 
 # Earthwork
 
-Governing part: **IS 1200 (Part 1):1992 Earthwork, fourth revision** (reaffirmed). The available text is a two-column scan with poor OCR. The points below match its clause headings, but **the clause numbers and thresholds still need checking against the printed standard** before you cite them in a bill.
+Governing part: **IS 1200 (Part 1):1992 Earthwork, fourth revision** (reaffirmed). Clauses 4.1–4.2 address authorised excavation dimensions and the use of levels. Check the actual schedule item for its included lead, lift and unit.
 
 ## Inputs
 
@@ -15,10 +15,10 @@ Governing part: **IS 1200 (Part 1):1992 Earthwork, fourth revision** (reaffirmed
 
 ## Measurement
 
-- Excavation is measured in **cum** to the authorised dimensions. Add working space and side slopes only where they are authorised or specified (Part 1, 4.2.5.1, to verify).
+- Excavation is measured in **cum** to the authorised dimensions. For work listed in 4.2.5, measure the lesser of actual and authorised excavation, including the applicable working space under 4.2.5.1. Identify specified battering and benching separately under 4.2.6.
 - Take ground levels before work begins where the ground is not level. Use the levels for the volume.
-- Lift is measured from ground level. Excavation up to 1.5 m deep is included in the item. Extra lift is measured in units of 1.5 m or part of it (Part 1, 5.2, to verify).
-- Lead is measured by the shortest practical route (Part 1, 5.1, to verify).
+- Lift is measured from ground level. Excavation up to 1.5 m deep is included in the item. Extra lift is measured in units of 1.5 m or part of it for soil excavation and deposit at ground level (Part 1, 5.2). Check the exception for lift inherent in the lead.
+- Lead is measured by the shortest practical route (Part 1, 5.1).
 - Hard rock may be measured in stacks with a pre-agreed deduction for voids, where the specification allows.
 - Filling is measured in cum as consolidated, with a deduction for voids where specified.
 
