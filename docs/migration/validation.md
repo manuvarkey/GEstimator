@@ -2007,3 +2007,91 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance scenario was skipped. Type checking, the production build,
   changed-file quality, documentation and diff checks passed. Vite retained
   its existing chunk-size warning.
+
+## Schedule wrapping and MCP estimating feedback (2026-11-24)
+
+- Reproduced the Schedule issue with the supplied `6.eproj` in the revision 6
+  folder. In Chromium, the demolition description cell initially measured
+  309 px. Returning from another view reduced it to 289 px, with the first and
+  last lines extending beyond the cell. Tabulator sized the attached child
+  before restoring the tree indent. Remeasuring after that layout step retained
+  309 px across Analysis, Resources and Measurements. A Chromium regression uses
+  a generated estimate. It fails against the prior checkout with a 19 px loss
+  and passes with the sizing fix.
+  A separate WebKitGTK 2.52.6 harness used the real Python backend and the
+  supplied project on an isolated X11 display. The cell stayed at 316 px
+  with 5 px above and 6 px below the text in both themes across the three
+  view changes. The X11 harness used software rendering after an EGL warning.
+- **Revision 4 (lighting).** One heading held a multi-output sheet with four
+  room/area records. The project retained 19 library-coded resources. The
+  transcript shows an insertion-reference retry after the agent used
+  `$ref:h_lighting`. MCP now accepts both `$name` and `$ref:name`.
+- **Revision 5 (IFC).** In the saved flat list, 16 civil sheets precede the first
+  heading. Eleven electrical sheets sit below the electrical heading, and the
+  final civil heading is empty. The schedule has 11 work categories plus
+  SUB ANALYSIS. Some civil records have element breakdowns, but flooring and
+  several electrical counts are single aggregate rows. The supplied IFC has
+  Ground Floor and Terrace storeys and spatial containment relationships, with
+  no IFCSPACE or IFCELEMENTQUANTITY entities. The takeoff can retain storey and
+  element evidence. A room breakdown requires an identifiable plan or a stated
+  assumption. MCP now appends sheets to an explicit heading and reports each
+  sheet's category in paged reads. The skills guide the agent toward separate
+  records at the finest location the source supports.
+- **Revision 6 (demolition).** The saved analysis uses 11 custom resources. The
+  transcript shows that Antigravity displayed success summaries without their
+  data, then used shell-driven requests and source inspection. The project does
+  split the measured 2,000 m² by floor. Five in-process previews of 11 edits to
+  the saved analysis took roughly 8 ms at the median. Ten equivalent requests
+  over authenticated loopback HTTP had a median round trip of 8.70 ms. A first DSR2023 schedule
+  search took about 0.8–0.95 s, with subsequent searches around 5–6 ms. The
+  transcript has no server-side timings for the original session, so the
+  end-to-end time cannot be apportioned. Successful tool text now contains the
+  data, and the shared rate skill guides agents through relevant libraries and
+  rate reuse. The HTTP regression finds bundled civil demolition items, imports
+  one, adapts a copy and reuses a bundled excavator rate.
+- Search evaluation over 60 existing bundled-database queries retained recall
+  at five for both sources. With the dictionary active, mean reciprocal rank
+  at five rose from 0.6144 to 0.6161 for DSR2023 and from 0.7500 to 0.7667
+  for DSREM2025. Searching `demolishing rcc` now returns dotted R.C.C.
+  items 15.3 and 15.58 first and second. Analysis preview outputs matched for
+  11-edit and 100-edit runs. No financial engine calculation changed.
+- Verification passed for all 248 Python tests and 115 Chromium scenarios.
+  The opt-in browser performance profile was skipped. Type checking and the
+  production build passed with the existing Vite chunk-size warning. The
+  changed-file quality, documentation and diff checks passed. The read/write
+  tool discovery response remains within 16 KiB at 16,380 bytes.
+  The Antigravity sessions were reviewed from their saved transcripts. The
+  revised transport was tested over HTTP without rerunning that client.
+
+## Folder-based estimation skill libraries (2026-11-24)
+
+- Generic, IN and Shared are folder-based packages with versioned
+  `library.json` manifests. Program Settings uses discovered library IDs.
+  The MCP ribbon opens a persistent per-user folder and refreshes the catalog.
+  The settings dialog displays the active library and scan diagnostics.
+- The backend publishes the selected library and Shared as one read-only
+  snapshot. Library-qualified URIs distinguish same-named skills. Refresh
+  applies to new HTTP and tool requests on a running listener. A missing
+  selection serves Generic until the requested library returns or the user
+  saves another one.
+- All 248 Python tests passed. Skill tests covered manifest validation,
+  duplicate and reserved IDs, symlink and traversal rejection, references,
+  dynamic discovery and removal, fallback and restoration, and matching
+  results through MCP tools and resource calls. The focused browser workflow
+  covered opening the user directory through the desktop bridge, selecting IN,
+  refreshing a user library, reporting a malformed manifest, restoring the
+  preference after reload, and falling back to Generic after removing it.
+- The production build and changed-file quality checks passed. Vite retained
+  the existing large-chunk warning. Documentation and diff checks passed.
+  A generated copy of the HTML manual included the new user-library workflow.
+- The rebuilt Linux sidecar ran outside the source tree with isolated user
+  data. It served bundled manifests and a qualified IN reference. The
+  packaged workflow discovered a user library from disk, switched while
+  the listener was running, and served independently qualified user and
+  shared copies of the same skill ID before clean shutdown.
+- The full Chromium run finished with 114 passes, one opt-in performance skip
+  and one timeout in the existing Schedule category-insertion keyboard-focus
+  scenario. After isolating the temporary user skill directory to the new
+  workflow, that focus scenario passed five consecutive targeted reruns.
+  The final focused run also passed the user-library workflow and ribbon
+  layout checks from 700 to 1600 px and with enlarged text.

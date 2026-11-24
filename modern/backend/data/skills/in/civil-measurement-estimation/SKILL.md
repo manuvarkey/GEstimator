@@ -34,11 +34,11 @@ Work drawing by drawing, location by location (block, floor, grid, room). For ea
 
 Work-category rules and their checks are in the references:
 
-- [Concrete, formwork and reinforcement](gestimator://skills/civil-measurement-estimation/references/concrete.md)
-- [Masonry](gestimator://skills/civil-measurement-estimation/references/masonry.md)
-- [Plaster, pointing and finishes](gestimator://skills/civil-measurement-estimation/references/finishes.md)
-- [Earthwork](gestimator://skills/civil-measurement-estimation/references/earthwork.md)
-- [Standards register and verification status](gestimator://skills/civil-measurement-estimation/references/standards.md)
+- [Concrete, formwork and reinforcement](gestimator://skills/in/civil-measurement-estimation/references/concrete.md)
+- [Masonry](gestimator://skills/in/civil-measurement-estimation/references/masonry.md)
+- [Plaster, pointing and finishes](gestimator://skills/in/civil-measurement-estimation/references/finishes.md)
+- [Earthwork](gestimator://skills/in/civil-measurement-estimation/references/earthwork.md)
+- [Standards register and verification status](gestimator://skills/in/civil-measurement-estimation/references/standards.md)
 
 ## 3. Design inputs and checks
 
@@ -76,6 +76,8 @@ Record every line with these fields:
 | Source | Drawing number and revision, schedule row, model element ID or user statement |
 | Assumptions | Any value not taken from a source, marked provisional |
 
+Use separate records for each identifiable storey, room, grid, element or route. For IFC, check model units and storey containment, count placed instances and record element IDs or identifiable ranges. If the source lacks that detail, record the finest supported location and mark each assumed quantity with its basis. Verify that openings and junctions are accounted for once.
+
 The source field is independent of how the quantity was obtained. A manual takeoff, a schedule row and a model export all enter the same line format. In the `_1_NLBH` template each record is No, L, B, H. Its total is the product of the non-empty fields. Enter a deduction as a record with a negative No.
 
 ## 5. Match schedule items
@@ -92,7 +94,7 @@ Present the draft as a table: measurement lines grouped by proposed item, totals
 Write only when the user asks you to apply the estimate:
 
 - `import_items` to bring the matched items into the project (it keeps their ancestors and returns a `code_map`).
-- `get_measurements` lists existing measurement categories as rows of type `Heading`. Group sheets by work package, phase or location. Reuse a suitable heading or use `edit_measurements` with `{"action":"create","description":"Ground-floor concrete","ref":"ground-floor"}` to create one. Set `after` on the first sheet to the heading ID or `$ground-floor` in the same call. For each additional sheet, use the preceding sheet's ID or ref as `after` to preserve order.
+- `get_measurements` lists existing measurement categories as rows of type `Heading`. Group sheets by work package, phase or location. Reuse a suitable heading or use `edit_measurements` with `{"action":"create","description":"Ground-floor concrete","ref":"ground-floor"}` to create one. Set `category` on each sheet to the heading ID or the same-call reference (for example `$ground-floor` or `$lighting`). Verify each sheet's `category_id` with `get_measurements`.
 - Use `get_measurements section=templates` to check editable columns and outputs, then `edit_measurements` to create and link the sheets and fill their records. For related quantities measured in the same rows, use `_2_LLLLL` (L1–L5) or `_3_NNNNNNNN` (N1–N8), linking each column to its schedule code in column order. Use `_1_NLBH` when a quantity needs a product of dimensions, and use the appropriate specialised template for reinforcement and other template-specific calculations.
 - `recalculate what=quantities` with an explicit rounding choice.
 - `edit_analysis` only when the user asks for a rate analysis change.

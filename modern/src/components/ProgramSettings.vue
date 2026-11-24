@@ -11,9 +11,10 @@ import {
   shippedProgramSettings,
   type ProgramSettings,
 } from "../programSettings";
-import { applyMCPEnabled } from "../mcp";
+import { applyMCPPreferences } from "../mcp";
 import { appearance, defaultAppearance } from "../appearance";
 import { request } from "../backend";
+import { loadSkillLibraries, skillLibraries } from "../skillLibraries";
 const visible = defineModel<boolean>({ required: true });
 const draft = ref<ProgramSettings>();
 const appearanceDraft = ref({ ...appearance.value });
@@ -75,9 +76,13 @@ function navigate(event: KeyboardEvent, index: number) {
 onMounted(async () => {
   try {
     await initializeProgramSettings();
+    const catalog = await loadSkillLibraries();
     draft.value = programSettings.value
       ? JSON.parse(JSON.stringify(programSettings.value))
       : await shippedProgramSettings();
+    if (draft.value && !catalog.libraries.some((library) => library.id === draft.value?.estimation_skill_library)) {
+      draft.value.estimation_skill_library = catalog.active_library;
+    }
   } catch (failure) {
     error.value = String(failure);
   }
@@ -100,7 +105,7 @@ async function save() {
   try {
     moneyFormatter(draft.value);
     await saveProgramSettings(draft.value, appearanceDraft.value);
-    await applyMCPEnabled(draft.value.mcp_enabled);
+    await applyMCPPreferences(draft.value);
     visible.value = false;
   } catch (failure) {
     error.value = String(failure);
@@ -206,6 +211,20 @@ async function reset() {
           Off by default. When on, the MCP tab lets you start a local server (127.0.0.1 only, with a connection token)
           that AI assistants on this computer can use to read and, if you allow it, edit the open project. Turning this
           off stops a running server.
+        </p>
+        <label class="field">
+          Estimation skillset
+          <select v-model="draft.estimation_skill_library" :disabled="busy" aria-describedby="estimation-skillset-hint">
+            <option v-for="library in skillLibraries?.libraries" :key="library.id" :value="library.id">
+              {{ library.name }}
+            </option>
+          </select>
+        </label>
+        <p id="estimation-skillset-hint" class="field-hint">
+          {{ skillLibraries?.libraries.find((library) => library.id === draft?.estimation_skill_library)?.description }}
+        </p>
+        <p v-if="skillLibraries && skillLibraries.active_library !== skillLibraries.requested_library" role="status">
+          Estimation skill library “{{ skillLibraries.requested_library }}” is unavailable. Generic is active.
         </p>
         <h3>Export options</h3>
         <label class="library-remember"

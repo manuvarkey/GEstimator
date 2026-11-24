@@ -1,33 +1,41 @@
 """Code-addressed MCP intents over the application's existing editors."""
 
 import copy
+import re
 from decimal import Decimal
 from pathlib import Path
-import re
 
 from estimator import misc
 from estimator.data.measurement import MeasurementItemCustom
-from . import metadata
-from .mcp_operations import ToolError, OPERATIONS, validate, is_preview
-from .numbers import decimal
+
+from . import mcp_skills, metadata
+from .mcp_operations import OPERATIONS, ToolError, is_preview, validate
 from .mcp_writes import Writes
+from .numbers import decimal
 
-
-READ_NOTES = ("This source has database notes. Read describe_source (overview) and describe_source "
-              "section=category:<name> for each category you take items from before choosing items: "
-              "they explain what the items include and how to pick the right one.")
-START_HERE = ("For an estimate: 1. Read the skill for the work (describe_source section=skill:<id>, see skills) and the references it links. "
-              "2. Read describe_source overview and the category notes of each category before choosing items from it. "
-              "3. Record quantities as GEstimator measurements (dimensions, deductions, location, source) linked to the items; "
-              "do not compute totals elsewhere or keep the estimate in a separate spreadsheet. The saved GEstimator project is the deliverable "
-              "(project save_copy for a new project); make a workbook only when asked, with project export_xlsx, and do not edit it. "
-              "4. Present draft measurements and item matches for review before writing.")
+READ_NOTES = (
+    "This source has database notes. Read describe_source (overview) and describe_source "
+    "section=category:<name> for each category you take items from before choosing items: "
+    "they explain what the items include and how to pick the right one."
+)
+START_HERE = (
+    "1. Read the relevant skill and references with describe_source. "
+    "2. Check available_sources, read source and category notes, and search for reusable items or resources before pricing custom work. "
+    "3. Plan measurement headings by work package, phase or location. Use category=heading ID or $name when creating sheets. "
+    "Record dimensions, deductions and source by storey, room, grid, element or run wherever the evidence allows. "
+    "4. Present draft measurements and item matches for review. Link sheets, recalculate quantities, verify and save the GEstimator project. "
+    "Export a workbook when requested."
+)
 
 
 def item_rows(db, kind):
     table = db.ResourceTable if kind == "resource" else db.ScheduleTable
     category = db.ResourceCategoryTable if kind == "resource" else db.ScheduleCategoryTable
-    rows = list(table.select(table, category).join(category).order_by(category.order, table.order, *([] if kind == "resource" else [table.suborder]), table.id))
+    rows = list(
+        table.select(table, category)
+        .join(category)
+        .order_by(category.order, table.order, *([] if kind == "resource" else [table.suborder]), table.id)
+    )
     if kind == "schedule":
         by_id = {r.id: r for r in rows}
         for row in rows:
@@ -44,15 +52,21 @@ def heading_summaries(db, items):
     600 characters (where similar headings usually differ); get_items returns
     the full text."""
     from .search import heading_codes
-    chains = {item["parent_code"]: [item["parent_code"], *heading_codes(item["parent_code"])]
-              for item in items if item.get("parent_code")}
+
+    chains = {
+        item["parent_code"]: [item["parent_code"], *heading_codes(item["parent_code"])]
+        for item in items
+        if item.get("parent_code")
+    }
     codes = list(dict.fromkeys(code for chain in chains.values() for code in chain))
     if not codes:
         return {}
     table = db.ScheduleTable
     texts = {}
     for start in range(0, len(codes), 500):
-        for row in table.select(table.code, table.description, table.rate).where(table.code.in_(codes[start:start + 500])):
+        for row in table.select(table.code, table.description, table.rate).where(
+            table.code.in_(codes[start : start + 500])
+        ):
             if not row.rate:
                 texts[row.code] = " ".join((row.description or "").split())
     result = {}
@@ -66,7 +80,12 @@ def heading_summaries(db, items):
 
 def page(items, args):
     offset, limit = args.get("offset", 0), args.get("limit", 100)
-    return dict(items=items[offset:offset + limit], total=len(items), offset=offset, next_offset=offset + limit if offset + limit < len(items) else None)
+    return dict(
+        items=items[offset : offset + limit],
+        total=len(items),
+        offset=offset,
+        next_offset=offset + limit if offset + limit < len(items) else None,
+    )
 
 
 def natural(code):
@@ -80,7 +99,12 @@ def full_row(row, kind, enrichment=None, compact=False):
     else:
         data["description"] = row.description or ""
     if kind == "schedule":
-        data.update(parent_code=row.parent.code if row.parent_id else None, qty=str(row.qty or 0), remarks=row.remarks or "", colour=row.colour)
+        data.update(
+            parent_code=row.parent.code if row.parent_id else None,
+            qty=str(row.qty or 0),
+            remarks=row.remarks or "",
+            colour=row.colour,
+        )
     else:
         data.update(vat=str(row.vat or 0), discount=str(row.discount or 0), reference=row.reference or "")
     return data
@@ -108,6 +132,7 @@ class Workspace(Writes):
             return editor
         if not hasattr(service, "_mcp_catalog"):
             from .project import ProjectEditor
+
             service._mcp_catalog = ProjectEditor(service)
         return service._mcp_catalog
 
@@ -133,7 +158,11 @@ class Workspace(Writes):
         if not codes:
             raise ToolError("invalid_arguments", "Select at least one item", "codes")
         if kind == "category":
-            table = self.service.db.ResourceCategoryTable if category_kind == "resource" else self.service.db.ScheduleCategoryTable
+            table = (
+                self.service.db.ResourceCategoryTable
+                if category_kind == "resource"
+                else self.service.db.ScheduleCategoryTable
+            )
             result = []
             for code in codes:
                 row = table.get_or_none(table.description == code)
@@ -161,44 +190,100 @@ class Workspace(Writes):
         return self.editor.libraries[identity][0] if identity in self.editor.libraries else None
 
     def skill(self, section):
-        """describe_source section=skills | skill:<id>[/<path>] | gestimator://skills/...:
-        packaged estimation skills, readable without a project or source."""
-        from . import mcp_skills
-        skills = mcp_skills.catalog()
+        """Read the current skill catalog or a qualified document without a project."""
+        catalog = self.service.mcp.skill_libraries.active
+        skills = catalog.skills()
         if section == "skills":
-            return dict(skills=skills, hint="Read the skill whose description fits the work with section=skill:<skill>, then its references with section=skill:<skill>/<path>.")
+            return dict(
+                library=catalog.library_id,
+                skills=skills,
+                hint="Read the skill whose description fits the work using its URI as section, then follow its references.",
+            )
         uri = section if section.startswith(mcp_skills.SCHEME) else mcp_skills.SCHEME + section.partition(":")[2]
         try:
-            text = mcp_skills.read_resource(uri)["contents"][0]["text"]
+            text = catalog.read_resource(uri)["contents"][0]["text"]
         except mcp_skills.ResourceNotFound:
-            raise ToolError("not_found", "Unknown skill or skill file", "section", ["skill:" + skill["skill"] for skill in skills],
-                            hint="Use section=skills to list skills and their reference paths.") from None
+            raise ToolError(
+                "not_found",
+                "Unknown skill or skill file",
+                "section",
+                [skill["uri"] for skill in skills],
+                hint="Use section=skills to list skills and their reference paths.",
+            ) from None
         result = dict(uri=uri, text=text)
         entry = next((skill for skill in skills if skill["uri"] == uri), None)
         if entry:
-            result["references"] = [dict(section="skill:" + entry["skill"] + "/" + ref["path"], title=ref["title"], description=ref["description"]) for ref in entry["references"]]
+            result["references"] = [
+                dict(section=ref["uri"], title=ref["title"], description=ref["description"])
+                for ref in entry["references"]
+            ]
         return result
 
     def get_state(self, args, warnings):
-        from .program_settings import library_catalog, defaults
-        from . import mcp_skills
+        from .program_settings import defaults, library_catalog
+
         service = self.service
         sources = []
         for identity, (name, db) in self.editor.libraries.items():
             counts = dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count())
             enrichment = metadata.presentation(db)
             notes, category_notes = metadata.notes(db)
-            sources.append(dict(id=identity, name=name, counts=counts,
-                summary=enrichment["summary"] if enrichment and enrichment["summary"] else f"{counts['schedule']} schedule items; {counts['resource']} resources",
-                **({"metadata": notes[:600] + ("…" if len(notes) > 600 else ""), "read_first": READ_NOTES} if notes or category_notes else {})))
-        skills = [dict(skill=skill["skill"], description=skill["description"], read=f"describe_source section=skill:{skill['skill']}") for skill in mcp_skills.catalog()]
+            sources.append(
+                dict(
+                    id=identity,
+                    name=name,
+                    counts=counts,
+                    summary=enrichment["summary"]
+                    if enrichment and enrichment["summary"]
+                    else f"{counts['schedule']} schedule items; {counts['resource']} resources",
+                    **(
+                        {"metadata": notes[:600] + ("…" if len(notes) > 600 else ""), "read_first": READ_NOTES}
+                        if notes or category_notes
+                        else {}
+                    ),
+                )
+            )
+        catalog = service.mcp.skill_libraries.active
+        skills = [
+            dict(
+                skill=skill["skill"],
+                library=skill["library"],
+                description=skill["description"],
+                read=f"describe_source section={skill['uri']}",
+            )
+            for skill in catalog.skills()
+        ]
         program_settings = defaults()
         program_settings["mcp_enabled"] = service.mcp.enabled
-        state = dict(start_here=START_HERE, skills=skills, project_open=service.db is not None, path=service.source_path, analysis_dirty=service.dirty, records_dirty=service.records_dirty, project_dirty=service.workspace_dirty, program_settings=program_settings, sources=sources, available_sources=library_catalog())
+        program_settings["estimation_skill_library"] = catalog.library_id
+        state = dict(
+            start_here=START_HERE,
+            skills=skills,
+            project_open=service.db is not None,
+            path=service.source_path,
+            analysis_dirty=service.dirty,
+            records_dirty=service.records_dirty,
+            project_dirty=service.workspace_dirty,
+            program_settings=program_settings,
+            sources=sources,
+            available_sources=library_catalog(),
+        )
         if service.db:
             db = service.db
-            state.update(settings={k: v for k, v in db.get_project_settings().items() if k not in ("project_measurement", "project_metadata")},
-                         metadata=db.get_project_settings().get("project_metadata") or "", counts=dict(schedule=db.ScheduleTable.select().count(), resource=db.ResourceTable.select().count(), measurements=len(db.get_measurement().items)), enrichment=bool(metadata.read(db)))
+            state.update(
+                settings={
+                    k: v
+                    for k, v in db.get_project_settings().items()
+                    if k not in ("project_measurement", "project_metadata")
+                },
+                metadata=db.get_project_settings().get("project_metadata") or "",
+                counts=dict(
+                    schedule=db.ScheduleTable.select().count(),
+                    resource=db.ResourceTable.select().count(),
+                    measurements=len(db.get_measurement().items),
+                ),
+                enrichment=bool(metadata.read(db)),
+            )
         return state
 
     def describe_source(self, args, warnings):
@@ -211,10 +296,24 @@ class Workspace(Writes):
             self.notes_read().add((self.source_name(identity), section))
         if section == "schema":
             from .mcp_query import SCHEMA
-            return dict(views=SCHEMA, draft_policy="Stored working-project data; excludes unsaved desktop analysis and measurement records drafts.", numeric_policy="Decimal values are exact text; CAST(column AS REAL) for numeric SQL comparisons and aggregations. get_summary uses original decimal calculations.")
+
+            return dict(
+                views=SCHEMA,
+                draft_policy="Stored working-project data; excludes unsaved desktop analysis and measurement records drafts.",
+                numeric_policy="Decimal values are exact text; CAST(column AS REAL) for numeric SQL comparisons and aggregations. get_summary uses original decimal calculations.",
+            )
         if section == "dictionary":
             from .dictionary import entries
-            return dict(entries=entries("\n".join(row.description or "" for kind in ("schedule", "resource") for row in item_rows(db, kind)), enrichment, self.user_dictionary()))
+
+            return dict(
+                entries=entries(
+                    "\n".join(
+                        row.description or "" for kind in ("schedule", "resource") for row in item_rows(db, kind)
+                    ),
+                    enrichment,
+                    self.user_dictionary(),
+                )
+            )
         groups = {kind: metadata.categories(db, kind, enrichment) for kind in ("schedule", "resource")}
         general, category_notes = metadata.notes(db)
         if section == "categories":
@@ -229,26 +328,64 @@ class Workspace(Writes):
                 result["notes"] = category_notes[name]
             return result
         if section != "overview":
-            raise ToolError("invalid_arguments", "Unknown source section", "section", ["overview", "categories", "category:<name>", "dictionary", "schema", "skills", "skill:<id>"])
+            raise ToolError(
+                "invalid_arguments",
+                "Unknown source section",
+                "section",
+                [
+                    "overview",
+                    "categories",
+                    "category:<name>",
+                    "dictionary",
+                    "schema",
+                    "skills",
+                    "skill:<library>/<skill>",
+                ],
+            )
         settings = db.get_project_settings()
         # Author-maintained notes (Markdown): scope, rate basis, revision, conventions.
         # Notes first: clients that truncate a long response keep them.
-        result = dict(metadata=general, settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
-                      categories={kind: [dict(name=c["name"], count=c["count"], **({"notes": True} if c["name"] in category_notes else {})) for c in rows] for kind, rows in groups.items()})
+        result = dict(
+            metadata=general,
+            settings={k: v for k, v in settings.items() if k not in ("project_measurement", "project_metadata")},
+            categories={
+                kind: [
+                    dict(name=c["name"], count=c["count"], **({"notes": True} if c["name"] in category_notes else {}))
+                    for c in rows
+                ]
+                for kind, rows in groups.items()
+            },
+        )
         if category_notes:
-            result["category_notes"] = "Each category marked notes=true has its own notes: read describe_source section=category:<name> before choosing items from it."
+            result["category_notes"] = (
+                "Each category marked notes=true has its own notes: read describe_source section=category:<name> before choosing items from it."
+            )
         if enrichment:
-            result.update(enrichment=enrichment.get("database", {}), provenance=enrichment.get("provenance", {}), ai_generated=True)
+            result.update(
+                enrichment=enrichment.get("database", {}),
+                provenance=enrichment.get("provenance", {}),
+                ai_generated=True,
+            )
         return result
 
     def user_dictionary(self):
         from .program_settings import library_directory
+
         return library_directory().parent / "dictionary.user.json"
 
     def search_items(self, args, warnings):
         from .search import search
+
         _, db = self.source(args.get("source", "project"))
-        result = search(self.service, db, args["kind"], args["query"], args.get("limit", 20), args.get("category"), self.user_dictionary())
+        result = search(
+            self.service,
+            db,
+            args["kind"],
+            args["query"],
+            args.get("limit", 20),
+            args.get("category"),
+            self.user_dictionary(),
+        )
         if args["kind"] == "schedule":
             headings = heading_summaries(db, result["items"])
             if headings:
@@ -281,16 +418,21 @@ class Workspace(Writes):
             raise ToolError("not_found", "Category was not found", "under")
         enrichment = metadata.read(db)
         result = []
+
         def collect(values, depth):
             for row in values:
-                result.append(dict(full_row(row, kind, enrichment, args.get("fields", "compact") == "compact"), depth=depth))
+                result.append(
+                    dict(full_row(row, kind, enrichment, args.get("fields", "compact") == "compact"), depth=depth)
+                )
                 if kind == "schedule" and depth < args.get("depth", 1):
                     collect(children.get(row.id, []), depth + 1)
+
         collect(roots, 1)
         return page(result, args)
 
     def get_items(self, args, warnings):
         from .clipboard import schedule_data
+
         _, db = self.source(args.get("source", "project"))
         kind, include = args["kind"], args.get("include", [])
         result = []
@@ -307,7 +449,9 @@ class Workspace(Writes):
                 if "parent" in include:
                     data["parent"] = full_row(row.parent, kind) if row.parent_id else None
                 if "children" in include:
-                    data["children"] = [full_row(child, kind) for child in row.children.order_by(db.ScheduleTable.suborder)]
+                    data["children"] = [
+                        full_row(child, kind) for child in row.children.order_by(db.ScheduleTable.suborder)
+                    ]
             if "usage" in include or "dependents" in include:
                 # Use an isolated editor view so source queries never switch the
                 # desktop selection or active analysis draft.
@@ -315,7 +459,11 @@ class Workspace(Writes):
                 view.owner = copy.copy(self.service)
                 view.owner.db = db
                 if "usage" in include:
-                    data["usage"] = [r for r in view.resource_usage(dict(query=code))["rows"] if r["code"] == code] if kind == "resource" else []
+                    data["usage"] = (
+                        [r for r in view.resource_usage(dict(query=code))["rows"] if r["code"] == code]
+                        if kind == "resource"
+                        else []
+                    )
                 if "dependents" in include:
                     data["dependents"] = view.resource_dependents(dict(code=code))["rows"]
             result.append(data)
@@ -323,13 +471,28 @@ class Workspace(Writes):
 
     def get_measurements(self, args, warnings):
         if args.get("section") == "templates":
-            from .measurement_templates import catalog
-            from .measurement_templates import column_title
+            from .measurement_templates import catalog, column_title
+
             result = []
             for entry in catalog():
                 item = MeasurementItemCustom(plugin=entry["code"])
-                columns = [dict(field="c" + str(i), title=column_title(item, i), editable=kind != misc.MEAS_CUST, numeric=kind in (misc.MEAS_L, misc.MEAS_NO)) for i, kind in enumerate(item.columntypes)]
-                result.append(dict(entry, columns=columns, links=[dict(code="", remark="") for _ in item.itemnos], user_data=[str(v) for v in item.user_data]))
+                columns = [
+                    dict(
+                        field="c" + str(i),
+                        title=column_title(item, i),
+                        editable=kind != misc.MEAS_CUST,
+                        numeric=kind in (misc.MEAS_L, misc.MEAS_NO),
+                    )
+                    for i, kind in enumerate(item.columntypes)
+                ]
+                result.append(
+                    dict(
+                        entry,
+                        columns=columns,
+                        links=[dict(code="", remark="") for _ in item.itemnos],
+                        user_data=[str(v) for v in item.user_data],
+                    )
+                )
             return dict(templates=result)
         self.require_project()
         editor = self.editor
@@ -339,20 +502,39 @@ class Workspace(Writes):
             editor.record_ids[editor.measurement_draft.identity] = editor.measurement_draft.saved_ids[:]
             editor.measurement_draft = None
         if "id" in args:
-            data = editor.measurement_state(dict(id=args["id"], record_offset=args.get("record_offset", 0), record_limit=args.get("limit", 100)), detail_only=True)
+            data = editor.measurement_state(
+                dict(id=args["id"], record_offset=args.get("record_offset", 0), record_limit=args.get("limit", 100)),
+                detail_only=True,
+            )
             if data["detail"] is None:
                 raise ToolError("not_found", "Measurement item was not found or is a heading", "id")
             detail = data["detail"]
-            detail["next_offset"] = detail["offset"] + len(detail["rows"]) if detail["offset"] + len(detail["rows"]) < detail["total_records"] else None
+            detail["next_offset"] = (
+                detail["offset"] + len(detail["rows"])
+                if detail["offset"] + len(detail["rows"]) < detail["total_records"]
+                else None
+            )
             return detail
         data = editor.measurement_state({})
-        rows = [dict(row, description=row["description"][:60]) for row in data["rows"]]
+        rows = []
+        category_id = None
+        for row in data["rows"]:
+            heading = row["type"] == "Heading"
+            if heading:
+                category_id = row["id"]
+            rows.append(dict(row, description=row["description"][:60], category_id=None if heading else category_id))
         return dict(page(rows, args), caption=data["caption"])
 
     def get_summary(self, args, warnings):
         self.require_project()
         db = self.service.db
-        total, groups, checks = Decimal(0), {}, dict(zero_quantities=[], unlinked_items=[], orphan_children=[], unlinked_measurements=[], rate_differences=[])
+        total, groups, checks = (
+            Decimal(0),
+            {},
+            dict(
+                zero_quantities=[], unlinked_items=[], orphan_children=[], unlinked_measurements=[], rate_differences=[]
+            ),
+        )
         linked = {key for item in db.get_measurement().items for key in item.itemnos if key is not None}
         ids = {row.id for row in db.ScheduleTable.select()}
         for row in item_rows(db, "schedule"):
@@ -361,6 +543,7 @@ class Workspace(Writes):
             if not row.unit or row.category.description == misc.SUB_ANA_TITLE:
                 continue
             from estimator.data.schedule import Currency
+
             amount = Currency(Decimal(row.rate or 0) * Decimal(row.qty or 0))
             total += amount
             category = row.category.description or ""
@@ -374,15 +557,26 @@ class Workspace(Writes):
                 model.evaluate_results()
                 calculated = model.get_ana_rate()
                 if calculated is not None and Currency(calculated) != Currency(row.rate or 0):
-                    checks["rate_differences"].append(dict(code=row.code, stored=str(row.rate or 0), recalculated=str(Currency(calculated))))
+                    checks["rate_differences"].append(
+                        dict(code=row.code, stored=str(row.rate or 0), recalculated=str(Currency(calculated)))
+                    )
         for identity, item in zip(self.editor.ids, db.get_measurement().items):
-            if isinstance(item, MeasurementItemCustom) and (not any(key in ids for key in item.itemnos) or any(key is not None and key not in ids for key in item.itemnos)):
+            if isinstance(item, MeasurementItemCustom) and (
+                not any(key in ids for key in item.itemnos)
+                or any(key is not None and key not in ids for key in item.itemnos)
+            ):
                 checks["unlinked_measurements"].append(identity)
         if args.get("fields", "compact") == "compact":
             checks = {key: dict(count=len(values), items=values[:20]) for key, values in checks.items()}
-        return dict(grand_total=str(total), categories=[dict(category=k, total=str(v)) for k, v in groups.items()], checks=checks, analysis_dirty=self.service.dirty)
+        return dict(
+            grand_total=str(total),
+            categories=[dict(category=k, total=str(v)) for k, v in groups.items()],
+            checks=checks,
+            analysis_dirty=self.service.dirty,
+        )
 
     def query(self, args, warnings):
         from .mcp_query import query
+
         _, db = self.source(args.get("source", "project"))
         return query(self.service, db, args["sql"], args.get("params", []), args.get("limit", 500))

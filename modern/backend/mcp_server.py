@@ -12,29 +12,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock, Thread
 
 from .mcp_operations import OPERATIONS, ToolError, execute
-from .mcp_skills import ResourceNotFound, list_resources, read_resource
+from .mcp_skills import ResourceNotFound, SkillLibraries
 
 VERSION = "2025-11-25"
 log = logging.getLogger("gestimator.actions")
 VERSIONS = (VERSION, "2025-06-18", "2025-03-26")
-INSTRUCTIONS = """GEstimator estimate workspace. Item codes belong to a source: project, attached ID, bundled:<file>,
-or .eproj path. Naming a source attaches a snapshot.
-1. Start with get_state. Read the estimating skill (describe_source section=skill:<id> or gestimator://skills/<id>)
-and its references. Read describe_source and section=category:<name> for each category before choosing items.
-2. search_items matches heading specification plus variant. Select priced children.
-browse under=<parent_code> lists all variants. import_items includes ancestors. upsert_items creates/edits items.
-Placement defaults to natural code order.
-3. Organise measurements by work package, phase or location. get_measurements lists category headings.
-In edit_measurements, use action=create with description/ref and omit template for a heading. Place sheets with after
-using the heading ID or a same-call $ref. Chain sheet refs for order.
-4. get_measurements section=templates shows columns and outputs. Combine related quantities measured together
-on a multi-output sheet with links in column order. Key records by column title or cN.
-recalculate what=quantities pushes totals.
-5. batch groups writes into one undo step. Optional if_revision rejects stale writes. Responses return revision.
-Save/export explicitly.
-6. Verify with get_summary. query is a read-only fallback over documented views.
-7. Fix the reported error field using allowed values and hints.
-Analysis ops use r0/r0:0 positional IDs or ref labels. Stored reads exclude unsaved desktop drafts and edits protect them.
+INSTRUCTIONS = """GEstimator estimate workspace.
+1. Start with get_state for available_sources and skills. Read the relevant skill via describe_source
+section=skill:<library>/<skill> or its gestimator://skills/ URI. Read database overview and category notes before selecting items.
+2. Search the project and relevant libraries for compatible schedule items and resources. Inspect full definitions
+with get_items. Reuse a suitable definition or analysis via import_items or duplicate_from before pricing custom work.
+3. For takeoff, create measurement headings by work package, phase or location. Use category=<heading ID or $ref>
+when creating sheets. Record quantities by storey, room, grid, element or run as supported by the source.
+4. get_measurements section=templates shows editable columns and outputs. Link sheets to schedule items and
+recalculate what=quantities. Verify category placement and totals with get_measurements and get_summary.
+5. Use one edit_analysis per item with r0/r0:0 IDs or refs. batch groups writes into one undo step.
+Supply if_revision for stale-write protection. Save explicitly. Use query only when typed reads are insufficient.
 """
 
 
@@ -79,13 +72,11 @@ def error_text(detail):
     return " ".join(parts)[:700]
 
 
-def success_result(name, value):
-    data = value["data"]
-    count = len(data["items"]) if isinstance(data, dict) and isinstance(data.get("items"), list) else None
-    summary = name + (f": {count} items." if count is not None else " completed.") + f" revision {value['revision']}"
-    if value["warnings"]:
-        summary += f"; {len(value['warnings'])} warnings"
-    return dict(content=[dict(type="text", text=summary)], structuredContent=value, isError=False)
+def success_result(value):
+    """Provide the same result to structured and text-only clients."""
+    # Some clients surface the text blocks but discard structuredContent.
+    content = [dict(type="text", text=json.dumps(value, ensure_ascii=False, separators=(",", ":")))]
+    return dict(content=content, structuredContent=value, isError=False)
 
 
 class MCPServer:
@@ -101,6 +92,7 @@ class MCPServer:
         self.access = "read"
         # Off until the user enables the MCP server in Program Settings.
         self.enabled = False
+        self.skill_libraries = SkillLibraries()
         self.change_seq = 0
         self.project_epoch = 0
         self.generation = 0
@@ -150,10 +142,12 @@ class MCPServer:
         self.port, self.token, self.access = port, token, access
         return self.status()
 
-    def enable(self, enabled):
-        """Allow or forbid starting the server; forbidding stops a running server."""
+    def enable(self, enabled, skill_library=None):
+        """Apply MCP program preferences, stopping the listener if disabled."""
         if type(enabled) is not bool:
             raise ValueError("Choose whether the MCP server is enabled")
+        if skill_library is not None:
+            self.skill_libraries.select(skill_library)
         self.enabled = enabled
         if not enabled and self.server:
             return self.stop()
@@ -290,9 +284,8 @@ class MCPServer:
                 elif method == "tools/list":
                     result = dict(tools=owner.tools())
                 elif method == "resources/list":
-                    # Packaged skill files: static, read-only and independent
-                    # of the project, so they bypass the owner thread.
-                    result = dict(resources=list_resources())
+                    # Resource requests read the published snapshot without project IO.
+                    result = dict(resources=owner.skill_libraries.active.list_resources())
                 elif method == "resources/templates/list":
                     result = dict(resourceTemplates=[])
                 elif method == "resources/read":
@@ -307,7 +300,7 @@ class MCPServer:
                         )
                         return
                     try:
-                        result = read_resource(params["uri"])
+                        result = owner.skill_libraries.active.read_resource(params["uri"])
                     except ResourceNotFound as exc:
                         self.reply(
                             200,
@@ -326,7 +319,7 @@ class MCPServer:
                             "mcp.read",
                             dict(name=params.get("name"), arguments=params.get("arguments", {}), _listener=generation),
                         )
-                        result = success_result(params.get("name"), value)
+                        result = success_result(value)
                     except Exception as exc:
                         result = error_result(exc)
                 else:

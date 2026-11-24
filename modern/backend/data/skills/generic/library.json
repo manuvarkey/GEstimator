@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "id": "generic",
+  "name": "Generic",
+  "description": "Civil and electrical takeoff using the project specification and adopted rate libraries."
+}

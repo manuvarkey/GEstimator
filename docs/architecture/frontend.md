@@ -51,6 +51,7 @@ formatting is presentation; the currency option does not convert prices.
 | Tab memory, row clipboard, cell navigation/editing and selection | [`tabMemory.ts`](../../modern/src/tabMemory.ts), [`rowClipboard.ts`](../../modern/src/rowClipboard.ts), [`cellNavigation.ts`](../../modern/src/cellNavigation.ts), [`tableTextEditor.ts`](../../modern/src/tableTextEditor.ts), [`tableSelection.ts`](../../modern/src/tableSelection.ts) |
 | Display formatting and appearance | [`numberFormatting.ts`](../../modern/src/numberFormatting.ts), [`appearance.ts`](../../modern/src/appearance.ts) |
 | Program settings and shared helpers | [`programSettings.ts`](../../modern/src/programSettings.ts), [`uiActions.ts`](../../modern/src/uiActions.ts), [`statusNotice.ts`](../../modern/src/statusNotice.ts) |
+| Estimation skill catalog controls and settings selector | [`MCPRibbon.vue`](../../modern/src/components/MCPRibbon.vue), [`skillLibraries.ts`](../../modern/src/skillLibraries.ts), [`ProgramSettings.vue`](../../modern/src/components/ProgramSettings.vue) |
 | MCP control/status and library restoration | [`mcp.ts`](../../modern/src/mcp.ts), [`libraryPreferences.ts`](../../modern/src/libraryPreferences.ts) |
 | Native file-open/drop routing | [`projectOpening.ts`](../../modern/src/projectOpening.ts) |
 
@@ -317,14 +318,20 @@ headings into display categories and overlays schedule discrepancy colours.
 `DataTable` uses its caller's row type for selection, activation, edits and
 patches. The adapter casts rows returned by Tabulator, which does not publish
 generic row types. `measurementColumns.ts` handles the existing column options
-missing from Tabulator's types and preserves text-node rendering for author data.
+missing from Tabulator's types and preserves text-node rendering for author data. Schedule
+uses bounded pages with Tabulator’s basic renderer. On a forced rebuild of an
+attached child row, the adapter remeasures its height after the tree indent is
+restored so the wrapped description fits when a view is shown again.
 
 ## Preferences, styles and text
 
 Program/appearance/MCP/library preferences are application settings, separate
 from `.eproj` project metadata. Program settings are validated by Python and
 stored in versioned frontend preferences. Do not add project-specific state to
-a global preference or store derived backend totals as preferences.
+a global preference or store derived backend totals as preferences. The
+estimation skill selector uses the Python catalog and persists the manifest ID.
+The MCP ribbon opens the user folder through the existing desktop folder
+command and refreshes the published [MCP skill catalog](mcp.md#estimation-skills-resources).
 
 Semantic tokens belong in [`theme.css`](../../modern/src/theme.css); shared
 styles in [`style.css`](../../modern/src/style.css). Reuse `AppIcon`,

@@ -1,34 +1,24 @@
-"""Estimation skills served as read-only MCP resources.
+"""Discover estimation libraries and publish a read-only MCP resource snapshot."""
 
-Each skill package is a directory under ``data/skills`` named by its skill id.
-It holds ``SKILL.md`` and optional supporting Markdown files (for example
-``references/masonry.md``). Every file starts with a front matter block:
-
-    ---
-    name: <skill id, SKILL.md only>
-    description: <one line telling a client when to read the file>
-    ---
-
-Adding a package adds its resources; no code changes are needed. URIs are
-``gestimator://skills/<id>`` for SKILL.md and
-``gestimator://skills/<id>/<relative path>`` for supporting files. Only files
-found by the listing scan can be read, so a URI can never name a path outside
-the packaged skills. Skills are static files and need no open project.
-"""
-
-import logging
-from pathlib import Path
+import json
 import re
+from dataclasses import dataclass
+from pathlib import Path
+
+import appdirs
+
+from estimator import misc
 
 ROOT = Path(__file__).parent / "data" / "skills"
 SCHEME = "gestimator://skills/"
 MIME = "text/markdown"
-SKILL_FILE = "SKILL.md"
+DEFAULT_LIBRARY = "generic"
+SHARED_LIBRARY = "shared"
 SEGMENT = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-DOCUMENT = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\.md")
 MAX_DEPTH = 3
 MAX_BYTES = 256 * 1024
-log = logging.getLogger(__name__)
+MAX_URI = 300
+MANIFEST = "library.json"
 
 
 class ResourceNotFound(LookupError):
@@ -37,8 +27,23 @@ class ResourceNotFound(LookupError):
         self.uri = uri
 
 
-def front_matter(text):
-    """Return (fields, body) for a leading ``---`` block of ``key: value`` lines."""
+def user_directory():
+    """Keep user libraries in application data across program upgrades."""
+    return Path(appdirs.user_data_dir(misc.PROGRAM_NAME, misc.PROGRAM_AUTHOR)) / "mcp" / "skills"
+
+
+def valid_id(value):
+    """Recognize an identifier that fits safely in a library URI."""
+    return isinstance(value, str) and len(value) <= 64 and SEGMENT.fullmatch(value) is not None
+
+
+def validate_library_id(value):
+    if not valid_id(value):
+        raise ValueError("Use a lowercase estimation skill library ID")
+    return value
+
+
+def _front_matter(text):
     if not text.startswith("---\n"):
         return {}, text
     end = text.find("\n---\n", 4)
@@ -49,99 +54,211 @@ def front_matter(text):
         key, sep, value = line.partition(":")
         if sep and key.strip():
             fields[key.strip()] = value.strip().strip('"')
-    return fields, text[end + 5:]
+    return fields, text[end + 5 :]
 
 
-def title_of(body, fallback):
-    for line in body.splitlines():
-        if line.startswith("# "):
-            return line[2:].strip()
-    return fallback
+def _read_file(path, root):
+    """Read a bounded file from its package. Paths from MCP never reach here."""
+    if path.is_symlink() or not path.resolve(strict=True).is_relative_to(root.resolve(strict=True)):
+        raise ValueError("File must be inside its package and cannot be a symbolic link")
+    if not path.is_file():
+        raise ValueError("Expected a regular file")
+    with path.open("rb") as stream:
+        data = stream.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise ValueError("File exceeds the 256 KiB limit")
+    return data.decode("utf-8").replace("\r\n", "\n")
 
 
-def load(path, root):
-    """Return a file's text, or None (logged) when it cannot be read as UTF-8."""
+@dataclass(frozen=True)
+class SkillDocument:
+    """Markdown and its listing metadata, captured together at refresh."""
+
+    metadata: dict
+    text: str
+
+
+@dataclass(frozen=True)
+class SkillLibrary:
+    identity: str
+    name: str
+    description: str
+    bundled: bool
+    documents: dict[str, SkillDocument]
+
+    def summary(self):
+        return dict(id=self.identity, name=self.name, description=self.description, bundled=self.bundled)
+
+
+def _load_library(folder, bundled, issues):
+    """Validate a manifest, then load each skill and its references."""
+    if folder.is_symlink():
+        raise ValueError("Library folder cannot be a symbolic link")
     try:
-        if path.stat().st_size > MAX_BYTES:
-            raise ValueError("file is larger than the resource limit")
-        return path.read_text(encoding="utf-8")
-    except (OSError, ValueError) as exc:
-        log.warning("Skipped skill file %s: %s", path.relative_to(root), exc)
-        return None
+        manifest = json.loads(_read_file(folder / MANIFEST, folder))
+    except RecursionError as error:
+        raise ValueError("library.json is nested too deeply") from error
+    if (
+        not isinstance(manifest, dict)
+        or type(manifest.get("schema_version")) is not int
+        or manifest["schema_version"] != 1
+    ):
+        raise ValueError("library.json must declare schema_version 1")
+    identity = validate_library_id(manifest.get("id"))
+    name, description = manifest.get("name"), manifest.get("description", "")
+    if not isinstance(name, str) or not name.strip() or len(name) > 120:
+        raise ValueError("library.json needs a name of up to 120 characters")
+    if not isinstance(description, str) or len(description) > 400:
+        raise ValueError("library.json description must be at most 400 characters")
 
-
-def contained(path, root):
-    try:
-        return path.resolve(strict=True).is_relative_to(root.resolve(strict=True)) and path.is_file()
-    except OSError:
-        return False
-
-
-def entry(uri, name, path, fields, body, priority):
-    return dict(uri=uri, name=name, title=title_of(body, name), description=fields["description"],
-                mimeType=MIME, size=path.stat().st_size, annotations=dict(audience=["assistant"], priority=priority)), path
-
-
-def scan(root=ROOT):
-    """Map each URI to (resource listing entry, file path), skills first."""
-    resources = {}
-    if not root.is_dir():
-        return resources
-    for package in sorted(root.iterdir()):
-        skill = package / SKILL_FILE
-        if not package.is_dir() or not SEGMENT.fullmatch(package.name) or not contained(skill, root):
-            continue
-        text = load(skill, root)
-        if text is None:
-            continue
-        fields, body = front_matter(text)
-        if fields.get("name") != package.name or not fields.get("description"):
-            log.warning("Skipped skill package %s: SKILL.md needs name: %s and a description", package.name, package.name)
-            continue
-        uri = SCHEME + package.name
-        resources[uri] = entry(uri, package.name, skill, fields, body, 1.0)
-        for path in sorted(package.rglob("*.md")):
-            parts = path.relative_to(package).parts
-            if path == skill or len(parts) > MAX_DEPTH or not DOCUMENT.fullmatch(parts[-1]) or not all(SEGMENT.fullmatch(part) for part in parts[:-1]):
+    documents = {}
+    for package in sorted(folder.iterdir()):
+        try:
+            if package.name.startswith(".") or not (package.is_dir() or package.is_symlink()):
                 continue
-            text = load(path, root) if contained(path, root) else None
-            if text is None:
+            if package.is_symlink() or not valid_id(package.name):
+                raise ValueError("Use a regular skill folder with a lowercase skill ID")
+            _load_package(identity, package, documents, issues)
+        except (OSError, ValueError) as error:
+            issues.append(f"{folder.name}/{package.name}: {error}")
+    if not documents:
+        raise ValueError("Library has no readable skill packages")
+    return SkillLibrary(identity, name.strip(), description.strip(), bundled, documents)
+
+
+def _load_package(library, package, documents, issues):
+    """Publish references only after validating the package's SKILL.md."""
+    prefix = SCHEME + library + "/" + package.name
+    source = package / "SKILL.md"
+    _add_document(documents, prefix, package.name, source, package, main=True)
+    for path in sorted(package.rglob("*.md")):
+        if path == source or path.suffix != ".md":
+            continue
+        parts = path.relative_to(package).parts
+        if len(parts) > MAX_DEPTH or not valid_id(path.stem) or not all(valid_id(part) for part in parts[:-1]):
+            continue
+        relative = "/".join(parts)
+        try:
+            _add_document(documents, prefix + "/" + relative, package.name + "/" + relative, path, package)
+        except (OSError, ValueError) as error:
+            issues.append(f"{library}/{package.name}/{relative}: {error}")
+
+
+def _add_document(documents, uri, name, path, package, *, main=False):
+    if len(uri) > MAX_URI:
+        raise ValueError("Skill URI is too long")
+    text = _read_file(path, package)
+    fields, body = _front_matter(text)
+    if not fields.get("description") or (main and fields.get("name") != name):
+        raise ValueError("Skills need a description and SKILL.md must name its package")
+    title = next((line[2:].strip() for line in body.splitlines() if line.startswith("# ")), name)
+    metadata = dict(
+        uri=uri,
+        name=name,
+        title=title,
+        description=fields["description"],
+        mimeType=MIME,
+        size=len(text.encode("utf-8")),
+        annotations=dict(audience=["assistant"], priority=1.0 if main else 0.5),
+    )
+    documents[uri] = SkillDocument(metadata, text)
+
+
+@dataclass(frozen=True)
+class SkillCatalog:
+    """One selection snapshot used by both protocol resources and tool reads."""
+
+    library_id: str
+    documents: dict[str, SkillDocument]
+
+    def list_resources(self):
+        return [document.metadata for document in self.documents.values()]
+
+    def read_resource(self, uri):
+        if not isinstance(uri, str) or len(uri) > MAX_URI or uri not in self.documents:
+            raise ResourceNotFound(uri)
+        return dict(contents=[dict(uri=uri, mimeType=MIME, text=self.documents[uri].text)])
+
+    def skills(self):
+        """Describe skills and their references for text-only MCP clients."""
+        catalog = {}
+        for resource in self.list_resources():
+            library, skill, *parts = resource["uri"][len(SCHEME) :].split("/")
+            key = f"{library}/{skill}"
+            entry = {field: resource[field] for field in ("uri", "title", "description")}
+            if parts:
+                catalog[key]["references"].append(dict(entry, path="/".join(parts)))
+            else:
+                catalog[key] = dict(entry, skill=skill, library=library, references=[])
+        return list(catalog.values())
+
+
+class SkillLibraries:
+    """Own application-level discovery and selection without querying any project."""
+
+    def __init__(self, packaged=ROOT, user=None):
+        self.packaged = packaged
+        self.user = user_directory() if user is None else user
+        self.requested = DEFAULT_LIBRARY
+        self.refresh()
+
+    def refresh(self):
+        """Build the full replacement before publishing it to MCP readers."""
+        libraries, issues = {}, []
+        for root, bundled in ((self.packaged, True), (self.user, False)):
+            try:
+                folders = sorted(root.iterdir())
+            except FileNotFoundError:
+                if bundled:
+                    issues.append("Packaged skill library folder is unavailable")
                 continue
-            fields, body = front_matter(text)
-            if not fields.get("description"):
-                log.warning("Skipped skill file %s: it needs a description", path.relative_to(root))
+            except OSError as error:
+                issues.append(f"Cannot scan skill libraries in {root}: {error}")
                 continue
-            relative = "/".join(parts)
-            uri = SCHEME + package.name + "/" + relative
-            resources[uri] = entry(uri, package.name + "/" + relative, path, fields, body, 0.5)
-    return resources
+            for folder in folders:
+                try:
+                    if folder.name.startswith(".") or not (folder.is_dir() or folder.is_symlink()):
+                        continue
+                    library = _load_library(folder, bundled, issues)
+                    if library.identity in libraries or (
+                        not bundled and library.identity in (DEFAULT_LIBRARY, SHARED_LIBRARY)
+                    ):
+                        raise ValueError(f"Duplicate or reserved library ID '{library.identity}'")
+                    libraries[library.identity] = library
+                except (OSError, ValueError) as error:
+                    issues.append(f"{folder.name}: {error}")
+        self._libraries, self._issues = libraries, issues
+        self._publish()
+        return self.status()
 
+    def select(self, identity):
+        identity = validate_library_id(identity)
+        if identity == SHARED_LIBRARY:
+            raise ValueError("Choose a selectable estimation skill library")
+        self.requested = identity
+        self._publish()
 
-def list_resources(root=ROOT):
-    return [resource for resource, _path in scan(root).values()]
+    def _publish(self):
+        active_id = self.requested if self.requested in self._libraries else DEFAULT_LIBRARY
+        documents = {}
+        for identity in (active_id, SHARED_LIBRARY):
+            if identity in self._libraries:
+                documents.update(self._libraries[identity].documents)
+        # Replacing the object keeps each HTTP request on a single snapshot.
+        self.active = SkillCatalog(active_id, documents)
 
+    def status(self):
+        return dict(
+            libraries=[
+                library.summary() for identity, library in self._libraries.items() if identity != SHARED_LIBRARY
+            ],
+            active_library=self.active.library_id,
+            requested_library=self.requested,
+            user_directory=str(self.user),
+            issues=self._issues,
+        )
 
-def read_resource(uri, root=ROOT):
-    """Return the MCP ``resources/read`` result for a packaged skill file."""
-    if not isinstance(uri, str) or not uri.startswith(SCHEME) or len(uri) > 300:
-        raise ResourceNotFound(uri)
-    found = scan(root).get(uri)
-    if found is None:
-        raise ResourceNotFound(uri)
-    _resource, path = found
-    text = load(path, root) if contained(path, root) else None
-    if text is None:
-        raise ResourceNotFound(uri)
-    return dict(contents=[dict(uri=uri, mimeType=MIME, text=text)])
-
-
-def catalog(root=ROOT):
-    """Skills with their references, for clients that only use tools."""
-    skills = {}
-    for resource in list_resources(root):
-        skill, _, path = resource["uri"][len(SCHEME):].partition("/")
-        if not path:
-            skills[skill] = dict(skill=skill, title=resource["title"], description=resource["description"], uri=resource["uri"], references=[])
-        elif skill in skills:
-            skills[skill]["references"].append(dict(path=path, uri=resource["uri"], title=resource["title"], description=resource["description"]))
-    return list(skills.values())
+    def open_directory(self):
+        """Create the application-data folder before the desktop opens it."""
+        self.user.mkdir(parents=True, exist_ok=True)
+        return str(self.user)
