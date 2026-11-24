@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { readFile, copyFile, mkdir, symlink, unlink } from "node:fs/promises";
+import { readFile, copyFile, mkdir, realpath, symlink, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   python,
@@ -122,9 +122,11 @@ test("landing page creates a new project", async ({ page }) => {
   await expect(landing).not.toBeVisible();
   await expect(page.locator(".project-view:visible .project-main-grid")).toBeVisible();
   const project = resolve(directory, "first-save.eproj");
+  // Windows can give the runner a short temp path, while the backend reports the full path.
+  const canonicalProject = resolve(await realpath(directory), "first-save.eproj");
   nativeDialogResults.push(project);
   await page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }).click();
-  await expect.poll(async () => (await call("state")).result.source_path).toBe(project);
+  await expect.poll(async () => (await call("state")).result.source_path).toBe(canonicalProject);
   expect((await readFile(project)).subarray(0, 15).toString()).toBe("SQLite format 3");
 
   // Close project from the application menu returns to the landing page.
