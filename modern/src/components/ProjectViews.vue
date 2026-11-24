@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import MeasurementRecordLayout from "./MeasurementRecordLayout.vue";
 import MeasurementRecordRibbon from "./MeasurementRecordRibbon.vue";
@@ -31,14 +31,14 @@ import type {
   ProjectItemMode,
 } from "../projectViewTypes";
 import { useMeasurementRecords } from "../useMeasurementRecords";
-import { afterDialogsClose } from "../uiActions";
+import { useEditorFocus } from "../useEditorFocus";
 import { programSettings } from "../programSettings";
 import { exportWithWorkbookChooser } from "../workbookExport";
 import { useProjectGrid } from "../useProjectGrid";
 import { projectViewShortcut } from "../projectViewShortcuts";
 import { formatMoney } from "../numberFormatting";
 import { vMiddleEllipsis } from "../middleEllipsis";
-import { clearRowClipboard, copyRows, pasteRows, type ClipboardKind } from "../rowClipboard";
+import { clearRowClipboard, copyRows, pasteRows, readClipboardText, type ClipboardKind } from "../rowClipboard";
 import { notify } from "../statusNotice";
 import { activeDocument } from "../documents";
 import { recallTabState, rememberTabState } from "../tabMemory";
@@ -46,6 +46,10 @@ import { recallTabState, rememberTabState } from "../tabMemory";
 const props = withDefaults(defineProps<{ view: View; projectOpen: boolean; active?: boolean; entryId?: string }>(), {
   active: true,
 });
+const focusTable = useEditorFocus(
+  () => props.active,
+  () => (props.entryId ? recordTable.value : mainTable.value)?.focus(),
+);
 const emit = defineEmits<{
   changed: [];
   busy: [value: boolean];
@@ -147,6 +151,17 @@ const mainRows = computed<GridRow[]>(() => {
   return rateDiscrepancies.value?.highlight(rows) ?? rows;
 });
 const recordLayout = ref<InstanceType<typeof MeasurementRecordLayout>>();
+const insertOperations = new Set([
+  "add",
+  "category_add",
+  "duplicate",
+  "add_from_library",
+  "paste",
+  "record_add",
+  "record_duplicate",
+  "record_import",
+  "record_paste",
+]);
 // Measurement owners reuse this view's single command and busy/error boundary.
 const {
   selectedRecord,
@@ -208,17 +223,6 @@ const { libraries, refresh, refreshChanges, revealCode, findAcross, load, search
   run,
   changed: () => emit("changed"),
 });
-
-let cancelFocus: (() => void) | undefined;
-onBeforeUnmount(() => cancelFocus?.());
-async function focusTable() {
-  cancelFocus?.();
-  await nextTick();
-  if (!props.active) return;
-  cancelFocus = afterDialogsClose(async () => {
-    if (props.active) await (props.entryId ? recordTable.value : mainTable.value)?.focus();
-  });
-}
 
 function editable(cell: CellComponent) {
   const row: Pick<TableRow, "rowtype"> = cell.getData();
@@ -311,6 +315,7 @@ function rowAction(operation: string) {
     if (isMeasurement.value) measurementPropertiesDialog.value?.showProperties();
     else if (one.value?.rowtype !== "Category") void showForm("edit");
   } else if (operation === "delete") void deleteSelection();
+  else if (operation === "paste") void pasteGrid();
   else if (operation === "duplicate" && !isMeasurement.value) {
     if (one.value && one.value.rowtype !== "Category") void showForm("duplicate");
   } else void command(operation);
@@ -327,7 +332,7 @@ function selectedItemIds() {
   ].filter((id) => id !== "measurement:uncategorised");
 }
 async function command(operation: string, params: Record<string, unknown> = {}) {
-  return run(async () => {
+  const applied = await run(async () => {
     const ids =
       isMeasurement.value && (operation === "add" || operation === "paste")
         ? selected.value.map((row) => row.id)
@@ -406,6 +411,8 @@ async function command(operation: string, params: Record<string, unknown> = {}) 
     if (operation === "record_delete") selectedRecord.value = undefined;
     emit("changed");
   });
+  if (applied && insertOperations.has(operation)) await focusTable();
+  return applied;
 }
 function deleteSelection() {
   if (!state.value) return;
@@ -426,7 +433,7 @@ watch(
     if (active) {
       await refreshChanges();
       await focusTable();
-    } else cancelFocus?.();
+    }
   },
 );
 function showPriceUpdate() {
@@ -442,9 +449,12 @@ function showDatabase(mode: ProjectDatabaseSelection["mode"] = "add") {
     targetIds: selected.value.map((row) => row.id),
   });
 }
-async function applyDatabase(params: Record<string, unknown>) {
+function applyDatabase(params: Record<string, unknown>) {
   const { operation, ...values } = params;
-  return command(String(operation), { ...values, ...(values.modify ? { settings: programSettings.value } : {}) });
+  return command(String(operation), {
+    ...values,
+    ...(values.modify ? { settings: programSettings.value } : {}),
+  });
 }
 async function select(rows: GridRow[]) {
   if (!rows.length && !selected.value.length) return;
@@ -501,6 +511,22 @@ async function pasteCells(edits: { id: string; field: string; value: string }[])
     edits,
   });
 }
+async function pasteGrid() {
+  if (busy.value || (props.entryId && detailBusy.value)) return;
+  const entryId = props.entryId;
+  const table = entryId ? recordTable.value : mainTable.value;
+  try {
+    const data = await readClipboardText(entryId ? "records" : props.view);
+    if (props.active && props.entryId === entryId && table && !table.pasteText(data)) {
+      error.value = "Clipboard does not contain valid GEstimator rows. Select an editable cell to paste text.";
+    }
+  } catch (reason) {
+    error.value = String(reason);
+  }
+}
+function recordRibbonAction(operation: string, delta?: number) {
+  return operation === "paste" ? pasteGrid() : recordAction(operation, delta);
+}
 function historyAction(method: "undo" | "redo") {
   return command((props.entryId && state.value?.measurement_draft ? "draft." : "project.") + method);
 }
@@ -545,6 +571,8 @@ function keyboard(event: KeyboardEvent) {
       return void command("cut");
     case "copy":
       return void (editingRecords ? recordAction("copy") : command("copy"));
+    case "paste":
+      return void pasteGrid();
     case "duplicate":
       if (editingRecords) return void recordAction("duplicate");
       return void (isMeasurement.value ? command("duplicate") : showForm("duplicate"));
@@ -559,8 +587,8 @@ function keyboard(event: KeyboardEvent) {
       return;
   }
 }
-async function refreshAfterMappedImport() {
-  await run(refresh);
+async function refreshAfterMappedImport(added: number) {
+  if ((await run(refresh)) && added > 0) await focusTable();
   emit("changed");
 }
 function exportWorkbook() {
@@ -631,7 +659,7 @@ watch(
             :busy="busy"
             :detail-busy="detailBusy"
             :has-selection="!!selectedRecord"
-            @action="recordAction"
+            @action="recordRibbonAction"
             @insert-multiple="
               recordCount = 10;
               recordsOpen = true;
@@ -654,8 +682,8 @@ watch(
             @add-category="projectItemDialogs?.showCategory()"
             @duplicate="isMeasurement ? command('duplicate') : showForm('duplicate')"
             @cut="command('cut')"
-            @copy="command('copy', { ids: isMeasurement ? selectedItemIds() : selected.map((row) => row.id) })"
-            @paste="command('paste')"
+            @copy="command('copy')"
+            @paste="pasteGrid"
             @delete-selection="deleteSelection"
             @edit-resource="showForm('edit')"
             @move-resources="resourceEditingDialogs?.showMove()"
@@ -703,7 +731,7 @@ watch(
           <AppIcon name="search" :size="16" /><input
             v-model="query"
             aria-label="Search project table"
-            @keydown.up.down="mainTable?.step($event)"
+            @keydown.up.down="mainTable?.step($event, { focus: true })"
             placeholder="Search codes and descriptions…"
           /><button class="button small secondary" :disabled="busy">Search</button>
         </form>
@@ -856,7 +884,7 @@ watch(
                 { label: 'Paste records here', action: 'paste' },
                 { label: 'Delete record', action: 'delete' },
               ]"
-              @action="(operation) => recordAction(operation)"
+              @action="recordRibbonAction"
               @selection="
                 selectedRecords = $event;
                 selectedRecord = $event[0];

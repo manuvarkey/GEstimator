@@ -9,6 +9,7 @@ import appdirs
 from estimator import misc
 from estimator.data.schedule import Currency, ScheduleItemModel
 
+from .mcp_skills import DEFAULT_LIBRARY, SHARED_LIBRARY, validate_library_id
 from .numbers import decimal
 
 KINDS = ("Group", "Subtotal", "Weight", "Multiply", "Round")
@@ -64,6 +65,7 @@ def defaults():
         currency_code="INR",
         show_currency_symbol=False,
         mcp_enabled=False,
+        estimation_skill_library=DEFAULT_LIBRARY,
         ana_default_rows=template_rows(misc.ana_default_add_items),
         ana_copy_rows=[],
     )
@@ -110,6 +112,8 @@ def validate(settings):
         raise ValueError("Choose whether Enter edits the next cell")
     if type(base["mcp_enabled"]) is not bool:
         raise ValueError("Choose whether the MCP server is enabled")
+    if validate_library_id(base["estimation_skill_library"]) == SHARED_LIBRARY:
+        raise ValueError("Choose a selectable estimation skill library")
     locale = base["number_locale"]
     if not isinstance(locale, str) or (locale and not re.fullmatch(r"[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,4}", locale)):
         raise ValueError("Choose a valid regional locale, such as en-IN")

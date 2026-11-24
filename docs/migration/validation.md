@@ -1692,3 +1692,453 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   (five tests), Clippy, changed-file quality checks, broad Python correctness,
   documentation links and diff checks passed. A hosted run of the revised
   code and installed Windows UI checks remain separate verification.
+
+## 2026-11-24 — Database picker keyboard insertion, MCP measurements and lighting CU
+
+- Schedule and Resources now import all selected items when Enter is pressed
+  in the picker results grid. The regression first reproduced the Schedule
+  dialog staying open with multiple selected items. The focused Chromium run
+  then passed both pickers, the unmodified Ctrl+Enter path, and two existing
+  double-click tests.
+- MCP instructions and estimation skills now show how to place sheets under
+  measurement categories and link multiple outputs from a single sheet. The
+  HTTP regression checks two category blocks, both multi-output templates,
+  a skipped link slot, undo/redo and the resulting schedule quantities. The
+  server instruction text was shortened after the first run exceeded the
+  existing discovery word budget. All 241 Python tests passed on the final
+  run. An AST comparison confirmed that formatting the changed server file
+  preserved its executable code outside the instructions.
+- The lighting reference contains only the 70% ceiling, 50% wall and 20%
+  effective floor-cavity reflectance series. All 66 values match the supplied
+  exports after conversion to factors. Recomputing the office example gives
+  about 622 lux. `npm run --prefix modern bundle:backend` passed. The frozen
+  Linux sidecar served the reference through `resources/read` and
+  `describe_source` outside the checkout, then shut down cleanly.
+- Changed-file quality checks with and without `--fix`, documentation links
+  and `git diff --check` passed. `npm run --prefix modern build` passed with
+  the existing Vite warning for the 1.22 MB entry chunk (313 kB gzip).
+  `npm run --prefix modern test:e2e` passed 100 Chromium scenarios and
+  skipped the opt-in large-project performance profile.
+
+## 2026-11-24 — Start page text rendering and database picker focus
+
+- Mounted the current `ProjectLanding` component with the application styles
+  in a native GTK 3/WebKitGTK 2.52.6 window through the X11 backend, using
+  Iosevka 11 pt and the light theme. One recent project fit in the 620 px scroll
+  area. Ten projects increased its scroll height to 867 px. The intro text then
+  appeared heavier in the native display capture even though its computed
+  weight stayed at 400 and its bounds stayed fixed. Setting
+  `-webkit-font-smoothing: antialiased`
+  on that same overflowing region restored the earlier appearance. Returning
+  to `auto` reproduced the heavier crop pixel for pixel. This matches the
+  [earlier database dialog rasterization issue](#native-scroll-layer-font-smoothing--2026-11-18).
+  The Start page work was scoped to diagnosis.
+- The picker focused its search field when opened with Ctrl+L. Arrow keys
+  forwarded row selection without moving focus, leaving Enter routed to the
+  search form. The updated picker hands focus to the results grid after a
+  successful arrow selection. The regression opens each picker with Ctrl+L,
+  verifies Enter still searches from the input, then uses Down, Shift+End
+  and Enter to import the range. It also covers schedule Ctrl+Enter. The
+  existing project-table search keeps its prior arrow-key behavior.
+- Changed-file quality checks, documentation links and the diff check passed.
+  All 241 Python tests and 100 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite entry-chunk size warning.
+
+## 2026-11-24 — Measurement schedule picker and installed Flatpak review
+
+- The Chromium regression reproduced Down leaving focus in the measurement
+  link search field. The updated picker keeps the results scrollable between
+  the search and paging controls. The browser test scrolls and links an
+  off-screen item in the record entry view, then uses Down, End, Up and Enter
+  to stage a different link in Properties. In the installed Wayland app,
+  scrolling the list moved from L00 to L09 and tapping the visible L14
+  successfully changed and applied the measurement link.
+- The offline x86_64 Flatpak build completed against GNOME 51. The first
+  bundle failed installation on Flatpak 1.16.6 with `Invalid Exec argument @@`.
+  Removed the manual forwarding markers from the build. The rebuilt bundle
+  installed, and Flatpak generated `--file-forwarding` and the markers in the
+  exported desktop entry. The installed package used its declared permissions
+  without a filesystem override.
+- Native review on xdg-desktop-portal 1.21.1 and its GNOME 50 backend passed
+  chooser open, forwarding from the exported desktop launcher to a running
+  instance, external library attachment and reattachment after restart, and
+  workbook export both to a new file and after confirming replacement. Both
+  workbooks reopened with all five expected sheets. The packaged Python
+  sidecar created a project, listed eight measurement templates and three
+  bundled databases, and shut down cleanly.
+- **Release blocker.** In-place save rejected the correct folder after a
+  chooser open. A direct test on the granted Documents mount showed
+  `fcntl.flock` returning `ENOSYS`, which the UI presented as another window
+  saving. The original test project remained intact and no backup was
+  published. POSIX `lockf` succeeded but did not block a second sandbox in a
+  separate-process probe, so it did not establish a safe replacement. Save
+  Copy produced a valid new project after choosing a host folder manually.
+  Its initial chooser displayed a warning for the forwarded project's
+  sandbox-only `/run/flatpak/doc` starting path. See the
+  [follow-up fix](#2026-11-24--flatpak-portal-save-and-packaging).
+- All 241 Python tests and 101 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation links,
+  desktop-entry and AppStream metadata validation, and diff checks passed.
+
+## 2026-11-24 — Measurement link picker focus, clipping and scroll
+
+- A controlled lookup in Chromium reproduced Down being dropped after the
+  pointer opened the picker and before the results arrived. Native WebKitGTK
+  2.52.6 confirmed that the search field had focus throughout the delay.
+  The handler returned while loading. Mouse and keyboard activate the same
+  picker command, so the result-reply timing explains why the failure depends
+  on when the arrow is pressed. The earlier Schedule picker forwarded arrow
+  selection without transferring browser focus from its search field.
+- In the native probe, reopening with a lookup pending left the old 45
+  results scrollable. Scrolling to 300 px and releasing the reply returned
+  the list to zero. The picker now clears and resets the list when loading
+  starts. The same probe found zero stale rows during reload and no delayed
+  reset. Once loaded, successive scroll positions advanced to 200, 400 and
+  600 px.
+- Results now have 5 px of clearance for the current focus outline. The native
+  probe verified the inset and replay of an early Down when the search field
+  stayed focused. The Chromium regression checks outline clearance, wheel
+  scrolling with a focused result, loading after reopening, and opening the
+  nested picker by keyboard.
+- An early focused run recorded one Resources picker autofocus miss before
+  interaction. Eight targeted reruns and the full Chromium suite passed.
+  The cause of the isolated miss remains unconfirmed.
+- All 241 Python tests and 101 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed.
+
+## 2026-11-24 — Measurement picker focus outline and live search
+
+- Mounted the measurement picker and its application styles in WebKitGTK
+  2.52.6. Native GTK pointer and key events drove the same component through
+  pointer opening, Tab into results and keyboard opening with Enter. After
+  pointer opening, Down moved DOM focus through L0, L1 and L2. WebKit kept
+  `:focus-visible` false and the computed outline style stayed `none`. Tab
+  into the list and Enter on the launcher produced a visible outline during
+  the same arrow navigation. The picker handles arrows in Vue and focuses
+  ordinary result buttons inside a PrimeVue focus trap.
+- The result style now draws the existing outline from actual button focus.
+  The same GTK probe confirmed a solid 2 px outline on intermediate and
+  boundary results after pointer opening, even with `:focus-visible` false.
+  Tab entry and keyboard opening also retained the outline.
+- The picker now uses the existing debounced Search as you type helper.
+  The new Chromium regression reproduced the missing live request before the
+  change. It passed after the change, covering the setting off with Enter to
+  submit, switching the setting on, typing again during a held request and
+  retaining search focus after the most recent query loads.
+- All 241 Python tests and 102 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed.
+
+## 2026-11-24 — Analysis Explorer search and project grid focus
+
+- The focused baseline reproduced six failures. The Explorer omitted live
+  search, Schedule and Resources stepped the selection with search still
+  focused, and all three keyboard import paths restored the opener's focus
+  instead of focusing the destination grid.
+- Both Explorer tabs now use the workspace's shared debounced search.
+  Chromium covers manual search with the setting off, filtering both tabs
+  with it on, arrow focus, and Enter to open an analysis or insert a resource.
+  The Explorer and measurement picker use the same result-button navigation.
+- Schedule and Resources pass browser focus to the grid after an arrow
+  selection from search. Successful library imports schedule grid focus after
+  the modal closes. Chromium checks range selection after the search handoff,
+  Enter import in both views and Ctrl+Enter in Schedule, starting each import
+  with focus on the ribbon.
+- A WebKitGTK 2.52.6 component probe used native GTK pointer and arrow events.
+  Both Explorer lists drew a solid 2 px outline on the focused result even
+  with `:focus-visible` false. The first Down from project search focused
+  and outlined the grid, and the second focused and outlined the next cell.
+- The first full suite passed 104 scenarios and exposed focus returning to
+  the Properties dialog before Enter in the nested measurement picker.
+  Extending the parent enter transition reproduced the issue in isolation.
+  PrimeVue's end-of-transition autofocus now encounters an inert parent
+  while the picker is open. The picker waits for the parent to become
+  interactive before restoring focus to its opener, and the focus tracker
+  retains the covered parent's focus record. The delayed-transition regression
+  passed. The WebKitGTK probe also kept the second result focused across
+  the animation and restored the Properties search button after Enter.
+- A held Explorer response also reproduced a stale result when search text
+  reverted to the previously displayed query. Recording the query at request
+  start lets the shared debounce helper retry after the request completes.
+  The focused regression passed.
+- The final run passed all 241 Python tests and 105 Chromium scenarios. The
+  opt-in performance scenario was skipped. Type checking and the production
+  build passed with the existing Vite chunk-size warning. Changed-file quality,
+  documentation and diff checks passed.
+
+## 2026-11-24 — Insertion focus and initial Analysis Explorer results
+
+- An isolated checkout of the prior commit reproduced missing grid focus after
+  project category insertion in Schedule, Resources and Measurements and after
+  adding an Analysis resource group. It also reproduced the empty Schedule
+  Explorer after creating a project and adding its first schedule item.
+- Existing command handlers continue to refresh data and reconcile selection.
+  Successful insertions now queue focus after refresh and modal close through
+  one helper shared by Analysis and the project views. The project view keeps
+  its existing grid and command coordination and delegates focus timing and
+  cancellation to the helper.
+- Chromium covers item and category forms in the three project lists, schedule
+  subitems, direct and batched measurement records, Analysis ribbon insertion
+  and resources added from the Explorer or database picker. Existing tests
+  also assert focus after custom resources and templates, workbook imports and
+  keyboard database insertion into the project lists.
+- The Explorer reloads the last submitted Schedule query when it becomes
+  visible. An early full run showed that using the general command busy state
+  during that load prevented Enter from submitting a search in a larger
+  project. The automatic load now runs in the background and older responses
+  are discarded if a newer query or project reset supersedes them. The real
+  project flow and the held-response regression passed on the final code.
+- A WebKitGTK 2.52.6 window running the development frontend and real Python
+  backend verified Schedule item creation, the destination grid's focus and
+  outline, Down navigation, the populated first Analysis visit and the
+  Analysis grid's focus and outline after adding a resource group.
+- The final Chromium run passed 111 scenarios and skipped the opt-in
+  performance scenario. All 241 Python tests passed. Type checking and the
+  production build passed with the existing Vite chunk-size warning.
+  Changed-file quality, documentation and diff checks passed.
+
+## 2026-11-24 — Analysis cell focus after Enter
+
+- The keyboard regression reproduced focus loss after changing a resource
+  quantity and pressing Enter. The rate updated and the expected cell retained
+  its visual focus marker. Browser tracing showed that keyboard navigation
+  focused the refreshed cell, then the queued Analysis layout redraw detached
+  it and sent browser focus to the document body.
+- The layout pass now restores the cell's focus if the redraw displaced it.
+  The cross-editor keyboard regression commits changed values with both
+  Analysis Enter settings and checks the default focus after the layout frame.
+  It also retains coverage for Tab, Escape and other grids.
+- A WebKitGTK 2.52.6 window using the development frontend and real Python
+  backend verified that native Enter saved a changed rounding value, retained
+  focus through layout and reopened the same cell on the next Enter.
+- All 241 Python tests and 111 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. Type checking, the production build,
+  changed-file quality and documentation checks passed. Vite retained its
+  existing chunk-size warning.
+
+## 2026-11-24 — Flatpak portal save and packaging
+
+- Reproduced `flock` returning `ENOSYS` on a real Documents portal folder
+  grant. Flatpak saves now coordinate through a lock in the shared app runtime
+  directory. Different grants for the same host path share the lock. Save
+  Copy gives the host chooser a suggested filename without a sandbox-only
+  starting directory. The local build excludes its generated manifest and
+  bundle from the source copy.
+- Built and installed the x86_64 working-tree bundle with Flatpak 1.16.6,
+  flatpak-builder 1.4.8 and GNOME 51. With the declared permissions and no
+  filesystem overrides, the desktop opened a project through a real file
+  grant. The packaged sidecar rejected a save while another sandbox held the
+  lock through a different grant, then saved twice after release. Both
+  numbered sibling backups matched the preceding versions byte for byte,
+  SQLite integrity passed and the original file grant reopened the updated
+  project. Flatpak generated file-forwarding arguments in the exported
+  launcher. Authenticated host HTTP reached the opt-in MCP listener, and
+  shutdown released the port.
+- [Flathub PR #12](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+  built both architectures for its submitted manifest. Its permission review
+  rejected the home-directory grant. The locally tested manifest uses the
+  FileChooser portal and retains network sharing for the optional loopback
+  MCP listener. The published listing still shows 2.7.0. The fixed candidate
+  needs a new release tag and a fresh Flathub build and permission review.
+- All 243 Python tests and 111 Chromium scenarios passed. The browser
+  regression checked the suggested Save Copy name and folder cancellation.
+  The opt-in performance scenario was skipped. Type checking, the production
+  build, changed-file quality, documentation, desktop entry and AppStream
+  checks passed. Vite retained its existing chunk-size warning.
+
+## 2026-11-24 — Title bar Save project
+
+- The title bar button now runs the same Save action as Ctrl+S. Save project
+  copy remains available through the application menu and Ctrl+Shift+S.
+- Chromium exercised the title bar against the real Python backend. The
+  first save set the new project's source, in-place save kept the previous
+  file as a backup, and the simulated Flatpak folder prompt preserved edits
+  on cancellation before a subsequent save succeeded.
+- All 243 Python tests and 111 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. The production build retained the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed. The rebuilt x86_64 Flatpak installed and its packaged
+  backend passed project creation, catalog and template discovery, and shutdown.
+
+## 2026-11-24 — Flatpak clipboard, save and grid text
+
+- Previously the grid's keyboard paste could use the WebKit paste event
+  while the ribbon read through a separate native clipboard. Project row
+  copy and paste now use GTK on Linux. Ribbon and keyboard paste share the
+  grid's row and cell handling. The installed x86_64 Flatpak on an isolated
+  X11 display pasted a Schedule row after keyboard Copy and a Resources row
+  after ribbon Copy. The paste used the opposite entry point in each case.
+  An independent GTK client also read the Resources payload.
+- Read-only portal grants still ask for a folder. On the installed package
+  without a filesystem override, a writable file grant saved twice without
+  a folder, produced numbered app-data backups matching the prior versions,
+  and reopened successfully. Save Copy rejected an unconfirmed overwrite and
+  replaced the selected file after confirmation, preserving the old contents.
+  Both saved files passed SQLite integrity checks.
+- In WebKitGTK 2.52.6, captured the same scrolling Schedule cell editor
+  with antialiasing, with automatic smoothing, and with antialiasing restored.
+  The computed weight stayed 400. Automatic smoothing changed the displayed
+  glyphs and introduced more color fringing. The two antialiased editor crops
+  were identical. Chromium also checked font weight and smoothing while the
+  grid overflowed.
+- All 246 Python tests, 5 Rust tests and 111 Chromium scenarios passed. The
+  opt-in performance scenario was skipped. Type checking, the production
+  build, Rust formatting, Clippy, changed-file quality, documentation and
+  diff checks passed. Vite retained its existing chunk-size warning.
+
+## 2026-11-24 — Shared category placement
+
+- Schedule and Resources use the same placement for Add Category and category
+  paste. The new groups go after the last selected group in project order,
+  or first with no selection. Category paste creates independent groups in
+  source order and routes copied items to them. Both operations use a copy
+  suffix when the requested name is already in use. Measurements already
+  uses group boundaries and allows repeated heading names.
+- Focused backend checks covered duplicate names, empty and populated copies,
+  selected item and no-selection placement, schedule parent-child links,
+  rollback and undo. Browser regressions copied populated Schedule and
+  Resources categories and verified their position and contents.
+- All 247 Python tests and 113 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. Type checking, the production build,
+  changed-file quality, documentation and diff checks passed. Vite retained
+  its existing chunk-size warning.
+
+## Schedule wrapping and MCP estimating feedback (2026-11-24)
+
+- Reproduced the Schedule issue with the supplied `6.eproj` in the revision 6
+  folder. In Chromium, the demolition description cell initially measured
+  309 px. Returning from another view reduced it to 289 px, with the first and
+  last lines extending beyond the cell. Tabulator sized the attached child
+  before restoring the tree indent. Remeasuring after that layout step retained
+  309 px across Analysis, Resources and Measurements. A Chromium regression uses
+  a generated estimate. It fails against the prior checkout with a 19 px loss
+  and passes with the sizing fix.
+  A separate WebKitGTK 2.52.6 harness used the real Python backend and the
+  supplied project on an isolated X11 display. The cell stayed at 316 px
+  with 5 px above and 6 px below the text in both themes across the three
+  view changes. The X11 harness used software rendering after an EGL warning.
+- **Revision 4 (lighting).** One heading held a multi-output sheet with four
+  room/area records. The project retained 19 library-coded resources. The
+  transcript shows an insertion-reference retry after the agent used
+  `$ref:h_lighting`. MCP now accepts both `$name` and `$ref:name`.
+- **Revision 5 (IFC).** In the saved flat list, 16 civil sheets precede the first
+  heading. Eleven electrical sheets sit below the electrical heading, and the
+  final civil heading is empty. The schedule has 11 work categories plus
+  SUB ANALYSIS. Some civil records have element breakdowns, but flooring and
+  several electrical counts are single aggregate rows. The supplied IFC has
+  Ground Floor and Terrace storeys and spatial containment relationships, with
+  no IFCSPACE or IFCELEMENTQUANTITY entities. The takeoff can retain storey and
+  element evidence. A room breakdown requires an identifiable plan or a stated
+  assumption. MCP now appends sheets to an explicit heading and reports each
+  sheet's category in paged reads. The skills guide the agent toward separate
+  records at the finest location the source supports.
+- **Revision 6 (demolition).** The saved analysis uses 11 custom resources. The
+  transcript shows that Antigravity displayed success summaries without their
+  data, then used shell-driven requests and source inspection. The project does
+  split the measured 2,000 m² by floor. Five in-process previews of 11 edits to
+  the saved analysis took roughly 8 ms at the median. Ten equivalent requests
+  over authenticated loopback HTTP had a median round trip of 8.70 ms. A first DSR2023 schedule
+  search took about 0.8–0.95 s, with subsequent searches around 5–6 ms. The
+  transcript has no server-side timings for the original session, so the
+  end-to-end time cannot be apportioned. Successful tool text now contains the
+  data, and the shared rate skill guides agents through relevant libraries and
+  rate reuse. The HTTP regression finds bundled civil demolition items, imports
+  one, adapts a copy and reuses a bundled excavator rate.
+- Search evaluation over 60 existing bundled-database queries retained recall
+  at five for both sources. With the dictionary active, mean reciprocal rank
+  at five rose from 0.6144 to 0.6161 for DSR2023 and from 0.7500 to 0.7667
+  for DSREM2025. Searching `demolishing rcc` now returns dotted R.C.C.
+  items 15.3 and 15.58 first and second. Analysis preview outputs matched for
+  11-edit and 100-edit runs. No financial engine calculation changed.
+- Verification passed for all 248 Python tests and 115 Chromium scenarios.
+  The opt-in browser performance profile was skipped. Type checking and the
+  production build passed with the existing Vite chunk-size warning. The
+  changed-file quality, documentation and diff checks passed. The read/write
+  tool discovery response remains within 16 KiB at 16,380 bytes.
+  The Antigravity sessions were reviewed from their saved transcripts. The
+  revised transport was tested over HTTP without rerunning that client.
+
+## Folder-based estimation skill libraries (2026-11-24)
+
+- Generic, IN and Shared are folder-based packages with versioned
+  `library.json` manifests. Program Settings uses discovered library IDs.
+  The MCP ribbon opens a persistent per-user folder and refreshes the catalog.
+  The settings dialog displays the active library and scan diagnostics.
+- The backend publishes the selected library and Shared as one read-only
+  snapshot. Library-qualified URIs distinguish same-named skills. Refresh
+  applies to new HTTP and tool requests on a running listener. A missing
+  selection serves Generic until the requested library returns or the user
+  saves another one.
+- All 248 Python tests passed. Skill tests covered manifest validation,
+  duplicate and reserved IDs, symlink and traversal rejection, references,
+  dynamic discovery and removal, fallback and restoration, and matching
+  results through MCP tools and resource calls. The focused browser workflow
+  covered opening the user directory through the desktop bridge, selecting IN,
+  refreshing a user library, reporting a malformed manifest, restoring the
+  preference after reload, and falling back to Generic after removing it.
+- The production build and changed-file quality checks passed. Vite retained
+  the existing large-chunk warning. Documentation and diff checks passed.
+  A generated copy of the HTML manual included the new user-library workflow.
+- The rebuilt Linux sidecar ran outside the source tree with isolated user
+  data. It served bundled manifests and a qualified IN reference. The
+  packaged workflow discovered a user library from disk, switched while
+  the listener was running, and served independently qualified user and
+  shared copies of the same skill ID before clean shutdown.
+- The full Chromium run finished with 114 passes, one opt-in performance skip
+  and one timeout in the existing Schedule category-insertion keyboard-focus
+  scenario. After isolating the temporary user skill directory to the new
+  workflow, that focus scenario passed five consecutive targeted reruns.
+  The final focused run also passed the user-library workflow and ribbon
+  layout checks from 700 to 1600 px and with enlarged text.
+
+## 2026-11-24 — GEstimator 3.1.0 release preparation
+
+- The candidate started at `e50f6324`, 12 commits ahead of `origin/master`
+  (`541eb771`). The [hosted quality run for master](https://github.com/manuvarkey/GEstimator/actions/runs/45255556322)
+  passed. GitHub Actions listed no run for the candidate source branch.
+  GitHub Releases still listed 3.0.1 as latest, and the upstream refs had no
+  3.1.0 tag. The x86_64 store queries showed Snap 3.0.1 on stable and edge
+  and Flathub 2.7.0 on stable.
+- Version metadata agrees across npm, Tauri, Cargo, Snap and AppStream.
+  AppStream and desktop entry validation passed. The AppStream date uses the
+  preparation date and needs confirmation before tagging. Snapcraft expanded
+  the package configuration and resolved the 3.1.0 Debian input path.
+- Changed-file checks passed with `tools/check_quality.py --fix` and
+  `tools/check_quality.py`. The documentation checker passed on a clean export
+  of the candidate files. The in-place check also scanned ignored Flatpak
+  build output and reported links in the copied source and vendored packages.
+  The branch correctness check against `origin/master` passed.
+- Full Python suite passed 248 tests outside the restricted sandbox. The
+  production frontend build passed with the existing large-chunk warning.
+  Chromium passed 115 browser tests with one opt-in performance case skipped.
+  Rust formatting, five unit tests and Clippy passed on Linux x86_64.
+- Both screenshot scenarios passed. The prepared GitHub Pages site passed
+  Chromium checks for navigation, manual anchors, images and narrow layout.
+  The [latest successful Pages deployment](https://github.com/manuvarkey/GEstimator/actions/runs/45255552678/job/137976596274)
+  used `master`, and the live `manual.html` returned HTTP 404. The site
+  update sits on a task branch based on `gh-pages`. Its publication requires
+  an updated Pages source or a deployment of that branch's files.
+- The Linux PyInstaller sidecar, amd64 Debian bundle and AppImage built
+  locally on Ubuntu 26.04. The extracted sidecars found the Generic and IN
+  skill libraries under isolated user data and shut down cleanly. AppImage
+  bundling completed on the longer verbose run after shorter runs were
+  stopped. Its packaging tool reported library copyright-file, stripping
+  and missing embedded AppStream metadata warnings.
+- The GNOME 51 x86_64 Flatpak built and exported locally. Its backend loaded
+  the same packaged libraries and shut down cleanly inside the build sandbox.
+  The exported permissions include network access and omit filesystem
+  grants. The installed-desktop FileChooser and clipboard review still needs
+  to run.
+- The [Flathub migration pull request](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+  is open following rejection of broad home access. The local external checkout
+  has the portal-based manifest and verified matching offline dependency lists.
+  Pin the external manifest to the commit of the final published tag and verify
+  the new x86_64 and aarch64 test builds and permission review.
+- Windows NSIS, the Ubuntu 22.04 release artifacts and the core22 Snap
+  remain for the hosted build and clean-install checks. These local artifacts
+  were built for verification before tagging.

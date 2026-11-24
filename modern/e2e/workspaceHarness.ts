@@ -21,10 +21,18 @@ export let requestTimings: { method: string; start: number; end: number }[] = []
 export function call(method: string, params: Record<string, unknown> = {}, session?: string) {
   return backend.call(method, params, session);
 }
-export function createBackend() {
+export function createBackend(skillDirectory?: string) {
   const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
   let sequence = 0;
-  const process = spawn(python, ["-m", "modern.backend"], {
+  const args = skillDirectory
+    ? [
+        "-c",
+        "import sys; from pathlib import Path; from modern.backend import mcp_skills; " +
+          "mcp_skills.user_directory = lambda: Path(sys.argv[1]); from modern.backend.__main__ import main; main()",
+        skillDirectory,
+      ]
+    : ["-m", "modern.backend"];
+  const process = spawn(python, args, {
     cwd: resolve(".."),
     env: { ...globalThis.process.env, GESTIMATOR_AUTO_DATABASES: "0" },
   });
@@ -50,8 +58,8 @@ export function createBackend() {
     },
   };
 }
-export function startBackend() {
-  backend = createBackend();
+export function startBackend(skillDirectory?: string) {
+  backend = createBackend(skillDirectory);
   child = backend.child;
 }
 export async function connectDesktop(page: Page, transport = call) {
@@ -114,7 +122,16 @@ export async function connectDesktop(page: Page, transport = call) {
           });
         if (method.startsWith("plugin:clipboard-manager|"))
           return (window as any).clipboardTransport(method.split("|")[1], args?.text);
+        if (method === "read_clipboard_text" || method === "write_clipboard_text")
+          return (window as any).clipboardTransport(
+            method === "read_clipboard_text" ? "read_text" : "write_text",
+            args?.text,
+          );
         if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
+        if (method === "open_library_directory") {
+          Reflect.set(window, "openedLibraryDirectory", args.path);
+          return Promise.resolve();
+        }
         if (method.startsWith("plugin:window|")) {
           ((window as any).windowCommands ||= []).push(method);
           if (method === "plugin:window|show")
@@ -139,7 +156,7 @@ export async function connectDesktop(page: Page, transport = call) {
   await page.locator("#view-analysis").click();
 }
 /** Install the real Python bridge and a fresh workspace for each test in a spec. */
-export function useWorkspaceHarness() {
+export function useWorkspaceHarness({ isolateSkillLibraries = false } = {}) {
   test.beforeEach(async ({ page }) => {
     directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
     measurementDelay = 0;
@@ -148,7 +165,7 @@ export function useWorkspaceHarness() {
     frontendRequests = [];
     frontendCalls = [];
     nativeDialogResults = [];
-    startBackend();
+    startBackend(isolateSkillLibraries ? resolve(directory, "skill-libraries") : undefined);
     await connectDesktop(page);
   });
   test.afterEach(async () => {
@@ -172,6 +189,30 @@ export const desktopControls = {
     frontendCalls = [];
   },
 };
+
+/** Hold one backend request so a test can drive input before its response. */
+export async function holdNextRequest(page: Page, method: string) {
+  await page.evaluate((heldMethod) => {
+    const bridge = window as Window & {
+      backendTransport: (request: { method: string }) => Promise<unknown>;
+      resumeHeldRequest?: () => void;
+    };
+    const send = bridge.backendTransport;
+    bridge.backendTransport = async (request) => {
+      if (request.method === heldMethod) {
+        bridge.backendTransport = send;
+        await new Promise<void>((resolve) => (bridge.resumeHeldRequest = resolve));
+      }
+      return send(request);
+    };
+  }, method);
+  return () =>
+    page.evaluate(() => {
+      const resume = Reflect.get(window, "resumeHeldRequest");
+      Reflect.deleteProperty(window, "resumeHeldRequest");
+      resume();
+    });
+}
 
 export async function openFixture(page: Page, path: string) {
   const hasRecent = await page.evaluate(

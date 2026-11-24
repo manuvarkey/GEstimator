@@ -6,6 +6,9 @@ Root [AGENTS.md](../AGENTS.md) owns mandatory code/comment/formatting rules.
 
 ## Before changing code
 
+Create a task branch before making changes. Follow the
+[branch and pull request rules](../AGENTS.md#branches-and-pull-requests).
+
 1. Use the [task map](README.md#find-guidance-by-task) and read the relevant
    current contract and source links. Check existing tests for retained behavior.
 2. Identify the owner: domain calculation, service orchestration, transaction,

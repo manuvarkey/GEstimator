@@ -51,12 +51,17 @@ watch(
       created.value = true;
       document.addEventListener("keydown", keyboard, true);
       await nextTick();
+      if (!visible.value) return;
       const field = panel.value && dialogPrimary(panel.value);
       field?.focus({ preventScroll: true });
       emit("show");
     } else {
       document.removeEventListener("keydown", keyboard, true);
-      previous?.focus({ preventScroll: true });
+      const opener = previous;
+      previous = null;
+      // The parent dialog may still be inert while the picker is closing.
+      await nextTick();
+      if (!visible.value) opener?.focus({ preventScroll: true });
     }
   },
   { immediate: true },

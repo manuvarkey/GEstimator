@@ -31,6 +31,7 @@ and MCP adapters reuse the same service/editor operations.
 | Rate dependencies and recalculation | [`rates.py`](../../modern/backend/rates.py) |
 | Ordered insertion and dependency-category placement | [`insertion.py`](../../modern/backend/insertion.py) |
 | Versioned row-transfer payloads | [`clipboard.py`](../../modern/backend/clipboard.py) |
+| Application-wide estimation skill manifests and resource snapshots | [`mcp_skills.py`](../../modern/backend/mcp_skills.py) |
 | Search, notes and optional enrichment | [`search.py`](../../modern/backend/search.py), [`metadata.py`](../../modern/backend/metadata.py) |
 | Saves, fingerprints, backups and recovery locks | [`persistence.py`](../../modern/backend/persistence.py) |
 | Reporting changes/deltas | [`editor_changes.py`](../../modern/backend/editor_changes.py) |
@@ -50,15 +51,20 @@ and clipboard lifetime remain with the editor. Edit handlers reuse its
 selection, deletion and numbering operations and share insertion placement
 with other project workflows.
 
-Category creation in Schedule and Resources uses the tree's last selected
-row in project order. It inserts after that row's category, or first when
-there is no selection. The reserved SUB ANALYSIS category stays last.
-Measurements use the same rule for stored headings,
-placing them between category blocks so existing measurements retain their
-category. An item inserted or pasted into Measurements goes after the last
-selected item, at the start of a selected category, or at the top without a
-selection. A pasted or duplicated block containing a heading starts at a
-category boundary.
+Schedule, Resources and Measurements add and paste categories at group
+boundaries. The last selected row in project order determines the group.
+New groups go after that group, or at the start of the named groups when
+there is no selection. Measurements keeps any leading uncategorised items
+above the first heading. The reserved SUB ANALYSIS category stays last.
+
+Copying a category includes its contents. Paste creates a separate group for
+each copied category in source order, including empty categories. Copied
+items go into the new group and Schedule keeps its parent-child hierarchy.
+Schedule and Resources require unique category names. Adding or pasting a
+category with an existing name adds ` (copy)`, ` (copy 2)`, and so on.
+Measurements allows repeated heading names. Adding or pasting ordinary rows
+onto a category heading inserts them at the start of that group. Selecting an
+item places the new rows after it, subject to Schedule's existing subitem rules.
 
 `ProjectEditor.state` forwards read-only table presentation to
 `project_tables`. The editor retains its working and attached database

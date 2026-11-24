@@ -27,9 +27,11 @@ behavior, future work and historical evidence.
 | Change components, navigation, tables, document tabs or refresh | [Frontend architecture](architecture/frontend.md), [UI guidelines](ui-guidelines.md) |
 | Change native process lifecycle, file opening or packaging | [Native shell](architecture/README.md#native-shell), [build setup](../modern/README.md) |
 | Change MCP tools, permissions, resources, SQL or synchronization | [MCP architecture and contract](architecture/mcp.md) |
+| Package or install estimation skill libraries | [Library manifests and folders](architecture/mcp.md#library-folders-and-manifest), [user workflow](manual/README.md#add-an-office-skill-library) |
 | Change bulk analysis rules or their presets | [Analysis rules](features/analysis-rules.md), [backend](architecture/backend.md) |
 | Change expressions, numeric precision or measurement templates | [Numeric evaluation](architecture/backend.md#numeric-evaluation), [expression syntax](manual/README.md#numeric-expressions) |
 | Prepare verification or investigate a failure | [Testing guide](testing.md), [validation evidence](migration/validation.md) |
+| Prepare a release or update the website and distribution packages | [Release guide](releasing.md), [3.1 release notes](releases/3.1.0.md) |
 | Assess a large module or plan a refactor | [Development guidelines](development-guidelines.md), [quality audit](code-quality-audit.md) |
 | Explain how a user completes a workflow | [User manual](manual/README.md) |
 | Understand a past decision or compatibility difference | [Migration archive index](migration/README.md) |

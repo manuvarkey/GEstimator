@@ -121,6 +121,12 @@ test("landing page creates a new project", async ({ page }) => {
   await landing.getByRole("button", { name: /New project/ }).click();
   await expect(landing).not.toBeVisible();
   await expect(page.locator(".project-view:visible .project-main-grid")).toBeVisible();
+  const project = resolve(directory, "first-save.eproj");
+  nativeDialogResults.push(project);
+  await page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }).click();
+  await expect.poll(async () => (await call("state")).result.source_path).toBe(project);
+  expect((await readFile(project)).subarray(0, 15).toString()).toBe("SQLite format 3");
+
   // Close project from the application menu returns to the landing page.
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Close project", exact: true }).click();
@@ -163,7 +169,8 @@ test("real project navigation protects unsaved drafts and save-copy clears dirty
   await expect(page.locator(".draft-badge")).toContainText("Unsaved changes");
   const output = resolve(directory, "review.eproj");
   nativeDialogResults.push(output);
-  await page.getByRole("button", { name: "Save copy", exact: true }).click();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -193,8 +200,7 @@ test("in-place save keeps a backup and the project appears in recent projects", 
   await page.locator(".tabulator-header:visible").click();
   await expect(quantity).toHaveText("8");
   await expect(page.locator(".statusbar")).toContainText("Unsaved draft");
-  await expect(header.getByRole("button", { name: "Save copy" })).toBeEnabled();
-  await page.keyboard.press("Control+s");
+  await header.getByRole("button", { name: "Save project", exact: true }).click();
   await expect(page.locator(".statusbar")).toContainText("Saved");
   expect(await readFile(project + ".bak")).toEqual(original);
   expect(await readFile(project)).not.toEqual(original);
@@ -430,9 +436,11 @@ test("in-place save waits for folder selection and keeps edits on cancellation",
   await page.evaluate(() => {
     const internals = (window as any).__TAURI_INTERNALS__;
     const invoke = internals.invoke;
-    internals.invoke = async (command: string, params: unknown) => {
+    internals.invoke = async (command: string, params: { options?: { defaultPath?: string } }) => {
+      if (command === "plugin:dialog|save") internals.saveDefaultPath = params.options?.defaultPath;
       const reply = await invoke(command, params);
       if (command === "backend_request" && reply?.result?.source_path && "source_requires_folder" in reply.result) {
+        reply.result.source_path = "/run/flatpak/doc/grant/estimate.eproj";
         reply.result.source_requires_folder = true;
       }
       return reply;
@@ -448,9 +456,14 @@ test("in-place save waits for folder selection and keeps edits on cancellation",
   await quantity.locator("input").press("Enter");
   await expect(page.getByRole("status", { name: "Overall estimate total", exact: true })).toContainText("45.00");
 
+  nativeDialogResults.push(null);
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
+  await expect.poll(() => nativeDialogResults.length).toBe(0);
+  expect(await page.evaluate(() => (window as any).__TAURI_INTERNALS__.saveDefaultPath)).toBe("estimate-edited.eproj");
+
   async function saveProject() {
-    await page.getByRole("button", { name: "Application menu", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Save project", exact: true }).click();
+    await page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }).click();
     await expect.poll(() => nativeDialogResults.length).toBe(0);
   }
 

@@ -182,7 +182,17 @@ def record_import_preview(editor, p):
 
 
 def _insertion_index(meas, identities, params, *, category=False):
-    """Insert after the last selected item, or after its whole group for a heading."""
+    """Choose a position without moving rows across an existing group boundary."""
+    category_id = params.get("category_id")
+    if category_id is not None:
+        if category or params.get("id") or params.get("ids"):
+            raise ValueError("Choose a measurement category only when adding a sheet without an anchor")
+        if category_id not in identities or not isinstance(
+            meas.items[identities.index(category_id)], measurement.MeasurementItemHeading
+        ):
+            raise ValueError("Measurement category must be a heading ID")
+        params = {"id": category_id}
+        category = True
     ids = params.get("ids") or ([params["id"]] if params.get("id") else [])
     positions = {identity: index for index, identity in enumerate(identities)}
     # The synthetic header is before the first stored item.
@@ -191,8 +201,7 @@ def _insertion_index(meas, identities, params, *, category=False):
         raise ValueError("Invalid measurement insertion selection")
     index = max((positions[identity] for identity in ids), default=-1) + 1
     if category:
-        # A heading starts a group in the saved flat list. Insert at the next
-        # boundary so existing items keep their current category.
+        # Append inside the selected group or insert a new heading at its end.
         while index < len(meas.items) and not isinstance(meas.items[index], measurement.MeasurementItemHeading):
             index += 1
     return index

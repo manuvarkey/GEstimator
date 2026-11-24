@@ -135,9 +135,16 @@ user/library databases. Their columns are owned by
 - Save Copy exclusively creates a new destination. Save checks the original's
   fingerprint/journals, stages a complete snapshot, preserves a numbered sibling
   backup and replaces the original under an advisory save lock.
-  On Flatpak, a project opened through a file grant needs a folder grant for
-  the first in-place Save. GEstimator verifies that both grants identify the
-  same unchanged project before writing through the folder grant.
+  On Flatpak, a writable file grant supports in-place Save directly. Backups
+  for a single-file grant live in the app's data directory under
+  `project-backups`. A read-only file grant needs a writable folder selection.
+  GEstimator verifies that both grants identify the same unchanged project
+  and keeps backups beside the project when using the folder grant. Flatpak
+  instances lock in the shared app runtime directory using the project's
+  portal-reported host path as the identity.
+  The Flatpak Save Copy chooser can confirm replacement of an existing file.
+  GEstimator stages the complete copy and preserves the previous file before
+  replacement. Direct path requests still require an unused filename.
 - Recovery writes staged snapshots and uses per-copy OS claims to keep active
   documents in other processes from offering/deleting the same recovery copy.
   Recovery includes pending analysis/record drafts; it does not persist undo history.

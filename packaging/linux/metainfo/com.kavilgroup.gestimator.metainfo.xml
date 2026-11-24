@@ -22,11 +22,12 @@
       <li>Rate analysis editor with undo, bulk editing of analyses and rate updates from databases</li>
       <li>Several projects open in tabs, with recovery of unsaved work</li>
       <li>Import from and export to Excel workbooks</li>
-      <li>Optional local MCP server for AI assistants to read and prepare estimates</li>
+      <li>Optional local MCP server with bundled and user-added estimation guides</li>
     </ul>
   </description>
   <url type="homepage">https://manuvarkey.github.io/GEstimator</url>
   <url type="bugtracker">https://github.com/manuvarkey/GEstimator/issues</url>
+  <url type="help">https://github.com/manuvarkey/GEstimator/blob/master/docs/manual/README.md</url>
   <url type="vcs-browser">https://github.com/manuvarkey/GEstimator</url>
   <screenshots>
     <screenshot type="default">
@@ -58,6 +59,18 @@
   <project_group>Office</project_group>
   <content_rating type="oars-1.1" />
   <releases>
+    <release date="2026-11-24" version="3.1.0">
+      <description>
+        <p>Estimation skill libraries, improved keyboard navigation and Flatpak file access.</p>
+        <ul>
+          <li>Choose a bundled estimation skillset or add your own office guides for MCP clients</li>
+          <li>Select and add database items by keyboard and keep focus while editing schedules, analyses and measurements</li>
+          <li>Copy and paste whole categories in Schedule, Resources and Measurements</li>
+          <li>Read long schedule descriptions with improved wrapping</li>
+          <li>Open and save projects through the Flatpak file chooser and copy rows between windows</li>
+        </ul>
+      </description>
+    </release>
     <release date="2026-11-22" version="3.0.1">
       <description>
         <p>Bug fix release.</p>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // Share the schedule-link picker between staged properties and the record editor.
-import { ref, type ComputedRef, type Ref } from "vue";
+import { nextTick, ref, watch, type ComputedRef, type Ref } from "vue";
 import Dialog from "primevue/dialog";
 import AppIcon from "./AppIcon.vue";
 import PersistentDialog from "./PersistentDialog.vue";
 import { request } from "../backend";
+import { useLiveSearch } from "../liveSearch";
 import { vMiddleEllipsis } from "../middleEllipsis";
+import { focusResultButton } from "../resultNavigation";
 import type { GridRow, GridState, MeasurementDetail, ViewCommand } from "../projectViewTypes";
 
 interface PropertiesContext {
@@ -33,8 +35,21 @@ const pickerSlot = ref(0);
 const pickerQuery = ref("");
 const pickerPage = ref(0);
 const pickerItems = ref<{ code: string; description: string; unit: string | null }[]>([]);
+const pickerResults = ref<HTMLElement>();
 const pickerBusy = ref(false);
 const pickerError = ref("");
+let pendingNavigation: { key: string; from: EventTarget | null } | undefined;
+let searchedQuery = "";
+const liveSearch = useLiveSearch(
+  pickerQuery,
+  () => searchedQuery,
+  async () => {
+    if (pickerOpen.value) return searchLinks();
+  },
+);
+watch(pickerOpen, (opened) => {
+  if (!opened) liveSearch.cancel();
+});
 
 /** Open a form snapshot for the selected measurement or category. */
 async function showProperties() {
@@ -63,25 +78,46 @@ async function saveProperties() {
     propertiesOpen.value = false;
 }
 
-async function searchLinks() {
+async function searchLinks(page = 0) {
+  if (pickerBusy.value) return false;
+  liveSearch.cancel();
+  searchedQuery = pickerQuery.value;
   pickerBusy.value = true;
   pickerError.value = "";
+  pickerPage.value = page;
+  // Reset at the start, so the response cannot pull the viewport away from a user scroll.
+  pickerItems.value = [];
+  pickerResults.value?.scrollTo(0, 0);
   try {
-    pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: pickerPage.value * 100 });
+    pickerItems.value = await request("schedule.list", { query: searchedQuery, offset: page * 100 });
   } catch (reason) {
     pickerError.value = String(reason);
   } finally {
     pickerBusy.value = false;
   }
+  await nextTick();
+  const pending = pendingNavigation;
+  pendingNavigation = undefined;
+  if (pending && pickerOpen.value && document.activeElement === pending.from)
+    focusResultButton(pickerResults.value, pending.key);
 }
 
 /** Open a fresh schedule search for the chosen link slot. */
 async function showLinkPicker(slot: number) {
   pickerSlot.value = slot;
   pickerQuery.value = "";
-  pickerPage.value = 0;
   pickerOpen.value = true;
   await searchLinks();
+}
+
+function navigateLinks(event: KeyboardEvent) {
+  if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (pickerBusy.value) {
+    pendingNavigation = { key: event.key, from: event.target };
+    event.preventDefault();
+  } else if (focusResultButton(pickerResults.value, event.key)) {
+    event.preventDefault();
+  }
 }
 
 async function chooseLink(code: string) {
@@ -109,6 +145,7 @@ defineExpose({ showProperties, showLinkPicker });
     class="workspace-dialog measurement-properties-dialog"
     :closable="!busy"
     :close-on-escape="!busy"
+    :pt="{ root: { inert: pickerOpen || undefined } }"
   >
     <form @submit.prevent="saveProperties">
       <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>
@@ -178,27 +215,21 @@ defineExpose({ showProperties, showLinkPicker });
   <PersistentDialog
     :busy="pickerBusy"
     v-model:visible="pickerOpen"
-    modal
     header="Choose schedule item"
-    class="workspace-dialog resource-dialog"
+    class="resource-dialog measurement-link-picker"
   >
-    <form
-      class="search-field"
-      @submit.prevent="
-        pickerPage = 0;
-        searchLinks();
-      "
-    >
+    <form class="search-field" @submit.prevent="searchLinks()">
       <input
         v-model="pickerQuery"
         data-primary-input
         autofocus
         aria-label="Find linked schedule item"
         placeholder="Code or description…"
+        @keydown.up.down="navigateLinks"
       /><button class="button small secondary" :disabled="pickerBusy">Search</button>
     </form>
     <p v-if="pickerError" role="alert" class="dialog-error">{{ pickerError }}</p>
-    <div class="library-results">
+    <div ref="pickerResults" class="library-results" @keydown.up.down.home.end="navigateLinks">
       <button
         v-for="item in pickerItems"
         :key="item.code"
@@ -215,23 +246,13 @@ defineExpose({ showProperties, showLinkPicker });
       <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
     </div>
     <div class="pagination">
-      <button
-        class="text-button"
-        :disabled="pickerBusy || !pickerPage"
-        @click="
-          pickerPage--;
-          searchLinks();
-        "
-      >
+      <button class="text-button" :disabled="pickerBusy || !pickerPage" @click="searchLinks(pickerPage - 1)">
         Previous</button
       ><span>Page {{ pickerPage + 1 }}</span
       ><button
         class="text-button"
         :disabled="pickerBusy || pickerItems.length < 100"
-        @click="
-          pickerPage++;
-          searchLinks();
-        "
+        @click="searchLinks(pickerPage + 1)"
       >
         Next
       </button>

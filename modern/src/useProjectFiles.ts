@@ -34,19 +34,7 @@ interface ProjectFilesContext {
 export function useProjectFiles(context: ProjectFilesContext) {
   const { documentId, uiBusy, discardOpen, navigate, inNewDocument, closeProjectTab, continueAfterSave } = context;
   const w = context.workspace;
-  const {
-    state,
-    error,
-    projectSession,
-    schedule,
-    resources,
-    scheduleQuery,
-    resourceQuery,
-    resourceSource,
-    schedulePage,
-    resourcePage,
-    selected,
-  } = w;
+  const { state, error, projectSession, selected } = w;
   let finishOsOpen: (() => void) | undefined;
   let switchingAway = false;
 
@@ -74,6 +62,12 @@ export function useProjectFiles(context: ProjectFilesContext) {
     setRecentProjects([path, ...recentProjects.value.filter((item) => normalizePath(item) !== norm)].slice(0, 10));
   }
   const filePath = ref("");
+
+  function saveDialogPath(path: string): string {
+    // The host chooser cannot start in the app's filtered Documents mount.
+    // Keep the suggested name and let the portal pick the starting folder.
+    return /^\/(?:run\/flatpak\/doc|run\/user\/\d+\/doc)\//.test(path) ? path.slice(path.lastIndexOf("/") + 1) : path;
+  }
 
   async function openOsProject(path: string) {
     // Step 1: wait for the active input/guard before consuming the next OS request.
@@ -127,10 +121,10 @@ export function useProjectFiles(context: ProjectFilesContext) {
       const path =
         mode === "open"
           ? await open({ multiple: false, filters })
-          : await save({ filters, defaultPath: filePath.value });
+          : await save({ filters, defaultPath: saveDialogPath(filePath.value) });
       if (typeof path !== "string") return;
       if (mode === "open") await openProjectPath(path);
-      else if (await w.saveCopy(path)) {
+      else if (await w.saveCopy(path, true)) {
         rememberProject(path);
         await continueAfterSave();
       }
@@ -172,7 +166,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
       const path =
         fileMode.value === "open"
           ? await open({ multiple: false, filters })
-          : await save({ filters, defaultPath: filePath.value || undefined });
+          : await save({ filters, defaultPath: saveDialogPath(filePath.value) || undefined });
       if (typeof path === "string") filePath.value = path;
     } catch (e) {
       error.value = String(e);
@@ -229,10 +223,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
         await w.refresh();
         // Step 2: invalidate old view state only after the replacement succeeds.
         projectSession.value++;
-        schedule.value = [];
-        resources.value = [];
-        scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
-        schedulePage.value = resourcePage.value = 0;
+        w.resetExplorer();
         selected.value = [];
         context.showSchedule();
       });
@@ -251,8 +242,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
         await request("project.close", { discard });
         await w.refresh();
         projectSession.value++;
-        schedule.value = [];
-        resources.value = [];
+        w.resetExplorer();
         selected.value = [];
         context.showSchedule();
       }, "Closing project…");

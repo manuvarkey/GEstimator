@@ -33,6 +33,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule, Resources and Measurements list ribbon groups | [`ProjectListRibbon.vue`](../../modern/src/components/ProjectListRibbon.vue) |
 | Project editor shortcut recognition and precedence | [`projectViewShortcuts.ts`](../../modern/src/projectViewShortcuts.ts) |
 | Project grid loading, search, paging, delta refresh and table restoration | [`useProjectGrid.ts`](../../modern/src/useProjectGrid.ts) |
+| Post-insertion grid focus across editors and dialogs | [`useEditorFocus.ts`](../../modern/src/useEditorFocus.ts) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
@@ -50,6 +51,7 @@ formatting is presentation; the currency option does not convert prices.
 | Tab memory, row clipboard, cell navigation/editing and selection | [`tabMemory.ts`](../../modern/src/tabMemory.ts), [`rowClipboard.ts`](../../modern/src/rowClipboard.ts), [`cellNavigation.ts`](../../modern/src/cellNavigation.ts), [`tableTextEditor.ts`](../../modern/src/tableTextEditor.ts), [`tableSelection.ts`](../../modern/src/tableSelection.ts) |
 | Display formatting and appearance | [`numberFormatting.ts`](../../modern/src/numberFormatting.ts), [`appearance.ts`](../../modern/src/appearance.ts) |
 | Program settings and shared helpers | [`programSettings.ts`](../../modern/src/programSettings.ts), [`uiActions.ts`](../../modern/src/uiActions.ts), [`statusNotice.ts`](../../modern/src/statusNotice.ts) |
+| Estimation skill catalog controls and settings selector | [`MCPRibbon.vue`](../../modern/src/components/MCPRibbon.vue), [`skillLibraries.ts`](../../modern/src/skillLibraries.ts), [`ProgramSettings.vue`](../../modern/src/components/ProgramSettings.vue) |
 | MCP control/status and library restoration | [`mcp.ts`](../../modern/src/mcp.ts), [`libraryPreferences.ts`](../../modern/src/libraryPreferences.ts) |
 | Native file-open/drop routing | [`projectOpening.ts`](../../modern/src/projectOpening.ts) |
 
@@ -111,10 +113,16 @@ separate from document switching, which changes backend session and remounts it.
 events through the existing analysis commands, dialogs and visibility controls.
 
 `AnalysisExplorer` renders the active search tab and its project items.
-The workspace retains queries, results and paging state. The shell routes
-item activation through guarded navigation and resource activation through
-the existing draft insertion command. The search field keeps its workspace
-focus target when the explorer is shown or its tab changes.
+The workspace loads the Schedule page when the Explorer becomes visible,
+including for new and remounted projects. It refreshes the last submitted
+query, keeping unsubmitted search text available. Search stays available
+during this initial load and a newer request takes priority over its result.
+The workspace retains results and paging state and uses the shared Search
+as you type setting for both tabs. Up or Down from search moves focus
+to a result button. Arrow keys and Home/End navigate results, and Enter
+activates the focused result. The shell routes schedule activation through
+guarded navigation and resource activation through the existing draft
+insertion command.
 
 `ProjectListRibbon` renders the Schedule, Resources and Measurements list
 actions, using the current view, selection and busy state to determine which
@@ -154,6 +162,12 @@ paste. Do not use a visible row index as an item identity. Hidden category
 contents and off-page rows are resolved by backend selection expansion; frontend
 filtering cannot define deletion, import or total scope.
 
+Project grid paste uses one text path for keyboard and ribbon actions. GEstimator
+row payloads go through the backend's editor-kind validation and plain text
+goes to the selected cells. Active text fields keep their normal editing
+shortcuts. On Linux the native clipboard uses GTK's display and input seat,
+shared with WebKit.
+
 `useWorkspaceMCP` polls change sequence/project epoch and refreshes the active workspace.
 Refresh is deferred around human edits and dialogs. A stale edit is rejected
 with its input retained for correction; do not silently overwrite it with an
@@ -178,15 +192,34 @@ field edits and row actions. The shell routes field edits through the same
 callback as the analysis grid. `useWorkspaceNavigation` owns inspector
 visibility and restores it when switching back to an open document tab.
 
+Analysis cell edits reconcile the refreshed row by ID and column. Enter
+returns focus to the committed cell by default, while the Program Settings
+option opens the next editable cell below. Tab retains its existing navigation
+order. Analysis layout redraws preserve focus on a surviving cell.
+
 `ProjectDatabasePickers` keeps separate schedule and resource add pickers and a
 shared rate refresh picker mounted across editor switches. The project view
 supplies the selected IDs and revision when opening a picker and handles its
 apply command. The picker displays the view's command error if applying fails.
+Up or Down from the search field moves selection and keyboard focus into the
+results grid. This handoff also applies to the Schedule and Resources project
+tables. Enter in the search field still runs a search.
+Enter in the results grid imports all selected item rows, skipping category
+headings. Schedule Enter uses Modify & Add. Ctrl+Enter (Command+Enter on macOS)
+adds the items unmodified. Double-click applies to the clicked item.
 An updated project session recreates the picker instances, and the shell
 continues to open the database manager for picker requests.
 The database manager handles reselection of unavailable remembered paths.
 `libraryPreferences.ts` updates the saved entry after the replacement
 attachment succeeds.
+
+Successful insert commands in Schedule, Resources, Analysis and Measurements
+focus the receiving grid once its rows are refreshed and the dialog, if any,
+has closed. The same handoff covers new items, subitems, categories, database
+and workbook insertion, duplication and row paste. Measurement records use
+the record grid when their draft is open. Analysis resources inserted from
+the Explorer focus the analysis grid. A failed command leaves focus in the
+current workflow, and inactive views cancel a pending handoff.
 
 `ResourceEditingDialogs` stages the destination category for resource moves
 and the database prefixes to exclude from renumbering. It loads prefixes
@@ -264,8 +297,17 @@ draft activation and summary synchronization on the existing shared path.
 `MeasurementPropertiesDialog` stages description, links and template constants
 in a form snapshot with the original revision. The component owns both the
 properties form and its schedule-link picker. The view opens the same picker
-from the active record editor. Saving properties and changing a record link use
-the view's common command. Python owns validation, calculations and undo.
+from the active record editor. Search follows the shared Search as you type
+setting. Results scroll independently of the search and page controls. A new
+search or page clears the previous results and resets scrolling before the
+request completes. Up or Down from search focuses a result, including when the
+key is pressed during loading and search still has focus when results arrive.
+Arrow keys and Home/End navigate the page, and Enter selects the focused item.
+Result buttons show a focus outline regardless of how the picker was opened.
+The Properties dialog is inert while its child picker is open. Closing the
+picker restores focus to its opener after the parent becomes interactive.
+Saving properties and changing a record link use the view's common command.
+Python owns validation, calculations and undo.
 
 The contracts in `projectViewTypes.ts` distinguish schedule items, resources,
 categories and flat measurement list rows. Full project table pages carry
@@ -276,14 +318,20 @@ headings into display categories and overlays schedule discrepancy colours.
 `DataTable` uses its caller's row type for selection, activation, edits and
 patches. The adapter casts rows returned by Tabulator, which does not publish
 generic row types. `measurementColumns.ts` handles the existing column options
-missing from Tabulator's types and preserves text-node rendering for author data.
+missing from Tabulator's types and preserves text-node rendering for author data. Schedule
+uses bounded pages with Tabulator’s basic renderer. On a forced rebuild of an
+attached child row, the adapter remeasures its height after the tree indent is
+restored so the wrapped description fits when a view is shown again.
 
 ## Preferences, styles and text
 
 Program/appearance/MCP/library preferences are application settings, separate
 from `.eproj` project metadata. Program settings are validated by Python and
 stored in versioned frontend preferences. Do not add project-specific state to
-a global preference or store derived backend totals as preferences.
+a global preference or store derived backend totals as preferences. The
+estimation skill selector uses the Python catalog and persists the manifest ID.
+The MCP ribbon opens the user folder through the existing desktop folder
+command and refreshes the published [MCP skill catalog](mcp.md#estimation-skills-resources).
 
 Semantic tokens belong in [`theme.css`](../../modern/src/theme.css); shared
 styles in [`style.css`](../../modern/src/style.css). Reuse `AppIcon`,

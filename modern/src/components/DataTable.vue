@@ -32,6 +32,7 @@ const props = defineProps<{
   /** Continues the type-ahead search on other pages of a paged table. */
   typeAheadFind?: TypeAheadFind;
   activateOnDoubleClick?: boolean;
+  activateSelectionOnEnter?: boolean;
   label?: string;
   selectIds?: string[];
   saveCell?: (row: Row, field: string, value: string) => Promise<boolean>;
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   paste: [changes: { id: string; field: string; value: string }[]];
   edit: [row: Row, field: string, value: string];
   activate: [row: Row, modifiers?: { ctrl: boolean }];
+  activateSelection: [rows: Row[], modifiers: { ctrl: boolean }];
   pasteRows: [data: string];
   action: [operation: string];
 }>();
@@ -152,8 +154,24 @@ watch(
     await redraw(true);
   },
 );
+const rowsToResize = new Set<RowComponent>();
+
+/** Recheck attached tree rows rebuilt before Tabulator adds their branch. */
+function resizeAfterTreeLayout(row: RowComponent) {
+  if (!rowsToResize.size) {
+    queueMicrotask(() => {
+      for (const pending of rowsToResize) {
+        if (pending.getElement().offsetParent) pending.normalizeHeight();
+      }
+      rowsToResize.clear();
+    });
+  }
+  rowsToResize.add(row);
+}
+
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
+  pasteText,
   focus: async () => {
     await ready;
     await replacement;
@@ -179,10 +197,14 @@ defineExpose({
     }
   },
   redraw,
-  /** Move the row selection from a search box: Arrow Up/Down step through the rows. */
-  step: async (event: KeyboardEvent) => {
+  /** Let a search field move the selection and optionally hand keyboard focus to the grid. */
+  step: async (event: KeyboardEvent, options?: { focus: boolean }) => {
+    if (event.isComposing) return;
     await ready;
-    if (alive && table) tableSelection(event, table, props.busy, !!props.tree, true);
+    if (!alive || !table || !tableSelection(event, table, props.busy, !!props.tree, true)) return;
+    if (options?.focus && table.getSelectedRows().length && document.activeElement === event.target) {
+      element.value?.focus({ preventScroll: true });
+    }
   },
   /** Show the first rows, e.g. before loading new search results. */
   scrollToTop: async () => {
@@ -300,30 +322,32 @@ function keyboard(event: KeyboardEvent) {
     }
     return;
   }
-  if (
-    event.key === "Enter" &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    !event.altKey &&
-    table.getSelectedRows().length === 1
-  ) {
+  if (event.key === "Enter" && !event.altKey) {
+    const rows = selectedData();
+    const ctrl = event.ctrlKey || event.metaKey;
+    if (!rows.length || (!props.activateSelectionOnEnter && (ctrl || rows.length !== 1))) return;
     event.preventDefault();
     event.stopPropagation();
-    emit("activate", selectedData()[0], { ctrl: event.ctrlKey || event.metaKey });
+    if (props.activateSelectionOnEnter) emit("activateSelection", rows, { ctrl });
+    else emit("activate", rows[0]!, { ctrl });
   }
 }
 function paste(event: ClipboardEvent) {
   if (props.busy || (event.target as HTMLElement).closest("input,textarea,[contenteditable=true]")) return;
   const text = event.clipboardData?.getData("text/plain");
-  if (text === undefined) return;
-  if (isRowClipboard(text)) {
-    event.preventDefault();
-    event.stopPropagation();
-    emit("pasteRows", text);
-    return;
-  }
-  if (!anchor) return;
+  if (text === undefined || !pasteText(text)) return;
   event.preventDefault();
+  event.stopPropagation();
+}
+
+/** Route row payloads and plain cell text the same way for every paste entry point. */
+function pasteText(text: string) {
+  if (!table || props.busy) return false;
+  if (isRowClipboard(text)) {
+    emit("pasteRows", text);
+    return true;
+  }
+  if (!anchor) return false;
   const rows: RowComponent[] = [];
   const flatten = (values: RowComponent[]) => {
     for (const row of values) {
@@ -333,10 +357,10 @@ function paste(event: ClipboardEvent) {
   };
   flatten(table.getRows());
   const start = rows.findIndex((row) => rowData(row).id === anchor!.id);
-  if (start < 0) return;
+  if (start < 0) return false;
   const columns = props.columns;
   const columnStart = columns.findIndex((column) => column.field === anchor!.field);
-  if (columnStart < 0) return;
+  if (columnStart < 0) return false;
   const selection = selectedData();
   const changes: { id: string; field: string; value: string }[] = [];
   const add = (row: RowComponent, field: string, value: string) => {
@@ -365,6 +389,7 @@ function paste(event: ClipboardEvent) {
     }
   }
   if (changes.length) emit("paste", changes);
+  return changes.length > 0;
 }
 
 watch(
@@ -481,6 +506,9 @@ onMounted(() => {
       const data = rowData(row);
       const element = row.getElement();
       element.dataset.kind = data.rowtype === "Category" ? "Group" : "Resource";
+      // A forced redraw sizes attached cells before inserting the tree branch.
+      // Its indent changes the wrap width. Detached new rows are already measured by the renderer.
+      if (props.renderAllRows && element.offsetParent && row.getTreeParent()) resizeAfterTreeLayout(row);
       const colour = data.colour;
       if (data.rowtype === "Schedule" && typeof colour === "string" && /^#[0-9a-f]{6}$/i.test(colour)) {
         const [red, green, blue] = [1, 3, 5].map((offset) => {

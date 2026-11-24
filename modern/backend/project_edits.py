@@ -10,7 +10,7 @@ import re
 from estimator.data.schedule import Currency, ResourceItemModel, ScheduleItemModel
 
 from .clipboard import order as tree_order
-from .insertion import defaults, last_selected, place, prepare
+from .insertion import defaults, insert_categories, place, prepare
 from .numbers import decimal
 from .rates import recalculate_rates
 from .validation import text
@@ -41,12 +41,8 @@ def edit(editor, kind, op, p):
         return editor.delete_selection(kind, p)
     if op == "category_add":
         name = text(p["description"])
-        selected, is_category = last_selected(editor, kind, p)
-        destination = selected if is_category else selected.category if selected is not None else None
-        method = db.insert_resource_category_atomic if resource else db.insert_schedule_category_atomic
-        if method(name, [destination.order] if destination is not None else None) is False:
-            raise ValueError("Category could not be added")
-        return dict(selected=[f"cat:{category.get(description=name).id}"])
+        row = insert_categories(editor, kind, [name], p)[name]
+        return dict(selected=[f"cat:{row.id}"])
     if op == "rates":
         recalculate_rates(db, [r.code for r in db.ScheduleTable.select()])
         return

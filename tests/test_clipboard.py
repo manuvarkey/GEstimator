@@ -136,6 +136,7 @@ class ClipboardTests(unittest.TestCase):
         copied = self.b.db.get_item("A-copy", modify_res_code=False)
         nested = self.b.db.get_item("A.1", modify_res_code=False)
         self.assertEqual((copied.colour, copied.remarks, nested.parent), ("#AABBCC", "Schedule note", "A-copy"))
+        self.assertEqual((copied.category, nested.category), ("Work (copy)", "Work (copy)"))
         # GTK: resources from another project are qualified by its instance code.
         local = self.a.instance_code() + ".R"
         self.assertEqual(copied.resources[local].description, "Material\nDescription")
@@ -170,6 +171,41 @@ class ClipboardTests(unittest.TestCase):
             .where(self.b.db.ScheduleCategoryTable.description == "Empty")
             .exists()
         )
+
+    def test_category_paste_inserts_ordered_copies_at_the_selected_group_boundary(self):
+        for kind, original, first_code in (("schedule", "Work", "A"), ("resources", "Materials", "R")):
+            with self.subTest(kind=kind):
+                prefix = kind + ".editor."
+                source_group = self.call(self.a, prefix + "state")["rows"][0]
+                empty = self.call(self.a, prefix + "category_add", ids=[source_group["id"]], description="Empty")[
+                    "selected"
+                ][0]
+                anchor = self.call(
+                    self.b, prefix + "add", data=dict(code=first_code, description="Original item", category=original)
+                )["selected"][0]
+                self.call(self.b, prefix + "category_add", ids=[anchor], description="Following category")
+                original_rows = self.call(self.b, prefix + "state")["rows"][0]["_children"]
+
+                data = self.transfer(kind, ids=[empty, source_group["id"]])
+                pasted = self.call(self.b, "clipboard.paste", kind=kind, ids=[anchor], data=data)
+                rows = self.call(self.b, prefix + "state")["rows"]
+                self.assertEqual(
+                    [row["description"] for row in rows],
+                    [original, original + " (copy)", "Empty", "Following category"],
+                )
+                self.assertEqual([row["id"] for row in rows[1:3]], pasted["selected"][:2])
+                self.assertEqual(rows[0]["_children"], original_rows)
+                self.assertEqual(
+                    [row["description"] for row in rows[1]["_children"]],
+                    [row["description"] for row in source_group["_children"]],
+                )
+                self.assertEqual(rows[2]["_children"], [])
+
+                self.call(self.b, "clipboard.paste", kind=kind, data=data)
+                headings = [row["description"] for row in self.call(self.b, prefix + "state")["rows"]]
+                self.assertEqual(headings[:3], [original + " (copy 2)", "Empty (copy)", original])
+                self.call(self.b, "project.undo")
+                self.assertEqual(self.call(self.b, prefix + "state")["rows"], rows)
 
     def test_measurement_links_remap_by_code_and_missing_links_do_not_reuse_ids(self):
         heading, identity, _ = self.source_measurement()

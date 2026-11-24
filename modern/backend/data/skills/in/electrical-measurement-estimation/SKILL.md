@@ -26,7 +26,7 @@ If the user has not said which schedule applies, list the attached sources and a
 
 Work location by location (block, floor, room or area):
 
-- **Points (unit Point).** Count from the layout. A point is counted, not measured. Count by point type (light, fan, exhaust fan, call bell, socket where the schedule counts sockets as points) and by control arrangement. Under the CPWD Electrical Part I Internal 2023 specification (3.4.3 to 3.4.8), a group-controlled light, a twin-controlled light and a multi-push bell are counted differently, and socket wiring is measured per metre. Apply the rules in the [wiring reference](gestimator://skills/electrical-measurement-estimation/references/wiring.md).
+- **Points (unit Point).** Count from the layout. A point is counted, not measured. Count by point type (light, fan, exhaust fan, call bell, socket where the schedule counts sockets as points) and by control arrangement. Under the CPWD Electrical Part I Internal 2023 specification (3.4.3 to 3.4.8), a group-controlled light, a twin-controlled light and a multi-push bell are counted differently, and socket wiring is measured per metre. Apply the rules in the [wiring reference](gestimator://skills/in/electrical-measurement-estimation/references/wiring.md).
 - **Equipment (unit Each or Set).** Count luminaires, fans, switches, distribution boards, MCBs, isolators, RCCBs, sensors and earth electrodes from the layout and the schedules. Record the type and rating of each: wattage or efficacy band, sweep, current rating and poles, number of ways.
 - **Runs (unit Metre).** Measure circuit wiring, submain wiring, socket wiring, cables and trays only where the item is per metre. Take the length along the conduit or cable route on the drawing, including drops and rises to the switchboard or equipment. Under the CPWD specification, exclude interconnections inside switchboards and any allowance for diversion or slack (3.3.2). State the route you assumed when no routing drawing exists.
 - **Capacity units.** For an item "Per TR" or "Per HP", the quantity is capacity × number of units.
@@ -35,10 +35,10 @@ Before you add a line, read the item description and check what it includes. In 
 
 Category references:
 
-- [Wiring, points and sockets](gestimator://skills/electrical-measurement-estimation/references/wiring.md)
-- [Distribution, cables and earthing](gestimator://skills/electrical-measurement-estimation/references/distribution.md)
-- [Luminaires, fans and lighting controls](gestimator://skills/electrical-measurement-estimation/references/luminaires.md)
-- [Standards register and verification status](gestimator://skills/electrical-measurement-estimation/references/standards.md)
+- [Wiring, points and sockets](gestimator://skills/in/electrical-measurement-estimation/references/wiring.md)
+- [Distribution, cables and earthing](gestimator://skills/in/electrical-measurement-estimation/references/distribution.md)
+- [Luminaires, fans and lighting controls](gestimator://skills/in/electrical-measurement-estimation/references/luminaires.md)
+- [Standards register and verification status](gestimator://skills/in/electrical-measurement-estimation/references/standards.md)
 
 When the user explicitly asks for a preliminary lighting design (no lighting layout exists), read the `preliminary-lighting-design` skill. Treat its fixture counts and layout as provisional inputs to this skill.
 
@@ -82,7 +82,9 @@ Record every line with these fields:
 | Source | Drawing number and revision, schedule row, model element ID, design output or user statement |
 | Assumptions | Any value not taken from a source, marked provisional |
 
-The source field is independent of how the quantity was obtained. A layout count, a schedule row and a model export all enter the same line format. Use `elec_tableofpoints` (columns Lights, Fans, Ex.Fans, Call Bells, Other) for point tables. Use `_3_NNNNNNNN` or `_2_LLLLL` for counts and run lengths. Check the real columns with `get_measurements section=templates`.
+Use separate records for each identifiable storey, room, grid, element or route. For IFC, check model units and storey containment, count placed instances and record element IDs or identifiable ranges. If the source lacks that detail, record the finest supported location and mark each assumed quantity with its basis. Verify that openings and junctions are accounted for once.
+
+The source field is independent of how the quantity was obtained. A layout count, a schedule row and a model export all enter the same line format. Use `elec_tableofpoints` (Lights, Fans, Ex.Fans, Call Bells, Other) when those counts contribute to one schedule item. Use one `_3_NNNNNNNN` sheet for related counts from the same locations that have separate schedule codes, such as normal points and group-controlled points. Use `_2_LLLLL` for related run lengths. Enter links in N1–N8 or L1–L5 order. Check the editable columns and number of outputs with `get_measurements section=templates`.
 
 ## 5. Match schedule items
 
@@ -98,7 +100,8 @@ Present the draft as a table: measurement lines grouped by proposed item, totals
 Write only when the user asks you to apply the estimate:
 
 - `import_items` to bring the matched items into the project.
-- `get_measurements section=templates`, then `edit_measurements` to create sheets, link them to items and fill the records.
+- `get_measurements` lists existing measurement categories as rows of type `Heading`. Group sheets by work package, phase or location. Reuse a suitable heading or use `edit_measurements` with `{"action":"create","description":"First-floor lighting","ref":"lighting"}` to create one. Set `category` on each sheet to the heading ID or the same-call reference (for example `$ground-floor` or `$lighting`). Verify each sheet's `category_id` with `get_measurements`.
+- Use `get_measurements section=templates`, then `edit_measurements` to create and link sheets and fill the records. Combine quantities measured on the same rows in one multi-output sheet when the template fits.
 - `recalculate what=quantities` with an explicit rounding choice.
 - `edit_analysis` only when the user asks for a rate analysis change.
 - Group related writes in `batch`. Pass `if_revision` from the last response. Use `preview: true` where a tool offers it.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
 import Dialog from "primevue/dialog";
-import { afterDialogsClose, focusSearch } from "./uiActions";
+import { focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -14,17 +14,8 @@ import AnalysisRibbon from "./components/AnalysisRibbon.vue";
 import AnalysisInspector from "./components/AnalysisInspector.vue";
 import ProjectDatabasePickers from "./components/ProjectDatabasePickers.vue";
 import MCPSettings from "./components/MCPSettings.vue";
-import {
-  mcpStatus,
-  mcpBusy,
-  mcpError,
-  mcpMessage,
-  initializeMCP,
-  refreshMCP,
-  startMCP,
-  stopMCP,
-  copyMCPConfig,
-} from "./mcp";
+import MCPRibbon from "./components/MCPRibbon.vue";
+import { mcpBusy, mcpError, mcpMessage, initializeMCP } from "./mcp";
 import { savedLibraries } from "./libraryPreferences";
 import { programSettings, programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
@@ -44,6 +35,7 @@ import {
   takeDocumentAction,
 } from "./documents";
 import { useDocumentTabs } from "./useDocumentTabs";
+import { useEditorFocus } from "./useEditorFocus";
 import { useProjectFiles } from "./useProjectFiles";
 import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigation";
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
@@ -59,7 +51,7 @@ const ApplicationHelp = defineAsyncComponent(() => import("./components/Applicat
 const ProgramSettings = defineAsyncComponent(() => import("./components/ProgramSettings.vue"));
 const ProjectSettings = defineAsyncComponent(() => import("./components/ProjectSettings.vue"));
 
-const w = useWorkspace();
+const w = useWorkspace(() => focusAnalysis());
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
 const analysisDialogs = ref<InstanceType<typeof AnalysisDialogs>>();
 const projectDatabasePickers = ref<InstanceType<typeof ProjectDatabasePickers>>();
@@ -154,6 +146,7 @@ const {
   mcpEnabled: () => !!programSettings.value?.mcp_enabled,
   guard: (action) => navigate(action),
   load: w.load,
+  focusAnalysis: () => focusAnalysis(),
   focusSchedule: async (code) => {
     if (code) await projectView.value?.revealCode(code);
     await projectView.value?.focus();
@@ -162,21 +155,13 @@ const {
 // Project views show the landing page (and no ribbon tools) until a project is open.
 const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
 const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
-let cancelAnalysisFocus: (() => void) | undefined;
-watch(
-  activeView,
-  async (view) => {
-    cancelAnalysisFocus?.();
-    if (view === "analysis") {
-      await nextTick();
-      cancelAnalysisFocus = afterDialogsClose(async () => {
-        if (activeView.value === "analysis") await analysisTable.value?.focus();
-      });
-    }
-  },
-  { flush: "post" },
+const focusAnalysis = useEditorFocus(
+  () => activeView.value === "analysis",
+  () => analysisTable.value?.focus(),
 );
-onBeforeUnmount(() => cancelAnalysisFocus?.());
+watch(activeView, (view) => {
+  if (view === "analysis") void focusAnalysis();
+});
 function bindProjectView(view: ProjectView, instance: unknown) {
   projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined;
 }
@@ -234,6 +219,7 @@ const {
 
 let pendingProject = false;
 const sidebar = ref(true);
+w.watchScheduleExplorer(() => sidebar.value && activeView.value === "analysis");
 const helpOpen = ref(false);
 // Keep the help dialogs mounted after first use so their normal close and focus handling runs.
 const applicationHelpRequested = ref(false);
@@ -619,10 +605,10 @@ onBeforeUnmount(() => {
         </button>
         <button
           class="icon-button"
-          aria-label="Save copy"
-          title="Save the working project to a new file without replacing the opened source (Ctrl+Shift+S)."
+          aria-label="Save project"
+          title="Save the working project (Ctrl+S)."
           :disabled="uiBusy || !state?.project_open"
-          @click="showFile('save')"
+          @click="saveProject"
         >
           <AppIcon name="save" />
         </button>
@@ -770,66 +756,7 @@ onBeforeUnmount(() => {
           <small>DATABASES</small>
         </div>
       </template>
-      <template v-else-if="activeTab === 'mcp'">
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Start MCP server"
-              title="Start the authenticated local MCP server using the access mode selected in Configure server."
-              :disabled="mcpBusy || !mcpStatus || mcpStatus.running"
-              @click="startMCP"
-            >
-              <AppIcon name="play" /><span class="ribbon-label">Start server</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Stop MCP server"
-              title="Stop listening and prevent further MCP requests. The current project and editor stay open."
-              :disabled="mcpBusy || !mcpStatus?.running"
-              @click="stopMCP"
-            >
-              <AppIcon name="stop" /><span class="ribbon-label">Stop server</span>
-            </button>
-          </div>
-          <small>SERVER</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Configure MCP server"
-              title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration."
-              :disabled="mcpBusy"
-              @click="mcpSettingsOpen = true"
-            >
-              <AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Copy MCP client configuration"
-              title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client."
-              :disabled="mcpBusy || !mcpStatus"
-              @click="copyMCPConfig"
-            >
-              <AppIcon name="copy" /><span class="ribbon-label">Client config</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Refresh MCP status"
-              title="Refresh server status and client activity without changing the project."
-              :disabled="mcpBusy"
-              @click="refreshMCP"
-            >
-              <AppIcon name="refresh" /><span class="ribbon-label">Refresh status</span>
-            </button>
-          </div>
-          <small>CONNECTION</small>
-        </div>
-        <span class="ribbon-note" role="status"
-          >{{ mcpStatus?.running ? "Running" : "Stopped" }} ·
-          {{ mcpStatus?.access === "read-write" ? "Read and write" : "Read only" }}<br />{{
-            mcpStatus?.url || "Connecting…"
-          }}</span
-        >
-      </template>
+      <MCPRibbon v-else-if="activeTab === 'mcp'" @configure="mcpSettingsOpen = true" />
       <div
         id="project-ribbon-tools"
         class="ribbon-tools-host"

@@ -68,7 +68,7 @@ For each room:
 
 1. Mounting height above the working plane: `Hm = mounting height - working plane height`.
 2. Room index (2.1.35): `kr = (L × W) / ((L + W) × Hm)`. Where L exceeds 5 × W, take L = 5W.
-3. Utilisation factor `μ`: read it from the luminaire datasheet for kr and the reflectances. Without a datasheet, state the assumed value.
+3. Utilisation factor `μ`: use the selected luminaire's photometric data for the room geometry and reflectances. If those data are unavailable, use the [typical CU reference](gestimator://skills/in/preliminary-lighting-design/references/typical-cu.md) for a comparable fitting at 70% ceiling, 50% wall and 20% effective floor-cavity reflectance. Look up CU by room cavity ratio (RCR). Record the fitting type, reflectances, RCR and the resulting CU as provisional inputs.
 4. Maintenance factor `d` (2.1.26 defines it; NBCS gives no value). IS 3646 (Part 1):1992, 6.2.1, recommends a light loss factor of 0.8 for fairly clean interiors (offices, air-conditioned interiors), 0.7 for interiors that collect dust faster (most industrial interiors), and allows 0.6 for interiors highly prone to dirt. Use the luminaire's lumen maintenance data where given.
 5. Number of luminaires (4.3.2.3(c)): `N = (Eav × A) / (μ × d × Φ)`, where Eav is the design illuminance (lux), A the working plane area (sqm) and Φ the luminous flux of one luminaire (lumens).
 6. Round N up to a count that fits a regular grid. Recompute Eav for the chosen count and report it.
@@ -121,6 +121,6 @@ Hand each room to the `electrical-measurement-estimation` skill as a record with
 
 The electrical skill then counts points, matches items and records measurement lines. It keeps the status provisional.
 
-A full example from room data to draft measurement and proposed schedule items: [worked example, office](gestimator://skills/preliminary-lighting-design/references/worked-example.md).
+A full example from room data to draft measurement and proposed schedule items: [worked example, office](gestimator://skills/in/preliminary-lighting-design/references/worked-example.md).
 
-Standards status: [standards register](gestimator://skills/preliminary-lighting-design/references/standards.md).
+Standards status: [standards register](gestimator://skills/in/preliminary-lighting-design/references/standards.md).

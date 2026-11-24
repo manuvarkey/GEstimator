@@ -60,7 +60,6 @@
                 "find ${FLATPAK_DEST}/share/gestimator -name __pycache__ -prune -exec rm -rf {} +",
                 "python3 -m compileall -q ${FLATPAK_DEST}/share/gestimator",
                 "install -Dm644 packaging/linux/applications/${FLATPAK_ID}.desktop -t ${FLATPAK_DEST}/share/applications/",
-                "sed -i 's/^Exec=gestimator %F$/Exec=gestimator @@ %F @@/' \"${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop\"",
                 "install -Dm644 packaging/flathub/fontconfig-local.conf ${FLATPAK_DEST}/etc/fonts/local.conf",
                 "install -Dm644 packaging/linux/metainfo/${FLATPAK_ID}.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo/",
                 "install -Dm644 packaging/linux/mime/${FLATPAK_ID}.xml -t ${FLATPAK_DEST}/share/mime/packages/",
@@ -72,8 +71,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/manuvarkey/GEstimator.git",
-                    "tag": "v3.0.1",
-                    "commit": "13a44273138c9815a6366caf274244eb7cb7b596",
+                    "tag": "v3.1.0",
                     "x-checker-data": {
                         "type": "git",
                         "tag-pattern": "^v([\\d.]+)$"

@@ -210,10 +210,11 @@ async function apply(modify = false, ids = selected.value.map((row) => row.id)) 
     busy.value = false;
   }
 }
-/** GTK SelectScheduleDialog: Enter/double-click is Modify & Add; with Ctrl it adds unmodified. */
-function activate(row: ProjectTableRow, ctrl: boolean) {
-  if (row.rowtype === "Category") return;
-  void apply(props.kind === "schedule" && props.mode === "add" && !props.analysis && !ctrl, [row.id]);
+/** Enter imports the selected items. Double-click imports only the clicked item. */
+function activate(rows: ProjectTableRow[], ctrl: boolean) {
+  const ids = rows.filter((row) => row.rowtype !== "Category").map((row) => row.id);
+  if (!ids.length) return;
+  void apply(props.kind === "schedule" && props.mode === "add" && !props.analysis && !ctrl, ids);
 }
 async function applyRules(params: Record<string, unknown>) {
   const applied = await props.apply({ ...params, operation: "add_from_library" });
@@ -253,7 +254,7 @@ async function applyRules(params: Record<string, unknown>) {
             autofocus
             v-model="query"
             aria-label="Find database items"
-            @keydown.up.down="pickerTable?.step($event)"
+            @keydown.up.down="pickerTable?.step($event, { focus: true })"
             placeholder="Code, description or category…"
           /><button class="button small secondary" :disabled="busy">Search</button>
         </form>
@@ -281,9 +282,11 @@ async function applyRules(params: Record<string, unknown>) {
           drag-select-rows
           row-only-selection
           activate-on-double-click
+          activate-selection-on-enter
           :label="kind === 'schedule' ? 'Database schedule items' : 'Database resource rates'"
           @selection="selected = $event"
-          @activate="(row, keys) => activate(row, keys?.ctrl ?? false)"
+          @activate="(row, keys) => activate([row], keys?.ctrl ?? false)"
+          @activate-selection="(rows, keys) => activate(rows, keys.ctrl)"
         />
       </div>
       <div class="pagination">
@@ -327,7 +330,7 @@ async function applyRules(params: Record<string, unknown>) {
         <button
           class="button secondary"
           :disabled="busy || !selected.length"
-          title="Use the rate multiplier and analysis-row replacement configured in Program Settings. Enter or double-click on an item does the same; Ctrl+Enter or Ctrl+double-click adds it unmodified."
+          title="Use the rate multiplier and analysis-row replacement configured in Program Settings. Enter modifies the selected items; Ctrl+Enter adds them unmodified."
           @click="apply(true)"
         >
           Modify &amp; Add

@@ -17,7 +17,7 @@ from estimator.undo import Stack
 
 from . import analysis_edits, project_files
 from .numbers import tax_text
-from .persistence import RecoveryClaim, export_output, flatpak_document, write_recovery
+from .persistence import RecoveryClaim, export_output, portal_needs_folder, write_recovery
 from .validation import request_text as text
 
 
@@ -142,7 +142,7 @@ class Service:
             project_open=self.db is not None,
             source_path=self.source_path,
             source_requires_folder=bool(
-                self.source_path and not self.source_save_path and flatpak_document(self.source_path)
+                self.source_path and portal_needs_folder(self.source_save_path or self.source_path)
             ),
             unit=self.model.unit or "",
             dirty=self.dirty,
@@ -164,7 +164,13 @@ class Service:
             if method == "mcp.configure":
                 return self.mcp.configure(p)
             if method == "mcp.enable":
-                return self.mcp.enable(p.get("enabled"))
+                return self.mcp.enable(p.get("enabled"), p.get("estimation_skill_library"))
+            if method == "mcp.skill_libraries":
+                return self.mcp.skill_libraries.status()
+            if method == "mcp.refresh_skill_libraries":
+                return self.mcp.skill_libraries.refresh()
+            if method == "mcp.skill_directory":
+                return self.mcp.skill_libraries.open_directory()
             if method == "mcp.start":
                 return self.mcp.start()
             if method == "mcp.stop":

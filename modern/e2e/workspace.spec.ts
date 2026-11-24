@@ -347,7 +347,12 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await expect(page.locator(".summary-value")).toContainText("33.00");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.keyboard.press("Enter");
+  await active(analysis).fill("4");
   await active(analysis).press("Enter");
+  await expect(page.locator(".summary-value")).toContainText("22.00");
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
   await expect(analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]')).toBeFocused();
   await expect(active(analysis)).toHaveCount(0);
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
@@ -359,7 +364,9 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await settings.getByRole("button", { name: /^Save/ }).click();
   await expect(settings).not.toBeVisible();
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').dblclick();
+  await active(analysis).fill("5");
   await active(analysis).press("Enter");
+  await expect(page.locator(".summary-value")).toContainText("27.50");
   await expect(analysis.locator('.tabulator-row[data-kind="Round"] [tabulator-field="value"] input')).toBeFocused();
   await active(analysis).press("Escape");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
@@ -1236,13 +1243,18 @@ for (const [view, description] of [
     await expect.poll(() => systemClipboard && JSON.parse(systemClipboard).kind).toBe(view);
     await page.keyboard.press("ArrowRight");
     await expect(table.locator(".cell-focused")).toBeFocused();
-    // The desktop bridge mocks native clipboard access. Project tables receive a paste event.
-    if (view === "analysis") await page.keyboard.press("ControlOrMeta+v");
-    else await pasteDocument(page, `${grid} .cell-focused`, systemClipboard);
+    await page.keyboard.press("ControlOrMeta+v");
     await expect(rows).toHaveCount(2);
     await expect(table).toHaveAttribute("aria-busy", "false");
     await page.keyboard.press("ArrowLeft");
     await expect(table.locator(".cell-focused")).toBeFocused();
+    if (view !== "analysis") {
+      await rows.last().click();
+      await page.locator(".ribbon").getByRole("button", { name: "Copy", exact: true }).click();
+      await expect(page.getByRole("status").filter({ hasText: "Rows copied to the system clipboard" })).toBeVisible();
+      await page.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+      await expect(rows).toHaveCount(3);
+    }
   });
 }
 
@@ -1324,7 +1336,9 @@ test("system row clipboard transfers schedule, resources and analysis between in
     ).toHaveCount(2);
     desktopControls.setClipboard("ordinary text");
     await destination.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
-    await expect(destination.getByRole("alert")).toContainText("valid GEstimator rows");
+    await expect(destination.locator('.project-main-grid [tabulator-field="description"]')).toContainText([
+      "ordinary text",
+    ]);
     expect((await other.call("resources.editor.state")).result.rows[0]._children).toHaveLength(2);
 
     for (const editor of [page, destination]) {
@@ -1790,6 +1804,7 @@ test("inspector edits are atomic and custom templates persist without changing s
   await template.getByRole("button", { name: "Apply batch" }).click();
   await expect(template).not.toBeVisible();
   await expect(page.locator(".analysis-content")).toContainText("CUSTOM MATERIALS");
+  await expect(page.getByRole("grid", { name: "Rate analysis table" })).toBeFocused();
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".analysis-content")).not.toContainText("CUSTOM MATERIALS");
   await page.reload();
@@ -2146,6 +2161,7 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await dialog.getByRole("button", { name: "Add resource", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".summary-value")).toContainText("28.18");
+  await expect(page.getByRole("grid", { name: "Rate analysis table" })).toBeFocused();
   const row = page.locator('.tabulator-row[data-kind="Resource"]');
   await row.locator(".tabulator-cell").nth(2).click();
   await expect(page.locator(".inspector")).toContainText("MAT-001");
@@ -2272,6 +2288,15 @@ test("large schedule keeps rows drawn on fast scrolling and arrow keys scroll by
     expect(Math.abs(position.scrollTop - previous)).toBeLessThanOrEqual(position.height + 2);
     previous = position.scrollTop;
   }
+  expect(await holder.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  const cell = grid.locator('.tabulator-row.tabulator-selected [tabulator-field="description"]');
+  await expect(cell).toHaveCSS("font-weight", "400");
+  await cell.dblclick();
+  const editor = cell.locator("textarea,input");
+  await expect(editor).toHaveCSS("font-weight", "400");
+  await expect(editor).toHaveCSS("-webkit-font-smoothing", "antialiased");
+  await editor.press("Escape");
+  await expect(cell).toHaveCSS("-webkit-font-smoothing", "antialiased");
 });
 
 test("native typography and schedule, resource and measurement editing", async ({ page }) => {
@@ -2304,6 +2329,15 @@ test("native typography and schedule, resource and measurement editing", async (
   await expect(quantity).toHaveText("7");
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(quantity).toHaveText("1");
+  for (const action of ["keyboard", "ribbon"]) {
+    desktopControls.setClipboard("7");
+    await quantity.click();
+    if (action === "keyboard") await page.keyboard.press("ControlOrMeta+v");
+    else await page.locator(".ribbon").getByRole("button", { name: "Paste", exact: true }).click();
+    await expect(quantity).toHaveText("7");
+    await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(quantity).toHaveText("1");
+  }
   await page.screenshot({ path: "test-results/schedule-desktop.png" });
   await page.locator(".ribbon-tabs").getByRole("tab", { name: "Resources", exact: true }).click();
   const rate = view.locator('.tabulator-row [tabulator-field="rate"]').last();
@@ -2408,6 +2442,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await dialog.getByRole("button", { name: "Import 1 row", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(view.locator('.tabulator-row [tabulator-field="qty"]').last()).toHaveText("6");
+  await expect(view.getByRole("grid", { name: "Schedule of quantities" })).toBeFocused();
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Project settings…", exact: true }).click();
   const settings = page.getByRole("dialog", {
@@ -2439,7 +2474,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
 
 test("application menu and ribbon views share context-aware header actions", async ({ page }) => {
   const header = page.locator(".titlebar");
-  const quickActionNames = ["Go back", "Go forward", "New project", "Open project", "Save copy", "Undo", "Redo"];
+  const quickActionNames = ["Go back", "Go forward", "New project", "Open project", "Save project", "Undo", "Redo"];
   for (const name of quickActionNames) {
     const button = header.getByRole("button", { name, exact: true });
     expect((await button.textContent())?.trim()).toBe("");
@@ -2813,6 +2848,7 @@ test("Excel analysis import previews a calculated rate and can be undone", async
   await expect(page.locator(".summary-value")).toContainText("21.00");
   // The group total sits on a "TOTAL of …" line after the resources, not on the heading.
   const analysisGrid = page.locator(".analysis-table:visible");
+  await expect(analysisGrid).toBeFocused();
   const groupRow = analysisGrid.locator('.tabulator-row[data-kind="Group"]').first();
   await expect(groupRow.locator('[tabulator-field="amount"]')).toHaveText("");
   const totalRow = analysisGrid.locator('.tabulator-row[data-kind="GroupTotal"]').first();
@@ -3080,7 +3116,8 @@ test("feedback: scroll position, zero formatting, palette and native save/export
   await expect.poll(() => holder.evaluate((element) => element.scrollTop)).toBe(700);
   const copy = resolve(directory, "copied.eproj");
   nativeDialogResults.push(copy);
-  await page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }).click();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
   await expect
     .poll(async () =>
       readFile(copy)
@@ -4207,7 +4244,7 @@ test("clipboard icons and toolbar hover outlines remain sharp without changing b
     for (const button of [
       copy,
       ribbon.getByRole("button", { name: "Add item", exact: true }),
-      page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }),
+      page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }),
     ]) {
       const before = (await button.boundingBox())!;
       await button.hover();
@@ -4299,6 +4336,7 @@ b.save(sys.argv[1])`,
   await dialog.getByRole("button", { name: "Import 2 records", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".measurement-record-grid .tabulator-row")).toHaveCount(2);
+  await expect(page.locator(".measurement-record-grid").getByRole("grid")).toBeFocused();
 });
 
 test("feedback 5: records drafts apply discard guard navigation and save", async ({ page }) => {
@@ -4333,7 +4371,8 @@ test("feedback 5: records drafts apply discard guard navigation and save", async
   await ribbon.getByRole("button", { name: "Add record", exact: true }).click();
   const copy = resolve(directory, "draft-records.eproj");
   nativeDialogResults.push(copy);
-  await page.locator(".titlebar").getByRole("button", { name: "Save copy", exact: true }).click();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Save project copy…", exact: true }).click();
   await expect(page.getByText("Unsaved records", { exact: true })).toHaveCount(0);
   await expect
     .poll(async () =>
@@ -4479,7 +4518,8 @@ test("draft headerbars use dropdowns and manual and About stay available offline
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "About GEstimator", exact: true }).click();
   const about = page.getByRole("dialog", { name: "About GEstimator", exact: true });
-  await expect(about).toContainText("Version 3.0.1");
+  const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  await expect(about).toContainText(`Version ${version}`);
   await about.getByText("GNU General Public License", { exact: true }).click();
   await expect(about.locator("pre")).toContainText("Version 3, 29 June 2007");
 });

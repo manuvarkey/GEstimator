@@ -1,5 +1,6 @@
 """Check file-versus-folder grants using stand-ins for the portal mount."""
 
+import errno
 import os
 import shutil
 import sqlite3
@@ -9,7 +10,14 @@ from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
-from modern.backend.persistence import check_database_access, export_output, fingerprint, flatpak_document, save_target
+from modern.backend.persistence import (
+    check_database_access,
+    export_output,
+    fingerprint,
+    flatpak_document,
+    save_lock,
+    save_target,
+)
 from modern.backend.service import Service
 
 
@@ -20,9 +28,13 @@ class PortalFileTests(unittest.TestCase):
         # The service resolves chooser paths. Use the same spelling for the
         # simulated mount when the temp directory has an alias.
         self.runtime = Path(temporary.name).resolve(strict=True)
+        (self.runtime / "app" / "com.kavilgroup.gestimator").mkdir(parents=True)
         environment = patch.dict(os.environ, FLATPAK_ID="com.kavilgroup.gestimator", XDG_RUNTIME_DIR=str(self.runtime))
         environment.start()
         self.addCleanup(environment.stop)
+        data = patch.dict(os.environ, XDG_DATA_HOME=str(self.runtime / "data"))
+        data.start()
+        self.addCleanup(data.stop)
 
     def portal_path(self, relative):
         result = self.runtime / "doc" / relative
@@ -45,19 +57,87 @@ class PortalFileTests(unittest.TestCase):
         shutil.copy2(source, destination)
         original_bytes = source.read_bytes()
 
-        self.assertTrue(service.state()["source_requires_folder"])
-        service.workspace_dirty = True
-        with self.assertRaisesRegex(ValueError, "Choose the project folder"):
-            service.call("project.save", {})
+        with patch("os.access", return_value=False):
+            self.assertTrue(service.state()["source_requires_folder"])
+            service.workspace_dirty = True
+            with self.assertRaisesRegex(ValueError, "Choose the project folder"):
+                service.call("project.save", {})
         with patch("os.getxattr", return_value=b"/host/Jobs/estimate.eproj", create=True):
             result = service.call("project.save", {"directory": str(destination.parent)})
+            self.assertEqual(Path(result["backup"]).read_bytes(), original_bytes)
+            self.assertEqual(service.state()["source_path"], str(source))
+            self.assertFalse(service.state()["source_requires_folder"])
+            service.workspace_dirty = True
+            second = service.call("project.save", {})
 
-        self.assertEqual(Path(result["backup"]).read_bytes(), original_bytes)
-        self.assertEqual(service.state()["source_path"], str(source))
-        self.assertFalse(service.state()["source_requires_folder"])
-        service.workspace_dirty = True
-        second = service.call("project.save", {})
         self.assertEqual(Path(second["backup"]).name, "estimate.eproj.2.bak")
+        self.assertFalse(destination.with_name(".estimate.eproj.gestimator-lock").exists())
+
+    def test_writable_file_grant_saves_in_place_with_numbered_private_backups(self):
+        source = self.portal_path("file/estimate.eproj")
+        service = Service()
+        self.addCleanup(service.close)
+        service.call("project.new", {})
+        service.call("project.save_copy", {"path": str(source)})
+        original = source.read_bytes()
+        self.assertFalse(service.state()["source_requires_folder"])
+        with patch("os.getxattr", return_value=b"/host/estimate.eproj", create=True):
+            for notes in ("First save", "Second save"):
+                service.call(
+                    "project.settings.edit", {"revision": service.revision, "settings": {"project_metadata": notes}}
+                )
+                backup = Path(service.call("project.save", {})["backup"])
+                self.assertTrue(backup.is_relative_to(self.runtime / "data/project-backups"))
+                self.assertEqual(backup.read_bytes(), original)
+                original = source.read_bytes()
+        self.assertEqual(backup.name, "estimate.eproj.2.bak")
+        self.assertEqual(list(source.parent.iterdir()), [source])
+
+    def test_confirmed_save_copy_can_replace_a_portal_file(self):
+        destination = self.portal_path("file/copy.eproj")
+        destination.write_bytes(b"previous contents")
+        service = Service()
+        self.addCleanup(service.close)
+        service.call("project.new", {})
+        with self.assertRaises(FileExistsError):
+            service.call("project.save_copy", {"path": str(destination)})
+        with patch("os.getxattr", return_value=b"/host/copy.eproj", create=True):
+            service.call("project.save_copy", {"path": str(destination), "replace_selected": True})
+        self.assertEqual(service.state()["source_path"], str(destination))
+        self.assertTrue(destination.read_bytes().startswith(b"SQLite format 3\x00"))
+        (backup,) = (self.runtime / "data/project-backups").glob("*/copy.eproj.bak")
+        self.assertEqual(backup.read_bytes(), b"previous contents")
+
+    def test_confirmed_save_copy_rejects_a_portal_destination_with_wal(self):
+        destination = self.portal_path("file/copy.eproj")
+        service = Service()
+        self.addCleanup(service.close)
+        service.call("project.new", {})
+        with closing(sqlite3.connect(destination)) as db:
+            db.execute("PRAGMA journal_mode = WAL")
+            db.execute("CREATE TABLE active (id INTEGER)")
+            db.commit()
+            with self.assertRaisesRegex(ValueError, "standalone SQLite backup"):
+                service.call("project.save_copy", {"path": str(destination), "replace_selected": True})
+            self.assertIsNone(service.state()["source_path"])
+
+    def test_save_lock_serializes_grants_for_the_same_host_path(self):
+        first = self.portal_path("first/Jobs/estimate.eproj")
+        second = self.portal_path("second/Jobs/estimate.eproj")
+        with patch("os.getxattr", return_value=b"/host/Jobs/estimate.eproj", create=True):
+            with save_lock(first):
+                with self.assertRaisesRegex(ValueError, "Another GEstimator window"):
+                    with save_lock(second):
+                        self.fail("Acquired a second lock for the same project")
+            with save_lock(second):
+                pass
+
+    def test_unavailable_portal_lock_does_not_look_like_contention(self):
+        source = self.portal_path("folder/Jobs/estimate.eproj")
+        with patch("os.getxattr", side_effect=OSError(errno.ENOSYS, "No host path"), create=True):
+            with self.assertRaisesRegex(ValueError, "Could not lock this project"):
+                with save_lock(source):
+                    self.fail("Proceeding without coordinating saves")
 
     def test_save_rejects_wrong_folder_and_external_changes(self):
         source = self.portal_path("file/estimate.eproj")
