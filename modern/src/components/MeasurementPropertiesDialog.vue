@@ -36,6 +36,7 @@ const pickerItems = ref<{ code: string; description: string; unit: string | null
 const pickerResults = ref<HTMLElement>();
 const pickerBusy = ref(false);
 const pickerError = ref("");
+let pendingNavigation: { key: string; from: EventTarget | null } | undefined;
 
 /** Open a form snapshot for the selected measurement or category. */
 async function showProperties() {
@@ -64,47 +65,59 @@ async function saveProperties() {
     propertiesOpen.value = false;
 }
 
-async function searchLinks() {
+async function searchLinks(page = 0) {
+  if (pickerBusy.value) return;
   pickerBusy.value = true;
   pickerError.value = "";
+  pickerPage.value = page;
+  // Reset at the start, so the response cannot pull the viewport away from a user scroll.
+  pickerItems.value = [];
+  pickerResults.value?.scrollTo(0, 0);
   try {
-    pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: pickerPage.value * 100 });
-    await nextTick();
-    if (pickerResults.value) pickerResults.value.scrollTop = 0;
+    pickerItems.value = await request("schedule.list", { query: pickerQuery.value, offset: page * 100 });
   } catch (reason) {
     pickerError.value = String(reason);
   } finally {
     pickerBusy.value = false;
   }
+  await nextTick();
+  const pending = pendingNavigation;
+  pendingNavigation = undefined;
+  if (pending && pickerOpen.value && document.activeElement === pending.from) focusLink(pending.key);
 }
 
 /** Open a fresh schedule search for the chosen link slot. */
 async function showLinkPicker(slot: number) {
   pickerSlot.value = slot;
   pickerQuery.value = "";
-  pickerPage.value = 0;
   pickerOpen.value = true;
   await searchLinks();
 }
 
-/** Move among result buttons. Their native Enter action selects the focused item. */
-function navigateLinks(event: KeyboardEvent) {
-  if (pickerBusy.value || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+/** Focus a result and reveal it with the smallest scroll needed. Enter activates the button. */
+function focusLink(key: string) {
   const buttons = Array.from(pickerResults.value?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || []);
-  if (!buttons.length) return;
+  if (!buttons.length) return false;
   const current = buttons.findIndex((button) => button === document.activeElement);
-  const index =
-    event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? buttons.length - 1
-        : current === -1
-          ? event.key === "ArrowUp"
-            ? buttons.length - 1
-            : 0
-          : Math.max(0, Math.min(buttons.length - 1, current + (event.key === "ArrowUp" ? -1 : 1)));
-  event.preventDefault();
-  buttons[index]?.focus();
+  const up = key === "ArrowUp";
+  const last = buttons.length - 1;
+  let index = current + (up ? -1 : 1);
+  if (key === "Home") index = 0;
+  if (key === "End" || (current < 0 && up)) index = last;
+  const button = buttons[Math.max(0, Math.min(last, index))]!;
+  button.focus({ preventScroll: true });
+  button.scrollIntoView({ block: "nearest", inline: "nearest" });
+  return true;
+}
+
+function navigateLinks(event: KeyboardEvent) {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (pickerBusy.value) {
+    pendingNavigation = { key: event.key, from: event.target };
+    event.preventDefault();
+  } else if (focusLink(event.key)) {
+    event.preventDefault();
+  }
 }
 
 async function chooseLink(code: string) {
@@ -204,13 +217,7 @@ defineExpose({ showProperties, showLinkPicker });
     header="Choose schedule item"
     class="resource-dialog measurement-link-picker"
   >
-    <form
-      class="search-field"
-      @submit.prevent="
-        pickerPage = 0;
-        searchLinks();
-      "
-    >
+    <form class="search-field" @submit.prevent="searchLinks()">
       <input
         v-model="pickerQuery"
         data-primary-input
@@ -238,23 +245,13 @@ defineExpose({ showProperties, showLinkPicker });
       <p v-if="!pickerBusy && !pickerItems.length">No schedule items match this search.</p>
     </div>
     <div class="pagination">
-      <button
-        class="text-button"
-        :disabled="pickerBusy || !pickerPage"
-        @click="
-          pickerPage--;
-          searchLinks();
-        "
-      >
+      <button class="text-button" :disabled="pickerBusy || !pickerPage" @click="searchLinks(pickerPage - 1)">
         Previous</button
       ><span>Page {{ pickerPage + 1 }}</span
       ><button
         class="text-button"
         :disabled="pickerBusy || pickerItems.length < 100"
-        @click="
-          pickerPage++;
-          searchLinks();
-        "
+        @click="searchLinks(pickerPage + 1)"
       >
         Next
       </button>

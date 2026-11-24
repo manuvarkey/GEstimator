@@ -1780,3 +1780,31 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance profile was skipped. The production build passed with the
   existing Vite chunk-size warning. Changed-file quality, documentation links,
   desktop-entry and AppStream metadata validation, and diff checks passed.
+
+## 2026-11-24 — Measurement link picker focus, clipping and scroll
+
+- A controlled lookup in Chromium reproduced Down being dropped after the
+  pointer opened the picker and before the results arrived. Native WebKitGTK
+  2.52.6 confirmed that the search field had focus throughout the delay.
+  The handler returned while loading. Mouse and keyboard activate the same
+  picker command, so the result-reply timing explains why the failure depends
+  on when the arrow is pressed. The earlier Schedule picker forwarded arrow
+  selection without transferring browser focus from its search field.
+- In the native probe, reopening with a lookup pending left the old 45
+  results scrollable. Scrolling to 300 px and releasing the reply returned
+  the list to zero. The picker now clears and resets the list when loading
+  starts. The same probe found zero stale rows during reload and no delayed
+  reset. Once loaded, successive scroll positions advanced to 200, 400 and
+  600 px.
+- Results now have 5 px of clearance for the current focus outline. The native
+  probe verified the inset and replay of an early Down when the search field
+  stayed focused. The Chromium regression checks outline clearance, wheel
+  scrolling with a focused result, loading after reopening, and opening the
+  nested picker by keyboard.
+- An early focused run recorded one Resources picker autofocus miss before
+  interaction. Eight targeted reruns and the full Chromium suite passed.
+  The cause of the isolated miss remains unconfirmed.
+- All 241 Python tests and 101 Chromium scenarios passed. The opt-in
+  performance profile was skipped. The production build passed with the
+  existing Vite chunk-size warning. Changed-file quality, documentation and
+  diff checks passed.

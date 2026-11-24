@@ -270,10 +270,12 @@ draft activation and summary synchronization on the existing shared path.
 in a form snapshot with the original revision. The component owns both the
 properties form and its schedule-link picker. The view opens the same picker
 from the active record editor. Results scroll independently of the search and
-page controls. Up or Down from search focuses a result. Arrow keys and
-Home/End navigate the page, and Enter selects the focused item. Saving
-properties and changing a record link use
-the view's common command. Python owns validation, calculations and undo.
+page controls. A new search or page clears the previous results and resets the
+scroll position before the request completes. Up or Down from search focuses a
+result, including when the key is pressed during loading and the search field
+still has focus when results arrive. Arrow keys and Home/End navigate the page,
+and Enter selects the focused item. Saving properties and changing a record
+link use the view's common command. Python owns validation, calculations and undo.
 
 The contracts in `projectViewTypes.ts` distinguish schedule items, resources,
 categories and flat measurement list rows. Full project table pages carry

@@ -1661,6 +1661,9 @@ kbd {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  padding: calc(var(--focus-width) + 3px);
+  scroll-padding-block: calc(var(--focus-width) + 3px);
+  scrollbar-gutter: stable;
   margin-block: 12px;
   max-width: 100%;
   overflow-x: hidden;
