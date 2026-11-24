@@ -23,6 +23,7 @@ interface NavigationContext {
   mcpEnabled: () => boolean;
   guard: (action: (discard: boolean) => Promise<unknown>) => Promise<void>;
   load: (code: string, discard?: boolean) => Promise<boolean>;
+  focusAnalysis: () => Promise<void>;
   focusSchedule: (code?: string) => Promise<void>;
 }
 
@@ -132,8 +133,10 @@ export function useWorkspaceNavigation(context: NavigationContext) {
   async function loadAnalysis(code: string) {
     await context.guard(async (discard) => {
       if (await context.load(code, discard)) {
+        const alreadyActive = activeView.value === "analysis";
         activeView.value = "analysis";
         activeTab.value = "analysis";
+        if (alreadyActive) await context.focusAnalysis();
       }
     });
   }

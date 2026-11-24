@@ -1790,6 +1790,7 @@ test("inspector edits are atomic and custom templates persist without changing s
   await template.getByRole("button", { name: "Apply batch" }).click();
   await expect(template).not.toBeVisible();
   await expect(page.locator(".analysis-content")).toContainText("CUSTOM MATERIALS");
+  await expect(page.getByRole("grid", { name: "Rate analysis table" })).toBeFocused();
   await page.locator(".titlebar").getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".analysis-content")).not.toContainText("CUSTOM MATERIALS");
   await page.reload();
@@ -2146,6 +2147,7 @@ test("resource editing, authoritative calculations, undo and workspace presentat
   await dialog.getByRole("button", { name: "Add resource", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".summary-value")).toContainText("28.18");
+  await expect(page.getByRole("grid", { name: "Rate analysis table" })).toBeFocused();
   const row = page.locator('.tabulator-row[data-kind="Resource"]');
   await row.locator(".tabulator-cell").nth(2).click();
   await expect(page.locator(".inspector")).toContainText("MAT-001");
@@ -2408,6 +2410,7 @@ test("new project, settings and mapped Excel import", async ({ page }) => {
   await dialog.getByRole("button", { name: "Import 1 row", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(view.locator('.tabulator-row [tabulator-field="qty"]').last()).toHaveText("6");
+  await expect(view.getByRole("grid", { name: "Schedule of quantities" })).toBeFocused();
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Project settings…", exact: true }).click();
   const settings = page.getByRole("dialog", {
@@ -2813,6 +2816,7 @@ test("Excel analysis import previews a calculated rate and can be undone", async
   await expect(page.locator(".summary-value")).toContainText("21.00");
   // The group total sits on a "TOTAL of …" line after the resources, not on the heading.
   const analysisGrid = page.locator(".analysis-table:visible");
+  await expect(analysisGrid).toBeFocused();
   const groupRow = analysisGrid.locator('.tabulator-row[data-kind="Group"]').first();
   await expect(groupRow.locator('[tabulator-field="amount"]')).toHaveText("");
   const totalRow = analysisGrid.locator('.tabulator-row[data-kind="GroupTotal"]').first();
@@ -4299,6 +4303,7 @@ b.save(sys.argv[1])`,
   await dialog.getByRole("button", { name: "Import 2 records", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".measurement-record-grid .tabulator-row")).toHaveCount(2);
+  await expect(page.locator(".measurement-record-grid").getByRole("grid")).toBeFocused();
 });
 
 test("feedback 5: records drafts apply discard guard navigation and save", async ({ page }) => {

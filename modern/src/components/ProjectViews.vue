@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import MeasurementRecordLayout from "./MeasurementRecordLayout.vue";
 import MeasurementRecordRibbon from "./MeasurementRecordRibbon.vue";
@@ -31,7 +31,7 @@ import type {
   ProjectItemMode,
 } from "../projectViewTypes";
 import { useMeasurementRecords } from "../useMeasurementRecords";
-import { afterDialogsClose } from "../uiActions";
+import { useEditorFocus } from "../useEditorFocus";
 import { programSettings } from "../programSettings";
 import { exportWithWorkbookChooser } from "../workbookExport";
 import { useProjectGrid } from "../useProjectGrid";
@@ -46,6 +46,10 @@ import { recallTabState, rememberTabState } from "../tabMemory";
 const props = withDefaults(defineProps<{ view: View; projectOpen: boolean; active?: boolean; entryId?: string }>(), {
   active: true,
 });
+const focusTable = useEditorFocus(
+  () => props.active,
+  () => (props.entryId ? recordTable.value : mainTable.value)?.focus(),
+);
 const emit = defineEmits<{
   changed: [];
   busy: [value: boolean];
@@ -147,6 +151,17 @@ const mainRows = computed<GridRow[]>(() => {
   return rateDiscrepancies.value?.highlight(rows) ?? rows;
 });
 const recordLayout = ref<InstanceType<typeof MeasurementRecordLayout>>();
+const insertOperations = new Set([
+  "add",
+  "category_add",
+  "duplicate",
+  "add_from_library",
+  "paste",
+  "record_add",
+  "record_duplicate",
+  "record_import",
+  "record_paste",
+]);
 // Measurement owners reuse this view's single command and busy/error boundary.
 const {
   selectedRecord,
@@ -208,17 +223,6 @@ const { libraries, refresh, refreshChanges, revealCode, findAcross, load, search
   run,
   changed: () => emit("changed"),
 });
-
-let cancelFocus: (() => void) | undefined;
-onBeforeUnmount(() => cancelFocus?.());
-async function focusTable() {
-  cancelFocus?.();
-  await nextTick();
-  if (!props.active) return;
-  cancelFocus = afterDialogsClose(async () => {
-    if (props.active) await (props.entryId ? recordTable.value : mainTable.value)?.focus();
-  });
-}
 
 function editable(cell: CellComponent) {
   const row: Pick<TableRow, "rowtype"> = cell.getData();
@@ -327,7 +331,7 @@ function selectedItemIds() {
   ].filter((id) => id !== "measurement:uncategorised");
 }
 async function command(operation: string, params: Record<string, unknown> = {}) {
-  return run(async () => {
+  const applied = await run(async () => {
     const ids =
       isMeasurement.value && (operation === "add" || operation === "paste")
         ? selected.value.map((row) => row.id)
@@ -406,6 +410,8 @@ async function command(operation: string, params: Record<string, unknown> = {}) 
     if (operation === "record_delete") selectedRecord.value = undefined;
     emit("changed");
   });
+  if (applied && insertOperations.has(operation)) await focusTable();
+  return applied;
 }
 function deleteSelection() {
   if (!state.value) return;
@@ -426,7 +432,7 @@ watch(
     if (active) {
       await refreshChanges();
       await focusTable();
-    } else cancelFocus?.();
+    }
   },
 );
 function showPriceUpdate() {
@@ -442,14 +448,12 @@ function showDatabase(mode: ProjectDatabaseSelection["mode"] = "add") {
     targetIds: selected.value.map((row) => row.id),
   });
 }
-async function applyDatabase(params: Record<string, unknown>) {
+function applyDatabase(params: Record<string, unknown>) {
   const { operation, ...values } = params;
-  const applied = await command(String(operation), {
+  return command(String(operation), {
     ...values,
     ...(values.modify ? { settings: programSettings.value } : {}),
   });
-  if (applied && operation === "add_from_library") await focusTable();
-  return applied;
 }
 async function select(rows: GridRow[]) {
   if (!rows.length && !selected.value.length) return;
@@ -564,8 +568,8 @@ function keyboard(event: KeyboardEvent) {
       return;
   }
 }
-async function refreshAfterMappedImport() {
-  await run(refresh);
+async function refreshAfterMappedImport(added: number) {
+  if ((await run(refresh)) && added > 0) await focusTable();
   emit("changed");
 }
 function exportWorkbook() {

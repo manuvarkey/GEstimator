@@ -2400,7 +2400,9 @@ textarea {
   font-size: 1.2rem;
 }
 .analysis-table .cell-focused,
-.project-main-grid > .project-grid:focus {
+.analysis-content .analysis-table:focus,
+.project-main-grid > .project-grid:focus,
+.measurement-record-grid > .project-grid:focus {
   outline: var(--focus-width) solid var(--accent);
   outline-offset: calc(0px - var(--focus-width));
 }

@@ -33,6 +33,7 @@ formatting is presentation; the currency option does not convert prices.
 | Schedule, Resources and Measurements list ribbon groups | [`ProjectListRibbon.vue`](../../modern/src/components/ProjectListRibbon.vue) |
 | Project editor shortcut recognition and precedence | [`projectViewShortcuts.ts`](../../modern/src/projectViewShortcuts.ts) |
 | Project grid loading, search, paging, delta refresh and table restoration | [`useProjectGrid.ts`](../../modern/src/useProjectGrid.ts) |
+| Post-insertion grid focus across editors and dialogs | [`useEditorFocus.ts`](../../modern/src/useEditorFocus.ts) |
 | Resource category move and renumbering dialogs | [`ResourceEditingDialogs.vue`](../../modern/src/components/ResourceEditingDialogs.vue) |
 | Schedule row colour, quantity update and renumbering dialogs | [`ScheduleEditingDialogs.vue`](../../modern/src/components/ScheduleEditingDialogs.vue) |
 | Delete preview and confirmation | [`ProjectDeletionDialog.vue`](../../modern/src/components/ProjectDeletionDialog.vue) |
@@ -111,8 +112,12 @@ separate from document switching, which changes backend session and remounts it.
 events through the existing analysis commands, dialogs and visibility controls.
 
 `AnalysisExplorer` renders the active search tab and its project items.
-The workspace retains queries, results and paging state and uses the shared
-Search as you type setting for both tabs. Up or Down from search moves focus
+The workspace loads the Schedule page when the Explorer becomes visible,
+including for new and remounted projects. It refreshes the last submitted
+query, keeping unsubmitted search text available. Search stays available
+during this initial load and a newer request takes priority over its result.
+The workspace retains results and paging state and uses the shared Search
+as you type setting for both tabs. Up or Down from search moves focus
 to a result button. Arrow keys and Home/End navigate results, and Enter
 activates the focused result. The shell routes schedule activation through
 guarded navigation and resource activation through the existing draft
@@ -190,12 +195,19 @@ tables. Enter in the search field still runs a search.
 Enter in the results grid imports all selected item rows, skipping category
 headings. Schedule Enter uses Modify & Add. Ctrl+Enter (Command+Enter on macOS)
 adds the items unmodified. Double-click applies to the clicked item.
-Successful project imports focus the destination table after the picker closes.
 An updated project session recreates the picker instances, and the shell
 continues to open the database manager for picker requests.
 The database manager handles reselection of unavailable remembered paths.
 `libraryPreferences.ts` updates the saved entry after the replacement
 attachment succeeds.
+
+Successful insert commands in Schedule, Resources, Analysis and Measurements
+focus the receiving grid once its rows are refreshed and the dialog, if any,
+has closed. The same handoff covers new items, subitems, categories, database
+and workbook insertion, duplication and row paste. Measurement records use
+the record grid when their draft is open. Analysis resources inserted from
+the Explorer focus the analysis grid. A failed command leaves focus in the
+current workflow, and inactive views cancel a pending handoff.
 
 `ResourceEditingDialogs` stages the destination category for resource moves
 and the database prefixes to exclude from renumbering. It loads prefixes

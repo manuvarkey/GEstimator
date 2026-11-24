@@ -14,7 +14,7 @@ const props = defineProps<{
   recordId?: string;
   error: string;
   command: ViewCommand;
-  refreshAfterMappedImport: () => Promise<void>;
+  refreshAfterMappedImport: (added: number) => Promise<void>;
 }>();
 const emit = defineEmits<{ clearError: [] }>();
 const mappedOpen = ref(false);
@@ -32,7 +32,7 @@ function show(kind: "mapped" | "analyses" | "records") {
 }
 
 async function mappedImportDone(result: { added: number; updated: number; skipped: number; warning_count?: number }) {
-  await props.refreshAfterMappedImport();
+  await props.refreshAfterMappedImport(result.added);
   notify(
     `Imported ${result.added} new, ${result.updated} updated, ${result.skipped} skipped${result.warning_count ? `; ${result.warning_count} non-numeric values imported as 0` : ""}.`,
     8000,

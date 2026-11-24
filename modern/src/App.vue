@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onBeforeUnmount, ref, shallowReactive, watch } from "vue";
 import Dialog from "primevue/dialog";
-import { afterDialogsClose, focusSearch } from "./uiActions";
+import { focusSearch } from "./uiActions";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -44,6 +44,7 @@ import {
   takeDocumentAction,
 } from "./documents";
 import { useDocumentTabs } from "./useDocumentTabs";
+import { useEditorFocus } from "./useEditorFocus";
 import { useProjectFiles } from "./useProjectFiles";
 import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigation";
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
@@ -59,7 +60,7 @@ const ApplicationHelp = defineAsyncComponent(() => import("./components/Applicat
 const ProgramSettings = defineAsyncComponent(() => import("./components/ProgramSettings.vue"));
 const ProjectSettings = defineAsyncComponent(() => import("./components/ProjectSettings.vue"));
 
-const w = useWorkspace();
+const w = useWorkspace(() => focusAnalysis());
 const analysisTable = ref<InstanceType<typeof AnalysisTable>>();
 const analysisDialogs = ref<InstanceType<typeof AnalysisDialogs>>();
 const projectDatabasePickers = ref<InstanceType<typeof ProjectDatabasePickers>>();
@@ -154,6 +155,7 @@ const {
   mcpEnabled: () => !!programSettings.value?.mcp_enabled,
   guard: (action) => navigate(action),
   load: w.load,
+  focusAnalysis: () => focusAnalysis(),
   focusSchedule: async (code) => {
     if (code) await projectView.value?.revealCode(code);
     await projectView.value?.focus();
@@ -162,21 +164,13 @@ const {
 // Project views show the landing page (and no ribbon tools) until a project is open.
 const landingVisible = computed(() => connected.value && !state.value?.project_open && activeView.value !== "analysis");
 const recordsDirty = computed(() => !!state.value?.measurement_draft?.dirty);
-let cancelAnalysisFocus: (() => void) | undefined;
-watch(
-  activeView,
-  async (view) => {
-    cancelAnalysisFocus?.();
-    if (view === "analysis") {
-      await nextTick();
-      cancelAnalysisFocus = afterDialogsClose(async () => {
-        if (activeView.value === "analysis") await analysisTable.value?.focus();
-      });
-    }
-  },
-  { flush: "post" },
+const focusAnalysis = useEditorFocus(
+  () => activeView.value === "analysis",
+  () => analysisTable.value?.focus(),
 );
-onBeforeUnmount(() => cancelAnalysisFocus?.());
+watch(activeView, (view) => {
+  if (view === "analysis") void focusAnalysis();
+});
 function bindProjectView(view: ProjectView, instance: unknown) {
   projectViews[view] = instance as InstanceType<typeof ProjectViews> | undefined;
 }
@@ -234,6 +228,7 @@ const {
 
 let pendingProject = false;
 const sidebar = ref(true);
+w.watchScheduleExplorer(() => sidebar.value && activeView.value === "analysis");
 const helpOpen = ref(false);
 // Keep the help dialogs mounted after first use so their normal close and focus handling runs.
 const applicationHelpRequested = ref(false);

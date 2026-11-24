@@ -1869,3 +1869,34 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   opt-in performance scenario was skipped. Type checking and the production
   build passed with the existing Vite chunk-size warning. Changed-file quality,
   documentation and diff checks passed.
+
+## 2026-11-24 — Insertion focus and initial Analysis Explorer results
+
+- An isolated checkout of the prior commit reproduced missing grid focus after
+  project category insertion in Schedule, Resources and Measurements and after
+  adding an Analysis resource group. It also reproduced the empty Schedule
+  Explorer after creating a project and adding its first schedule item.
+- Existing command handlers continue to refresh data and reconcile selection.
+  Successful insertions now queue focus after refresh and modal close through
+  one helper shared by Analysis and the project views. The project view keeps
+  its existing grid and command coordination and delegates focus timing and
+  cancellation to the helper.
+- Chromium covers item and category forms in the three project lists, schedule
+  subitems, direct and batched measurement records, Analysis ribbon insertion
+  and resources added from the Explorer or database picker. Existing tests
+  also assert focus after custom resources and templates, workbook imports and
+  keyboard database insertion into the project lists.
+- The Explorer reloads the last submitted Schedule query when it becomes
+  visible. An early full run showed that using the general command busy state
+  during that load prevented Enter from submitting a search in a larger
+  project. The automatic load now runs in the background and older responses
+  are discarded if a newer query or project reset supersedes them. The real
+  project flow and the held-response regression passed on the final code.
+- A WebKitGTK 2.52.6 window running the development frontend and real Python
+  backend verified Schedule item creation, the destination grid's focus and
+  outline, Down navigation, the populated first Analysis visit and the
+  Analysis grid's focus and outline after adding a resource group.
+- The final Chromium run passed 111 scenarios and skipped the opt-in
+  performance scenario. All 241 Python tests passed. Type checking and the
+  production build passed with the existing Vite chunk-size warning.
+  Changed-file quality, documentation and diff checks passed.
