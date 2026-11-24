@@ -111,10 +111,12 @@ separate from document switching, which changes backend session and remounts it.
 events through the existing analysis commands, dialogs and visibility controls.
 
 `AnalysisExplorer` renders the active search tab and its project items.
-The workspace retains queries, results and paging state. The shell routes
-item activation through guarded navigation and resource activation through
-the existing draft insertion command. The search field keeps its workspace
-focus target when the explorer is shown or its tab changes.
+The workspace retains queries, results and paging state and uses the shared
+Search as you type setting for both tabs. Up or Down from search moves focus
+to a result button. Arrow keys and Home/End navigate results, and Enter
+activates the focused result. The shell routes schedule activation through
+guarded navigation and resource activation through the existing draft
+insertion command.
 
 `ProjectListRibbon` renders the Schedule, Resources and Measurements list
 actions, using the current view, selection and busy state to determine which
@@ -183,10 +185,12 @@ shared rate refresh picker mounted across editor switches. The project view
 supplies the selected IDs and revision when opening a picker and handles its
 apply command. The picker displays the view's command error if applying fails.
 Up or Down from the search field moves selection and keyboard focus into the
-results grid. Enter in the search field still runs a search.
+results grid. This handoff also applies to the Schedule and Resources project
+tables. Enter in the search field still runs a search.
 Enter in the results grid imports all selected item rows, skipping category
 headings. Schedule Enter uses Modify & Add. Ctrl+Enter (Command+Enter on macOS)
 adds the items unmodified. Double-click applies to the clicked item.
+Successful project imports focus the destination table after the picker closes.
 An updated project session recreates the picker instances, and the shell
 continues to open the database manager for picker requests.
 The database manager handles reselection of unavailable remembered paths.
@@ -276,6 +280,8 @@ request completes. Up or Down from search focuses a result, including when the
 key is pressed during loading and search still has focus when results arrive.
 Arrow keys and Home/End navigate the page, and Enter selects the focused item.
 Result buttons show a focus outline regardless of how the picker was opened.
+The Properties dialog is inert while its child picker is open. Closing the
+picker restores focus to its opener after the parent becomes interactive.
 Saving properties and changing a record link use the view's common command.
 Python owns validation, calculations and undo.
 

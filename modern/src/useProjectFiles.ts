@@ -34,19 +34,7 @@ interface ProjectFilesContext {
 export function useProjectFiles(context: ProjectFilesContext) {
   const { documentId, uiBusy, discardOpen, navigate, inNewDocument, closeProjectTab, continueAfterSave } = context;
   const w = context.workspace;
-  const {
-    state,
-    error,
-    projectSession,
-    schedule,
-    resources,
-    scheduleQuery,
-    resourceQuery,
-    resourceSource,
-    schedulePage,
-    resourcePage,
-    selected,
-  } = w;
+  const { state, error, projectSession, selected } = w;
   let finishOsOpen: (() => void) | undefined;
   let switchingAway = false;
 
@@ -229,10 +217,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
         await w.refresh();
         // Step 2: invalidate old view state only after the replacement succeeds.
         projectSession.value++;
-        schedule.value = [];
-        resources.value = [];
-        scheduleQuery.value = resourceQuery.value = resourceSource.value = "";
-        schedulePage.value = resourcePage.value = 0;
+        w.resetExplorer();
         selected.value = [];
         context.showSchedule();
       });
@@ -251,8 +236,7 @@ export function useProjectFiles(context: ProjectFilesContext) {
         await request("project.close", { discard });
         await w.refresh();
         projectSession.value++;
-        schedule.value = [];
-        resources.value = [];
+        w.resetExplorer();
         selected.value = [];
         context.showSchedule();
       }, "Closing project…");

@@ -183,6 +183,7 @@ defineExpose({
   redraw,
   /** Let a search field move the selection and optionally hand keyboard focus to the grid. */
   step: async (event: KeyboardEvent, options?: { focus: boolean }) => {
+    if (event.isComposing) return;
     await ready;
     if (!alive || !table || !tableSelection(event, table, props.busy, !!props.tree, true)) return;
     if (options?.focus && table.getSelectedRows().length && document.activeElement === event.target) {

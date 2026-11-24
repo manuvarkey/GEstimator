@@ -1832,3 +1832,40 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance profile was skipped. The production build passed with the
   existing Vite chunk-size warning. Changed-file quality, documentation and
   diff checks passed.
+
+## 2026-11-24 — Analysis Explorer search and project grid focus
+
+- The focused baseline reproduced six failures. The Explorer omitted live
+  search, Schedule and Resources stepped the selection with search still
+  focused, and all three keyboard import paths restored the opener's focus
+  instead of focusing the destination grid.
+- Both Explorer tabs now use the workspace's shared debounced search.
+  Chromium covers manual search with the setting off, filtering both tabs
+  with it on, arrow focus, and Enter to open an analysis or insert a resource.
+  The Explorer and measurement picker use the same result-button navigation.
+- Schedule and Resources pass browser focus to the grid after an arrow
+  selection from search. Successful library imports schedule grid focus after
+  the modal closes. Chromium checks range selection after the search handoff,
+  Enter import in both views and Ctrl+Enter in Schedule, starting each import
+  with focus on the ribbon.
+- A WebKitGTK 2.52.6 component probe used native GTK pointer and arrow events.
+  Both Explorer lists drew a solid 2 px outline on the focused result even
+  with `:focus-visible` false. The first Down from project search focused
+  and outlined the grid, and the second focused and outlined the next cell.
+- The first full suite passed 104 scenarios and exposed focus returning to
+  the Properties dialog before Enter in the nested measurement picker.
+  Extending the parent enter transition reproduced the issue in isolation.
+  PrimeVue's end-of-transition autofocus now encounters an inert parent
+  while the picker is open. The picker waits for the parent to become
+  interactive before restoring focus to its opener, and the focus tracker
+  retains the covered parent's focus record. The delayed-transition regression
+  passed. The WebKitGTK probe also kept the second result focused across
+  the animation and restored the Properties search button after Enter.
+- A held Explorer response also reproduced a stale result when search text
+  reverted to the previously displayed query. Recording the query at request
+  start lets the shared debounce helper retry after the request completes.
+  The focused regression passed.
+- The final run passed all 241 Python tests and 105 Chromium scenarios. The
+  opt-in performance scenario was skipped. Type checking and the production
+  build passed with the existing Vite chunk-size warning. Changed-file quality,
+  documentation and diff checks passed.

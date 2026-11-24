@@ -173,6 +173,30 @@ export const desktopControls = {
   },
 };
 
+/** Hold one backend request so a test can drive input before its response. */
+export async function holdNextRequest(page: Page, method: string) {
+  await page.evaluate((heldMethod) => {
+    const bridge = window as Window & {
+      backendTransport: (request: { method: string }) => Promise<unknown>;
+      resumeHeldRequest?: () => void;
+    };
+    const send = bridge.backendTransport;
+    bridge.backendTransport = async (request) => {
+      if (request.method === heldMethod) {
+        bridge.backendTransport = send;
+        await new Promise<void>((resolve) => (bridge.resumeHeldRequest = resolve));
+      }
+      return send(request);
+    };
+  }, method);
+  return () =>
+    page.evaluate(() => {
+      const resume = Reflect.get(window, "resumeHeldRequest");
+      Reflect.deleteProperty(window, "resumeHeldRequest");
+      resume();
+    });
+}
+
 export async function openFixture(page: Page, path: string) {
   const hasRecent = await page.evaluate(
     () => JSON.parse(localStorage.getItem("gestimator.recent-projects") || "[]").length > 0,

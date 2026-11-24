@@ -1,33 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
-import { directory, openFixture, openMeasurementEntry, python, useWorkspaceHarness } from "./workspaceHarness";
+import {
+  directory,
+  holdNextRequest,
+  openFixture,
+  openMeasurementEntry,
+  python,
+  useWorkspaceHarness,
+} from "./workspaceHarness";
 
 useWorkspaceHarness();
-
-/** Hold one lookup at the bridge so the test can send input before the results arrive. */
-async function holdScheduleLookup(page: Page) {
-  await page.evaluate(() => {
-    const bridge = window as Window & {
-      backendTransport: (request: { method: string }) => Promise<unknown>;
-      finishScheduleLookup?: () => void;
-    };
-    const send = bridge.backendTransport;
-    bridge.backendTransport = async (request) => {
-      if (request.method === "schedule.list") {
-        bridge.backendTransport = send;
-        await new Promise<void>((resolve) => (bridge.finishScheduleLookup = resolve));
-      }
-      return send(request);
-    };
-  });
-  return () =>
-    page.evaluate(() => {
-      const finish = Reflect.get(window, "finishScheduleLookup");
-      Reflect.deleteProperty(window, "finishScheduleLookup");
-      finish();
-    });
-}
 
 async function openMeasurementFixture(page: Page) {
   const path = resolve(directory, "measurement-links.eproj");
@@ -60,7 +43,7 @@ test("measurement schedule picker scrolls and selects a link from both entry poi
   const first = results.getByRole("button").first();
   const last = results.getByRole("button", { name: /Link candidate 29/ });
   const find = page.getByRole("button", { name: "Choose schedule item 1", exact: true });
-  const releaseFirst = await holdScheduleLookup(page);
+  const releaseFirst = await holdNextRequest(page, "schedule.list");
   await find.click();
   const search = picker.getByRole("textbox", { name: "Find linked schedule item" });
   const searchButton = picker.getByRole("button", { name: "Search", exact: true });
@@ -100,12 +83,17 @@ test("measurement schedule picker scrolls and selects a link from both entry poi
   await last.click();
   await expect(picker).not.toBeVisible();
 
+  // Open the child before the parent finishes its enter transition.
+  await page.addStyleTag({
+    content: ".measurement-properties-dialog.p-dialog-enter-active { animation-duration: 800ms !important; }",
+  });
   await page.getByRole("button", { name: "Properties…", exact: true }).click();
   const properties = page.getByRole("dialog", { name: "Measurement properties", exact: true });
   const code = properties.getByLabel("Property schedule code 1", { exact: true });
   await expect(code).toHaveValue("L29");
-  const releaseReopen = await holdScheduleLookup(page);
-  await properties.getByRole("button", { name: "Choose property schedule item 1", exact: true }).press("Enter");
+  const releaseReopen = await holdNextRequest(page, "schedule.list");
+  const choose = properties.getByRole("button", { name: "Choose property schedule item 1", exact: true });
+  await choose.press("Enter");
   await expect(searchButton).toBeDisabled();
   await expect(results.getByRole("button")).toHaveCount(0);
   await expect(results).toHaveJSProperty("scrollTop", 0);
@@ -120,9 +108,15 @@ test("measurement schedule picker scrolls and selects a link from both entry poi
   const previous = results.getByRole("button", { name: /Link candidate 28/ });
   await expect(previous).toBeFocused();
   await expect(previous).toHaveCSS("outline-style", "solid");
+  await expect(page.locator(".measurement-properties-dialog")).not.toHaveClass(/p-dialog-enter-active/);
+  await expect(previous).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(picker).not.toBeVisible();
   await expect(code).toHaveValue("L28");
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await expect(choose).toBeFocused();
 });
 
 test("measurement schedule picker honours Search as you type and retries a query while busy", async ({ page }) => {
@@ -154,7 +148,7 @@ test("measurement schedule picker honours Search as you type and retries a query
 
   await find.click();
   await expect(foundation).toBeVisible();
-  const release = await holdScheduleLookup(page);
+  const release = await holdNextRequest(page, "schedule.list");
   await search.fill("Foundation");
   await expect(searchButton).toBeDisabled();
   await search.fill("L20");

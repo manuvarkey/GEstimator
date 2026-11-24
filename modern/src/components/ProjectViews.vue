@@ -444,7 +444,12 @@ function showDatabase(mode: ProjectDatabaseSelection["mode"] = "add") {
 }
 async function applyDatabase(params: Record<string, unknown>) {
   const { operation, ...values } = params;
-  return command(String(operation), { ...values, ...(values.modify ? { settings: programSettings.value } : {}) });
+  const applied = await command(String(operation), {
+    ...values,
+    ...(values.modify ? { settings: programSettings.value } : {}),
+  });
+  if (applied && operation === "add_from_library") await focusTable();
+  return applied;
 }
 async function select(rows: GridRow[]) {
   if (!rows.length && !selected.value.length) return;
@@ -703,7 +708,7 @@ watch(
           <AppIcon name="search" :size="16" /><input
             v-model="query"
             aria-label="Search project table"
-            @keydown.up.down="mainTable?.step($event)"
+            @keydown.up.down="mainTable?.step($event, { focus: true })"
             placeholder="Search codes and descriptions…"
           /><button class="button small secondary" :disabled="busy">Search</button>
         </form>

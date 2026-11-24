@@ -33,6 +33,8 @@ for (const { kind, title, gridLabel, codes, key, modify } of [
     const source = await refinementFixture(page);
     await page.locator(".titlebar").getByRole("button", { name: "New project", exact: true }).click();
     await attachDatabase(page, source, kind);
+    // Open from outside the grid so closing the picker cannot just restore old grid focus.
+    await page.locator(".ribbon").getByRole("button", { name: title, exact: true }).focus();
     await page.keyboard.press("Control+l");
     const picker = page.getByRole("dialog", { name: title, exact: true });
     const search = picker.getByRole("textbox", { name: "Find database items" });
@@ -60,6 +62,8 @@ for (const { kind, title, gridLabel, codes, key, modify } of [
 
     const command = frontendCalls.findLast(({ method }) => method === kind + ".editor.add_from_library");
     expect(command?.params).toMatchObject({ modify, ids: [expect.any(String), expect.any(String)] });
+    const projectGrid = page.locator(".project-view:visible .project-main-grid").getByRole("grid");
+    await expect(projectGrid).toBeFocused();
     const projectCodes = page.locator('.project-view:visible .project-main-grid [tabulator-field="code"]');
     for (const code of codes) await expect(projectCodes.getByText(code, { exact: true })).toBeVisible();
   });

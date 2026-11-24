@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { useLiveSearch } from "./liveSearch";
 import { restoreLibraries } from "./libraryPreferences";
 import { initializeProgramSettings, programSettings } from "./programSettings";
 import { copyRows, pasteRows } from "./rowClipboard";
@@ -114,24 +115,49 @@ export function useWorkspace() {
     if (ok && feedback) notify(feedback);
     return ok;
   }
-  async function searchSchedule(page = 0) {
-    await run(async () => {
-      schedule.value = await request("schedule.list", {
-        query: scheduleQuery.value,
-        offset: page * 100,
+  const scheduleSearch = explorerSearch("schedule");
+  const resourceSearch = explorerSearch("resources");
+  /** Share a query and its loaded page across manual, live and background refreshes. */
+  function explorerSearch(kind: "schedule" | "resources") {
+    const isSchedule = kind === "schedule";
+    const query = isSchedule ? scheduleQuery : resourceQuery;
+    const items = isSchedule ? schedule : resources;
+    const page = isSchedule ? schedulePage : resourcePage;
+    let searched = "";
+    const live = useLiveSearch(query, () => searched, search);
+    async function load(index = page.value) {
+      live.cancel();
+      const text = query.value;
+      // Record the requested text before awaiting it, so typing back to the previous query can retry.
+      searched = text;
+      items.value = await request<LibraryItem[]>(isSchedule ? "schedule.list" : "resources.search", {
+        query: text,
+        offset: index * 100,
+        ...(isSchedule ? {} : { source: resourceSource.value }),
       });
-      schedulePage.value = page;
-    }, "Finding schedule items…");
+      page.value = index;
+    }
+    async function search(index = 0) {
+      if (!state.value?.project_open) return;
+      if (busy.value) return false;
+      await run(() => load(index), isSchedule ? "Finding schedule items…" : "Finding resources…");
+    }
+    function reset() {
+      live.cancel();
+      searched = query.value = "";
+      page.value = 0;
+      items.value = [];
+    }
+    return { search, load, reset };
   }
-  async function searchResources(page = 0) {
-    await run(async () => {
-      resources.value = await request("resources.search", {
-        query: resourceQuery.value,
-        source: resourceSource.value,
-        offset: page * 100,
-      });
-      resourcePage.value = page;
-    }, "Finding resources…");
+  function resetExplorer() {
+    scheduleSearch.reset();
+    resourceSearch.reset();
+    resourceSource.value = "";
+  }
+  async function refreshExplorer() {
+    await scheduleSearch.load();
+    await resourceSearch.load();
   }
   async function openProject(path: string, discard = false, recovery = false) {
     return run(async () => {
@@ -140,13 +166,8 @@ export function useWorkspace() {
       await restoreLibraries();
       await refresh();
       projectSession.value++;
-      scheduleQuery.value = "";
-      resourceQuery.value = "";
-      resourceSource.value = "";
-      schedulePage.value = 0;
-      resourcePage.value = 0;
-      schedule.value = await request("schedule.list");
-      resources.value = [];
+      resetExplorer();
+      await scheduleSearch.load();
       selected.value = [];
       void request("search.warm").catch(() => {});
     }, "Opening project…");
@@ -162,10 +183,7 @@ export function useWorkspace() {
           }),
         );
       }
-      schedule.value = await request("schedule.list", {
-        query: scheduleQuery.value,
-        offset: schedulePage.value * 100,
-      });
+      await scheduleSearch.load();
       selected.value = [];
     }, "Loading rate analysis…");
   }
@@ -210,8 +228,10 @@ export function useWorkspace() {
     refresh,
     reconnect,
     command,
-    searchSchedule,
-    searchResources,
+    searchSchedule: scheduleSearch.search,
+    searchResources: resourceSearch.search,
+    refreshExplorer,
+    resetExplorer,
     openProject,
     load,
     saveCopy,

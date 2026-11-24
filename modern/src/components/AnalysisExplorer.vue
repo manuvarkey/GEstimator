@@ -3,6 +3,7 @@
 import { ref } from "vue";
 import type { LibraryItem } from "../backend";
 import { formatMoney } from "../numberFormatting";
+import { focusResultButton } from "../resultNavigation";
 import AppIcon from "./AppIcon.vue";
 
 defineProps<{
@@ -27,6 +28,12 @@ const emit = defineEmits<{
 const scheduleQuery = defineModel<string>("scheduleQuery", { required: true });
 const resourceQuery = defineModel<string>("resourceQuery", { required: true });
 const explorer = ref<"schedule" | "resources">("schedule");
+const results = ref<HTMLElement>();
+
+function navigateResults(event: KeyboardEvent) {
+  if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (focusResultButton(results.value, event.key)) event.preventDefault();
+}
 </script>
 
 <template>
@@ -70,6 +77,7 @@ const explorer = ref<"schedule" | "resources">("schedule");
         placeholder="Find schedule items…"
         aria-label="Find schedule items"
         :disabled="!projectOpen"
+        @keydown.up.down="navigateResults"
       /><input
         v-else
         id="navigator-search"
@@ -77,6 +85,7 @@ const explorer = ref<"schedule" | "resources">("schedule");
         placeholder="Find resources…"
         aria-label="Find resources"
         :disabled="!projectOpen"
+        @keydown.up.down="navigateResults"
       /><button type="submit" class="icon-button" aria-label="Search explorer" :disabled="uiBusy || !projectOpen">
         <AppIcon name="chevron" :size="14" />
       </button>
@@ -85,7 +94,12 @@ const explorer = ref<"schedule" | "resources">("schedule");
       <span>{{ explorer === "schedule" ? "SCHEDULE ITEMS" : "RESOURCE LIBRARY" }}</span
       ><span>{{ (explorer === "schedule" ? schedule : resources).length }} shown</span>
     </div>
-    <nav class="item-list" :aria-label="explorer === 'schedule' ? 'Schedule items' : 'Resource library'">
+    <nav
+      ref="results"
+      class="item-list"
+      :aria-label="explorer === 'schedule' ? 'Schedule items' : 'Resource library'"
+      @keydown.up.down.home.end="navigateResults"
+    >
       <template v-if="explorer === 'schedule'"
         ><button
           v-for="item in schedule"

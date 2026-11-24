@@ -7,6 +7,7 @@ import PersistentDialog from "./PersistentDialog.vue";
 import { request } from "../backend";
 import { useLiveSearch } from "../liveSearch";
 import { vMiddleEllipsis } from "../middleEllipsis";
+import { focusResultButton } from "../resultNavigation";
 import type { GridRow, GridState, MeasurementDetail, ViewCommand } from "../projectViewTypes";
 
 interface PropertiesContext {
@@ -97,7 +98,8 @@ async function searchLinks(page = 0) {
   await nextTick();
   const pending = pendingNavigation;
   pendingNavigation = undefined;
-  if (pending && pickerOpen.value && document.activeElement === pending.from) focusLink(pending.key);
+  if (pending && pickerOpen.value && document.activeElement === pending.from)
+    focusResultButton(pickerResults.value, pending.key);
 }
 
 /** Open a fresh schedule search for the chosen link slot. */
@@ -108,28 +110,12 @@ async function showLinkPicker(slot: number) {
   await searchLinks();
 }
 
-/** Focus a result and reveal it with the smallest scroll needed. Enter activates the button. */
-function focusLink(key: string) {
-  const buttons = Array.from(pickerResults.value?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || []);
-  if (!buttons.length) return false;
-  const current = buttons.findIndex((button) => button === document.activeElement);
-  const up = key === "ArrowUp";
-  const last = buttons.length - 1;
-  let index = current + (up ? -1 : 1);
-  if (key === "Home") index = 0;
-  if (key === "End" || (current < 0 && up)) index = last;
-  const button = buttons[Math.max(0, Math.min(last, index))]!;
-  button.focus({ preventScroll: true });
-  button.scrollIntoView({ block: "nearest", inline: "nearest" });
-  return true;
-}
-
 function navigateLinks(event: KeyboardEvent) {
-  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   if (pickerBusy.value) {
     pendingNavigation = { key: event.key, from: event.target };
     event.preventDefault();
-  } else if (focusLink(event.key)) {
+  } else if (focusResultButton(pickerResults.value, event.key)) {
     event.preventDefault();
   }
 }
@@ -159,6 +145,7 @@ defineExpose({ showProperties, showLinkPicker });
     class="workspace-dialog measurement-properties-dialog"
     :closable="!busy"
     :close-on-escape="!busy"
+    :pt="{ root: { inert: pickerOpen || undefined } }"
   >
     <form @submit.prevent="saveProperties">
       <p v-if="propertiesDetail" class="dialog-intro">{{ propertiesDetail.info.note }}</p>

@@ -1,5 +1,4 @@
 import { onBeforeUnmount, watch, type Ref } from "vue";
-import { request } from "./backend";
 import { initializeMCP, mcpStatus, refreshMCP } from "./mcp";
 import type { useWorkspace } from "./useWorkspace";
 import type { RibbonTab } from "./useWorkspaceNavigation";
@@ -38,22 +37,11 @@ export function useWorkspaceMCP(context: MCPContext) {
       if (mcpStatus.value!.project_epoch !== observedProject) {
         w.projectSession.value++;
         w.selected.value = [];
-        w.scheduleQuery.value = w.resourceQuery.value = w.resourceSource.value = "";
-        w.schedulePage.value = w.resourcePage.value = 0;
+        w.resetExplorer();
       }
       await w.refresh();
       await context.reloadProjectView();
-      if (w.state.value?.project_open) {
-        w.schedule.value = await request("schedule.list", {
-          query: w.scheduleQuery.value,
-          offset: w.schedulePage.value * 100,
-        });
-        w.resources.value = await request("resources.search", {
-          query: w.resourceQuery.value,
-          offset: w.resourcePage.value * 100,
-          source: w.resourceSource.value,
-        });
-      }
+      if (w.state.value?.project_open) await w.refreshExplorer();
       observedChange = mcpStatus.value!.change_seq;
       observedProject = mcpStatus.value!.project_epoch;
     }, "Updated by MCP");
