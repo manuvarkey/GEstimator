@@ -347,7 +347,12 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await expect(page.locator(".summary-value")).toContainText("33.00");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();
   await page.keyboard.press("Enter");
+  await active(analysis).fill("4");
   await active(analysis).press("Enter");
+  await expect(page.locator(".summary-value")).toContainText("22.00");
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
   await expect(analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]')).toBeFocused();
   await expect(active(analysis)).toHaveCount(0);
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
@@ -359,7 +364,9 @@ test("cell navigation commits with Tab and Enter across schedule resources measu
   await settings.getByRole("button", { name: /^Save/ }).click();
   await expect(settings).not.toBeVisible();
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').dblclick();
+  await active(analysis).fill("5");
   await active(analysis).press("Enter");
+  await expect(page.locator(".summary-value")).toContainText("27.50");
   await expect(analysis.locator('.tabulator-row[data-kind="Round"] [tabulator-field="value"] input')).toBeFocused();
   await active(analysis).press("Escape");
   await analysis.locator('.tabulator-row[data-kind="Resource"] [tabulator-field="value"]').click();

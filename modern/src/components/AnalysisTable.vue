@@ -38,14 +38,21 @@ async function fitVisibleTable(force = false) {
   cancelAnimationFrame(fitFrame);
   fitFrame = requestAnimationFrame(() => {
     if (active && props.active && element.value?.clientWidth) {
+      const grid = element.value;
+      const focused = grid.querySelector<HTMLElement>(".tabulator-cell:focus");
       // Keep every column accessible at small sizes; normal desktop panes fit.
-      scrollable.value = element.value.clientWidth < 500;
+      scrollable.value = grid.clientWidth < 500;
       // Remarks need room beside the fixed numeric columns; hide them in a
       // narrow pane that must fit, show them again when it scrolls or widens.
       const remarks = table.getColumn("remarks");
-      const showRemarks = scrollable.value || element.value.clientWidth >= 720;
+      const showRemarks = scrollable.value || grid.clientWidth >= 720;
       if (remarks && remarks.isVisible() !== showRemarks) showRemarks ? remarks.show() : remarks.hide();
-      table.redraw(force && !element.value.querySelector(".tabulator-editing"));
+      table.redraw(force && !grid.querySelector(".tabulator-editing"));
+      // Tabulator briefly detaches rendered cells during layout. Keep the
+      // committed cell focused, or the grid itself if the column was hidden.
+      if (focused && document.activeElement === document.body) {
+        (grid.contains(focused) && focused.getClientRects().length ? focused : grid).focus({ preventScroll: true });
+      }
     }
   });
 }

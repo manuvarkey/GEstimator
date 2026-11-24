@@ -1900,3 +1900,22 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   performance scenario. All 241 Python tests passed. Type checking and the
   production build passed with the existing Vite chunk-size warning.
   Changed-file quality, documentation and diff checks passed.
+
+## 2026-11-24 — Analysis cell focus after Enter
+
+- The keyboard regression reproduced focus loss after changing a resource
+  quantity and pressing Enter. The rate updated and the expected cell retained
+  its visual focus marker. Browser tracing showed that keyboard navigation
+  focused the refreshed cell, then the queued Analysis layout redraw detached
+  it and sent browser focus to the document body.
+- The layout pass now restores the cell's focus if the redraw displaced it.
+  The cross-editor keyboard regression commits changed values with both
+  Analysis Enter settings and checks the default focus after the layout frame.
+  It also retains coverage for Tab, Escape and other grids.
+- A WebKitGTK 2.52.6 window using the development frontend and real Python
+  backend verified that native Enter saved a changed rounding value, retained
+  focus through layout and reopened the same cell on the next Enter.
+- All 241 Python tests and 111 Chromium scenarios passed. The opt-in
+  performance scenario was skipped. Type checking, the production build,
+  changed-file quality and documentation checks passed. Vite retained its
+  existing chunk-size warning.

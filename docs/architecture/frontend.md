@@ -185,6 +185,11 @@ field edits and row actions. The shell routes field edits through the same
 callback as the analysis grid. `useWorkspaceNavigation` owns inspector
 visibility and restores it when switching back to an open document tab.
 
+Analysis cell edits reconcile the refreshed row by ID and column. Enter
+returns focus to the committed cell by default, while the Program Settings
+option opens the next editable cell below. Tab retains its existing navigation
+order. Analysis layout redraws preserve focus on a surviving cell.
+
 `ProjectDatabasePickers` keeps separate schedule and resource add pickers and a
 shared rate refresh picker mounted across editor switches. The project view
 supplies the selected IDs and revision when opening a picker and handles its
