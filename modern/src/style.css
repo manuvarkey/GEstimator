@@ -375,9 +375,9 @@ textarea::placeholder {
   min-height: 2.1em;
   max-width: var(--ribbon-caption-width, 80px);
 }
-.ribbon-measure-actions select {
+.ribbon-actions select {
   padding: 3px 7px;
-  max-width: 180px;
+  max-inline-size: 180px;
   align-self: center;
   grid-row: 1 / -1;
   height: 30px;

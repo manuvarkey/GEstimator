@@ -329,9 +329,10 @@ Program/appearance/MCP/library preferences are application settings, separate
 from `.eproj` project metadata. Program settings are validated by Python and
 stored in versioned frontend preferences. Do not add project-specific state to
 a global preference or store derived backend totals as preferences. The
-estimation skill selector uses the Python catalog and persists the manifest ID.
-The MCP ribbon opens the user folder through the existing desktop folder
-command and refreshes the published [MCP skill catalog](mcp.md#estimation-skills-resources).
+estimation skill selectors in Program Settings and the MCP ribbon share the
+saved manifest ID and the active [MCP skill catalog](mcp.md#estimation-skills-resources).
+The ribbon saves and applies selection immediately, opens the user folder
+through the existing desktop folder command and refreshes the catalog.
 
 Semantic tokens belong in [`theme.css`](../../modern/src/theme.css); shared
 styles in [`style.css`](../../modern/src/style.css). Reuse `AppIcon`,

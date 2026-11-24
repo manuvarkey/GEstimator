@@ -1,11 +1,44 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import AppIcon from "./AppIcon.vue";
-import { copyMCPConfig, mcpBusy, mcpError, mcpMessage, mcpStatus, refreshMCP, startMCP, stopMCP } from "../mcp";
-import { loadSkillLibraries, openUserSkillDirectory } from "../skillLibraries";
+import {
+  applyMCPPreferences,
+  copyMCPConfig,
+  mcpBusy,
+  mcpError,
+  mcpMessage,
+  mcpStatus,
+  refreshMCP,
+  startMCP,
+  stopMCP,
+} from "../mcp";
+import { programSettings, saveProgramSettings } from "../programSettings";
+import { loadSkillLibraries, openUserSkillDirectory, skillLibraries } from "../skillLibraries";
 
 const emit = defineEmits<{ configure: [] }>();
 const skillsBusy = ref(false);
+
+/** Save the same app-wide preference as Program Settings and apply it to the live catalog. */
+async function selectSkillset(event: Event) {
+  const select = event.target as HTMLSelectElement;
+  const selected = select.value;
+  // Keep the field on the active catalog until the backend has applied the saved choice.
+  select.value = skillLibraries.value?.active_library ?? "";
+  if (skillsBusy.value || !programSettings.value) return;
+
+  skillsBusy.value = true;
+  mcpError.value = "";
+  mcpMessage.value = "";
+  try {
+    const settings = { ...programSettings.value, estimation_skill_library: selected };
+    await saveProgramSettings(settings);
+    await applyMCPPreferences(settings);
+  } catch (failure) {
+    mcpError.value = String(failure);
+  } finally {
+    skillsBusy.value = false;
+  }
+}
 
 async function manageSkills(refresh: boolean) {
   skillsBusy.value = true;
@@ -85,6 +118,19 @@ async function manageSkills(refresh: boolean) {
   </div>
   <div class="ribbon-group">
     <div class="ribbon-actions">
+      <select
+        aria-label="Estimation skillset"
+        title="Choose the active estimation skillset"
+        :value="skillLibraries?.active_library ?? ''"
+        :disabled="!skillLibraries?.libraries.length"
+        :aria-busy="skillsBusy"
+        @change="selectSkillset"
+      >
+        <option v-if="!skillLibraries?.libraries.length" value="">Skillsets unavailable</option>
+        <option v-for="library in skillLibraries?.libraries" :key="library.id" :value="library.id">
+          {{ library.name }}
+        </option>
+      </select>
       <button
         class="ribbon-action"
         aria-label="Open user skill folder"
