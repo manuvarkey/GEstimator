@@ -27,6 +27,7 @@ behavior, future work and historical evidence.
 | Change components, navigation, tables, document tabs or refresh | [Frontend architecture](architecture/frontend.md), [UI guidelines](ui-guidelines.md) |
 | Change native process lifecycle, file opening or packaging | [Native shell](architecture/README.md#native-shell), [build setup](../modern/README.md) |
 | Change MCP tools, permissions, resources, SQL or synchronization | [MCP architecture and contract](architecture/mcp.md) |
+| Package or install estimation skill libraries | [Library manifests and folders](architecture/mcp.md#library-folders-and-manifest), [user workflow](manual/README.md#add-an-office-skill-library) |
 | Change bulk analysis rules or their presets | [Analysis rules](features/analysis-rules.md), [backend](architecture/backend.md) |
 | Change expressions, numeric precision or measurement templates | [Numeric evaluation](architecture/backend.md#numeric-evaluation), [expression syntax](manual/README.md#numeric-expressions) |
 | Prepare verification or investigate a failure | [Testing guide](testing.md), [validation evidence](migration/validation.md) |

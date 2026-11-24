@@ -16,6 +16,7 @@ export interface ProgramSettings {
   live_search: boolean;
   enter_edits_next_cell: boolean;
   mcp_enabled: boolean;
+  estimation_skill_library: string;
   sch_rate_mult_factor: string;
   ana_copy_delete_rows: number;
   ana_default_rows: TemplateRow[];

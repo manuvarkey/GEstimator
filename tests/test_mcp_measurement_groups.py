@@ -33,7 +33,7 @@ class MCPMeasurementGroupTests(MCPFixture):
                     "action": "create",
                     "template": "_3_NNNNNNNN",
                     "description": "Fixtures and points",
-                    "after": "$lighting",
+                    "category": "$ref:lighting",
                     "ref": "fixtures",
                     "links": [{"code": "LIGHT"}, {"code": "POINT"}, {"code": ""}, {"code": "LOOP"}],
                     "records": [
@@ -46,7 +46,7 @@ class MCPMeasurementGroupTests(MCPFixture):
                     "action": "create",
                     "template": "_2_LLLLL",
                     "description": "Cable runs",
-                    "after": "$power",
+                    "category": "$power",
                     "ref": "cables",
                     "links": [{"code": "CABLE"}],
                     "records": [{"L1": "12.5"}],
@@ -62,6 +62,7 @@ class MCPMeasurementGroupTests(MCPFixture):
             [item["description"] for item in items if item["type"] == "Heading"],
             ["First floor lighting", "Second floor power"],
         )
+        self.assertEqual([row["category_id"] for row in items], [None, refs["lighting"], None, refs["power"]])
         self.call_tool("history", action="undo")
         self.assertEqual(self.call_tool("get_measurements")["items"], [])
         self.call_tool("history", action="redo")
@@ -72,3 +73,12 @@ class MCPMeasurementGroupTests(MCPFixture):
             {row["code"]: Decimal(row["qty"]) for row in rows},
             {"LIGHT": Decimal(9), "POINT": Decimal(3), "LOOP": Decimal(6), "CABLE": Decimal("12.5")},
         )
+
+        sheet = {"action": "create", "template": "_2_LLLLL", "category": refs["lighting"]}
+        inserted = self.call_tool("edit_measurements", ops=[sheet])["results"][0]["id"]
+        page = self.call_tool("get_measurements", offset=2, limit=1)["items"]
+        self.assertEqual([(row["id"], row["category_id"]) for row in page], [(inserted, refs["lighting"])])
+        before = self.call_tool("get_measurements")
+        result = self.tool("edit_measurements", {"ops": [sheet, dict(sheet, category=inserted)]})
+        self.assertTrue(result["isError"], result)
+        self.assertEqual(self.call_tool("get_measurements"), before)

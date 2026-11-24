@@ -228,7 +228,7 @@ replace an existing file after you confirm it in the Flatpak file chooser.
 
 GEstimator can run a local [Model Context Protocol](https://modelcontextprotocol.io) server so that an AI assistant (Claude, or any MCP client) reads and prepares estimates in the open project, using the same operations as the application.
 
-1. Tick **Enable the MCP server for AI assistants** in **Program settings → General**. The **MCP** tab appears.
+1. Tick **Enable the MCP server for AI assistants** in **Program settings → General**. The **MCP** tab appears. Choose a library under **Estimation skillset**.
 2. Click **Configure server** to choose the port and the access mode: **Read only** or **Read and write**. Copy the client configuration (endpoint and connection token) into your AI client.
 3. Click **Start server**.
 
@@ -238,7 +238,7 @@ The assistant reads database notes before choosing items, searches databases, im
 
 ### Ask for an estimate
 
-GEstimator gives the assistant estimation guides (skills) for civil measurement, electrical measurement and preliminary lighting design. The assistant reads the guide that fits your request before it measures and chooses items. Ask in plain words, for example:
+The bundled libraries cover civil and electrical takeoff. The shared rate-analysis skill is available with every library. Choose **IN** for Indian specifications, schedules of rates and preliminary lighting criteria. **Generic** uses the project’s own measurement rules and adopted schedule. The assistant reads the guide that fits the request before it measures and chooses items. To try the **IN** skillset, use a request like one of these:
 
 - "Using DSR 2023, take off the brickwork and plaster for the ground floor from plan A-101 and propose BOQ items. Show me the draft first."
 - "Count the light and fan points for the first floor from this layout and match them to DSR (E&M) 2025 items."
@@ -246,9 +246,19 @@ GEstimator gives the assistant estimation guides (skills) for civil measurement,
 
 The assistant first shows draft measurements and proposed items. Each line lists the location, dimensions or count, calculation, source and assumptions. It also flags missing inputs and items that need your decision. It writes to the project only when you ask it to apply the estimate. Lighting design results are marked provisional.
 
-To choose a guide yourself in Claude Code, type `@` and pick the resource, for example `@gestimator:gestimator://skills/civil-measurement-estimation`. The guides are available whenever the server runs, even with no project open.
+To choose a guide yourself in Claude Code, type `@` and pick the resource, for example `@gestimator:gestimator://skills/in/civil-measurement-estimation`. The guides are available whenever the server runs, even with no project open.
 
 After adding the server to an AI client, **start a new session** in that client so it loads GEstimator's tools. If the assistant writes its own script to talk to the server, or builds the estimate in a spreadsheet, the server is not loaded in that session: restart the client and check that GEstimator appears in its MCP server list (for example `claude mcp list` or `codex mcp list`). It also helps to name the guide in the request, for example "use the GEstimator civil measurement skill". Treat the connection token like a password: do not paste it into conversations you share, and use **Rotate token** if it has been exposed.
+
+### Add an office skill library
+
+1. On the **MCP** tab, click **Open user skill folder**.
+2. Add a library folder containing `library.json` and at least one skill folder with a `SKILL.md`. See the [manifest and folder format](../architecture/mcp.md#library-folders-and-manifest).
+3. Click **Refresh skills**. If the library does not appear, open **Configure server → Estimation skill libraries** to see any scan messages.
+4. Select the new library under **Program settings → General → AI assistants (MCP) → Estimation skillset** and save. The server can stay running.
+
+Refresh after editing or removing library files. If the active library is
+unavailable, GEstimator switches to Generic and displays the missing library.
 
 ## 12. Keyboard shortcuts
 

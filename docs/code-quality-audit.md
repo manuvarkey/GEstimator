@@ -89,6 +89,23 @@ use standard math approximations. Custom installed templates should use
   existing real-backend harness. [The Windows failure evidence and validation](migration/validation.md)
   record the three affected scenarios.
 
+### MCP estimating feedback
+
+The Antigravity transcripts exposed clients that display successful MCP text
+without the data in the structured envelope. The server now includes the compact
+data in both representations. The same test runs exposed grouping and source
+discovery gaps. See the [current MCP contract](architecture/mcp.md) for explicit
+measurement placement and the [validation review](migration/validation.md#schedule-wrapping-and-mcp-estimating-feedback-2026-11-24)
+for the observed project results. An agent's adherence to estimation guidance
+still depends on the inputs it can obtain and how it applies that guidance.
+
+`mcp_writes.py` (657 formatted lines) still groups existing write adapters by
+public intent and shares the project transaction. This change extends two
+existing paths. `DataTable.vue` (617 lines) keeps its Tabulator callbacks and
+row lifecycle together. The sizing fix is scoped to attached tree rows in the
+basic renderer. Review module boundaries when adding a new concern to either
+module.
+
 ## Remaining work, in order
 
 | Priority | Area | Next bounded change and acceptance check |

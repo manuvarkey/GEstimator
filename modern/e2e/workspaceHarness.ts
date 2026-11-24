@@ -21,10 +21,18 @@ export let requestTimings: { method: string; start: number; end: number }[] = []
 export function call(method: string, params: Record<string, unknown> = {}, session?: string) {
   return backend.call(method, params, session);
 }
-export function createBackend() {
+export function createBackend(skillDirectory?: string) {
   const pending = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
   let sequence = 0;
-  const process = spawn(python, ["-m", "modern.backend"], {
+  const args = skillDirectory
+    ? [
+        "-c",
+        "import sys; from pathlib import Path; from modern.backend import mcp_skills; " +
+          "mcp_skills.user_directory = lambda: Path(sys.argv[1]); from modern.backend.__main__ import main; main()",
+        skillDirectory,
+      ]
+    : ["-m", "modern.backend"];
+  const process = spawn(python, args, {
     cwd: resolve(".."),
     env: { ...globalThis.process.env, GESTIMATOR_AUTO_DATABASES: "0" },
   });
@@ -50,8 +58,8 @@ export function createBackend() {
     },
   };
 }
-export function startBackend() {
-  backend = createBackend();
+export function startBackend(skillDirectory?: string) {
+  backend = createBackend(skillDirectory);
   child = backend.child;
 }
 export async function connectDesktop(page: Page, transport = call) {
@@ -120,6 +128,10 @@ export async function connectDesktop(page: Page, transport = call) {
             args?.text,
           );
         if (method.startsWith("plugin:dialog|")) return (window as any).nativeDialogTransport();
+        if (method === "open_library_directory") {
+          Reflect.set(window, "openedLibraryDirectory", args.path);
+          return Promise.resolve();
+        }
         if (method.startsWith("plugin:window|")) {
           ((window as any).windowCommands ||= []).push(method);
           if (method === "plugin:window|show")
@@ -144,7 +156,7 @@ export async function connectDesktop(page: Page, transport = call) {
   await page.locator("#view-analysis").click();
 }
 /** Install the real Python bridge and a fresh workspace for each test in a spec. */
-export function useWorkspaceHarness() {
+export function useWorkspaceHarness({ isolateSkillLibraries = false } = {}) {
   test.beforeEach(async ({ page }) => {
     directory = await mkdtemp(resolve(tmpdir(), "gestimator-ui-"));
     measurementDelay = 0;
@@ -153,7 +165,7 @@ export function useWorkspaceHarness() {
     frontendRequests = [];
     frontendCalls = [];
     nativeDialogResults = [];
-    startBackend();
+    startBackend(isolateSkillLibraries ? resolve(directory, "skill-libraries") : undefined);
     await connectDesktop(page);
   });
   test.afterEach(async () => {

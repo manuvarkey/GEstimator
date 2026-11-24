@@ -154,6 +154,21 @@ watch(
     await redraw(true);
   },
 );
+const rowsToResize = new Set<RowComponent>();
+
+/** Recheck attached tree rows rebuilt before Tabulator adds their branch. */
+function resizeAfterTreeLayout(row: RowComponent) {
+  if (!rowsToResize.size) {
+    queueMicrotask(() => {
+      for (const pending of rowsToResize) {
+        if (pending.getElement().offsetParent) pending.normalizeHeight();
+      }
+      rowsToResize.clear();
+    });
+  }
+  rowsToResize.add(row);
+}
+
 let stopDragSelection: (() => void) | undefined;
 defineExpose({
   pasteText,
@@ -491,6 +506,9 @@ onMounted(() => {
       const data = rowData(row);
       const element = row.getElement();
       element.dataset.kind = data.rowtype === "Category" ? "Group" : "Resource";
+      // A forced redraw sizes attached cells before inserting the tree branch.
+      // Its indent changes the wrap width. Detached new rows are already measured by the renderer.
+      if (props.renderAllRows && element.offsetParent && row.getTreeParent()) resizeAfterTreeLayout(row);
       const colour = data.colour;
       if (data.rowtype === "Schedule" && typeof colour === "string" && /^#[0-9a-f]{6}$/i.test(colour)) {
         const [red, green, blue] = [1, 3, 5].map((offset) => {

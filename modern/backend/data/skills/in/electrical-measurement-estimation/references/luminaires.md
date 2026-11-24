@@ -17,7 +17,7 @@ Item codes and inclusions come from the DSR (E&M) 2025 database notes, checked a
 ## Counting
 
 - Count fittings **each** by type and rating per room. Keep each wattage and efficacy band separate.
-- Each fitting also needs its point wiring. Count the points from the control arrangement (see the [wiring reference](gestimator://skills/electrical-measurement-estimation/references/wiring.md)).
+- Each fitting also needs its point wiring. Count the points from the control arrangement (see the [wiring reference](gestimator://skills/in/electrical-measurement-estimation/references/wiring.md)).
 - Count sensors, regulators and time switches each.
 
 ## Supply and installation

@@ -14,17 +14,8 @@ import AnalysisRibbon from "./components/AnalysisRibbon.vue";
 import AnalysisInspector from "./components/AnalysisInspector.vue";
 import ProjectDatabasePickers from "./components/ProjectDatabasePickers.vue";
 import MCPSettings from "./components/MCPSettings.vue";
-import {
-  mcpStatus,
-  mcpBusy,
-  mcpError,
-  mcpMessage,
-  initializeMCP,
-  refreshMCP,
-  startMCP,
-  stopMCP,
-  copyMCPConfig,
-} from "./mcp";
+import MCPRibbon from "./components/MCPRibbon.vue";
+import { mcpBusy, mcpError, mcpMessage, initializeMCP } from "./mcp";
 import { savedLibraries } from "./libraryPreferences";
 import { programSettings, programSettingsWarning } from "./programSettings";
 import { activeTheme as theme, setPlatformFont, toggleTheme } from "./appearance";
@@ -765,66 +756,7 @@ onBeforeUnmount(() => {
           <small>DATABASES</small>
         </div>
       </template>
-      <template v-else-if="activeTab === 'mcp'">
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Start MCP server"
-              title="Start the authenticated local MCP server using the access mode selected in Configure server."
-              :disabled="mcpBusy || !mcpStatus || mcpStatus.running"
-              @click="startMCP"
-            >
-              <AppIcon name="play" /><span class="ribbon-label">Start server</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Stop MCP server"
-              title="Stop listening and prevent further MCP requests. The current project and editor stay open."
-              :disabled="mcpBusy || !mcpStatus?.running"
-              @click="stopMCP"
-            >
-              <AppIcon name="stop" /><span class="ribbon-label">Stop server</span>
-            </button>
-          </div>
-          <small>SERVER</small>
-        </div>
-        <div class="ribbon-group">
-          <div class="ribbon-actions">
-            <button
-              class="ribbon-action"
-              aria-label="Configure MCP server"
-              title="Configure the local port, automatic startup and connection token; inspect available tools and client configuration."
-              :disabled="mcpBusy"
-              @click="mcpSettingsOpen = true"
-            >
-              <AppIcon name="settings" /><span class="ribbon-label">Configure server</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Copy MCP client configuration"
-              title="Copy the server URL and authorization header as JSON for a Streamable HTTP MCP client."
-              :disabled="mcpBusy || !mcpStatus"
-              @click="copyMCPConfig"
-            >
-              <AppIcon name="copy" /><span class="ribbon-label">Client config</span></button
-            ><button
-              class="ribbon-action"
-              aria-label="Refresh MCP status"
-              title="Refresh server status and client activity without changing the project."
-              :disabled="mcpBusy"
-              @click="refreshMCP"
-            >
-              <AppIcon name="refresh" /><span class="ribbon-label">Refresh status</span>
-            </button>
-          </div>
-          <small>CONNECTION</small>
-        </div>
-        <span class="ribbon-note" role="status"
-          >{{ mcpStatus?.running ? "Running" : "Stopped" }} ·
-          {{ mcpStatus?.access === "read-write" ? "Read and write" : "Read only" }}<br />{{
-            mcpStatus?.url || "Connecting…"
-          }}</span
-        >
-      </template>
+      <MCPRibbon v-else-if="activeTab === 'mcp'" @configure="mcpSettingsOpen = true" />
       <div
         id="project-ribbon-tools"
         class="ribbon-tools-host"

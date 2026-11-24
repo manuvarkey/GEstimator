@@ -164,7 +164,13 @@ class Service:
             if method == "mcp.configure":
                 return self.mcp.configure(p)
             if method == "mcp.enable":
-                return self.mcp.enable(p.get("enabled"))
+                return self.mcp.enable(p.get("enabled"), p.get("estimation_skill_library"))
+            if method == "mcp.skill_libraries":
+                return self.mcp.skill_libraries.status()
+            if method == "mcp.refresh_skill_libraries":
+                return self.mcp.skill_libraries.refresh()
+            if method == "mcp.skill_directory":
+                return self.mcp.skill_libraries.open_directory()
             if method == "mcp.start":
                 return self.mcp.start()
             if method == "mcp.stop":

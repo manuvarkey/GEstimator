@@ -31,6 +31,7 @@ and MCP adapters reuse the same service/editor operations.
 | Rate dependencies and recalculation | [`rates.py`](../../modern/backend/rates.py) |
 | Ordered insertion and dependency-category placement | [`insertion.py`](../../modern/backend/insertion.py) |
 | Versioned row-transfer payloads | [`clipboard.py`](../../modern/backend/clipboard.py) |
+| Application-wide estimation skill manifests and resource snapshots | [`mcp_skills.py`](../../modern/backend/mcp_skills.py) |
 | Search, notes and optional enrichment | [`search.py`](../../modern/backend/search.py), [`metadata.py`](../../modern/backend/metadata.py) |
 | Saves, fingerprints, backups and recovery locks | [`persistence.py`](../../modern/backend/persistence.py) |
 | Reporting changes/deltas | [`editor_changes.py`](../../modern/backend/editor_changes.py) |

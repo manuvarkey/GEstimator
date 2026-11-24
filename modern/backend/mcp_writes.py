@@ -4,7 +4,8 @@ import copy
 from decimal import Decimal
 
 from estimator import misc
-from .mcp_operations import ToolError, OPERATIONS, validate, is_preview
+
+from .mcp_operations import OPERATIONS, ToolError, is_preview, validate
 from .numbers import decimal
 
 
@@ -21,7 +22,12 @@ class Writes:
             if args.get("preview", False):
                 return self.app("project.import_preview", params)
             if "mapping" not in args:
-                raise ToolError("invalid_arguments", "Import requires a column mapping", "mapping", hint="Call project import_xlsx with preview=true first.")
+                raise ToolError(
+                    "invalid_arguments",
+                    "Import requires a column mapping",
+                    "mapping",
+                    hint="Call project import_xlsx with preview=true first.",
+                )
             return self.app("project.import_apply", params)
         if action in ("open", "save_copy", "export_xlsx") and not args.get("path"):
             raise ToolError("invalid_arguments", "This action requires a path", "path")
@@ -38,7 +44,9 @@ class Writes:
         if kind == "category":
             actual = args.get("category_kind", "schedule")
             prefix = "resources" if actual == "resource" else "schedule"
-            table = self.service.db.ResourceCategoryTable if actual == "resource" else self.service.db.ScheduleCategoryTable
+            table = (
+                self.service.db.ResourceCategoryTable if actual == "resource" else self.service.db.ScheduleCategoryTable
+            )
             result = []
             for item in args["items"]:
                 old = table.get_or_none(table.description == item.get("code", item.get("description", "")))
@@ -57,7 +65,11 @@ class Writes:
         result, inserted = [], []
         table = self.service.db.ResourceTable if kind == "resource" else self.service.db.ScheduleTable
         for item in args["items"]:
-            data = {key: (value or "" if key == "parent" else value) for key, value in item.items() if key not in ("duplicate_from", "colour")}
+            data = {
+                key: (value or "" if key == "parent" else value)
+                for key, value in item.items()
+                if key not in ("duplicate_from", "colour")
+            }
             row = table.get_or_none(table.code == item.get("code")) if item.get("code") else None
             if "duplicate_from" in item:
                 source = self.row(kind, item["duplicate_from"])
@@ -66,7 +78,7 @@ class Writes:
                 response = self.app(prefix + ".editor.duplicate", params)
                 row = table.get_by_id(int(response["selected"][0]))
                 inserted.append(row.code)
-            elif row:
+            if row:
                 for field, value in data.items():
                     if field == "code":
                         continue
@@ -90,6 +102,7 @@ class Writes:
 
     def place_categories(self, kind, names, position):
         from .mcp_workspace import natural
+
         table = self.service.db.ResourceCategoryTable if kind == "resource" else self.service.db.ScheduleCategoryTable
         selected = [table.get(table.description == name) for name in names]
         siblings = [r for r in table.select().order_by(table.order, table.id) if r.description not in names]
@@ -112,23 +125,33 @@ class Writes:
             siblings[index:index] = selected
         else:
             for row in sorted(selected, key=lambda r: natural(code(r))):
-                index = next((i for i, other in enumerate(siblings) if natural(code(other)) > natural(code(row))), len(siblings))
+                index = next(
+                    (i for i, other in enumerate(siblings) if natural(code(other)) > natural(code(row))), len(siblings)
+                )
                 siblings.insert(index, row)
 
     def place_items(self, kind, codes, position):
         from .mcp_workspace import natural
+
         if not codes:
             return
         if "before" in position and "after" in position:
             raise ToolError("invalid_position", "Choose before or after", "position")
         table = self.service.db.ResourceTable if kind == "resource" else self.service.db.ScheduleTable
-        categories = self.service.db.ResourceCategoryTable if kind == "resource" else self.service.db.ScheduleCategoryTable
-        anchor = self.row(kind, position.get("before", position.get("after"))) if "before" in position or "after" in position else None
+        categories = (
+            self.service.db.ResourceCategoryTable if kind == "resource" else self.service.db.ScheduleCategoryTable
+        )
+        anchor = (
+            self.row(kind, position.get("before", position.get("after")))
+            if "before" in position or "after" in position
+            else None
+        )
         if anchor and ("parent" in position or "category" in position):
             raise ToolError("invalid_position", "An anchor already determines category and parent", "position")
         prefix = "resources" if kind == "resource" else "schedule"
         original = [self.row(kind, code) for code in codes]
         selected_ids = {row.id for row in original}
+
         def selected_ancestor(row):
             parent = row.parent if kind == "schedule" and row.parent_id else None
             seen = set()
@@ -140,6 +163,7 @@ class Writes:
                     return True
                 parent = parent.parent if parent.parent_id else None
             return False
+
         original_roots = [row for row in original if not selected_ancestor(row)]
         for row in original_roots:
             parent = None
@@ -166,7 +190,9 @@ class Writes:
             if kind == "schedule":
                 condition &= table.parent == parent_id
                 ordering = table.suborder if parent_id else table.order
-            siblings = list(table.select().where(condition & table.id.not_in([r.id for r in values])).order_by(ordering, table.id))
+            siblings = list(
+                table.select().where(condition & table.id.not_in([r.id for r in values])).order_by(ordering, table.id)
+            )
             self.insert_position(siblings, values, position, lambda r: r.code, natural)
             for index, row in enumerate(siblings):
                 table.update({ordering: index}).where(table.id == row.id).execute()
@@ -198,14 +224,30 @@ class Writes:
         """Name the note sections of the imported items' categories that were
         not read, so the client checks its choice against them."""
         from . import metadata
+
         general, category_notes = metadata.notes(db)
         read = self.notes_read()
         name = self.source_name(source_id)
-        unread = sorted({row.category.description for row in rows if row.category.description in category_notes and (name, "category:" + row.category.description) not in read})
-        sections = (["overview"] if general and (name, "overview") not in read else []) + ["category:" + category for category in unread]
+        unread = sorted(
+            {
+                row.category.description
+                for row in rows
+                if row.category.description in category_notes
+                and (name, "category:" + row.category.description) not in read
+            }
+        )
+        sections = (["overview"] if general and (name, "overview") not in read else []) + [
+            "category:" + category for category in unread
+        ]
         if sections:
-            warnings.append(dict(code="notes_not_read", sections=sections,
-                                 message="Imported without reading these database notes; read describe_source for each section and check the items against them: " + ", ".join(sections)))
+            warnings.append(
+                dict(
+                    code="notes_not_read",
+                    sections=sections,
+                    message="Imported without reading these database notes; read describe_source for each section and check the items against them: "
+                    + ", ".join(sections),
+                )
+            )
 
     def import_items(self, args, warnings):
         self.service.guard_draft({})
@@ -218,10 +260,16 @@ class Writes:
             raise ToolError("invalid_arguments", "Select at least one code", "codes")
         self.warn_unread_notes(source_id, db, rows, warnings)
         prefix = "resources" if kind == "resource" else "schedule"
-        params = dict(source=source_id, ids=[str(r.id) for r in rows], include_parents=args.get("include_parents", True), on_conflict=args.get("on_conflict", "rename"),
-                      recalculate=kind == "schedule" and args.get("rate_mode", "recalculate") == "recalculate")
+        params = dict(
+            source=source_id,
+            ids=[str(r.id) for r in rows],
+            include_parents=args.get("include_parents", True),
+            on_conflict=args.get("on_conflict", "rename"),
+            recalculate=kind == "schedule" and args.get("rate_mode", "recalculate") == "recalculate",
+        )
         if "settings" in args:
             from .program_settings import validate as validate_settings
+
             params.update(modify=True, settings=validate_settings(args["settings"]))
         data = self.app(prefix + ".editor.add_from_library", params)
         code_map = data["code_map"]
@@ -250,7 +298,12 @@ class Writes:
                 if current is not None and current != stored:
                     warnings.append(dict(code=imported, stored=str(stored), recalculated=str(current)))
         self.place_items(kind, codes, args.get("position", {}))
-        return dict(imported=data["imported"], skipped=data["skipped"], parents=len(set(code_map) - set(args["codes"])), code_map=code_map)
+        return dict(
+            imported=data["imported"],
+            skipped=data["skipped"],
+            parents=len(set(code_map) - set(args["codes"])),
+            code_map=code_map,
+        )
 
     def history(self, args, warnings):
         return self.app("project." + args["action"])
@@ -267,16 +320,29 @@ class Writes:
             if is_preview(name, params):
                 raise ToolError("invalid_batch", "Preview operations cannot be batched", f"ops[{index}].args.preview")
             if "if_revision" in params and params["if_revision"] != self.service.revision:
-                raise ToolError("stale_revision", "Batch operation has a stale revision", f"ops[{index}].args.if_revision")
-        return dict(results=[dict(tool=op["tool"], data=self.call(op["tool"], op["args"], warnings)) for op in args["ops"]])
+                raise ToolError(
+                    "stale_revision", "Batch operation has a stale revision", f"ops[{index}].args.if_revision"
+                )
+        return dict(
+            results=[dict(tool=op["tool"], data=self.call(op["tool"], op["args"], warnings)) for op in args["ops"]]
+        )
 
     def edit_analysis(self, args, warnings):
         from .clipboard import schedule_data
+
         service = self.service
         if service.records_dirty:
-            raise ToolError("draft_conflict", "The desktop has unsaved measurement records. Apply or discard the records draft first.")
+            raise ToolError(
+                "draft_conflict",
+                "The desktop has unsaved measurement records. Apply or discard the records draft first.",
+            )
         if service.dirty and not args.get("discard_draft", False):
-            raise ToolError("draft_conflict", "The desktop has an unsaved analysis draft", "discard_draft", hint="Apply the desktop draft or explicitly discard it.")
+            raise ToolError(
+                "draft_conflict",
+                "The desktop has an unsaved analysis draft",
+                "discard_draft",
+                hint="Apply the desktop draft or explicitly discard it.",
+            )
         previous_code = service.model.code if service.loaded else None
         previous_clipboard = copy.deepcopy(service.clipboard)
         self.app("analysis.load", dict(code=args["code"], discard=args.get("discard_draft", False)))
@@ -286,8 +352,10 @@ class Writes:
             for j, identity in enumerate(row.get("_resource_ids", [])):
                 refs[f"r{i}:{j}"] = identity
         cursor = service.model.ana_items[-1]["_id"] if service.model.ana_items else None
+
         def resolve(identity):
             return refs.get(identity.lstrip("$"), identity) if identity else None
+
         for op in args["ops"]:
             action = op["action"]
             params = {key: value for key, value in op.items() if key not in ("action", "target", "ref")}
@@ -295,7 +363,9 @@ class Writes:
                 params["id"] = resolve(params["id"])
             if "ids" in params:
                 params["ids"] = [resolve(identity) for identity in params["ids"]]
-            old_ids = {row["_id"] for row in service.model.ana_items} | {identity for row in service.model.ana_items for identity in row.get("_resource_ids", [])}
+            old_ids = {row["_id"] for row in service.model.ana_items} | {
+                identity for row in service.model.ana_items for identity in row.get("_resource_ids", [])
+            }
             if action == "set_remarks":
                 service.edit("analysis.edit", dict(field="ana_remarks", value=op.get("value", op.get("remarks", ""))))
             elif action == "add":
@@ -334,7 +404,12 @@ class Writes:
                 service.edit("analysis." + action, params)
             service.model.evaluate_results()
             new_ids = [row["_id"] for row in service.model.ana_items if row["_id"] not in old_ids]
-            new_ids += [identity for row in service.model.ana_items for identity in row.get("_resource_ids", []) if identity not in old_ids]
+            new_ids += [
+                identity
+                for row in service.model.ana_items
+                for identity in row.get("_resource_ids", [])
+                if identity not in old_ids
+            ]
             if new_ids:
                 cursor = new_ids[-1]
                 if op.get("ref"):
@@ -343,7 +418,15 @@ class Writes:
                     refs[op["ref"]] = cursor
         self.app("analysis.apply")
         definition = schedule_data(service.model)
-        data = dict(code=args["code"], rate=definition["rate"], refs={key: value for key, value in refs.items() if not key.startswith("r") or not key[1:].replace(":", "").isdigit()})
+        data = dict(
+            code=args["code"],
+            rate=definition["rate"],
+            refs={
+                key: value
+                for key, value in refs.items()
+                if not key.startswith("r") or not key[1:].replace(":", "").isdigit()
+            },
+        )
         # Return to the desktop selection with stored data. The outer transaction
         # restores the complete original draft on failure or preview.
         if previous_code and service.db.get_item_key(previous_code) is not None:
@@ -351,6 +434,7 @@ class Writes:
             service.loaded = True
         else:
             from estimator.data.schedule import ScheduleItemModel
+
             service.model = ScheduleItemModel("", "Select a schedule item")
             service.loaded = False
         service.identify()
@@ -361,7 +445,9 @@ class Writes:
         return data
 
     def apply_analysis_rules(self, args, warnings):
-        from .analysis_rules import execute, validate as validate_rules
+        from .analysis_rules import execute
+        from .analysis_rules import validate as validate_rules
+
         validate_rules(args["rules"])
         self.service.guard_draft({})
         scope = args["scope"]
@@ -386,17 +472,27 @@ class Writes:
         if self.editor.measurement_draft:
             self.editor.draft_command("close", {})
         refs, results = {}, []
+
+        def resolve(identity):
+            if identity is None:
+                return None
+            return refs.get(identity.removeprefix("$ref:").removeprefix("$"), identity)
+
         for op in args["ops"]:
             action = op["action"]
-            identity = refs.get(op.get("id", "").lstrip("$"), op.get("id"))
+            identity = resolve(op.get("id"))
             params = dict(id=identity)
             if action == "caption":
                 results.append(self.app("measurement.caption", dict(value=op.get("value", ""))))
                 continue
             if action == "create":
                 params = dict(template=op.get("template", ""), description=op.get("description", ""))
+                if "category" in op:
+                    if not params["template"] or "after" in op or not op["category"]:
+                        raise ToolError("invalid_arguments", "Choose a category for a sheet without after", "category")
+                    params["category_id"] = resolve(op["category"])
                 if op.get("after"):
-                    params["id"] = refs.get(op["after"].lstrip("$"), op["after"])
+                    params["id"] = resolve(op["after"])
                 data = self.app("measurement.add", params)
                 identity = data["selected"][0]
                 if op.get("ref"):
@@ -416,7 +512,15 @@ class Writes:
                         raise ToolError("invalid_arguments", "Too many measurement links", "links")
                     links = [dict(code=l["code"], remark=l.get("remark", "")) for l in links]
                     links += [dict(code="", remark="") for _ in range(len(detail["links"]) - len(links))]
-                    self.app("measurement.properties", dict(params, description=op.get("description", detail["description"]), links=links, user_data=op.get("user_data", [p["value"] for p in detail["user_data"]])))
+                    self.app(
+                        "measurement.properties",
+                        dict(
+                            params,
+                            description=op.get("description", detail["description"]),
+                            links=links,
+                            user_data=op.get("user_data", [p["value"] for p in detail["user_data"]]),
+                        ),
+                    )
                 records = self.add_records(identity, op.get("records", []))
                 results.append(dict(id=identity, record_ids=records))
             elif action == "records_add":
@@ -428,12 +532,14 @@ class Writes:
                 self.edit_records(identity, op.get("records", []))
                 results.append(dict(id=identity))
             elif action in ("delete", "move", "duplicate"):
-                params["ids"] = [refs.get(v.lstrip("$"), v) for v in op.get("ids", [identity])]
+                params["ids"] = [resolve(v) for v in op.get("ids", [identity])]
                 params["delta"] = -1 if op.get("delta") == "up" else 1
                 self.app("measurement." + action, params)
                 results.append(dict(ids=params["ids"]))
             else:
-                method = dict(records_delete="record_delete", records_move="record_move", records_import="record_import")[action]
+                method = dict(
+                    records_delete="record_delete", records_move="record_move", records_import="record_import"
+                )[action]
                 params.update({key: value for key, value in op.items() if key not in ("action", "id", "ref")})
                 params["delta"] = -1 if op.get("delta") == "up" else 1
                 self.app("measurement." + method, params)
@@ -464,18 +570,38 @@ class Writes:
             for title, value in record.items():
                 if title == "id":
                     continue
-                matches = [col for i, col in enumerate(columns) if col["title"] == title or col["field"] == title or template.captions[i] == title]
+                matches = [
+                    col
+                    for i, col in enumerate(columns)
+                    if col["title"] == title or col["field"] == title or template.captions[i] == title
+                ]
                 if len(matches) != 1:
-                    raise ToolError("invalid_column", "Unknown or ambiguous column title", title, [col["title"] for col in columns if col["editable"]], "Use the exact title or cN field from get_measurements.")
+                    raise ToolError(
+                        "invalid_column",
+                        "Unknown or ambiguous column title",
+                        title,
+                        [col["title"] for col in columns if col["editable"]],
+                        "Use the exact title or cN field from get_measurements.",
+                    )
                 column = matches[0]
                 if not column["editable"]:
-                    raise ToolError("not_editable", "This measurement column is computed", column["field"], editable, column["title"] + " is computed")
+                    raise ToolError(
+                        "not_editable",
+                        "This measurement column is computed",
+                        column["field"],
+                        editable,
+                        column["title"] + " is computed",
+                    )
                 if column.get("numeric") and isinstance(value, str) and value.strip():
                     try:
                         decimal(value)
                     except (ValueError, ArithmeticError) as error:
-                        raise ToolError("invalid_number", str(error), f"records[{index}].{column['field']}",
-                                        hint=f"{column['title']} = {value!r}; give a number or arithmetic, or leave the column out (empty).") from None
+                        raise ToolError(
+                            "invalid_number",
+                            str(error),
+                            f"records[{index}].{column['field']}",
+                            hint=f"{column['title']} = {value!r}; give a number or arithmetic, or leave the column out (empty).",
+                        ) from None
                 edits.append(dict(id=record["id"], field=column["field"], value=value))
         if edits:
             self.app("measurement.record_edit_many", dict(id=identity, edits=edits))
@@ -498,7 +624,11 @@ class Writes:
                 return dict(changed=0)
             prefix = "resources" if kind == "resource" else "schedule"
             result = self.app(prefix + ".editor.price_update", dict(library=source_id, ids=self.ids(kind, codes)))
-            warnings.extend(dict(code=row.code, stored=before[row.code], recalculated=str(row.rate or 0)) for row in db.ScheduleTable.select() if str(row.rate or 0) != before[row.code])
+            warnings.extend(
+                dict(code=row.code, stored=before[row.code], recalculated=str(row.rate or 0))
+                for row in db.ScheduleTable.select()
+                if str(row.rate or 0) != before[row.code]
+            )
         else:
             codes = codes if codes is not None else [row.code for row in db.ScheduleTable.select()]
             if not codes:
@@ -507,11 +637,21 @@ class Writes:
             if what == "quantities":
                 table = db.ScheduleTable
                 before_qty = dict(table.select(table.id, table.qty).tuples())
-                self.app("schedule.editor.update_quantities", dict(ids=ids, rounding=args.get("rounding", "Round to .000")))
-                return dict(changed=sum(qty != before_qty[identity] for identity, qty in table.select(table.id, table.qty).tuples()))
+                self.app(
+                    "schedule.editor.update_quantities", dict(ids=ids, rounding=args.get("rounding", "Round to .000"))
+                )
+                return dict(
+                    changed=sum(
+                        qty != before_qty[identity] for identity, qty in table.select(table.id, table.qty).tuples()
+                    )
+                )
             before = {row.code: str(row.rate or 0) for row in db.ScheduleTable.select()}
             self.app("schedule.editor.update_rates", dict(ids=ids))
-            differences = [dict(code=row.code, stored=before[row.code], recalculated=str(row.rate or 0)) for row in db.ScheduleTable.select() if str(row.rate or 0) != before[row.code]]
+            differences = [
+                dict(code=row.code, stored=before[row.code], recalculated=str(row.rate or 0))
+                for row in db.ScheduleTable.select()
+                if str(row.rate or 0) != before[row.code]
+            ]
             warnings.extend(differences)
             result = dict(changed=len(differences))
         return result

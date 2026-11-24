@@ -63,7 +63,7 @@ Read `describe_source section=category:MASONRY WORK` first. In summary:
 - AAC blocks: 6.38 for 100 or 125 mm walls (sqm), 6.47 for 150 to 300 mm (cum).
 - Floor-level extra: 6.5 for each four floors above floor five, for the same quantity.
 
-Plaster and pointing are separate items. See [finishes](gestimator://skills/civil-measurement-estimation/references/finishes.md).
+Plaster and pointing are separate items. See [finishes](gestimator://skills/in/civil-measurement-estimation/references/finishes.md).
 
 ## Worked line
 

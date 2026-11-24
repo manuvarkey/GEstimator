@@ -3,15 +3,17 @@
 import functools
 import hashlib
 import json
-from pathlib import Path
 import re
 import unicodedata
+from pathlib import Path
 
-VERSION = "1"
+VERSION = "2"
 
 
 def normalize(text):
     text = unicodedata.normalize("NFKC", text).casefold()
+    # Rate books use dotted initialisms such as R.C.C. in item descriptions.
+    text = re.sub(r"\b[a-z](?:\.[a-z]){2,}\.?(?!\w)", lambda match: match[0].replace(".", ""), text)
     text = re.sub(r"\b(?:sq\.?\s*mm|mm2)\b", "sq mm", text)
     text = re.sub(r"\b(?:cu\.?\s*m|cum)\b", "cum", text)
     text = re.sub(r"(?<=\d)\s*[x×]\s*(?=\d)", " x ", text)
@@ -27,7 +29,7 @@ def extract(text):
         term = match[2]
         words = re.findall(r"[A-Za-z]+", match[1])
         # Find the shortest suffix whose initials match the abbreviation.
-        expansion = " ".join(words[-len(term):])
+        expansion = " ".join(words[-len(term) :])
         for size in range(1, min(len(words), 12) + 1):
             candidate = words[-size:]
             initials = "".join(word[0].upper() for word in candidate if word.lower() not in ("of", "and", "the"))
@@ -70,7 +72,12 @@ def entries(text, enrichment=None, user_path=None):
     return list(merged.values())
 
 
-_FIELDS = {"civil": r"civil|concrete|masonry|damp|brick|structur", "electrical": r"electric|e&m|wiring|circuit|switch|conduit|cable", "plumbing": r"plumb|sanitar|water|pipe|tap|fitting", "hvac": r"hvac|duct|air condition|ventilat"}
+_FIELDS = {
+    "civil": r"civil|concrete|masonry|damp|brick|structur",
+    "electrical": r"electric|e&m|wiring|circuit|switch|conduit|cable",
+    "plumbing": r"plumb|sanitar|water|pipe|tap|fitting",
+    "hvac": r"hvac|duct|air condition|ventilat",
+}
 
 
 @functools.lru_cache(maxsize=4096)
