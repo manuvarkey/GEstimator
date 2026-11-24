@@ -44,7 +44,8 @@ Detailed structural findings are maintained once in the
   validate the resulting offline build after dependency changes. The current
   offline Node inputs include the locked Prettier tarball.
 - Verify the published website/manual and downloadable older databases against
-  the intended release. Repository files and live publication are separate states.
+  the intended release. Follow the [release guide](releasing.md#publish-and-check-distribution)
+  for the GitHub Pages publishing source and deployment checks.
 
 These items deliberately remain verification gates: no live store, website or
 hosted-run status was checked during documentation cleanup.

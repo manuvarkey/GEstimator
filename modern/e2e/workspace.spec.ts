@@ -4518,7 +4518,8 @@ test("draft headerbars use dropdowns and manual and About stay available offline
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "About GEstimator", exact: true }).click();
   const about = page.getByRole("dialog", { name: "About GEstimator", exact: true });
-  await expect(about).toContainText("Version 3.0.1");
+  const { version } = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  await expect(about).toContainText(`Version ${version}`);
   await about.getByText("GNU General Public License", { exact: true }).click();
   await expect(about.locator("pre")).toContainText("Version 3, 29 June 2007");
 });

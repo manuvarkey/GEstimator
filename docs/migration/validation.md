@@ -2095,3 +2095,50 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   workflow, that focus scenario passed five consecutive targeted reruns.
   The final focused run also passed the user-library workflow and ribbon
   layout checks from 700 to 1600 px and with enlarged text.
+
+## 2026-11-24 — GEstimator 3.1.0 release preparation
+
+- The candidate started at `e50f6324`, 12 commits ahead of `origin/master`
+  (`541eb771`). The [hosted quality run for master](https://github.com/manuvarkey/GEstimator/actions/runs/45255556322)
+  passed. GitHub Actions listed no run for the candidate source branch.
+  GitHub Releases still listed 3.0.1 as latest, and the upstream refs had no
+  3.1.0 tag. The x86_64 store queries showed Snap 3.0.1 on stable and edge
+  and Flathub 2.7.0 on stable.
+- Version metadata agrees across npm, Tauri, Cargo, Snap and AppStream.
+  AppStream and desktop entry validation passed. The AppStream date uses the
+  preparation date and needs confirmation before tagging. Snapcraft expanded
+  the package configuration and resolved the 3.1.0 Debian input path.
+- Changed-file checks passed with `tools/check_quality.py --fix` and
+  `tools/check_quality.py`. The documentation checker passed on a clean export
+  of the candidate files. The in-place check also scanned ignored Flatpak
+  build output and reported links in the copied source and vendored packages.
+  The branch correctness check against `origin/master` passed.
+- Full Python suite passed 248 tests outside the restricted sandbox. The
+  production frontend build passed with the existing large-chunk warning.
+  Chromium passed 115 browser tests with one opt-in performance case skipped.
+  Rust formatting, five unit tests and Clippy passed on Linux x86_64.
+- Both screenshot scenarios passed. The prepared GitHub Pages site passed
+  Chromium checks for navigation, manual anchors, images and narrow layout.
+  The [latest successful Pages deployment](https://github.com/manuvarkey/GEstimator/actions/runs/45255552678/job/137976596274)
+  used `master`, and the live `manual.html` returned HTTP 404. The site
+  update sits on a task branch based on `gh-pages`. Its publication requires
+  an updated Pages source or a deployment of that branch's files.
+- The Linux PyInstaller sidecar, amd64 Debian bundle and AppImage built
+  locally on Ubuntu 26.04. The extracted sidecars found the Generic and IN
+  skill libraries under isolated user data and shut down cleanly. AppImage
+  bundling completed on the longer verbose run after shorter runs were
+  stopped. Its packaging tool reported library copyright-file, stripping
+  and missing embedded AppStream metadata warnings.
+- The GNOME 51 x86_64 Flatpak built and exported locally. Its backend loaded
+  the same packaged libraries and shut down cleanly inside the build sandbox.
+  The exported permissions include network access and omit filesystem
+  grants. The installed-desktop FileChooser and clipboard review still needs
+  to run.
+- The [Flathub migration pull request](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+  is open following rejection of broad home access. The local external checkout
+  has the portal-based manifest and verified matching offline dependency lists.
+  Pin the external manifest to the commit of the final published tag and verify
+  the new x86_64 and aarch64 test builds and permission review.
+- Windows NSIS, the Ubuntu 22.04 release artifacts and the core22 Snap
+  remain for the hosted build and clean-install checks. These local artifacts
+  were built for verification before tagging.

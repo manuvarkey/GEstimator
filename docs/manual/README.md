@@ -4,6 +4,8 @@ For application development, start with the [developer documentation index](../R
 
 GEstimator prepares cost and quantity estimates of civil and electrical works with detailed rate analysis. This manual walks through the workflow with a sample estimate: a small staff quarters building priced from the bundled DSR 2023 (Civil) database.
 
+This manual covers GEstimator 3.1. See [What's new in 3.1](../releases/3.1.0.md) for changes and upgrade instructions.
+
 - [1. The workspace](#1-the-workspace)
 - [2. Start or open a project](#2-start-or-open-a-project)
 - [3. Attach a database](#3-attach-a-database)
@@ -246,7 +248,7 @@ The bundled libraries cover civil and electrical takeoff. The shared rate-analys
 
 The assistant first shows draft measurements and proposed items. Each line lists the location, dimensions or count, calculation, source and assumptions. It also flags missing inputs and items that need your decision. It writes to the project only when you ask it to apply the estimate. Lighting design results are marked provisional.
 
-To choose a guide yourself in Claude Code, type `@` and pick the resource, for example `@gestimator:gestimator://skills/in/civil-measurement-estimation`. The guides are available whenever the server runs, even with no project open.
+To choose a guide yourself in Claude Code, type `@` and pick the resource, for example `@gestimator:gestimator://skills/in/civil-measurement-estimation`. The guides are available whenever the server runs, even with no project open. If your client cannot browse MCP resources, ask it to list the active guides with `describe_source` using `section=skills`, then read one by passing its resource URI as `section`.
 
 After adding the server to an AI client, **start a new session** in that client so it loads GEstimator's tools. If the assistant writes its own script to talk to the server, or builds the estimate in a spreadsheet, the server is not loaded in that session: restart the client and check that GEstimator appears in its MCP server list (for example `claude mcp list` or `codex mcp list`). It also helps to name the guide in the request, for example "use the GEstimator civil measurement skill". Treat the connection token like a password: do not paste it into conversations you share, and use **Rotate token** if it has been exposed.
 

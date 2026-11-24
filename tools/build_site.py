@@ -4,10 +4,11 @@ Usage: python tools/build_site.py <gh-pages checkout>
 
 Writes manual.html from docs/manual/README.md and copies the manual images
 and the application icon into the checkout. index.html and site.css in the
-checkout are written by hand. Review the result, then commit and push the gh-pages branch.
+checkout are written by hand. See docs/releasing.md for review and publication.
 """
 
 import html
+import posixpath
 import re
 import shutil
 import sys
@@ -18,14 +19,18 @@ MANUAL = ROOT / "docs/manual"
 
 
 def inline(text):
+    """Render the inline Markdown used in the repository manual."""
     codes = []
 
     def keep(match):
         codes.append(html.escape(match.group(1)))
         return f"\0{len(codes) - 1}\0"
+
     text = re.sub(r"`([^`]+)`", keep, text)
     text = html.escape(text, quote=False)
-    text = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)\)", lambda m: f'<img src="{m.group(2)}" alt="{m.group(1)}" loading="lazy">', text)
+    text = re.sub(
+        r"!\[([^\]]*)\]\(([^)\s]+)\)", lambda m: f'<img src="{m.group(2)}" alt="{m.group(1)}" loading="lazy">', text
+    )
 
     def link(match):
         label, target = match.group(1), match.group(2)
@@ -33,18 +38,28 @@ def inline(text):
             return f'<a href="{target}">{label}</a>'
         if target.startswith("http"):
             return f'<a href="{target}" rel="noopener">{label}</a>'
-        return f'<a href="https://github.com/manuvarkey/GEstimator/blob/master/docs/manual/{target}">{label}</a>'
+        repo_path = posixpath.normpath(posixpath.join("docs/manual", target))
+        return f'<a href="https://github.com/manuvarkey/GEstimator/blob/master/{repo_path}">{label}</a>'
+
     text = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, text)
     text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
     return re.sub(r"\0(\d+)\0", lambda m: f"<code>{codes[int(m.group(1))]}</code>", text)
 
 
 def slug(text):
+    """Match the manual's heading IDs to its table of contents."""
     return re.sub(r"[^a-z0-9 -]", "", text.lower()).strip().replace(" ", "-")
 
 
 def render(source):
+    """Render manual sections, keeping wrapped list text in its original item."""
     out, paragraph, list_kind, table = [], [], None, []
+    list_item = []
+
+    def flush_item():
+        if list_item:
+            out.append("<li>" + inline(" ".join(list_item)) + "</li>")
+            list_item.clear()
 
     def flush():
         nonlocal paragraph, list_kind, table
@@ -52,15 +67,25 @@ def render(source):
             out.append("<p>" + inline(" ".join(paragraph)) + "</p>")
             paragraph = []
         if list_kind:
+            flush_item()
             out.append(f"</{list_kind}>")
             list_kind = None
         if table:
-            rows = [[cell.strip() for cell in row.strip("|").split("|")] for row in table if not re.fullmatch(r"\|[-| :]+\|", row)]
+            rows = [
+                [cell.strip() for cell in row.strip("|").split("|")]
+                for row in table
+                if not re.fullmatch(r"\|[-| :]+\|", row)
+            ]
             head, body = rows[0], rows[1:]
-            out.append('<div class="table"><table><thead><tr>' + "".join(f"<th>{inline(c)}</th>" for c in head) + "</tr></thead><tbody>")
+            out.append(
+                '<div class="table"><table><thead><tr>'
+                + "".join(f"<th>{inline(c)}</th>" for c in head)
+                + "</tr></thead><tbody>"
+            )
             out.extend("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in row) + "</tr>" for row in body)
             out.append("</tbody></table></div>")
             table = []
+
     for line in source.splitlines():
         stripped = line.strip()
         heading = re.match(r"(#{1,3}) (.*)", stripped)
@@ -74,7 +99,9 @@ def render(source):
             out.append(f'<h{level} id="{slug(text)}">{inline(text)}</h{level}>')
         elif image:
             flush()
-            out.append(f'<figure><img src="{image.group(2)}" alt="{html.escape(image.group(1))}" loading="lazy"><figcaption>{html.escape(image.group(1))}</figcaption></figure>')
+            out.append(
+                f'<figure><img src="{image.group(2)}" alt="{html.escape(image.group(1))}" loading="lazy"><figcaption>{html.escape(image.group(1))}</figcaption></figure>'
+            )
         elif stripped.startswith("|"):
             if paragraph or list_kind:
                 flush()
@@ -86,7 +113,11 @@ def render(source):
             if not list_kind:
                 out.append(f"<{kind}>")
                 list_kind = kind
-            out.append("<li>" + inline(item.group(2)) + "</li>")
+            flush_item()
+            list_item.append(item.group(2))
+        elif list_kind and line[0].isspace():
+            # Wrapped Markdown list text belongs to the preceding item.
+            list_item.append(stripped)
         else:
             if list_kind:
                 flush()
@@ -120,9 +151,17 @@ PAGE = """<!doctype html>
 
 
 def main(target):
+    """Write the HTML manual and copy images into the website worktree."""
     target = Path(target)
     body = render((MANUAL / "README.md").read_text(encoding="utf-8"))
-    (target / "manual.html").write_text(PAGE.format(title="GEstimator user manual", description="Step-by-step guide to preparing estimates and rate analyses with GEstimator.", body=body), encoding="utf-8")
+    (target / "manual.html").write_text(
+        PAGE.format(
+            title="GEstimator user manual",
+            description="Step-by-step guide to preparing estimates and rate analyses with GEstimator.",
+            body=body,
+        ),
+        encoding="utf-8",
+    )
     images = target / "images"
     images.mkdir(exist_ok=True)
     for path in (MANUAL / "images").glob("*.png"):

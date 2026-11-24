@@ -26,7 +26,9 @@ GEstimator prepares cost and quantity estimates of civil and electrical works wi
 - **Databases** attached read-only, with notes on how each is organised and what its rates include.
 - **Export** of the whole estimate to a `.xlsx` workbook: schedule of rates, schedule of resources, details of measurements, resource usage and analysis of rates.
 - **Several projects in tabs**, undo/redo, light and dark themes, and recovery of unsaved work after a crash.
-- **AI assistants** (optional): a local [MCP](https://modelcontextprotocol.io) server lets Claude or any MCP client read and prepare estimates in the open project.
+- **AI assistants** (optional): a local [MCP](https://modelcontextprotocol.io) server lets Claude or any MCP client read and prepare estimates in the open project, using bundled estimation guides or your own office skill library.
+
+See [What's new in 3.1](docs/releases/3.1.0.md) for changes and upgrade instructions.
 
 ## User manual
 
@@ -43,9 +45,9 @@ DSR 2023 (Civil), DSR (E&M) 2025 and DSR 2025 Horticulture are bundled. Older sc
 
 ## Installation
 
-Installers for Windows (`.exe`) and Linux (`.deb`, `.AppImage`, Flatpak and Snap) are published under [Releases](https://github.com/manuvarkey/GEstimator/releases/latest).
+Installers for Windows (`.exe`) and Linux (`.deb`, `.AppImage`, Flatpak and Snap) are published under [Releases](https://github.com/manuvarkey/GEstimator/releases/latest). Check the version on Flathub and the Snap Store before installing.
 
-On Windows, uninstall any 2.x version of GEstimator (Settings → Apps) before installing 3.0. The new installer does not remove it.
+On Windows, uninstall any 2.x version of GEstimator (Settings → Apps) before installing 3.x. The new installer does not remove it.
 
 Version 2.7, the last release of the earlier GTK application, remains available under [Releases](https://github.com/manuvarkey/GEstimator/releases/tag/v2.7); its source is on the [`archive/gtk`](https://github.com/manuvarkey/GEstimator/tree/archive/gtk) branch.
 
@@ -53,7 +55,7 @@ Version 2.7, the last release of the earlier GTK application, remains available 
 
 The application is a [Tauri](https://tauri.app) desktop program (`modern/`) with a Vue interface and a Python backend (`modern/backend`, using the calculation engine in `estimator/`). Start with the [documentation index](docs/README.md) for development, architecture and code-quality guidance. [modern/README.md](modern/README.md) owns prerequisites and platform build commands.
 
-Release packages are built by the [Release workflow](.github/workflows/release.yml) on a version tag. The Flatpak builds from source (`packaging/flathub`, the manifest used by Flathub); the Snap (`snapcraft.yaml`) repackages the Linux `.deb`.
+The [release workflow guide](docs/releasing.md) covers versioning, packaging, the website and store checks.
 
 For contributions, follow [AGENTS.md](AGENTS.md), the
 [documentation reading order](docs/README.md#reading-order-for-coding-agents),

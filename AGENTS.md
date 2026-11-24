@@ -15,6 +15,11 @@ Changes under `modern/` also follow its [AGENTS.md](modern/AGENTS.md).
   English and include the verification performed.
 - Leave merging to the repository owner.
 
+For release preparation, follow [the release guide](docs/releasing.md) for
+version metadata, release notes, manual and website updates, Flathub source
+pins and package verification. Record which checks were local and which
+packages or stores were verified after publication.
+
 ## Responsibilities and modularity
 
 - Python owns calculations, validation, imports, persistence and numbering.

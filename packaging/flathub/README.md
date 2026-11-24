@@ -28,15 +28,24 @@ workbook to a new file and to an existing file after confirmation.
 
 For a release:
 
-1. Tag `vX.Y.Z` and push the tag.
-2. In the manifest, set the git source `tag` and `commit` (`git rev-parse vX.Y.Z^{commit}`).
-   The tag must include the portal save fix and the source desktop entry
-   with `Exec=gestimator %F`.
-3. In the Flathub repository, replace `com.kavilgroup.gestimator.json` and add `cargo-sources.json`, `node-sources.json`, `python-sources.json`; delete `python3-requirements.yaml` and `requirements.txt` (used by the GTK application).
-4. Update the [Tauri migration pull request](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
-   if it is still open, or open a new one. Explain that FileChooser grants project
-   and library access and that network sharing lets host MCP clients reach the
-   optional loopback listener. The updated Flathub build and permission review
-   must pass before merging.
+1. Set the intended source tag in the in-tree manifest. Use
+   `build-local.sh` to test from the working tree before that tag exists.
+2. On a task branch in the Flathub checkout, copy
+   `com.kavilgroup.gestimator.json`, `cargo-sources.json`, `node-sources.json`
+   and `python-sources.json` from the candidate. For a checkout still on GTK,
+   remove its superseded `python3-requirements.yaml` and `requirements.txt`.
+3. After tagging and pushing the authorized release, set the external
+   manifest's git source `commit` to `git rev-parse 'vX.Y.Z^{commit}'` from the
+   upstream checkout. Check that GitHub serves that tag at the same commit.
+   The in-tree manifest uses the tag alone because a release commit cannot
+   embed its own SHA.
+4. For the Tauri migration, use the existing
+   [Flathub pull request](https://github.com/flathub/com.kavilgroup.gestimator/pull/12)
+   if it is still open. Explain that the FileChooser portal grants project and
+   library access and that network sharing lets host MCP clients reach the
+   optional loopback listener. Verify the test builds on x86_64 and aarch64
+   and confirm the permission review before merging.
 
-After 3.0.0, the Flathub external data checker opens update pull requests from `x-checker-data` when a new tag is pushed; regenerate the source lists in that pull request when the lock files changed.
+For subsequent releases, the Flathub external data checker can open updates
+from `x-checker-data`. Compare the updated source lists against the new lock
+files and rebuild before submitting or approving the update.
