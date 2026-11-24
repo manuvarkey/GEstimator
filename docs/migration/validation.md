@@ -2170,3 +2170,18 @@ Validation: 178 Python tests; `vue-tsc`, production build; browser tests for sea
   unchanged test step. A fresh Linux virtual environment installed those
   requirements with the pinned PyInstaller and passed all 248 Python tests.
   A hosted run of the corrected workflow is still needed.
+
+## 2026-11-24 — First-save browser assertion on Windows
+
+- The [Windows browser job](https://github.com/manuvarkey/GEstimator/actions/runs/45380799474/job/138398998210)
+  failed because the test expected a short temporary path and the backend
+  reported its canonical spelling. The test now derives the expected path
+  from the real temporary directory and still checks the saved SQLite header.
+- The focused Chromium first-save test passed on Linux with both the default
+  temporary directory and a symlinked `TMPDIR`. The Windows short-path case
+  still needs a hosted run.
+- All 248 Python tests, the frontend production build and changed-file
+  formatting passed locally, as did documentation link and diff checks.
+  Vite retained its existing large-chunk warning.
+- The full Linux Chromium suite passed 115 tests, with the opt-in performance
+  case skipped.
