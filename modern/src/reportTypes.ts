@@ -1,10 +1,19 @@
 /** Report inputs and authoritative snapshot values at the Python IPC boundary. */
-export type ReportSectionKind = "abstract" | "schedule" | "signoff" | "analyses" | "resources" | "resource_usage";
+export type ReportSectionKind =
+  | "abstract"
+  | "schedule"
+  | "signoff"
+  | "analyses"
+  | "resources"
+  | "resource_usage"
+  | "measurements"
+  | "narrative";
 export interface ReportSection {
   id: string;
   kind: ReportSectionKind;
   title: string;
   enabled: boolean;
+  body?: string;
 }
 export interface ReportSpecification {
   schema_version: 1;
@@ -63,6 +72,16 @@ export interface ReportDocument {
     tax: string;
     discount: string;
     reference: string;
+  }[];
+  measurements: {
+    number: number;
+    category: string;
+    description: string;
+    template: string;
+    columns: string[];
+    records: string[][];
+    properties: [string, string][];
+    outputs: { label: string; code: string; description: string; unit: string; quantity: string; remarks: string }[];
   }[];
   resource_usage: {
     code: string;

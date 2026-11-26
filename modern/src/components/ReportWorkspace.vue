@@ -32,6 +32,8 @@ const specification = ref<ReportSpecification>(
       { id: "analyses", kind: "analyses", title: "Analyses of rates", enabled: false },
       { id: "resources", kind: "resources", title: "Resources", enabled: false },
       { id: "resource_usage", kind: "resource_usage", title: "Resource usage", enabled: false },
+      { id: "measurements", kind: "measurements", title: "Measurements", enabled: false },
+      { id: "narrative", kind: "narrative", title: "Notes", enabled: false, body: "" },
       { id: "signoff", kind: "signoff", title: "Signoff", enabled: true },
     ],
   },
@@ -174,6 +176,10 @@ defineExpose({ exportWorkbook: exportReport, canExport });
                 :aria-label="`${section.kind.replaceAll('_', ' ')} title`"
                 maxlength="10000"
             /></label>
+            <label v-if="section.kind === 'narrative'"
+              >Notes text
+              <textarea v-model="section.body" maxlength="10000" rows="6" data-multiline />
+            </label>
             <div class="report-order">
               <button
                 class="icon-button"

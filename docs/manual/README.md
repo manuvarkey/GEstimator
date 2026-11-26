@@ -209,7 +209,10 @@ use their template's calculation and display rounding.
 Open **Reports** with a project loaded. Enter the report title, organization,
 reference and issue date. Include the abstract, schedule and signoff sections you
 need, edit their titles and use the up/down buttons to choose their order.
-Optionally include **Analyses of rates**, **Resources** and **Resource usage**.
+Optionally include **Analyses of rates**, **Resources**, **Resource usage**,
+**Measurements** and **Notes**. Enable the narrative section to enter **Notes text**;
+line breaks are retained as plain text. Measurements show accepted template
+records, constants and each output with its linked schedule item and unit.
 The cover and linked contents are included automatically.
 
 Choose **Generate preview**, review the total and document, then select HTML,
@@ -221,11 +224,10 @@ sections show calculated analysis rates separately without changing stored rates
 Changing report settings or project data marks the preview out of date. Generate
 it again before exporting. Settings stay with the open project tab while you
 switch views/tabs, but are not yet saved in the project file. This first workflow
-includes the core estimate sections; measurement reports and saved report
-definitions will follow. The existing full workbook export remains available.
+includes measurement and notes sections; saved report definitions will follow. The existing full workbook export remains available.
 Resource usage shows direct resources and does not expand sub-analysis
 dependencies; its total can differ from the estimate because weights and stored
-rate overrides do not change resource quantities. Resource/usage PDF tables use
+rate overrides do not change resource quantities. Measurement and resource/usage PDF tables use
 landscape pages, and the analysis contents link to individual items.
 
 PDF requires an installed WeasyPrint 70 or newer renderer. If unavailable, HTML

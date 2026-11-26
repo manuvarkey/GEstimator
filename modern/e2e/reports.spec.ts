@@ -15,9 +15,35 @@ import {
 
 useWorkspaceHarness();
 
-async function openReport(page: Page) {
+async function openReport(page: Page, measurements = false) {
   const path = resolve(directory, "report.eproj");
   execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
+  if (measurements) {
+    execFileSync(
+      python,
+      [
+        "-c",
+        `
+import sys
+from estimator.data.schedule import ScheduleDatabase
+from estimator.data.measurement import MeasurementItemCustom, RecordCustom
+from estimator.undo import Stack
+s = ScheduleDatabase(Stack())
+s.open_database(sys.argv[1])
+m = s.get_measurement()
+i = MeasurementItemCustom(plugin="_1_NLBH")
+i.remark = "Measured foundation"
+i.itemnos[0] = s.ScheduleTable.get(code="A").id
+i.append_record(RecordCustom(["Foundation", "", "1", "2", "3", "4", ""], i.cust_funcs, i.total_func_item, i.columntypes))
+m.append_item(i)
+s.set_measurement(m)
+s.close_database()
+`,
+        path,
+      ],
+      { cwd: resolve("..") },
+    );
+  }
   await openFixture(page, path);
   await page.locator("#view-reports").click();
   return page.getByRole("region", { name: "Report workspace" });
@@ -178,4 +204,39 @@ test("reports include analyses, resources and usage with shared engine values", 
   ]);
   await analyses.getByRole("heading", { name: "Analyses of rates", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "test-results/report-analyses.png", animations: "disabled" });
+});
+
+test("reports render measurement templates and editable plain-text notes", async ({ page }) => {
+  const report = await openReport(page, true);
+  await report.getByLabel("Include measurements", { exact: true }).check();
+  await report.getByLabel("Include narrative", { exact: true }).check();
+  const notes = report.getByLabel("Notes text", { exact: true });
+  await notes.fill("<Notes>\n=Office reference");
+  await notes.press("Enter");
+  await expect(notes).toHaveValue("<Notes>\n=Office reference\n");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator("#narrative")).toContainText("<Notes>");
+  await expect(preview.locator("#narrative script")).toHaveCount(0);
+  await expect(preview.locator("#measurements")).toContainText("Complete measurement sheets");
+  await expect(preview.locator("#measurements")).toContainText("Measured foundation");
+  await expect(preview.locator("#measurements")).toContainText("24.0");
+  await notes.fill("Updated notes");
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeDisabled();
+  await page.locator("#view-schedule").click();
+  await page.locator("#view-reports").click();
+  await expect(notes).toHaveValue("Updated notes");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(preview.locator("#narrative")).toContainText("Updated notes");
+  await report.getByLabel("Output format").selectOption("xlsx");
+  const path = resolve(directory, "notes.xlsx");
+  nativeDialogResults.push(path);
+  await report.getByRole("button", { name: "Export report…", exact: true }).click();
+  await expect(page.getByText(`Report exported: ${path}`, { exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/report-notes-light.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await page.setViewportSize({ width: 700, height: 900 });
+  await notes.scrollIntoViewIfNeeded();
+  await expect(notes).toBeVisible();
+  await page.screenshot({ path: "test-results/report-notes-dark-narrow.png", animations: "disabled" });
 });

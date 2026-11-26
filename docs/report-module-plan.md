@@ -137,13 +137,15 @@ No external template or stylesheet is loaded at runtime.
    immutable project adapter for schedule/abstract/signoff, real-project amount
    parity and read-only snapshot/revision/draft tests. Safe export publication is
    now shared with existing exports. The core analysis/resource/usage adapters
-   are implemented; measurement/narrative datasets remain customization work.
+   are implemented; measurement/narrative datasets are also implemented.
 3. **Complete workspace (core workflow implemented):** section editor, preview, Excel/HTML/PDF chooser,
    initial cover/contents/abstract/schedule/analysis/resource/usage/signoff
    sections, browser coverage, synchronized manual and architecture contracts.
    All listed core sections are available. Analysis results are evaluated only
    on detached models; catalog/usage reuse accepted engine data and rules.
-4. **Customization:** measurements/narrative sections, columns, mixed
+4. **Customization (measurement/narrative subset implemented):** accepted measurement
+   records, constants, separately labelled linked outputs and per-section plain-text
+   notes are available in all formats. Remaining work: columns, configurable mixed
    orientations, office templates, persisted project overrides and template
    editor/import/export. Preserve existing project compatibility.
 5. **Release hardening:** isolated render worker with cancellation/limits,

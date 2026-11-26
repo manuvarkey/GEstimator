@@ -217,3 +217,15 @@ were compared against bundled databases. GElectrical's supplied template/CSS
 were reviewed for layout patterns; the runtime uses GEstimator's own fixed output.
 Measurements/narrative, persisted definitions, customization and renderer release
 hardening remain future work.
+
+
+## 2026-11-26 measurement and narrative reports
+
+A dedicated measurement report adapter snapshots accepted engine records without
+allocating editor IDs or activating drafts. Existing column/output metadata and
+renderer helpers are reused. Multi-output sheets retain all outputs when filtered
+by a matching schedule link; unlike units are never aggregated. Narrative bodies
+are bounded plain text per section and use the existing HTML escaping and literal
+Excel cell boundaries. No engine, persistence schema or runtime dependency changed.
+Saved definitions, custom layouts/templates and renderer release hardening remain
+open. Native installed-package and portal behavior were not exercised here.

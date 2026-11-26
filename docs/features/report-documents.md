@@ -4,8 +4,8 @@ Current core workspace and export workflow, 2026-11-26. Navigation: [index](../R
 [backend](../architecture/backend.md) · [report proposal](../report-module-plan.md).
 
 The Reports workspace composes abstract, schedule, analyses, resources, resource
-usage and signoff sections from immutable accepted-project snapshots. It previews and exports
-standalone HTML, Excel and PDF when a suitable renderer is installed. Measurements/narrative sections, persisted specifications and packaged PDF
+usage, measurements, notes and signoff sections from immutable accepted-project snapshots. It previews and exports
+standalone HTML, Excel and PDF when a suitable renderer is installed. Persisted specifications, custom templates and packaged PDF
 distribution remain future work.
 
 ## Request and response
@@ -27,8 +27,9 @@ The version-one specification accepts only:
 | `title`, `organization`, `reference`, `issue_date` | Plain text, using the backend text length limit; issue date is a display label |
 
 Each section has a unique `id` matching `[A-Za-z][A-Za-z0-9_-]{0,63}`, a supported
-`kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `signoff`), optional plain-text `title`, and optional
-boolean `enabled` (default true). Instances retain their IDs, order and enabled
+`kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `measurements`, `narrative`, `signoff`), optional plain-text `title`, and optional
+boolean `enabled` (default true). Narrative sections also accept a plain-text
+`body` of up to 10,000 characters; nonempty bodies on other kinds are rejected. Instances retain their IDs, order and enabled
 state, including repeated kinds with distinct IDs. No arbitrary HTML, template
 source, columns or layout fields are accepted. Unsupported fields/versions,
 malformed selections and IDs absent from the current project fail explicitly.
@@ -36,8 +37,8 @@ Item and category filters intersect; they never reorder the project rows.
 IDs are local to the current project, so callers must not reuse them across files.
 
 The response contains `schema_version`, `revision`, `project`, the normalized
-`specification`, `schedule`, `abstract`, `total`, `analyses`, `resources` and
-`resource_usage`. Disabled optional datasets are empty lists. Financial values are decimal
+`specification`, `schedule`, `abstract`, `total`, `analyses`, `resources`,
+`resource_usage` and `measurements`. Disabled optional datasets are empty lists. Financial values are decimal
 strings. Schedule rows include stable item/category IDs, parent ID, category,
 code, description, unit, quantity, stored rate, amount and remarks. Heading
 amounts are null. Abstract rows contain category ID/name and amount.
@@ -103,6 +104,28 @@ JSON output uses detached lists. The complete assembly runs inside one read
 transaction on the runtime owner thread. Existing `get_res_usage()` callers keep
 their whole-project behavior; an explicit empty code list returns no usage.
 
+## Measurements and notes
+
+Measurements are detached from accepted project data using the installed engine
+and existing column/output labels. Sheets retain their original project number,
+category heading, description, template name, rendered record values, template
+constants and independently labelled outputs with schedule code, description,
+unit, quantity and link remarks. Quantities retain measurement-template rounding;
+outputs with unlike units are never added together or applied to schedule quantities.
+
+Without filters every sheet is included, including unlinked sheets. Item/category
+filters include a whole sheet when at least one link targets a selected payable
+schedule item. All outputs of that sheet remain visible, including other links,
+so multi-output template records remain interpretable. Empty selections include
+no sheets. Disabled measurement sections do not load measurement models. Existing
+report revision and dirty-draft guards also protect this read.
+
+Each narrative instance owns independent plain text in its section `body`. HTML
+escapes that text and retains line breaks; Excel writes a literal wrapped text
+cell. Notes do not accept markup, executable templates or external assets. Notes
+and measurement settings share the existing open-tab memory and stale-preview
+behavior; they are not persisted to project files.
+
 ## Preview and export operations
 
 `report.preview` accepts the same revision/specification inputs and returns
@@ -156,7 +179,7 @@ have explicit shapes in [`reportTypes.ts`](../../modern/src/reportTypes.ts).
 The shell forwards Reports navigation through the existing draft guard and
 retains native destination selection in the desktop adapter.
 
-Users edit facing fields, enable/rename/reorder the six sections and
+Users edit facing fields, enable/rename/reorder the eight sections and
 manually generate a preview. The fixed cover and contents are always included. Analyses add per-item nested
 contents links. Resource/usage tables use named landscape PDF pages; cover,
 schedule, analyses and signoff use portrait pages. Running section headers,

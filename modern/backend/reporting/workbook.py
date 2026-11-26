@@ -17,13 +17,13 @@ def _text(sheet, row, column, value):
     return cell
 
 
-def _table(sheet, headings, rows, numeric=()):
+def _table(sheet, headings, rows, numeric=(), start_row=3):
     """Style a printable worksheet with repeated headings and numeric money cells."""
     for column, heading in enumerate(headings, 1):
-        cell = _text(sheet, 3, column, heading)
+        cell = _text(sheet, start_row, column, heading)
         cell.font = Font(bold=True)
         cell.fill = PatternFill("solid", fgColor="E4EEF2")
-    for index, values in enumerate(rows, 4):
+    for index, values in enumerate(rows, start_row + 1):
         for column, value in enumerate(values, 1):
             if column in numeric and value not in (None, ""):
                 cell = sheet.cell(index, column, Decimal(value))
@@ -66,7 +66,7 @@ def write_workbook(document: ReportDocument, destination):
         link = _text(contents, index + 1, 1, section.title)
         link.hyperlink = f"#'{sheet.title}'!A1"
         link.style = "Hyperlink"
-        _write_section(document, sheet, section.kind)
+        _write_section(document, sheet, section)
     contents.column_dimensions["A"].width = 60
     workbook.save(destination)
 
@@ -95,9 +95,15 @@ def _analysis_values(document):
     return rows
 
 
-def _write_section(document, sheet, kind):
+def _write_section(document, sheet, section):
     """Fill one section worksheet from immutable presentation values."""
-    if kind == "abstract":
+    kind = section.kind
+    if kind == "narrative":
+        _table(sheet, ("Notes",), [(section.body,)])
+        sheet.column_dimensions["A"].width = 100
+    elif kind == "measurements":
+        _write_measurements(document, sheet)
+    elif kind == "abstract":
         _table(sheet, ("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (2,))
         _text(sheet, len(document.abstract) + 5, 1, "Estimate total")
         sheet.cell(len(document.abstract) + 5, 2, Decimal(document.total)).number_format = "0.00"
@@ -152,3 +158,29 @@ def _write_section(document, sheet, kind):
         _table(
             sheet, ("Prepared by", "Checked by", "Approved by"), [("Name:",) * 3, ("Designation:",) * 3, ("Date:",) * 3]
         )
+
+
+def _write_measurements(document, sheet):
+    """Keep each variable-width template table and its independent outputs together."""
+    position = 3
+    for measurement in document.measurements:
+        _text(sheet, position, 1, f"{measurement.number}. {measurement.description or measurement.template}")
+        _text(sheet, position + 1, 1, f"{measurement.category} · {measurement.template}")
+        _table(sheet, measurement.columns, measurement.records, start_row=position + 2)
+        position += len(measurement.records) + 4
+        if measurement.properties:
+            _table(sheet, ("Property", "Value"), measurement.properties, start_row=position)
+            position += len(measurement.properties) + 2
+        _table(
+            sheet,
+            ("Output", "Code", "Description", "Unit", "Quantity", "Remarks"),
+            [
+                (row.label, row.code, row.description, row.unit, row.quantity, row.remarks)
+                for row in measurement.outputs
+            ],
+            (5,),
+            start_row=position,
+        )
+        position += len(measurement.outputs) + 3
+    sheet.print_title_rows = "1:2"
+    sheet.page_setup.orientation = "landscape"

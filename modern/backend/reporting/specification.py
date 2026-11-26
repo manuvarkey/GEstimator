@@ -12,6 +12,8 @@ TITLES = {
     "analyses": "Analyses of rates",
     "resources": "Resources",
     "resource_usage": "Resource usage",
+    "measurements": "Measurements",
+    "narrative": "Notes",
 }
 
 
@@ -42,11 +44,12 @@ class Section:
     kind: str
     title: str
     enabled: bool
+    body: str = ""
 
     @classmethod
     def parse(cls, value):
         """Accept only initial supported section kinds and safe anchor identities."""
-        _fields(value, ("id", "kind", "title", "enabled"), "report section")
+        _fields(value, ("id", "kind", "title", "enabled", "body"), "report section")
         identity = value.get("id")
         kind = value.get("kind")
         if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", identity):
@@ -56,7 +59,10 @@ class Section:
         enabled = value.get("enabled", True)
         if type(enabled) is not bool:
             raise ValueError("Invalid report section enabled state")
-        return cls(identity, kind, text(value.get("title", TITLES[kind])), enabled)
+        body = text(value.get("body", ""))
+        if body and kind != "narrative":
+            raise ValueError("Only narrative sections accept body text")
+        return cls(identity, kind, text(value.get("title", TITLES[kind])), enabled, body)
 
 
 @dataclass(frozen=True)

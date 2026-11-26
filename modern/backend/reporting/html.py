@@ -88,7 +88,7 @@ def render_html(document: ReportDocument) -> str:
     output.append("</ol></nav>")
     # Each renderer consumes the same captured amounts; rendering never calculates.
     for section in sections:
-        css = "section wide" if section.kind in ("resources", "resource_usage") else "section"
+        css = "section wide" if section.kind in ("resources", "resource_usage", "measurements") else "section"
         output.append(f'<section class="{css}" id="{section.id}"><h1>{_text(section.title)}</h1>')
         output.append(_section_body(document, section))
         output.append("</section>")
@@ -169,6 +169,10 @@ def _section_body(document, section):
         output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
     elif section.kind == "analyses":
         output.append(_analyses(document, section.id))
+    elif section.kind == "narrative":
+        output.append(f'<p class="description">{_text(section.body)}</p>')
+    elif section.kind == "measurements":
+        output.append(_measurements(document))
     elif section.kind == "resources":
         output.append(
             _table(
@@ -201,4 +205,30 @@ def _section_body(document, section):
         for role in ("Prepared by", "Checked by", "Approved by"):
             output.append(f'<div class="signature"><p>{role}</p><p>Name:</p><p>Designation:</p><p>Date:</p></div>')
         output.append("</div>")
+    return "".join(output)
+
+
+def _measurements(document):
+    """Render template records and each independent output with its link and unit."""
+    output = ["<p>Complete measurement sheets; totals are separate template outputs, not schedule quantities.</p>"]
+    for sheet in document.measurements:
+        compact = (
+            len(sheet.records) + len(sheet.outputs) <= 15
+            and sum(len(value) for record in sheet.records for value in record) <= 1600
+        )
+        output.append('<article class="keep-together">' if compact else "<article>")
+        output.append(f"<h2>{sheet.number}. {_text(sheet.description or sheet.template)}</h2>")
+        output.append(f"<p>{_text(sheet.category)} · {_text(sheet.template)}</p>")
+        output.append(_table(sheet.columns, sheet.records, descriptions=tuple(range(len(sheet.columns)))))
+        if sheet.properties:
+            output.append(_table(("Property", "Value"), sheet.properties))
+        output.append(
+            _table(
+                ("Output", "Code", "Description", "Unit", "Quantity", "Remarks"),
+                [(row.label, row.code, row.description, row.unit, row.quantity, row.remarks) for row in sheet.outputs],
+                (4,),
+                (2, 5),
+            )
+        )
+        output.append("</article>")
     return "".join(output)

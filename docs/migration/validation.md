@@ -2441,3 +2441,44 @@ changed. Persisted report definitions, measurement/narrative sections, further
 customization and isolated/cancellable packaged renderer verification remain
 future work. Installed Windows/Flatpak behavior and broad font coverage were
 not verified by these local browser/PDF checks.
+
+
+## 2026-11-26 — Measurement and narrative report sections
+
+Continued the report plan on `feature/report-rendering-prototype` with optional
+measurement and narrative sections. Measurement snapshots use accepted engine
+models, existing column/output metadata, rendered records and template constants.
+Outputs retain separate labels, links, units and quantities. Schedule filters
+select whole matching sheets and preserve all outputs; unfiltered reports also
+include unlinked sheets. Reads do not activate drafts or allocate editor IDs.
+Narrative bodies are bounded plain text per section, escaped in HTML and literal
+in Excel. The workspace retains the existing stale-preview and open-tab lifetime.
+No engine arithmetic, database schema, runtime dependency or native code changed.
+
+- Full `.venv/bin/python -m unittest discover -s tests`: 270 tests passed.
+  This includes four new tests for multi-output selection, template constants,
+  snapshot/source/history preservation, disabled loading, literal text and dirty
+  draft protection. Expected negative formatting-fixture diagnostics appeared;
+  the overall suite returned success.
+- `npm run --prefix modern build` passed, including frontend type checking,
+  with the existing large-chunk warning (main bundle about 1.24 MB).
+- Generated a real six-page PDF through the managed WeasyPrint 70 CLI, with no
+  renderer diagnostics. Visually checked the landscape measurement pages and
+  portrait notes, including separate m/m2 quantities, literal script-like text,
+  preserved line breaks and complete short-sheet grouping across page breaks.
+- Changed-file `tools/check_quality.py` and `tools/check_docs.py` passed, as did
+  `git diff --check`.
+
+The first browser verification overlapped full and focused Playwright runs,
+causing shared trace-directory ENOENT cleanup errors. This was a test invocation
+collision, not a product assertion failure; the contaminated full run was stopped.
+The subsequent standalone `npm run --prefix modern test:e2e` passed all 120
+scenarios with one opt-in performance profile skipped (121 discovered). All five
+report workflows passed, including populated template data, multiline notes,
+stale-preview protection, view memory and export. Light/wide and dark/narrow
+screenshots were visually reviewed. The runner retained the existing
+NO_COLOR/FORCE_COLOR environment warning. Browser coverage
+uses the real Python bridge with substituted native chooser/transport; installed
+WebView, Flatpak portal and Windows package behavior remain unverified. Persisted
+report definitions, custom templates/layouts and renderer release hardening
+remain separate plan items.

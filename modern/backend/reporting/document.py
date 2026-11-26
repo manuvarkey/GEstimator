@@ -7,6 +7,7 @@ from estimator import misc
 from estimator.data.schedule import Currency
 
 from .datasets import Analysis, ResourceRow, UsageRow, build_datasets
+from .measurements import MeasurementSheet, build_measurements
 from .specification import ReportSpec
 
 
@@ -49,6 +50,7 @@ class ReportDocument:
     analyses: tuple[Analysis, ...] = ()
     resources: tuple[ResourceRow, ...] = ()
     resource_usage: tuple[UsageRow, ...] = ()
+    measurements: tuple[MeasurementSheet, ...] = ()
 
     def to_dict(self):
         """Return independent JSON-compatible containers and decimal strings."""
@@ -72,7 +74,13 @@ def build_document(db, revision, specification):
     with db.database.atomic():
         snapshot = _schedule_document(db, revision, specification)
         analyses, resources, usage = build_datasets(db, snapshot.schedule, specification)
-        return replace(snapshot, analyses=analyses, resources=resources, resource_usage=usage)
+        return replace(
+            snapshot,
+            analyses=analyses,
+            resources=resources,
+            resource_usage=usage,
+            measurements=build_measurements(db, snapshot.schedule, specification),
+        )
 
 
 def _schedule_document(db, revision, specification):
