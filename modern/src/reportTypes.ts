@@ -38,6 +38,8 @@ export interface ReportSpecification {
   organization: string;
   reference: string;
   issue_date: string;
+  font_family?: string;
+  font_scale?: number;
 }
 export interface ReportDocument {
   schema_version: 1;
@@ -117,4 +119,11 @@ export interface ReportExportResult {
   saved: string;
   revision: number;
   warnings: string[];
+}
+
+/** Optional saved definition; unreadable future data remains intact until explicitly replaced. */
+export interface ReportSettings {
+  specification: ReportSpecification | null;
+  warning: string;
+  revision: number;
 }

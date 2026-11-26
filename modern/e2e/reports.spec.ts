@@ -5,6 +5,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   directory,
+  call,
   python,
   openFixture,
   useWorkspaceHarness,
@@ -210,6 +211,11 @@ test("reports render measurement templates and editable plain-text notes", async
   const report = await openReport(page, true);
   await report.getByLabel("Include measurements", { exact: true }).check();
   await report.getByLabel("Include narrative", { exact: true }).check();
+  await report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include narrative", { exact: true }) })
+    .locator("summary")
+    .click();
   const notes = report.getByLabel("Notes text", { exact: true });
   await notes.fill("<Notes>\n=Office reference");
   await notes.press("Enter");
@@ -301,4 +307,135 @@ test("reports customize column order and page orientation without changing total
     "Rate",
     "Amount",
   ]);
+});
+
+test("reports apply settings to the working project and restore them after save and reopen", async ({ page }) => {
+  const report = await openReport(page);
+  const path = resolve(directory, "report.eproj");
+  const original = await readFile(path);
+  await report.getByLabel("Report title", { exact: true }).fill("Saved office report");
+  await report.getByLabel("Include narrative", { exact: true }).check();
+  await report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include narrative", { exact: true }) })
+    .locator("summary")
+    .click();
+  await report.getByLabel("Notes text", { exact: true }).fill("Saved notes\n<Literal>");
+  const schedule = report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include schedule", { exact: true }) });
+  await schedule.locator("summary").click();
+  await schedule.getByLabel("schedule page orientation", { exact: true }).selectOption("landscape");
+  await schedule.getByLabel("schedule custom columns", { exact: true }).check();
+  await schedule.getByLabel("Include schedule Rate column", { exact: true }).uncheck();
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeEnabled();
+  const resume = await holdNextRequest(page, "report.settings.apply");
+  await report.getByRole("button", { name: "Apply report settings", exact: true }).click();
+  await expect(report.getByLabel("Report title", { exact: true })).toBeDisabled();
+  await resume();
+  await expect(page.getByText("Report settings applied. Save project to keep them.", { exact: true })).toBeVisible();
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeDisabled();
+  expect(await readFile(path)).toEqual(original);
+  await expect.poll(async () => (await call("state")).result.workspace_dirty).toBe(true);
+  await page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }).click();
+  await expect.poll(async () => (await call("state")).result.workspace_dirty).toBe(false);
+  expect(await readFile(path)).not.toEqual(original);
+  await report.getByLabel("Report title", { exact: true }).fill("Unapplied change");
+  await report.getByRole("button", { name: "Reload report settings", exact: true }).click();
+  await expect(report.getByLabel("Report title", { exact: true })).toHaveValue("Saved office report");
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Close project", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Start an estimate" })).toBeVisible();
+  await openFixture(page, path);
+  await page.locator("#view-reports").click();
+  await expect(report.getByLabel("Report title", { exact: true })).toHaveValue("Saved office report");
+  await report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include narrative", { exact: true }) })
+    .locator("summary")
+    .click();
+  await expect(report.getByLabel("Notes text", { exact: true })).toHaveValue("Saved notes\n<Literal>");
+  await schedule.locator("summary").click();
+  await expect(schedule.getByLabel("schedule page orientation", { exact: true })).toHaveValue("landscape");
+  await expect(schedule.getByLabel("Include schedule Rate column", { exact: true })).not.toBeChecked();
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(page.frameLocator('iframe[title="Report preview"]').locator("#narrative")).toContainText("<Literal>");
+  await page.screenshot({ path: "test-results/report-saved-settings.png", animations: "disabled" });
+});
+
+test("reports preserve unreadable future settings until explicitly replaced", async ({ page }) => {
+  const path = resolve(directory, "future-report.eproj");
+  execFileSync(python, ["-m", "modern.e2e.create_fixture", path], { cwd: resolve("..") });
+  execFileSync(
+    python,
+    [
+      "-c",
+      "import sqlite3,sys;c=sqlite3.connect(sys.argv[1]);c.execute('INSERT INTO projecttable (key,value) VALUES (?,?)',('project_report_specification','{\"schema_version\":99}'));c.commit();c.close()",
+      path,
+    ],
+    { cwd: resolve("..") },
+  );
+  const original = await readFile(path);
+  await openFixture(page, path);
+  await page.locator("#view-reports").click();
+  const report = page.getByRole("region", { name: "Report workspace" });
+  await expect(report.getByRole("alert")).toContainText("remain unchanged");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeEnabled();
+  expect(await readFile(path)).toEqual(original);
+  await report.getByLabel("Report title", { exact: true }).fill("Replacement");
+  await report.getByRole("button", { name: "Apply report settings", exact: true }).click();
+  await expect(page.getByText("Report settings applied. Save project to keep them.", { exact: true })).toBeVisible();
+  await report.getByRole("button", { name: "Reload report settings", exact: true }).click();
+  await expect(report.getByRole("alert")).not.toBeVisible();
+  await expect(report.getByLabel("Report title", { exact: true })).toHaveValue("Replacement");
+  expect(await readFile(path)).toEqual(original);
+});
+
+test("report typography uses installed fonts, persists and invalidates previews", async ({ page }) => {
+  const report = await openReport(page);
+  const typography = report.locator(".settings-group").filter({ hasText: "Page and typography" });
+  await typography.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  const font = typography.getByLabel("Report font", { exact: true });
+  await expect(font).toBeEnabled();
+  const fonts = await font
+    .locator("option")
+    .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+  expect(fonts.length).toBeGreaterThan(1);
+  const selected = fonts.find((value) => value === "DejaVu Serif") ?? fonts[1]!;
+  await font.selectOption(selected);
+  await typography.getByLabel("Font scale (%)", { exact: true }).fill("125");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator("body")).toHaveCSS("font-size", "16.6667px");
+  await expect(preview.locator("body")).toHaveCSS("font-family", new RegExp(selected));
+  const current = frontendCalls.filter((entry) => entry.method === "report.preview").at(-1)!;
+  expect(current.params.specification).toMatchObject({ font_family: selected, font_scale: 1.25 });
+  await typography.getByLabel("Font scale (%)", { exact: true }).fill("110");
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeDisabled();
+  await report.getByRole("button", { name: "Apply report settings", exact: true }).click();
+  await expect(page.getByText("Report settings applied. Save project to keep them.", { exact: true })).toBeVisible();
+  await report.getByRole("button", { name: "Reload report settings", exact: true }).click();
+  await expect(font).toHaveValue(selected);
+  await expect(typography.getByLabel("Font scale (%)", { exact: true })).toHaveValue("110");
+  const schedule = report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include schedule", { exact: true }) });
+  const abstract = report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include abstract", { exact: true }) });
+  await schedule.locator("summary").click();
+  await expect(schedule.getByLabel("schedule title", { exact: true })).toBeVisible();
+  await abstract.locator("summary").click();
+  await expect(schedule.getByLabel("schedule title", { exact: true })).not.toBeVisible();
+  await expect(abstract.getByLabel("abstract title", { exact: true })).toBeVisible();
+  await typography.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/report-typography-light.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await page.setViewportSize({ width: 700, height: 900 });
+  await typography.scrollIntoViewIfNeeded();
+  await expect(font).toBeVisible();
+  await page.screenshot({ path: "test-results/report-typography-dark-narrow.png", animations: "disabled" });
 });

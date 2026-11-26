@@ -207,15 +207,22 @@ use their template's calculation and display rounding.
 ### Compose an estimate report
 
 Open **Reports** with a project loaded. Enter the report title, organization,
-reference and issue date. Include the abstract, schedule and signoff sections you
+reference and issue date under **Report details**. Numbered section headers expand
+their settings one at a time, with a summary while collapsed. Include the abstract, schedule and signoff sections you
 need, edit their titles and use the up/down buttons to choose their order.
 Optionally include **Analyses of rates**, **Resources**, **Resource usage**,
-**Measurements** and **Notes**. Enable the narrative section to enter **Notes text**;
+**Measurements** and **Notes**. Enable and expand the narrative section to enter **Notes text**;
 line breaks are retained as plain text. Measurements show accepted template
 records, constants and each output with its linked schedule item and unit.
 The cover and linked contents are included automatically.
 
-Expand **Columns and page** within a section to choose Auto, Portrait or Landscape
+Open **Page and typography** to select an installed **Report font** and a
+**Font scale (%)** from 60% to 200%. The scale applies to preview and all report
+exports. Pages have 20 mm margins on all sides. A saved font unavailable on another
+computer uses a local fallback. Printed pages have a running section heading,
+page-number tab and ruled organization/page-count footer; the cover omits these.
+
+Expand a section heading to choose Auto, Portrait or Landscape
 for printed pages. For abstract, schedule, resources and resource usage, enable
 **Customize columns** to include and reorder fields. Keep at least one column.
 Disable customization to restore the default columns. Estimate totals remain
@@ -230,8 +237,14 @@ sections show calculated analysis rates separately without changing stored rates
 
 Changing report settings or project data marks the preview out of date. Generate
 it again before exporting. Settings stay with the open project tab while you
-switch views/tabs, but are not yet saved in the project file. This first workflow
-includes measurement and notes sections; saved report definitions will follow. The existing full workbook export remains available.
+switch views/tabs. Choose **Apply report settings** to accept the definition into
+the working project, then **Save project** to keep it in the file. Apply is
+undoable and requires clean analysis/measurement drafts. Preview and export do
+not apply settings automatically. Closing without applying/saving can discard
+local changes. **Reload report settings** restores the working project's accepted
+definition, replacing local inputs. A newly opened Reports view loads it from the
+project. Unreadable newer definitions show a warning and are preserved until
+explicitly replaced with Apply. The existing full workbook export remains available.
 Resource usage shows direct resources and does not expand sub-analysis
 dependencies; its total can differ from the estimate because weights and stored
 rate overrides do not change resource quantities. Measurement and resource/usage PDF tables use

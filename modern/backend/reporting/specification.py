@@ -83,6 +83,8 @@ class ReportSpec:
     organization: str = ""
     reference: str = ""
     issue_date: str = ""
+    font_family: str = ""
+    font_scale: float = 1.0
 
     @classmethod
     def parse(cls, value):
@@ -98,6 +100,8 @@ class ReportSpec:
                 "organization",
                 "reference",
                 "issue_date",
+                "font_family",
+                "font_scale",
             ),
             "report specification",
         )
@@ -110,6 +114,12 @@ class ReportSpec:
         sections = tuple(Section.parse(section) for section in raw)
         if len({section.id for section in sections}) != len(sections):
             raise ValueError("Duplicate report section ID")
+        family = value.get("font_family", "")
+        if not isinstance(family, str) or len(family) > 200 or any(ord(char) < 32 for char in family):
+            raise ValueError("Invalid report font family")
+        scale = value.get("font_scale", 1.0)
+        if type(scale) not in (int, float) or not 0.6 <= scale <= 2:
+            raise ValueError("Choose a report font scale between 60% and 200%")
         return cls(
             sections,
             _identities(value.get("item_ids")),
@@ -118,4 +128,6 @@ class ReportSpec:
             text(value.get("organization", "")),
             text(value.get("reference", "")),
             text(value.get("issue_date", "")),
+            family.strip(),
+            float(scale),
         )

@@ -84,3 +84,35 @@ def table_values(document, section, *, excel=False):
             )
         )
     return columns, values
+
+
+# Relative space follows the meaning of the field, so hiding or moving a column
+# redistributes the available page width without losing the description's share.
+WIDTH_WEIGHTS = {
+    "Code": 13,
+    "Description": 48,
+    "Unit": 10,
+    "Quantity": 14,
+    "Quantity / factor": 18,
+    "Rate": 13,
+    "Basic rate": 13,
+    "Adjusted rate": 13,
+    "Amount": 15,
+    "Remarks": 24,
+    "Category": 28,
+    "Reference": 20,
+    "Tax %": 8,
+    "Discount %": 14,
+    "Kind": 16,
+    "Output": 20,
+    "Property": 28,
+    "Value": 48,
+    "Notes": 80,
+}
+
+
+def column_widths(headings):
+    """Return proportional percentages for known fields and variable template labels."""
+    weights = [WIDTH_WEIGHTS.get(heading, 16) for heading in headings]
+    total = sum(weights)
+    return tuple(round(weight * 100 / total, 4) for weight in weights) if total else ()

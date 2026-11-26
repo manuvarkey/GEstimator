@@ -123,3 +123,47 @@ class ReportLayout(unittest.TestCase):
         for value in (None, 1, True, [], "wide", "@page"):
             with self.subTest(orientation=value), self.assertRaises(ValueError):
                 self.document([dict(id="a", kind="schedule", orientation=value)])
+
+    def test_typography_margins_and_column_proportions_match_export_intent(self):
+        spec = ReportSpec.parse(
+            dict(
+                font_family="DejaVu Serif",
+                font_scale=1.25,
+                organization="Office &P",
+                sections=[dict(id="schedule", kind="schedule")],
+            )
+        )
+        document = build_document(self.db, 1, spec)
+        html = render_html(document)
+        self.assertIn("margin:20mm", html)
+        self.assertIn("font-size:12.5pt", html)
+        self.assertIn('font-family:"DejaVu Serif",sans-serif', html)
+        self.assertIn('class="report-footer">Office &amp;P', html)
+        self.assertIn("content:counter(page)", html)
+        self.assertIn("content:string(section-heading)", html)
+        self.assertIn("<colgroup>", html)
+        workbook = self.workbook(document)
+        for sheet in workbook:
+            for side in ("left", "right", "top", "bottom"):
+                self.assertAlmostEqual(getattr(sheet.page_margins, side) * 25.4, 20)
+            self.assertEqual(sheet["A1"].font.name, "DejaVu Serif")
+        sheet = workbook["Section 1"]
+        self.assertEqual(sheet["A1"].font.sz, 20)
+        self.assertEqual(sheet.oddFooter.left.text, "Office &&P · GEstimator")
+        self.assertGreater(sheet.column_dimensions["B"].width, sheet.column_dimensions["A"].width * 2)
+        self.assertGreater(sheet.column_dimensions["F"].width, sheet.column_dimensions["C"].width)
+        self.assertEqual(sheet["E5"].value, 12.34)
+
+    def test_font_input_is_bounded_and_cannot_inject_css_or_html(self):
+        for value in (None, True, 0.59, 2.01, float("nan"), float("inf"), "1.2", []):
+            with self.subTest(scale=value), self.assertRaises(ValueError):
+                ReportSpec.parse(dict(font_scale=value))
+        for value in (None, 5, "x" * 201, "Font\nname"):
+            with self.subTest(family=value), self.assertRaises(ValueError):
+                ReportSpec.parse(dict(font_family=value))
+        spec = ReportSpec.parse(dict(font_family='Font";}</style><script>alert(1)</script>', font_scale=2))
+        html = render_html(build_document(self.db, 1, spec))
+        self.assertNotIn("<script>", html)
+        self.assertEqual(html.count("</style>"), 1)
+        self.assertEqual(ReportSpec.parse({}).font_scale, 1)
+        self.assertEqual(ReportSpec.parse({}).font_family, "")
