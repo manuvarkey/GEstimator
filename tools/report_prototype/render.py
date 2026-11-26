@@ -79,6 +79,46 @@ def render_html(data, template_directory=TEMPLATES):
     return environment.get_template("report.html").render(**data)
 
 
+def project_context(path, *, organization="", logo=None, sections=SECTIONS):
+    """Adapt a real project's immutable report snapshot to the experiment layout.
+
+    Service opens an isolated working copy; neither the source project nor its
+    stored analysis rates are changed. Import the desktop adapter only on this
+    route so the deterministic renderer remains independently runnable.
+    """
+    from modern.backend.service import Service
+
+    service = Service()
+    try:
+        service.call("project.open", dict(path=str(path)))
+        document = service.call(
+            "report.document",
+            dict(
+                revision=service.revision,
+                specification=dict(organization=organization, sections=[dict(id=kind, kind=kind) for kind in sections]),
+            ),
+        )
+    finally:
+        service.close()
+    specification = document["specification"]
+    # The snapshot already contains authoritative amounts; do not recalculate.
+    return dict(
+        project=document["project"],
+        organization=specification["organization"],
+        logo=logo,
+        title=specification["title"],
+        reference=specification["reference"],
+        revision=str(document["revision"]),
+        date=specification["issue_date"],
+        sections=[section["kind"] for section in specification["sections"] if section["enabled"]],
+        schedule=document["schedule"],
+        abstract=document["abstract"],
+        total=document["total"],
+        signatories=["Prepared by", "Checked by", "Approved by"],
+        notice="Report from accepted project data",
+    )
+
+
 def sample_rows():
     """Provide deterministic multi-page data, including long and non-ASCII text."""
     return [
@@ -103,19 +143,25 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--templates", type=Path, default=TEMPLATES)
     parser.add_argument("--logo", type=Path)
+    parser.add_argument("--project", type=Path, help="Render accepted data from an isolated copy of an .eproj file")
+    parser.add_argument("--organization", default="", help="Organization name for a real-project report")
     parser.add_argument(
         "--executable", type=Path, help="Use a trusted WeasyPrint CLI executable instead of the library"
     )
     parser.add_argument("--timeout", type=float, default=60, help="CLI renderer deadline in seconds")
     parser.add_argument("--sections", nargs="*", choices=SECTIONS, default=list(SECTIONS))
     args = parser.parse_args()
-    data = context(
-        sample_rows(),
-        project="Community building refurbishment",
-        organization="Example Engineering Office",
-        logo=logo_uri(args.logo) if args.logo else None,
-        sections=args.sections,
-    )
+    logo = logo_uri(args.logo) if args.logo else None
+    if args.project:
+        data = project_context(args.project, organization=args.organization, logo=logo, sections=args.sections)
+    else:
+        data = context(
+            sample_rows(),
+            project="Community building refurbishment",
+            organization="Example Engineering Office",
+            logo=logo,
+            sections=args.sections,
+        )
     # Step 1: complete both renders before publishing the experiment's outputs.
     html = render_html(data, args.templates)
     if args.executable:

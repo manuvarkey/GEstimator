@@ -2286,3 +2286,45 @@ application IPC, UI or package configuration change.
   development tool change. Clean Windows execution, packaged deployment, active
   cancellation and hard resource quotas remain unverified. The CLI policy permits
   data URI assets generally, while the library experiment permits raster logos.
+
+## 2026-11-26 — Initial read-only report foundation
+
+Added `modern/backend/reporting` with strict version-one specifications, frozen
+section/document values, batched project reads, schedule/category filtering and
+engine-rounded abstract totals. `report.document` is an internal Service read
+requiring the current revision and clean analysis/measurement drafts. It ignores
+discard intent and neither saves nor recalculates the working project. The
+optional renderer accepts `--project` and renders those authoritative snapshot
+amounts from an isolated source copy. Existing demonstration mode remains.
+
+- `.venv/bin/python -m unittest discover -s tests`: 256 tests passed. Expected
+  negative formatting-check fixture diagnostics appeared in the suite log; the
+  suite exited successfully. After adding explicit preservation assertions for
+  nonempty undo/redo histories, the seven focused report tests also passed.
+- With `.venv/bin` on PATH, `python -m unittest
+  tools.report_prototype.test_render tools.report_prototype.test_executable`:
+  nine tests passed, including real-project snapshot-to-HTML/PDF rendering,
+  escaped source text and byte-for-byte source preservation.
+- Compared snapshot totals against `schedule.editor.state` for all three bundled
+  databases and checked source SHA-256 preservation: DSR 2023, 3,945 rows,
+  12,819,654.98; E&M 2025, 2,433 rows, 0.00; Horticulture 2025, 803 rows, 0.00.
+  These are read comparisons, not newly assigned sample quantities.
+- `npm run --prefix modern build`: passed, retaining Vite's existing large-chunk
+  warning (main JavaScript approximately 1.23 MB before compression).
+- `npm run --prefix modern test:e2e`: 115 Chromium scenarios passed against
+  the real Python bridge; the opt-in large-project performance profile was
+  skipped because GESTIMATOR_PERF was not enabled. These cover existing app
+  regressions; no Report workspace UI is introduced in this change. The runner
+  retained its existing NO_COLOR/FORCE_COLOR environment warning.
+- Generated a DSR 2023 abstract/signoff report using the actual local WeasyPrint
+  executable. Poppler confirmed five A4 pages; visually inspected all five page
+  images, including contents targets, continued table headings, total and
+  signature placement. The original project file was preserved.
+- Changed-file quality fix/check, documentation links/anchors/routing and diff
+  whitespace checks passed.
+
+No runtime dependency or project schema changed. Production safe export/portal
+publication, additional section datasets, Report workspace and persistence,
+isolated worker cancellation and installed Windows/Linux renderer packaging
+remain unimplemented or unverified. This evidence does not claim production
+report export is complete.

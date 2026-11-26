@@ -181,3 +181,13 @@ app module was extended. Before production integration, prove real-project amoun
 parity and revision/draft preservation, bound custom-template rendering in an
 isolated worker, validate template bundles and saved definitions, and verify
 native font/Pango packaging. Sample-document success does not close those gates.
+
+
+## 2026-11-26 report foundation boundary
+
+The initial [report document contract](features/report-documents.md) lives in a
+dedicated reporting package with a small Service forward. No runtime dependency,
+project schema, transaction owner or public MCP surface was added. Frozen values
+separate data assembly from the optional rendering experiment. Production export
+publication, additional section datasets, workspace/browser workflows and
+packaged rendering remain unfinished; this does not close the prototype gates.

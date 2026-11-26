@@ -12,7 +12,7 @@ establish a published store version or successful installation on another machin
 
 | Area | Next work | Acceptance evidence |
 | --- | --- | --- |
-| Formatted estimate reports | Follow the [report module proposal](report-module-plan.md); phase 1 is an isolated WeasyPrint/Jinja2 experiment | Real-project parity, customizable sections, Excel/HTML/PDF workflow and packaged renderer verification |
+| Formatted estimate reports | Follow the [report module proposal](report-module-plan.md); the rendering experiment now reads the [initial report snapshot foundation](features/report-documents.md) | Real-project parity, customizable sections, Excel/HTML/PDF workflow and packaged renderer verification |
 | Large shell/view/router modules | Follow the audit's bounded priorities for `App.vue`, `ProjectViews.vue`, `project.py` and `service.py` | Preserve drafts, identity, focus and undo. Follow the [Flatpak acceptance checks](code-quality-audit.md#flatpak-behavior-to-preserve) for affected file workflows. |
 | Shared CSS | Continue consolidating feature-local overrides as surfaces change | Relevant dark/light/narrow UI verification |
 | Frontend bundle size | Profile the installed WebView before splitting the core editors | A measured improvement with preserved startup and interaction behavior |

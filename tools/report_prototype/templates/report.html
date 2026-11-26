@@ -38,9 +38,9 @@
             <td>{{ row.code }}</td>
             <td>{{ row.description }}</td>
             <td>{{ row.unit }}</td>
-            <td class="number">{{ row.quantity }}</td>
-            <td class="number">{{ row.rate }}</td>
-            <td class="number">{{ row.amount }}</td>
+            <td class="number">{{ row.quantity if row.unit else "" }}</td>
+            <td class="number">{{ row.rate if row.unit else "" }}</td>
+            <td class="number">{{ row.amount if row.unit else "" }}</td>
           </tr>
           {% endfor %}
         </tbody>

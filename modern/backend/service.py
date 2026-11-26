@@ -15,7 +15,7 @@ from estimator import misc
 from estimator.data.schedule import ScheduleDatabase, ScheduleItemModel
 from estimator.undo import Stack
 
-from . import analysis_edits, project_files
+from . import analysis_edits, project_files, reporting
 from .numbers import tax_text
 from .persistence import RecoveryClaim, export_output, portal_needs_folder, write_recovery
 from .validation import request_text as text
@@ -266,6 +266,8 @@ class Service:
                 key: settings.get(key, "")
                 for key in ("project_name", "project_item_code", "project_resource_code", "project_metadata")
             }
+        if method == "report.document":
+            return reporting.document(self, p)
         if method == "project.open":
             self.guard_draft(p, project=True)
             return project_files.open_project(self, p, progress)

@@ -3,6 +3,7 @@
 import copy
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from PIL import Image
@@ -10,7 +11,7 @@ from weasyprint import HTML
 from weasyprint.urls import URLFetchingError
 
 from .library import embedded_asset
-from .render import context, logo_uri, render_html
+from .render import context, logo_uri, project_context, render_html
 
 
 class ReportPrototypeTests(unittest.TestCase):
@@ -69,6 +70,31 @@ class ReportPrototypeTests(unittest.TestCase):
         document = HTML(string=render_html(data), url_fetcher=embedded_asset).render()
         self.assertEqual(len(document.pages), 5)
         self.assertTrue(document.write_pdf().startswith(b"%PDF-"))
+
+    def test_real_project_uses_snapshot_amounts_and_preserves_source(self):
+        from estimator.data.schedule import ScheduleDatabase, ScheduleItemModel
+        from estimator.undo import Stack
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory, "project.eproj")
+            database = ScheduleDatabase(Stack())
+            database.create_new_database(str(path))
+            database.insert_item(
+                ScheduleItemModel("A", "<Actual work>", "m", Decimal("0.05"), Decimal("0.1"), category="Work")
+            )
+            database.close_database()
+            original = path.read_bytes()
+            data = project_context(path, organization="<Office>", sections=["schedule", "abstract"])
+            html = render_html(data)
+            self.assertEqual(path.read_bytes(), original)
+        self.assertEqual(data["total"], "0.01")
+        self.assertEqual(data["schedule"][0]["amount"], "0.01")
+        self.assertIn("&lt;Actual work&gt;", html)
+        self.assertIn("&lt;Office&gt;", html)
+        self.assertIn("Report from accepted project data", html)
+        self.assertNotIn("illustrative quantities", html)
+        self.assertLess(html.index('id="schedule"'), html.index('id="abstract"'))
+        self.assertTrue(HTML(string=html, url_fetcher=embedded_asset).write_pdf().startswith(b"%PDF-"))
 
 
 if __name__ == "__main__":

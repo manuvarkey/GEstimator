@@ -1,7 +1,8 @@
 # Report module proposal and rendering experiment
 
-Status: phase 1 prototype, 2026-11-24. This is a proposal, not a desktop API
-contract. Navigation: [index](README.md) · [roadmap](roadmap.md).
+Status: rendering experiment plus initial read-only foundation, 2026-11-26.
+This is a proposal; the implemented subset has a separate
+[report document contract](features/report-documents.md). Navigation: [index](README.md) · [roadmap](roadmap.md).
 
 ## Goal and scope
 
@@ -15,8 +16,10 @@ it does not introduce taxes or other estimating calculations.
 The prototype in [tools/report_prototype](../tools/report_prototype/render.py)
 tests Jinja2 plus WeasyPrint, following the rendering approach used in
 [GElectrical](https://github.com/manuvarkey/GElectrical/blob/master/gelectrical/model/project.py).
-It uses deterministic demonstration rows, not live projects. There is no UI,
-IPC command, project persistence or new application runtime dependency yet.
+It supports deterministic demonstration rows or accepted real-project snapshots
+through `--project`. The backend now exposes `report.document`; there is no Report
+UI, production export service, project persistence or new application runtime
+dependency yet.
 
 ## Try the prototype
 
@@ -27,6 +30,16 @@ From the repository root:
 .venv/bin/python -m tools.report_prototype.render /tmp/estimate-demo --logo /path/to/logo.png
 .venv/bin/python -m unittest tools.report_prototype.test_render
 ```
+
+To render a real project without modifying its source file:
+
+```sh
+.venv/bin/python -m tools.report_prototype.render /tmp/project-report --project /path/to/project.eproj --organization "Office name"
+```
+
+This uses the shared snapshot amounts without recalculating analyses. Dirty
+live-session drafts are protected by the backend API; this file-based experiment
+reads the selected saved file in a separate isolated session.
 
 To exercise the executable route on Linux, use the installed CLI:
 
@@ -112,8 +125,10 @@ asset types, schema upgrades and clear project-versus-office override behavior.
 1. **Rendering experiment (this change):** default/custom facing and abstract,
    logo, page references, long tables, signoff, offline HTML/PDF. Record measured
    behavior and limits in the validation log.
-2. **Foundation:** validated specification and project adapter, real-project
-   amount parity, read-only snapshot/revision/draft tests, safe export service.
+2. **Foundation (initial subset implemented):** validated specification and
+   immutable project adapter for schedule/abstract/signoff, real-project amount
+   parity and read-only snapshot/revision/draft tests. Production safe export
+   service and additional section datasets remain outstanding.
 3. **Complete workspace:** section editor, preview, Excel/HTML/PDF chooser,
    initial cover/contents/abstract/schedule/analysis/resource/usage/signoff
    sections, browser coverage, synchronized manual and architecture contracts.
