@@ -20,7 +20,7 @@ and MCP adapters reuse the same service/editor operations.
 | Project transactions, compound operations and snapshot undo | [`project.py`](../../modern/backend/project.py) |
 | Schedule and resource edit dispatch and row operations | [`project_edits.py`](../../modern/backend/project_edits.py) |
 | Schedule and resource table pages, type-ahead, row deltas and totals | [`project_tables.py`](../../modern/backend/project_tables.py) |
-| Immutable estimate report specifications and snapshots | [`reporting/`](../../modern/backend/reporting/document.py); [report document contract](../features/report-documents.md) |
+| Immutable report specifications, snapshots and fixed HTML/Excel/PDF exports | [`reporting/`](../../modern/backend/reporting/document.py); [report document contract](../features/report-documents.md) |
 | Rate discrepancies, resource usage and dependent analyses | [`project_reports.py`](../../modern/backend/project_reports.py) |
 | Read-only library attachment, catalog and notes | [`libraries.py`](../../modern/backend/libraries.py) |
 | Library import policies, staging and dependencies | [`library_import.py`](../../modern/backend/library_import.py) |

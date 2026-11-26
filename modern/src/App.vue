@@ -41,6 +41,7 @@ import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigati
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
 import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
+import ReportWorkspace from "./components/ReportWorkspace.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
 import { installProjectOpening } from "./projectOpening";
@@ -107,7 +108,10 @@ const discardOpen = ref(false);
 const uiBusy = computed(() => busy.value || projectBusy.value);
 const documentId = activeDocument.value;
 const projectViews = shallowReactive<Partial<Record<ProjectView, InstanceType<typeof ProjectViews>>>>({});
-const projectView = computed(() => (activeView.value === "analysis" ? undefined : projectViews[activeView.value]));
+const reportWorkspace = ref<InstanceType<typeof ReportWorkspace>>();
+const projectView = computed(() =>
+  activeView.value === "analysis" || activeView.value === "reports" ? undefined : projectViews[activeView.value],
+);
 
 const libraryManager = ref<InstanceType<typeof LibraryManager>>();
 const mcpSettingsOpen = ref(false);
@@ -117,6 +121,7 @@ const allViews = [
   { key: "analysis", label: "Analysis" },
   { key: "resources", label: "Resources" },
   { key: "measurement", label: "Measurements" },
+  { key: "reports", label: "Reports" },
   { key: "databases", label: "Databases" },
   { key: "mcp", label: "MCP" },
 ] as const;
@@ -446,6 +451,7 @@ async function applicationAction(action: string) {
       break;
     case "export":
       if (activeView.value === "analysis") await analysisDialogs.value?.exportWorkbook();
+      else if (activeView.value === "reports") await reportWorkspace.value?.exportWorkbook();
       else projectView.value?.exportWorkbook();
       break;
     case "settings":
@@ -560,8 +566,15 @@ onBeforeUnmount(() => {
       <ApplicationMenu
         :busy="uiBusy"
         :project-open="!!state?.project_open"
-        :can-export="activeView === 'analysis' ? !!state?.project : !!state?.project_open"
+        :can-export="
+          activeView === 'reports'
+            ? !!reportWorkspace?.canExport
+            : activeView === 'analysis'
+              ? !!state?.project
+              : !!state?.project_open
+        "
         :analysis="activeView === 'analysis'"
+        :reports="activeView === 'reports'"
         @action="applicationAction"
       />
       <div class="quick-actions" role="toolbar" aria-label="Common actions">
@@ -617,7 +630,9 @@ onBeforeUnmount(() => {
           class="icon-button"
           aria-label="Undo"
           title="Undo the last analysis or records draft edit, or the last project operation in other views (Ctrl+Z)."
-          :disabled="uiBusy || !(activeView === 'analysis' ? state?.undo : projectHistory.undo)"
+          :disabled="
+            uiBusy || activeView === 'reports' || !(activeView === 'analysis' ? state?.undo : projectHistory.undo)
+          "
           @click="historyAction('undo')"
         >
           <AppIcon name="undo" />
@@ -626,7 +641,9 @@ onBeforeUnmount(() => {
           class="icon-button"
           aria-label="Redo"
           title="Restore the last undone change in the active editing context (Ctrl+Y)."
-          :disabled="uiBusy || !(activeView === 'analysis' ? state?.redo : projectHistory.redo)"
+          :disabled="
+            uiBusy || activeView === 'reports' || !(activeView === 'analysis' ? state?.redo : projectHistory.redo)
+          "
           @click="historyAction('redo')"
         >
           <AppIcon name="redo" />
@@ -710,7 +727,10 @@ onBeforeUnmount(() => {
       >
     </div>
     <RibbonToolbar
-      v-show="!(landingVisible && ['schedule', 'resources', 'measurement'].includes(activeTab))"
+      v-show="
+        activeTab !== 'reports' &&
+        !(landingVisible && ['schedule', 'resources', 'measurement', 'reports'].includes(activeTab))
+      "
       ref="ribbonToolbar"
       class="ribbon"
       :id="'tools-' + activeTab"
@@ -824,6 +844,15 @@ onBeforeUnmount(() => {
           @recover="recoverProject"
           @clear-recent="setRecentProjects([])"
         />
+        <KeepAlive :key="'report:' + projectSession">
+          <ReportWorkspace
+            v-if="state?.project_open && activeView === 'reports'"
+            ref="reportWorkspace"
+            :revision="state.revision"
+            :external-busy="uiBusy"
+            @busy="projectBusy = $event"
+          />
+        </KeepAlive>
         <ProjectViews
           v-for="view in visitedViews"
           :key="projectSession + ':' + view"

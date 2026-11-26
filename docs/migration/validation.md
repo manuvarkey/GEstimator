@@ -2328,3 +2328,51 @@ publication, additional section datasets, Report workspace and persistence,
 isolated worker cancellation and installed Windows/Linux renderer packaging
 remain unimplemented or unverified. This evidence does not claim production
 report export is complete.
+
+## 2026-11-26 — Initial Reports workspace and export workflow
+
+After committing the snapshot foundation as `6131b14d`, added the Reports view
+for facing fields and ordered/enabled/renamed abstract, schedule and signoff
+sections. Preview uses fixed Python-generated escaped HTML inside a sandboxed
+iframe. Definition/revision changes visibly invalidate the preview. Settings and
+preview survive view/project-tab switches through the existing memory lifetime;
+project replacement resets them. Settings are explicitly not persisted yet.
+
+Added `report.preview`/`report.export`, fixed offline HTML and Excel renderers,
+and promoted the managed WeasyPrint CLI adapter from the prototype with a
+compatibility import. All formats reuse authoritative immutable values. Excel
+uses literal user-text cells and numeric amounts, linked contents and print
+settings. Export requests revalidate revisions/drafts after native selection
+and reuse the existing safe publication/portal boundary. No runtime dependency,
+project schema, native Rust code or public MCP operation changed.
+
+- Full Python suite: 262 tests passed. Expected negative formatting-fixture
+  diagnostics appeared in the log; the overall suite returned success. A final
+  six-test export rerun also passed after using Excel General format for
+  quantities so display does not impose a three-place rounding limit.
+- Explicit prototype suite with `.venv/bin` on PATH: nine tests passed, including
+  the shared CLI's real rendering, denied external assets and timeout cleanup.
+- Focused `npm run test:e2e -- reports.spec.ts`: all three workflows passed.
+  Exercised section ordering/toggling, keyboard activation, real HTML/Excel/PDF
+  exports, stale definition/project revisions, busy inputs, cancellation,
+  failure preservation and tab memory. PDF was available through the local CLI.
+- Full `npm run --prefix modern test:e2e`: 118 scenarios passed, with the
+  opt-in GESTIMATOR_PERF large-project profile skipped (119 discovered). The
+  runner retained its existing NO_COLOR/FORCE_COLOR environment warning.
+- Frontend production build/type check passed with the existing large-chunk
+  warning (main JavaScript approximately 1.24 MB before compression).
+- Inspected browser screenshots in light/wide and dark/narrow layouts. Generated
+  an actual DSR 2023 abstract/signoff PDF through `report.export`, confirmed five
+  A4 pages with Poppler and visually reviewed every page. Contents page targets,
+  repeated abstract headings, total 12,819,654.98 and signatures rendered clearly.
+- Changed-file Ruff/Prettier quality checks, documentation navigation/link checks
+  and diff whitespace checks passed.
+
+HTML/Excel do not need WeasyPrint. PDF availability is based on a trusted local
+CLI reporting version 70 or newer, never a project/request executable path.
+The renderer is deadline-limited and post-validates output, but hard resource
+quotas, active cancellation/process-tree control, custom templates, further
+section datasets, report-definition persistence and installed Windows/Linux
+packaged renderer verification remain open. Native chooser/portal behavior was
+covered by existing adapters and backend failure tests, not an installed desktop
+or Flatpak interaction in this turn.

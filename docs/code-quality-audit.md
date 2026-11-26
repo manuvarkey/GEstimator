@@ -191,3 +191,15 @@ project schema, transaction owner or public MCP surface was added. Frozen values
 separate data assembly from the optional rendering experiment. Production export
 publication, additional section datasets, workspace/browser workflows and
 packaged rendering remain unfinished; this does not close the prototype gates.
+
+
+## 2026-11-26 initial Reports workflow
+
+The named ReportWorkspace component owns its form, preview, chooser and error
+state. The shell only adds navigation/forwarding; reporting calculations remain
+in Python. Fixed HTML and Excel renderers consume one immutable document. The
+managed CLI adapter is shared with the prototype via a compatibility import,
+with no new runtime dependencies or packaged template assets. Native Windows
+CLI distribution, quotas/cancellation, richer section adapters, persisted report
+settings and custom template lifecycle remain open. The new workflow does not
+claim the complete report proposal or production package gates are finished.

@@ -1,6 +1,6 @@
 # Report module proposal and rendering experiment
 
-Status: rendering experiment plus initial read-only foundation, 2026-11-26.
+Status: initial Reports workspace and exports implemented, 2026-11-26.
 This is a proposal; the implemented subset has a separate
 [report document contract](features/report-documents.md). Navigation: [index](README.md) · [roadmap](roadmap.md).
 
@@ -17,9 +17,11 @@ The prototype in [tools/report_prototype](../tools/report_prototype/render.py)
 tests Jinja2 plus WeasyPrint, following the rendering approach used in
 [GElectrical](https://github.com/manuvarkey/GElectrical/blob/master/gelectrical/model/project.py).
 It supports deterministic demonstration rows or accepted real-project snapshots
-through `--project`. The backend now exposes `report.document`; there is no Report
-UI, production export service, project persistence or new application runtime
-dependency yet.
+through `--project`. The application now has a Reports workspace for the initial
+abstract/schedule/signoff sections, fixed-layout preview and HTML/Excel exports,
+plus PDF through an installed WeasyPrint 70+ CLI. There is no report-definition
+project persistence or new application runtime Python dependency. The fixed
+application renderer is independent of the trusted custom-template experiment.
 
 ## Try the prototype
 
@@ -127,11 +129,13 @@ asset types, schema upgrades and clear project-versus-office override behavior.
    behavior and limits in the validation log.
 2. **Foundation (initial subset implemented):** validated specification and
    immutable project adapter for schedule/abstract/signoff, real-project amount
-   parity and read-only snapshot/revision/draft tests. Production safe export
-   service and additional section datasets remain outstanding.
-3. **Complete workspace:** section editor, preview, Excel/HTML/PDF chooser,
+   parity and read-only snapshot/revision/draft tests. Safe export publication is
+   now shared with existing exports; additional section datasets remain outstanding.
+3. **Complete workspace (initial subset implemented):** section editor, preview, Excel/HTML/PDF chooser,
    initial cover/contents/abstract/schedule/analysis/resource/usage/signoff
    sections, browser coverage, synchronized manual and architecture contracts.
+   The initial abstract/schedule/signoff workflow is available; analysis, resource
+   and usage sections still need adapters and renderers.
 4. **Customization:** measurements/narrative sections, columns, mixed
    orientations, office templates, persisted project overrides and template
    editor/import/export. Preserve existing project compatibility.
@@ -161,7 +165,9 @@ The executable path is now implemented in the experiment and exercised with the
 Linux CLI. It uses WeasyPrint 70's `--allowed-protocols data` option; unlike the
 library fetcher, it permits all data URI asset types, not only raster images.
 Custom templates remain trusted. Before production, validate imported assets,
-add desktop cancellation and resource quotas, and integrate safe publication.
+add desktop cancellation and resource quotas. The application fixed-layout
+workflow now uses safe export publication; the custom-template experiment keeps
+its fresh-directory publication policy.
 No Windows executable was run here; clean-machine installation, font discovery,
 redistribution notices and antivirus behavior remain Windows verification gates.
 

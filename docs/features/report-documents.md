@@ -1,11 +1,13 @@
 # Read-only report documents
 
-Current foundation, 2026-11-26. Navigation: [index](../README.md) ·
+Current initial workspace and export workflow, 2026-11-26. Navigation: [index](../README.md) ·
 [backend](../architecture/backend.md) · [report proposal](../report-module-plan.md).
 
-The backend can assemble accepted working-project data into an immutable report
-snapshot. The Report workspace, production export service, Excel renderer,
-persisted specifications and packaged PDF renderer are still future work.
+The Reports workspace composes the initial abstract, schedule and signoff
+sections from immutable accepted-project snapshots. It previews and exports
+standalone HTML, Excel and PDF when a suitable renderer is installed. Analyses,
+resources/usage, persisted specifications and packaged PDF distribution remain
+future work.
 
 ## Request and response
 
@@ -64,6 +66,72 @@ accept drafts, alter quantities/rates, create identities, advance revisions,
 change clipboard contents or add undo entries. The service retains its existing
 draft/revision boundaries. Report settings are not written into project files.
 
+## Preview and export operations
+
+`report.preview` accepts the same revision/specification inputs and returns
+`document`, escaped standalone `html`, and boolean `pdf_available`. A fixed
+Python layout uses standard HTML escaping at output; project strings never become
+HTML, CSS or template source. No arbitrary templates/assets are accepted. The
+complete generated HTML is limited to 10 MB. The desktop displays it in an iframe
+with an empty sandbox and a restrictive document CSP. Preview is continuous;
+PDF provides final page numbers and contents targets.
+
+`report.export` accepts those inputs plus `format` (`html`, `xlsx`, `pdf`), a
+native-selected `path` with matching extension, and the existing
+`replace_selected` chooser flag. It captures a fresh snapshot and rejects stale
+revisions/dirty drafts again after the chooser. It returns `saved`, `revision`
+and a list of renderer diagnostic `warnings`. There is no cached-preview export
+that could silently publish data from a different revision.
+
+HTML/PDF consume the same fixed layout. Excel consumes the same frozen row and
+total values, uses literal text cells for author strings (including leading
+`=`), numeric cells for amounts, a contents sheet with internal worksheet links,
+repeated headings and print settings. Generated sheet names avoid collisions
+and unsupported worksheet title characters. It does not add editable formulas.
+The existing full-project workbook export remains unchanged.
+
+Exports use the existing
+[export publication boundary](../architecture/database-format.md#working-copies-save-and-recovery).
+Rendering failures remove partial new files and preserve chooser-confirmed
+portal replacements. Ordinary existing paths retain the existing exclusive-create
+policy. A selected project `.eproj` file cannot be an output destination because
+its extension does not match any report format.
+
+PDF discovers a trusted `report-renderer/weasyprint[.exe]` beside the interpreter
+or packaged backend, then the interpreter's sibling CLI, then the system PATH.
+It requires `--version` to report WeasyPrint 70 or newer. Requests/project files
+cannot provide an executable path. Missing/older renderers disable PDF while
+HTML and Excel remain available. No native WeasyPrint imports or new runtime
+Python dependencies are introduced.
+
+The shared managed CLI adapter receives UTF-8 HTML on stdin, permits only data
+URLs, rejects redirects/failed assets, hides its Windows console and kills/reaps
+the direct child after a 60-second timeout. It validates the completed PDF and
+limits output to 50 MB and returned diagnostics to 16 KB. These are post-render
+checks, not hard memory/disk quotas. Full cancellation/process-tree control and
+installed renderer packaging still need release hardening.
+
+## Desktop workspace lifetime
+
+[`ReportWorkspace.vue`](../../modern/src/components/ReportWorkspace.vue) owns
+composition, generation/export busy states and inline errors. Report requests
+have explicit shapes in [`reportTypes.ts`](../../modern/src/reportTypes.ts).
+The shell forwards Reports navigation through the existing draft guard and
+retains native destination selection in the desktop adapter.
+
+Users edit facing fields, enable/rename/reorder the initial three sections and
+manually generate a preview. The fixed cover and contents are always included.
+Changing the definition or project revision visibly marks the preview stale and
+disables export until regenerated. Section order controls both output order and
+contents links. Python retains selection, rounding and validation authority.
+
+KeepAlive retains settings/preview across view changes; document-local memory
+retains them across project-tab switches. Replacing/closing a project clears
+them. Settings are intentionally not saved in project files yet, and the view
+states that limitation. Busy generation/export disables conflicting inputs and
+navigation through the existing shell busy state. Cancellation of the native
+save chooser leaves the composition intact and sends no export request.
+
 ## Real-project rendering experiment
 
 The optional [prototype](../report-module-plan.md#try-the-prototype) can consume
@@ -76,9 +144,12 @@ The cover identifies accepted project data instead of demonstration quantities.
 
 Rendering remains a development experiment: optional Jinja2/WeasyPrint packages
 are not app dependencies, and publication requires a fresh output directory.
-Production safe export/portal publication, cancellation, template validation and
-Windows installation remain gates in the proposal.
+The application workflow now has safe export/portal publication for its fixed
+layout. Cancellation, custom template validation and installed Windows renderer
+verification remain gates in the proposal.
 
 Regression coverage:
 [`test_report_documents.py`](../../tests/test_report_documents.py) and
-[`test_render.py`](../../tools/report_prototype/test_render.py).
+[`test_render.py`](../../tools/report_prototype/test_render.py),
+[`test_report_exports.py`](../../tests/test_report_exports.py) and
+[`reports.spec.ts`](../../modern/e2e/reports.spec.ts).

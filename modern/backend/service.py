@@ -268,6 +268,10 @@ class Service:
             }
         if method == "report.document":
             return reporting.document(self, p)
+        if method == "report.preview":
+            return reporting.preview(self, p)
+        if method == "report.export":
+            return reporting.export(self, p, progress)
         if method == "project.open":
             self.guard_draft(p, project=True)
             return project_files.open_project(self, p, progress)

@@ -1,0 +1,108 @@
+"""Standalone, offline HTML from escaped report values and a fixed local layout."""
+
+from html import escape
+
+from .document import ReportDocument
+
+# Keep the complete fixed layout here so frozen backends need no template assets.
+# No project text is interpreted as template source, markup, CSS or script.
+STYLE = """
+@page { size:A4; margin:20mm 15mm;
+ @top-left { content:"GEstimator · Estimate report"; font-size:8pt; }
+ @bottom-right { content:"Page " counter(page) " of " counter(pages); font-size:8pt; }
+}
+@page:first { @top-left { content:none; } @bottom-right { content:none; } }
+* { box-sizing:border-box; }
+body { font:10pt/1.45 "DejaVu Sans",sans-serif; color:#243247; margin:0 auto; max-width:1100px; padding:24px; }
+h1 { color:#174e67; font-size:22pt; } h2 { font-size:17pt; }
+a { color:#174e67; } .cover { padding:60px 0; }
+.section { break-before:page; margin-top:32px; }
+table { border-collapse:collapse; width:100%; font-size:9pt; }
+thead { display:table-header-group; }
+th,td { border-bottom:1px solid #ccd6dc; padding:8px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+th { background:#e4eef2; } tr { break-inside:avoid; }
+.number { text-align:right; white-space:nowrap; overflow-wrap:normal; }
+.description { white-space:pre-wrap; } .total { font-weight:bold; text-align:right; }
+.signatures { display:flex; gap:24px; margin-top:60px; }
+.signature { flex:1; border-top:1px solid; padding-top:8px; }
+.toc a::after { content:""; }
+@media print { .toc a::after { content:" … " target-counter(attr(href), page); } body { max-width:none; padding:0; } .cover { padding-top:22mm; } }
+"""
+
+
+def _text(value):
+    """Escape a plain text value at the one HTML output boundary."""
+    return escape(str(value), quote=True)
+
+
+def _table(headings, rows, numeric=(), descriptions=()):
+    """Build accessible table markup without interpolating arbitrary attributes."""
+    output = ["<table><thead><tr>"]
+    output.extend(f'<th scope="col">{_text(label)}</th>' for label in headings)
+    output.append("</tr></thead><tbody>")
+    for row in rows:
+        output.append("<tr>")
+        for index, value in enumerate(row):
+            css = "number" if index in numeric else "description" if index in descriptions else ""
+            output.append(f'<td class="{css}">{_text(value)}</td>')
+        output.append("</tr>")
+    output.append("</tbody></table>")
+    return "".join(output)
+
+
+def render_html(document: ReportDocument) -> str:
+    """Render a fixed cover, linked contents and the enabled ordered sections."""
+    spec = document.specification
+    sections = [section for section in spec.sections if section.enabled]
+    output = [
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\">",
+        f"<title>{_text(spec.title)} — {_text(document.project)}</title><style>{STYLE}</style></head><body>",
+        '<header class="cover">',
+        f"<p>{_text(spec.organization)}</p><h1>{_text(spec.title)}</h1><h2>{_text(document.project)}</h2>",
+        f"<p>Reference: {_text(spec.reference)}</p><p>Issued: {_text(spec.issue_date)}</p>",
+        '</header><nav class="section" aria-label="Contents"><h1>Contents</h1><ol class=toc>',
+    ]
+    for section in sections:
+        output.append(f'<li><a href="#{section.id}">{_text(section.title)}</a></li>')
+    output.append("</ol></nav>")
+    # Each renderer consumes the same captured amounts; rendering never calculates.
+    for section in sections:
+        output.append(f'<section class="section" id="{section.id}"><h1>{_text(section.title)}</h1>')
+        if section.kind == "abstract":
+            output.append(
+                _table(("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (1,))
+            )
+            output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
+        elif section.kind == "schedule":
+            output.append(
+                _table(
+                    ("Code", "Description", "Unit", "Quantity", "Rate", "Amount"),
+                    [
+                        (
+                            row.code,
+                            row.description,
+                            row.unit,
+                            row.quantity if row.unit else "",
+                            row.rate if row.unit else "",
+                            row.amount or "",
+                        )
+                        for row in document.schedule
+                    ],
+                    (3, 4, 5),
+                    (1,),
+                )
+            )
+            output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
+        else:
+            output.append('<div class="signatures">')
+            for role in ("Prepared by", "Checked by", "Approved by"):
+                output.append(f'<div class="signature"><p>{role}</p><p>Name:</p><p>Designation:</p><p>Date:</p></div>')
+            output.append("</div>")
+        output.append("</section>")
+    output.append("</body></html>")
+    html = "".join(output)
+    if len(html.encode("utf-8")) > 10_000_000:
+        raise ValueError("Report HTML exceeds the 10 MB limit; select fewer items")
+    return html

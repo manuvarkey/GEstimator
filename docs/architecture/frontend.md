@@ -19,6 +19,7 @@ formatting is presentation; the currency option does not convert prices.
 | Keyboard shortcut reference and its layout | [`KeyboardShortcutsDialog.vue`](../../modern/src/components/KeyboardShortcutsDialog.vue) |
 | Guarded file workflows, recent paths and recovery state | [`useProjectFiles.ts`](../../modern/src/useProjectFiles.ts) |
 | File chooser form, recent paths and recovery actions | [`ProjectFileDialog.vue`](../../modern/src/components/ProjectFileDialog.vue) |
+| Report composition, sandboxed preview, stale state and native report chooser | [`ReportWorkspace.vue`](../../modern/src/components/ReportWorkspace.vue); [report contract](../features/report-documents.md) |
 | View/history navigation and document-local memory | [`useWorkspaceNavigation.ts`](../../modern/src/useWorkspaceNavigation.ts) |
 | MCP change polling and workspace refresh coordination | [`useWorkspaceMCP.ts`](../../modern/src/useWorkspaceMCP.ts) |
 | Analysis requests, authoritative state and selection refresh | [`useWorkspace.ts`](../../modern/src/useWorkspace.ts) |

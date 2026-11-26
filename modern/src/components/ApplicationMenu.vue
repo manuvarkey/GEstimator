@@ -8,16 +8,12 @@ const props = defineProps<{
   projectOpen: boolean;
   canExport: boolean;
   analysis: boolean;
+  reports?: boolean;
 }>();
 const emit = defineEmits<{ action: [name: string] }>();
 const menu = ref<InstanceType<typeof Menu>>();
 const visible = ref(false);
-function item(
-  label: string,
-  action: string,
-  icon: string,
-  disabled = false,
-): MenuItem {
+function item(label: string, action: string, icon: string, disabled = false): MenuItem {
   return {
     label,
     appIcon: icon,
@@ -32,17 +28,12 @@ const items = computed<MenuItem[]>(() => [
   item("Save project copy…", "save-copy", "save", props.busy || !props.projectOpen),
   item("Close project", "close-project", "close", props.busy || !props.projectOpen),
   item(
-    props.analysis ? "Export analysis…" : "Export workbook…",
+    props.reports ? "Export report…" : props.analysis ? "Export analysis…" : "Export workbook…",
     "export",
     "file",
     props.busy || !props.canExport,
   ),
-  item(
-    "Project settings…",
-    "settings",
-    "settings",
-    props.busy || !props.projectOpen,
-  ),
+  item("Project settings…", "settings", "settings", props.busy || !props.projectOpen),
   { separator: true },
   item("Program settings…", "program-settings", "settings", props.busy),
   item("Databases…", "libraries", "library", props.busy),
@@ -77,9 +68,7 @@ const items = computed<MenuItem[]>(() => [
     @hide="visible = false"
     ><template #item="{ item, props: slotProps }"
       ><a v-bind="slotProps.action" class="application-menu-item"
-        ><AppIcon :name="item.appIcon" :size="17" /><span>{{
-          item.label
-        }}</span></a
+        ><AppIcon :name="item.appIcon" :size="17" /><span>{{ item.label }}</span></a
       ></template
     ></Menu
   >

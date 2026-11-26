@@ -11,7 +11,7 @@ export interface DocumentTab {
   path: string | null;
   open: boolean;
   dirty: boolean;
-  view: "analysis" | "schedule" | "resources" | "measurement";
+  view: "analysis" | "schedule" | "resources" | "measurement" | "reports";
 }
 export type DocumentAction =
   | { type: "new" }

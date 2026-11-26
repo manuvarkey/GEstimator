@@ -3,8 +3,8 @@ import type { AnalysisState } from "./backend";
 import { updateDocument } from "./documents";
 import { forgetTabState, recallTabState, rememberTabState } from "./tabMemory";
 
-export type WorkspaceView = "analysis" | "schedule" | "resources" | "measurement";
-export type ProjectView = Exclude<WorkspaceView, "analysis">;
+export type WorkspaceView = "analysis" | "schedule" | "resources" | "measurement" | "reports";
+export type ProjectView = Exclude<WorkspaceView, "analysis" | "reports">;
 export type RibbonTab = WorkspaceView | "databases" | "mcp";
 type NavigationEntry = { view: WorkspaceView; tab: RibbonTab; code?: string; measurement?: string };
 type WorkspaceMemory = {
@@ -44,12 +44,13 @@ export function useWorkspaceNavigation(context: NavigationContext) {
   watch(
     activeView,
     (view) => {
-      if (view !== "analysis" && !visitedViews.value.includes(view)) visitedViews.value.push(view);
+      if (view !== "analysis" && view !== "reports" && !visitedViews.value.includes(view))
+        visitedViews.value.push(view);
     },
     { immediate: true },
   );
   watch(projectSession, () => {
-    visitedViews.value = activeView.value === "analysis" ? [] : [activeView.value];
+    visitedViews.value = activeView.value === "analysis" || activeView.value === "reports" ? [] : [activeView.value];
   });
 
   const navigation = ref<NavigationEntry[]>(remembered?.navigation ?? []);

@@ -204,6 +204,29 @@ use their template's calculation and display rounding.
 - **Import analyses** imports rate analyses laid out in a workbook.
 - **Export workbook** writes the whole estimate to a `.xlsx` workbook: schedule of rates, schedule of resources, details of measurements, resource usage and the analysis of rates of every item.
 
+### Compose an estimate report
+
+Open **Reports** with a project loaded. Enter the report title, organization,
+reference and issue date. Include the abstract, schedule and signoff sections you
+need, edit their titles and use the up/down buttons to choose their order.
+The cover and linked contents are included automatically.
+
+Choose **Generate preview**, review the total and document, then select HTML,
+Excel or available PDF and choose **Export report…**. The preview is continuous;
+PDF has definitive printed page numbers. Excel contents link to worksheets.
+Reports use stored schedule rates and accepted quantities without recalculating
+analyses. Apply or discard pending analysis/measurement drafts before reporting.
+
+Changing report settings or project data marks the preview out of date. Generate
+it again before exporting. Settings stay with the open project tab while you
+switch views/tabs, but are not yet saved in the project file. This first workflow
+includes abstract, schedule and signoff; the existing full workbook export still
+includes the other project worksheets.
+
+PDF requires an installed WeasyPrint 70 or newer renderer. If unavailable, HTML
+and Excel remain usable. A cancelled save chooser retains your report settings;
+export errors appear in the Reports view.
+
 ## 9. Save, tabs and recovery
 
 - **Save project** in the title bar (Ctrl+S) writes the working copy back to the
