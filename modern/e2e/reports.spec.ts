@@ -240,3 +240,65 @@ test("reports render measurement templates and editable plain-text notes", async
   await expect(notes).toBeVisible();
   await page.screenshot({ path: "test-results/report-notes-dark-narrow.png", animations: "disabled" });
 });
+
+test("reports customize column order and page orientation without changing totals", async ({ page }) => {
+  const report = await openReport(page);
+  const schedule = report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByLabel("Include schedule", { exact: true }) });
+  await schedule.locator("summary").click();
+  await schedule.getByLabel("schedule custom columns", { exact: true }).check();
+  for (const name of ["Code", "Unit", "Rate"]) {
+    await schedule.getByLabel(`Include schedule ${name} column`, { exact: true }).uncheck();
+  }
+  await schedule.getByLabel("Include schedule Remarks column", { exact: true }).check();
+  const move = schedule.getByRole("button", { name: "Move schedule Amount column up", exact: true });
+  await move.focus();
+  await page.keyboard.press("Enter");
+  await move.click();
+  await schedule.getByLabel("schedule page orientation", { exact: true }).selectOption("landscape");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator("#schedule th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
+  await expect(preview.locator("#schedule")).toHaveClass("section wide");
+  await expect(report.locator(".report-summary")).toContainText("20.00");
+  await report.getByLabel("Output format").selectOption("xlsx");
+  const path = resolve(directory, "layout.xlsx");
+  nativeDialogResults.push(path);
+  await report.getByRole("button", { name: "Export report…", exact: true }).click();
+  await expect(page.getByText(`Report exported: ${path}`, { exact: true })).toBeVisible();
+  const exported = execFileSync(
+    python,
+    [
+      "-c",
+      "import sys,json;from openpyxl import load_workbook;w=load_workbook(sys.argv[1]);s=w['Section 2'];print(json.dumps([[c.value for c in s[3]],s.page_setup.orientation,s['A4'].value]));w.close()",
+      path,
+    ],
+    { cwd: resolve(".."), encoding: "utf8" },
+  );
+  expect(JSON.parse(exported)).toEqual([["Amount", "Description", "Quantity", "Remarks"], "landscape", 20]);
+  await schedule.getByLabel("schedule page orientation", { exact: true }).selectOption("portrait");
+  await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeDisabled();
+  await page.locator("#view-schedule").click();
+  await page.locator("#view-reports").click();
+  await expect(schedule.getByLabel("schedule page orientation", { exact: true })).toHaveValue("portrait");
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(preview.locator("#schedule")).toHaveClass("section portrait");
+  await expect(preview.locator("#schedule th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
+  await schedule.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/report-layout-light.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await page.setViewportSize({ width: 700, height: 900 });
+  await schedule.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/report-layout-dark-narrow.png", animations: "disabled" });
+  await schedule.getByLabel("schedule custom columns", { exact: true }).uncheck();
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  await expect(preview.locator("#schedule th")).toHaveText([
+    "Code",
+    "Description",
+    "Unit",
+    "Quantity",
+    "Rate",
+    "Amount",
+  ]);
+});

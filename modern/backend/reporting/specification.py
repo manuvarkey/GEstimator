@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 
 from ..validation import text
+from .tables import parse_columns
 
 TITLES = {
     "abstract": "Abstract of estimate",
@@ -45,11 +46,13 @@ class Section:
     title: str
     enabled: bool
     body: str = ""
+    columns: tuple[str, ...] | None = None
+    orientation: str = "auto"
 
     @classmethod
     def parse(cls, value):
         """Accept only initial supported section kinds and safe anchor identities."""
-        _fields(value, ("id", "kind", "title", "enabled", "body"), "report section")
+        _fields(value, ("id", "kind", "title", "enabled", "body", "columns", "orientation"), "report section")
         identity = value.get("id")
         kind = value.get("kind")
         if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", identity):
@@ -62,7 +65,11 @@ class Section:
         body = text(value.get("body", ""))
         if body and kind != "narrative":
             raise ValueError("Only narrative sections accept body text")
-        return cls(identity, kind, text(value.get("title", TITLES[kind])), enabled, body)
+        columns = parse_columns(kind, value.get("columns"))
+        orientation = value.get("orientation", "auto")
+        if not isinstance(orientation, str) or orientation not in ("auto", "portrait", "landscape"):
+            raise ValueError("Unsupported report page orientation")
+        return cls(identity, kind, text(value.get("title", TITLES[kind])), enabled, body, columns, orientation)
 
 
 @dataclass(frozen=True)

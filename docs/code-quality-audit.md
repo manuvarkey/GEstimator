@@ -229,3 +229,16 @@ are bounded plain text per section and use the existing HTML escaping and litera
 Excel cell boundaries. No engine, persistence schema or runtime dependency changed.
 Saved definitions, custom layouts/templates and renderer release hardening remain
 open. Native installed-package and portal behavior were not exercised here.
+
+
+## 2026-11-26 report column and orientation settings
+
+Fixed-table column definitions, validation and immutable row projection share a
+small reporting module instead of duplicating column selection in HTML and Excel.
+Default renderer differences are retained, while explicit selections agree across
+formats. The new ReportSectionLayout component owns bounded presentation input;
+financial data and validation remain in Python. Explicit orientation overrides
+apply to each section after renderer defaults. No engine, project schema, native
+code or runtime dependency changed. Saved definitions, office templates, custom
+layouts and release hardening remain open. Browser checks can use a separate
+PLAYWRIGHT_PORT, including secondary contexts, to avoid occupying the Tauri port.

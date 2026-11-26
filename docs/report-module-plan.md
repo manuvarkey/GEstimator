@@ -145,8 +145,9 @@ No external template or stylesheet is loaded at runtime.
    on detached models; catalog/usage reuse accepted engine data and rules.
 4. **Customization (measurement/narrative subset implemented):** accepted measurement
    records, constants, separately labelled linked outputs and per-section plain-text
-   notes are available in all formats. Remaining work: columns, configurable mixed
-   orientations, office templates, persisted project overrides and template
+   notes are available in all formats. Fixed-table columns and per-section
+   portrait/landscape settings are also implemented. Remaining work: office
+   templates, persisted project overrides and template
    editor/import/export. Preserve existing project compatibility.
 5. **Release hardening:** isolated render worker with cancellation/limits,
    large-project profiling, accessibility, font coverage, frozen sidecar and

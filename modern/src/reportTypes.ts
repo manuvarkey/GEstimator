@@ -8,12 +8,26 @@ export type ReportSectionKind =
   | "resource_usage"
   | "measurements"
   | "narrative";
+export type ReportColumnKey =
+  | "category"
+  | "amount"
+  | "code"
+  | "description"
+  | "unit"
+  | "quantity"
+  | "rate"
+  | "remarks"
+  | "tax"
+  | "discount"
+  | "reference";
 export interface ReportSection {
   id: string;
   kind: ReportSectionKind;
   title: string;
   enabled: boolean;
   body?: string;
+  columns?: ReportColumnKey[] | null;
+  orientation?: "auto" | "portrait" | "landscape";
 }
 export interface ReportSpecification {
   schema_version: 1;

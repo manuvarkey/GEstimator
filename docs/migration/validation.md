@@ -2482,3 +2482,52 @@ uses the real Python bridge with substituted native chooser/transport; installed
 WebView, Flatpak portal and Windows package behavior remain unverified. Persisted
 report definitions, custom templates/layouts and renderer release hardening
 remain separate plan items.
+
+
+## 2026-11-26 — Report columns and mixed page orientation
+
+Continued customization on `feature/report-rendering-prototype`. Fixed abstract,
+schedule, resource and usage tables accept a validated ordered nonempty column
+subset. A shared catalog/projection helper feeds both renderers. Default output
+retains existing differences (Excel schedule remarks, HTML/PDF omission); explicit
+selections agree across formats. Totals remain separate and unchanged even when
+Amount is omitted or moved first. Heading numeric cells stay blank, quantities
+retain General precision, and author text remains literal/escaped.
+
+Every section accepts Auto/Portrait/Landscape. Explicit settings override named
+PDF pages and worksheet print orientation, retaining existing Auto defaults.
+ReportSectionLayout owns the controls under each section, sharing parent locking,
+open-tab lifetime and stale-preview behavior. No engine arithmetic, project
+schema, native code, runtime dependency or public MCP surface changed.
+
+- Full `.venv/bin/python -m unittest discover -s tests`: 274 tests passed,
+  including four added layout tests. Expected negative formatting-fixture
+  diagnostics appeared; the suite returned success. Focused report run: 25 passed.
+- `npm run --prefix modern build` passed, including type checking. The existing
+  large-chunk warning remains; the main bundle is approximately 1.24 MB.
+- Generated a six-page PDF through the managed WeasyPrint 70 CLI with no
+  diagnostics. Poppler confirmed A4 portrait cover/contents, landscape schedule,
+  portrait resources, landscape abstract and portrait signoff. Visually reviewed
+  all four section pages for column projection, values, headings and summaries.
+- Changed-file `tools/check_quality.py`, `tools/check_docs.py` and
+  `git diff --check` passed.
+
+- Focused `PLAYWRIGHT_PORT=1421 npm run test:e2e -- reports.spec.ts`: all six
+  workflows passed. Exercised keyboard column reordering, include/reset controls,
+  matching Excel headings/numeric cells/orientation, stale previews and settings
+  retention across views. Visually reviewed wide/light and narrow/dark controls.
+  The initial full run was interrupted to correct the new test's relative locator;
+  the focused rerun passed before starting the final full suite.
+
+- Final full `PLAYWRIGHT_PORT=1421 npm run test:e2e`: 121 scenarios passed,
+  with one opt-in performance test skipped (122 discovered). Both independent
+  browser-context clipboard scenarios passed on the alternate port. The existing
+  NO_COLOR/FORCE_COLOR runner warning remains. The test server exited and port
+  1421 was confirmed free after completion.
+
+Browser verification uses PLAYWRIGHT_PORT=1421, which now configures the runner
+and the two secondary browser contexts. This leaves the desktop's 1420 port
+available and avoids the earlier test/dev-server collision. Native installed
+WebView, portal and packaged Windows/Linux behavior remain unverified. Saved
+project definitions, office/custom templates and renderer release hardening
+remain future work.

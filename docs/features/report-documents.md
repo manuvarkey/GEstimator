@@ -30,8 +30,9 @@ Each section has a unique `id` matching `[A-Za-z][A-Za-z0-9_-]{0,63}`, a support
 `kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `measurements`, `narrative`, `signoff`), optional plain-text `title`, and optional
 boolean `enabled` (default true). Narrative sections also accept a plain-text
 `body` of up to 10,000 characters; nonempty bodies on other kinds are rejected. Instances retain their IDs, order and enabled
-state, including repeated kinds with distinct IDs. No arbitrary HTML, template
-source, columns or layout fields are accepted. Unsupported fields/versions,
+state, including repeated kinds with distinct IDs. Sections also accept the bounded
+column/orientation settings described below. Arbitrary HTML, template source,
+CSS and unknown layout fields are rejected. Unsupported fields/versions,
 malformed selections and IDs absent from the current project fail explicitly.
 Item and category filters intersect; they never reorder the project rows.
 IDs are local to the current project, so callers must not reuse them across files.
@@ -126,6 +127,46 @@ cell. Notes do not accept markup, executable templates or external assets. Notes
 and measurement settings share the existing open-tab memory and stale-preview
 behavior; they are not persisted to project files.
 
+## Columns and page orientation
+
+Each section accepts `orientation`: `auto` (the default), `portrait` or
+`landscape`. Explicit settings control that section's A4 PDF pages and Excel
+worksheet orientation. Standalone HTML uses the same print CSS; the continuous
+screen preview does not simulate paper dimensions. Cover and contents retain
+their fixed layout. Auto preserves existing format defaults: resource, usage and
+measurement PDF sections are landscape; other PDF sections are portrait. Excel
+uses its existing table-width defaults.
+
+The fixed tables accept `columns`, an ordered, nonempty list of unique keys:
+
+| Section kind | Available keys, in default order |
+| --- | --- |
+| `abstract` | `category`, `amount` |
+| `schedule` | `code`, `description`, `unit`, `quantity`, `rate`, `amount`, `remarks` |
+| `resources` | `code`, `description`, `unit`, `rate`, `tax`, `discount`, `reference`, `category` |
+| `resource_usage` | `code`, `description`, `unit`, `quantity`, `rate`, `amount`, `category` |
+
+Omitted/null columns preserve existing defaults, including schedule remarks in
+Excel and their omission in default HTML/PDF. Explicit selections use exactly
+the same chosen order in every format. Other section kinds reject non-null column
+settings: analysis and measurement templates retain their complete structures.
+Invalid, duplicate, unknown or empty selections fail before rendering.
+
+[`tables.py`](../../modern/backend/reporting/tables.py) owns the validated column
+catalog and shared projection of immutable row values. Column settings never
+filter data or change totals. Schedule heading quantities/rates/amounts remain
+blank. Excel retains numeric amounts and quantity precision after reordering;
+a separate estimate summary remains visible even if Amount is omitted or moved
+first. Literal text and existing escaping rules also apply to selected columns.
+
+In Reports, [`ReportSectionLayout.vue`](../../modern/src/components/ReportSectionLayout.vue)
+owns the bounded layout inputs. Expand **Columns and page** beneath a section. Choose **Page
+orientation** and optionally enable **Customize columns**, select fields and
+use their up/down buttons to set order. At least one field stays selected.
+Disable customization to restore each format's defaults. These settings use the
+existing tab memory, input locking and stale-preview protection. No settings are
+saved into project files yet.
+
 ## Preview and export operations
 
 `report.preview` accepts the same revision/specification inputs and returns
@@ -215,5 +256,7 @@ Regression coverage:
 [`test_report_documents.py`](../../tests/test_report_documents.py) and
 [`test_render.py`](../../tools/report_prototype/test_render.py),
 [`test_report_exports.py`](../../tests/test_report_exports.py),
-[`test_report_datasets.py`](../../tests/test_report_datasets.py) and
+[`test_report_datasets.py`](../../tests/test_report_datasets.py),
+[`test_report_customization.py`](../../tests/test_report_customization.py),
+[`test_report_layout.py`](../../tests/test_report_layout.py) and
 [`reports.spec.ts`](../../modern/e2e/reports.spec.ts).

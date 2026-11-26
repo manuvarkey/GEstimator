@@ -3,6 +3,7 @@
 from html import escape
 
 from .document import ReportDocument
+from .tables import COLUMNS, table_values
 
 # Keep the complete fixed layout here so frozen backends need no template assets.
 # No project text is interpreted as template source, markup, CSS or script.
@@ -15,7 +16,9 @@ STYLE = """
 @page:first { @top-left { content:none; } @top-right { content:string(section-heading); font-size:8pt; }
  @bottom-right { content:none; } }
 @page report-wide { size:A4 landscape; }
+@page report-portrait { size:A4 portrait; }
 .wide { page:report-wide; }
+.portrait { page:report-portrait; }
 .section > h1 { string-set:section-heading content(); }
 h1,h2,h3 { break-after:avoid; }
 .keep-together { break-inside:avoid; }
@@ -88,7 +91,16 @@ def render_html(document: ReportDocument) -> str:
     output.append("</ol></nav>")
     # Each renderer consumes the same captured amounts; rendering never calculates.
     for section in sections:
-        css = "section wide" if section.kind in ("resources", "resource_usage", "measurements") else "section"
+        orientation = section.orientation
+        if orientation == "auto":
+            orientation = "landscape" if section.kind in ("resources", "resource_usage", "measurements") else "auto"
+        css = (
+            "section wide"
+            if orientation == "landscape"
+            else "section portrait"
+            if orientation == "portrait"
+            else "section"
+        )
         output.append(f'<section class="{css}" id="{section.id}"><h1>{_text(section.title)}</h1>')
         output.append(_section_body(document, section))
         output.append("</section>")
@@ -144,62 +156,28 @@ def _analyses(document, section_id):
 def _section_body(document, section):
     """Render one dataset without extending the document shell."""
     output = []
-    if section.kind == "abstract":
-        output.append(_table(("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (1,)))
-        output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
-    elif section.kind == "schedule":
+    if section.kind in COLUMNS:
+        columns, rows = table_values(document, section)
+        if section.kind == "resource_usage":
+            output.append(
+                "<p>Direct resource usage for selected schedule items; dependency resources are not expanded.</p>"
+            )
         output.append(
             _table(
-                ("Code", "Description", "Unit", "Quantity", "Rate", "Amount"),
-                [
-                    (
-                        row.code,
-                        row.description,
-                        row.unit,
-                        row.quantity if row.unit else "",
-                        row.rate if row.unit else "",
-                        row.amount or "",
-                    )
-                    for row in document.schedule
-                ],
-                (3, 4, 5),
-                (1,),
+                tuple(column.title for column in columns),
+                rows,
+                tuple(index for index, column in enumerate(columns) if column.numeric),
+                tuple(index for index, column in enumerate(columns) if column.multiline),
             )
         )
-        output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
+        if section.kind in ("abstract", "schedule"):
+            output.append(f'<p class="total">Estimate total: {_text(document.total)}</p>')
     elif section.kind == "analyses":
         output.append(_analyses(document, section.id))
     elif section.kind == "narrative":
         output.append(f'<p class="description">{_text(section.body)}</p>')
     elif section.kind == "measurements":
         output.append(_measurements(document))
-    elif section.kind == "resources":
-        output.append(
-            _table(
-                ("Code", "Description", "Unit", "Basic rate", "Tax %", "Discount %", "Reference", "Category"),
-                [
-                    (row.code, row.description, row.unit, row.rate, row.tax, row.discount, row.reference, row.category)
-                    for row in document.resources
-                ],
-                (3, 4, 5),
-                (1,),
-            )
-        )
-    elif section.kind == "resource_usage":
-        output.append(
-            "<p>Direct resource usage for selected schedule items; dependency resources are not expanded.</p>"
-        )
-        output.append(
-            _table(
-                ("Code", "Description", "Unit", "Quantity", "Adjusted rate", "Amount", "Category"),
-                [
-                    (row.code, row.description, row.unit, row.quantity, row.rate, row.amount, row.category)
-                    for row in document.resource_usage
-                ],
-                (3, 4, 5),
-                (1,),
-            )
-        )
     else:
         output.append('<div class="signatures">')
         for role in ("Prepared by", "Checked by", "Approved by"):

@@ -215,6 +215,13 @@ line breaks are retained as plain text. Measurements show accepted template
 records, constants and each output with its linked schedule item and unit.
 The cover and linked contents are included automatically.
 
+Expand **Columns and page** within a section to choose Auto, Portrait or Landscape
+for printed pages. For abstract, schedule, resources and resource usage, enable
+**Customize columns** to include and reorder fields. Keep at least one column.
+Disable customization to restore the default columns. Estimate totals remain
+visible when an amount column is hidden. The continuous preview does not simulate
+paper orientation; PDF gives the paginated layout.
+
 Choose **Generate preview**, review the total and document, then select HTML,
 Excel or available PDF and choose **Export report…**. The preview is continuous;
 PDF has definitive printed page numbers. Excel contents link to worksheets.

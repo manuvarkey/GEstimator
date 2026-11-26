@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref } from "vue";
 import { save } from "@tauri-apps/plugin-dialog";
 import AppIcon from "./AppIcon.vue";
+import ReportSectionLayout from "./ReportSectionLayout.vue";
 import { request } from "../backend";
 import { activeDocument } from "../documents";
 import { recallTabState, rememberTabState } from "../tabMemory";
@@ -180,6 +181,11 @@ defineExpose({ exportWorkbook: exportReport, canExport });
               >Notes text
               <textarea v-model="section.body" maxlength="10000" rows="6" data-multiline />
             </label>
+            <ReportSectionLayout
+              :kind="section.kind"
+              v-model:columns="section.columns"
+              v-model:orientation="section.orientation"
+            />
             <div class="report-order">
               <button
                 class="icon-button"

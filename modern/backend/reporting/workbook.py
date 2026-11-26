@@ -7,6 +7,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from .document import ReportDocument
+from .tables import COLUMNS, table_values
 
 
 def _text(sheet, row, column, value):
@@ -67,6 +68,8 @@ def write_workbook(document: ReportDocument, destination):
         link.hyperlink = f"#'{sheet.title}'!A1"
         link.style = "Hyperlink"
         _write_section(document, sheet, section)
+        if section.orientation != "auto":
+            sheet.page_setup.orientation = section.orientation
     contents.column_dimensions["A"].width = 60
     workbook.save(destination)
 
@@ -103,56 +106,14 @@ def _write_section(document, sheet, section):
         sheet.column_dimensions["A"].width = 100
     elif kind == "measurements":
         _write_measurements(document, sheet)
-    elif kind == "abstract":
-        _table(sheet, ("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (2,))
-        _text(sheet, len(document.abstract) + 5, 1, "Estimate total")
-        sheet.cell(len(document.abstract) + 5, 2, Decimal(document.total)).number_format = "0.00"
-    elif kind == "schedule":
-        _table(
-            sheet,
-            ("Code", "Description", "Unit", "Quantity", "Rate", "Amount", "Remarks"),
-            [
-                (
-                    row.code,
-                    row.description,
-                    row.unit,
-                    row.quantity if row.unit else "",
-                    row.rate if row.unit else "",
-                    row.amount,
-                    row.remarks,
-                )
-                for row in document.schedule
-            ],
-            (4, 5, 6),
-        )
-        _text(sheet, len(document.schedule) + 5, 2, "Estimate total")
-        sheet.cell(len(document.schedule) + 5, 6, Decimal(document.total)).number_format = "0.00"
+    elif kind in COLUMNS:
+        _write_fixed_table(document, sheet, section)
     elif kind == "analyses":
         _table(
             sheet,
             ("Kind", "Code", "Description", "Unit", "Quantity", "Rate", "Amount", "Remarks"),
             _analysis_values(document),
             (5, 6, 7),
-        )
-    elif kind == "resources":
-        _table(
-            sheet,
-            ("Code", "Description", "Unit", "Basic rate", "Tax %", "Discount %", "Reference", "Category"),
-            [
-                (row.code, row.description, row.unit, row.rate, row.tax, row.discount, row.reference, row.category)
-                for row in document.resources
-            ],
-            (4, 5, 6),
-        )
-    elif kind == "resource_usage":
-        _table(
-            sheet,
-            ("Code", "Description", "Unit", "Quantity", "Adjusted rate", "Amount", "Category"),
-            [
-                (row.code, row.description, row.unit, row.quantity, row.rate, row.amount, row.category)
-                for row in document.resource_usage
-            ],
-            (4, 5, 6),
         )
     else:
         _table(
@@ -184,3 +145,22 @@ def _write_measurements(document, sheet):
         position += len(measurement.outputs) + 3
     sheet.print_title_rows = "1:2"
     sheet.page_setup.orientation = "landscape"
+
+
+def _write_fixed_table(document, sheet, section):
+    """Keep numeric types and totals correct when columns move or are omitted."""
+    columns, rows = table_values(document, section, excel=True)
+    _table(
+        sheet,
+        tuple(column.title for column in columns),
+        rows,
+        tuple(index for index, column in enumerate(columns, 1) if column.numeric),
+    )
+    if section.kind not in ("abstract", "schedule"):
+        return
+    # The total remains a separate summary even when Amount is hidden or first.
+    keys = [column.key for column in columns]
+    amount_column = max(2, keys.index("amount") + 1) if "amount" in keys else 2
+    label_column = 2 if section.kind == "schedule" and section.columns is None else 1
+    _text(sheet, len(rows) + 5, label_column, "Estimate total")
+    sheet.cell(len(rows) + 5, amount_column, Decimal(document.total)).number_format = "0.00"

@@ -64,6 +64,12 @@ selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. To exercise a focused workflow,
 pass `-- --grep 'part of the test title'` to `npm run test:e2e`. Do not anchor a
 grep to an assumed bare title; Playwright may include file/project context.
 
+Set `PLAYWRIGHT_PORT` to an unused local port to keep browser tests separate from
+a running desktop development server. For example, on POSIX:
+`PLAYWRIGHT_PORT=1421 npm run test:e2e`. The main runner and extra browser contexts
+use that configured base URL. Run suites sequentially when sharing the default
+`test-results` directory and confirm test-owned servers exit after verification.
+
 The suite substitutes only the Tauri transport and native interaction surface;
 commands use a real persistent Python subprocess and disposable project copies.
 The shared [workspace harness](../modern/e2e/workspaceHarness.ts) starts that

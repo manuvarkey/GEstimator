@@ -1283,7 +1283,7 @@ test("system row clipboard transfers schedule, resources and analysis between in
 
   const other = createBackend();
   const context = await browser.newContext({
-    baseURL: "http://127.0.0.1:1420",
+    baseURL: test.info().project.use.baseURL,
     viewport: { width: 1600, height: 1000 },
   });
   try {
@@ -1379,7 +1379,7 @@ test("measurement clipboard transfers whole items and template records with expl
 }) => {
   const other = createBackend();
   const context = await browser.newContext({
-    baseURL: "http://127.0.0.1:1420",
+    baseURL: test.info().project.use.baseURL,
     viewport: { width: 1600, height: 1000 },
   });
   async function edit(transport: typeof call, method: string, params: Record<string, unknown> = {}) {
