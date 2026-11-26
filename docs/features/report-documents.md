@@ -1,13 +1,12 @@
 # Read-only report documents
 
-Current initial workspace and export workflow, 2026-11-26. Navigation: [index](../README.md) ·
+Current core workspace and export workflow, 2026-11-26. Navigation: [index](../README.md) ·
 [backend](../architecture/backend.md) · [report proposal](../report-module-plan.md).
 
-The Reports workspace composes the initial abstract, schedule and signoff
-sections from immutable accepted-project snapshots. It previews and exports
-standalone HTML, Excel and PDF when a suitable renderer is installed. Analyses,
-resources/usage, persisted specifications and packaged PDF distribution remain
-future work.
+The Reports workspace composes abstract, schedule, analyses, resources, resource
+usage and signoff sections from immutable accepted-project snapshots. It previews and exports
+standalone HTML, Excel and PDF when a suitable renderer is installed. Measurements/narrative sections, persisted specifications and packaged PDF
+distribution remain future work.
 
 ## Request and response
 
@@ -28,7 +27,7 @@ The version-one specification accepts only:
 | `title`, `organization`, `reference`, `issue_date` | Plain text, using the backend text length limit; issue date is a display label |
 
 Each section has a unique `id` matching `[A-Za-z][A-Za-z0-9_-]{0,63}`, a supported
-`kind` (`abstract`, `schedule`, `signoff`), optional plain-text `title`, and optional
+`kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `signoff`), optional plain-text `title`, and optional
 boolean `enabled` (default true). Instances retain their IDs, order and enabled
 state, including repeated kinds with distinct IDs. No arbitrary HTML, template
 source, columns or layout fields are accepted. Unsupported fields/versions,
@@ -37,7 +36,8 @@ Item and category filters intersect; they never reorder the project rows.
 IDs are local to the current project, so callers must not reuse them across files.
 
 The response contains `schema_version`, `revision`, `project`, the normalized
-`specification`, `schedule`, `abstract` and `total`. Financial values are decimal
+`specification`, `schedule`, `abstract`, `total`, `analyses`, `resources` and
+`resource_usage`. Disabled optional datasets are empty lists. Financial values are decimal
 strings. Schedule rows include stable item/category IDs, parent ID, category,
 code, description, unit, quantity, stored rate, amount and remarks. Heading
 amounts are null. Abstract rows contain category ID/name and amount.
@@ -61,10 +61,47 @@ builds frozen dataclasses containing only immutable values. `to_dict()` returns
 independent JSON containers. Later edits cannot alter an existing snapshot.
 The runtime owner thread serializes this read with project operations.
 
-No ORM models escape into the document. Generation does not evaluate analyses,
-accept drafts, alter quantities/rates, create identities, advance revisions,
-change clipboard contents or add undo entries. The service retains its existing
+No ORM models escape into the document. Generation never updates stored analyses, accepts drafts, changes quantities or
+rates, creates identities, advances revisions, changes clipboard contents or adds
+undo entries. The service retains its existing
 draft/revision boundaries. Report settings are not written into project files.
+
+## Analyses, catalog and usage
+
+The optional `analyses`, `resources` and `resource_usage` sections start disabled
+in the desktop, preserving the original default report. Enable them through the
+same section controls. The API's omitted `sections` default remains the original
+abstract/schedule/signoff list. Only enabled optional datasets are assembled.
+
+[`datasets.py`](../../modern/backend/reporting/datasets.py) batches accepted
+sequence/resource-entry/catalog reads and reconstructs detached engine models.
+`ScheduleItemModel.evaluate_results` owns every analysis calculation. The report
+preserves row order and group totals, Weight/Multiply factors, rounding, resource
+adjustments/references, entry remarks and analysis notes. Each analysis includes
+both `stored_rate` and `calculated_rate`; displaying a calculated rate never
+updates its stored counterpart. Items without an analysis are omitted, as in
+the existing analysis workbook. Headings and dependency-only schedule items do
+not create analyses in this report.
+
+Without item/category filters the resource section lists the complete stored
+catalog in category/order sequence, including unused resources, matching the
+existing resource workbook. With filters it lists resources directly referenced
+by the selected payable analyses. Rows include basic rate, tax, discount,
+reference and category. It does not replace basic rates with adjusted rates.
+
+Resource usage always applies the selected payable schedule codes and excludes
+SUB ANALYSIS quantities. It uses the engine's optional `get_res_usage(codes=...)`
+selection, preserving the existing last-Multiply factor, rounding each entry's
+quantity to four places before summing, and direct-resource semantics. It does
+not recursively expand dependency resources or apply Weight rows to quantities.
+Adjusted rates/amounts match the existing usage view. Usage amounts are not
+promised to equal the estimate total, which can include analysis weights and
+stored schedule rate overrides. No unrelated quantities are added together.
+
+All values, including nested analysis rows, are frozen within the snapshot;
+JSON output uses detached lists. The complete assembly runs inside one read
+transaction on the runtime owner thread. Existing `get_res_usage()` callers keep
+their whole-project behavior; an explicit empty code list returns no usage.
 
 ## Preview and export operations
 
@@ -119,8 +156,11 @@ have explicit shapes in [`reportTypes.ts`](../../modern/src/reportTypes.ts).
 The shell forwards Reports navigation through the existing draft guard and
 retains native destination selection in the desktop adapter.
 
-Users edit facing fields, enable/rename/reorder the initial three sections and
-manually generate a preview. The fixed cover and contents are always included.
+Users edit facing fields, enable/rename/reorder the six sections and
+manually generate a preview. The fixed cover and contents are always included. Analyses add per-item nested
+contents links. Resource/usage tables use named landscape PDF pages; cover,
+schedule, analyses and signoff use portrait pages. Running section headers,
+repeated headings and caption break controls keep multi-page reports readable.
 Changing the definition or project revision visibly marks the preview stale and
 disables export until regenerated. Section order controls both output order and
 contents links. Python retains selection, rounding and validation authority.
@@ -151,5 +191,6 @@ verification remain gates in the proposal.
 Regression coverage:
 [`test_report_documents.py`](../../tests/test_report_documents.py) and
 [`test_render.py`](../../tools/report_prototype/test_render.py),
-[`test_report_exports.py`](../../tests/test_report_exports.py) and
+[`test_report_exports.py`](../../tests/test_report_exports.py),
+[`test_report_datasets.py`](../../tests/test_report_datasets.py) and
 [`reports.spec.ts`](../../modern/e2e/reports.spec.ts).

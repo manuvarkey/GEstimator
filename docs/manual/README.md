@@ -209,19 +209,24 @@ use their template's calculation and display rounding.
 Open **Reports** with a project loaded. Enter the report title, organization,
 reference and issue date. Include the abstract, schedule and signoff sections you
 need, edit their titles and use the up/down buttons to choose their order.
+Optionally include **Analyses of rates**, **Resources** and **Resource usage**.
 The cover and linked contents are included automatically.
 
 Choose **Generate preview**, review the total and document, then select HTML,
 Excel or available PDF and choose **Export report…**. The preview is continuous;
 PDF has definitive printed page numbers. Excel contents link to worksheets.
-Reports use stored schedule rates and accepted quantities without recalculating
-analyses. Apply or discard pending analysis/measurement drafts before reporting.
+Estimate totals use stored schedule rates and accepted quantities. Analysis
+sections show calculated analysis rates separately without changing stored rates. Apply or discard pending analysis/measurement drafts before reporting.
 
 Changing report settings or project data marks the preview out of date. Generate
 it again before exporting. Settings stay with the open project tab while you
 switch views/tabs, but are not yet saved in the project file. This first workflow
-includes abstract, schedule and signoff; the existing full workbook export still
-includes the other project worksheets.
+includes the core estimate sections; measurement reports and saved report
+definitions will follow. The existing full workbook export remains available.
+Resource usage shows direct resources and does not expand sub-analysis
+dependencies; its total can differ from the estimate because weights and stored
+rate overrides do not change resource quantities. Resource/usage PDF tables use
+landscape pages, and the analysis contents link to individual items.
 
 PDF requires an installed WeasyPrint 70 or newer renderer. If unavailable, HTML
 and Excel remain usable. A cancelled save chooser retains your report settings;

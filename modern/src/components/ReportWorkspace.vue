@@ -29,6 +29,9 @@ const specification = ref<ReportSpecification>(
     sections: [
       { id: "abstract", kind: "abstract", title: "Abstract of estimate", enabled: true },
       { id: "schedule", kind: "schedule", title: "Schedule", enabled: true },
+      { id: "analyses", kind: "analyses", title: "Analyses of rates", enabled: false },
+      { id: "resources", kind: "resources", title: "Resources", enabled: false },
+      { id: "resource_usage", kind: "resource_usage", title: "Resource usage", enabled: false },
       { id: "signoff", kind: "signoff", title: "Signoff", enabled: true },
     ],
   },
@@ -162,15 +165,19 @@ defineExpose({ exportWorkbook: exportReport, canExport });
         <ol class="report-sections" aria-label="Report sections">
           <li v-for="(section, index) in specification.sections" :key="section.id">
             <label class="report-section-enabled"
-              ><input v-model="section.enabled" type="checkbox" />Include {{ section.kind }}</label
+              ><input v-model="section.enabled" type="checkbox" />Include
+              {{ section.kind === "resource_usage" ? "resource usage" : section.kind }}</label
             >
             <label
-              >Section title<input v-model="section.title" :aria-label="`${section.kind} title`" maxlength="10000"
+              >Section title<input
+                v-model="section.title"
+                :aria-label="`${section.kind.replaceAll('_', ' ')} title`"
+                maxlength="10000"
             /></label>
             <div class="report-order">
               <button
                 class="icon-button"
-                :aria-label="`Move ${section.kind} up`"
+                :aria-label="`Move ${section.kind.replaceAll('_', ' ')} up`"
                 :disabled="index === 0"
                 @click="move(index, -1)"
               >
@@ -178,7 +185,7 @@ defineExpose({ exportWorkbook: exportReport, canExport });
               </button>
               <button
                 class="icon-button"
-                :aria-label="`Move ${section.kind} down`"
+                :aria-label="`Move ${section.kind.replaceAll('_', ' ')} down`"
                 :disabled="index === specification.sections.length - 1"
                 @click="move(index, 1)"
               >
@@ -246,6 +253,10 @@ defineExpose({ exportWorkbook: exportReport, canExport });
   display: grid;
   gap: 4px;
   margin-bottom: 12px;
+}
+.report-settings legend {
+  background: var(--bg);
+  padding-inline: 4px;
 }
 .report-settings h2 {
   font-size: var(--text-size-heading);

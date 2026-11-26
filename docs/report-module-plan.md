@@ -1,6 +1,6 @@
 # Report module proposal and rendering experiment
 
-Status: initial Reports workspace and exports implemented, 2026-11-26.
+Status: core Reports workspace and exports implemented, 2026-11-26.
 This is a proposal; the implemented subset has a separate
 [report document contract](features/report-documents.md). Navigation: [index](README.md) · [roadmap](roadmap.md).
 
@@ -18,7 +18,7 @@ tests Jinja2 plus WeasyPrint, following the rendering approach used in
 [GElectrical](https://github.com/manuvarkey/GElectrical/blob/master/gelectrical/model/project.py).
 It supports deterministic demonstration rows or accepted real-project snapshots
 through `--project`. The application now has a Reports workspace for the initial
-abstract/schedule/signoff sections, fixed-layout preview and HTML/Excel exports,
+abstract/schedule/analysis/resource/usage/signoff sections, fixed-layout preview and HTML/Excel exports,
 plus PDF through an installed WeasyPrint 70+ CLI. There is no report-definition
 project persistence or new application runtime Python dependency. The fixed
 application renderer is independent of the trusted custom-template experiment.
@@ -122,6 +122,12 @@ project must not depend on the author's external logo path. Do not store arbitra
 HTML in ordinary project text fields. Template bundles need validated paths,
 asset types, schema upgrades and clear project-versus-office override behavior.
 
+The supplied GElectrical `gelectrical/templates/report.html` and `report.css`
+were reviewed on 2026-11-26 as layout references. GEstimator uses its own fixed,
+escaped renderer with comparable nested contents, running section headings,
+caption break controls and named landscape pages for wide resource tables.
+No external template or stylesheet is loaded at runtime.
+
 ## Delivery sequence and gates
 
 1. **Rendering experiment (this change):** default/custom facing and abstract,
@@ -130,12 +136,13 @@ asset types, schema upgrades and clear project-versus-office override behavior.
 2. **Foundation (initial subset implemented):** validated specification and
    immutable project adapter for schedule/abstract/signoff, real-project amount
    parity and read-only snapshot/revision/draft tests. Safe export publication is
-   now shared with existing exports; additional section datasets remain outstanding.
-3. **Complete workspace (initial subset implemented):** section editor, preview, Excel/HTML/PDF chooser,
+   now shared with existing exports. The core analysis/resource/usage adapters
+   are implemented; measurement/narrative datasets remain customization work.
+3. **Complete workspace (core workflow implemented):** section editor, preview, Excel/HTML/PDF chooser,
    initial cover/contents/abstract/schedule/analysis/resource/usage/signoff
    sections, browser coverage, synchronized manual and architecture contracts.
-   The initial abstract/schedule/signoff workflow is available; analysis, resource
-   and usage sections still need adapters and renderers.
+   All listed core sections are available. Analysis results are evaluated only
+   on detached models; catalog/usage reuse accepted engine data and rules.
 4. **Customization:** measurements/narrative sections, columns, mixed
    orientations, office templates, persisted project overrides and template
    editor/import/export. Preserve existing project compatibility.

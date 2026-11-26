@@ -232,3 +232,9 @@ Start with [calculation baselines](../../tests/test_calculations.py),
 [document sessions](../../tests/test_document_sessions.py), choosing tests for
 the changed concern. The [testing guide](../testing.md) defines the full checks
 and evidence to record.
+
+Report analysis datasets reconstruct detached models from batch reads and use
+`ScheduleItemModel.evaluate_results`; they never update accepted rates. Optional
+`get_res_usage(codes=...)` filters the existing direct-resource aggregation;
+omitting codes preserves whole-project callers. See the
+[report contract](../features/report-documents.md#analyses-catalog-and-usage).

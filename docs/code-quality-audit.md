@@ -203,3 +203,17 @@ with no new runtime dependencies or packaged template assets. Native Windows
 CLI distribution, quotas/cancellation, richer section adapters, persisted report
 settings and custom template lifecycle remain open. The new workflow does not
 claim the complete report proposal or production package gates are finished.
+
+
+## 2026-11-26 core report datasets
+
+Added a bounded reporting dataset adapter for batch analysis/catalog reads and
+engine-owned direct usage. The engine change is an optional selection on the
+existing usage read plus joined schedule data; no arithmetic rule changed.
+The large schedule module was not structurally expanded beyond that owner method.
+HTML/workbook section bodies have named helpers rather than growing shell
+functions past the review threshold. Full baseline usage and analysis parity
+were compared against bundled databases. GElectrical's supplied template/CSS
+were reviewed for layout patterns; the runtime uses GEstimator's own fixed output.
+Measurements/narrative, persisted definitions, customization and renderer release
+hardening remain future work.

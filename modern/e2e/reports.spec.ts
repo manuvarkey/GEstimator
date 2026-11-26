@@ -122,3 +122,60 @@ test("reports handle busy previews and keep composition local to a project tab",
   await expect(report.getByLabel("Report title", { exact: true })).toHaveValue("First project report");
   await expect(report.getByRole("button", { name: "Export report…", exact: true })).toBeEnabled();
 });
+
+test("reports include analyses, resources and usage with shared engine values", async ({ page }) => {
+  const report = await openReport(page);
+  for (const label of ["Include analyses", "Include resources", "Include resource usage"]) {
+    await report.getByLabel(label, { exact: true }).check();
+  }
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator("section > h1")).toHaveText([
+    "Abstract of estimate",
+    "Schedule",
+    "Analyses of rates",
+    "Resources",
+    "Resource usage",
+    "Signoff",
+  ]);
+  const analyses = preview.locator("#analyses");
+  await expect(analyses).toContainText("Stored schedule rate: 20");
+  await expect(analyses).toContainText("Calculated analysis rate: 20.00");
+  await expect(analyses.getByRole("cell", { name: "Material", exact: true })).toBeVisible();
+  await expect(preview.locator("#resources")).toContainText("Materials");
+  await expect(preview.locator("#resource_usage")).toContainText("2.0000");
+  await expect(preview.locator("#resource_usage")).toContainText("20.00");
+  const exportButton = report.getByRole("button", { name: "Export report…", exact: true });
+  await expect(exportButton).toBeEnabled();
+  const htmlPath = resolve(directory, "complete.html");
+  nativeDialogResults.push(htmlPath);
+  await exportButton.click();
+  await expect(page.getByText(`Report exported: ${htmlPath}`, { exact: true })).toBeVisible();
+  const html = await readFile(htmlPath, "utf8");
+  expect(html).toContain('href="#analyses:analysis:0"');
+  expect(html).toContain('class="section wide" id="resources"');
+  await report.getByLabel("Output format").selectOption("xlsx");
+  const excelPath = resolve(directory, "complete.xlsx");
+  nativeDialogResults.push(excelPath);
+  await exportButton.click();
+  await expect(page.getByText(`Report exported: ${excelPath}`, { exact: true })).toBeVisible();
+  const titles = execFileSync(
+    python,
+    [
+      "-c",
+      "import sys,json;from openpyxl import load_workbook;w=load_workbook(sys.argv[1]);print(json.dumps([s['A1'].value for s in list(w)[2:]]));w.close()",
+      excelPath,
+    ],
+    { cwd: resolve(".."), encoding: "utf8" },
+  );
+  expect(JSON.parse(titles)).toEqual([
+    "Abstract of estimate",
+    "Schedule",
+    "Analyses of rates",
+    "Resources",
+    "Resource usage",
+    "Signoff",
+  ]);
+  await analyses.getByRole("heading", { name: "Analyses of rates", exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/report-analyses.png", animations: "disabled" });
+});

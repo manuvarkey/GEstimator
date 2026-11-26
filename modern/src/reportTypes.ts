@@ -1,5 +1,5 @@
 /** Report inputs and authoritative snapshot values at the Python IPC boundary. */
-export type ReportSectionKind = "abstract" | "schedule" | "signoff";
+export type ReportSectionKind = "abstract" | "schedule" | "signoff" | "analyses" | "resources" | "resource_usage";
 export interface ReportSection {
   id: string;
   kind: ReportSectionKind;
@@ -36,6 +36,43 @@ export interface ReportDocument {
   }[];
   abstract: { category_id: string; category: string; amount: string }[];
   total: string;
+  analyses: {
+    code: string;
+    description: string;
+    unit: string;
+    remarks: string;
+    stored_rate: string;
+    calculated_rate: string;
+    rows: {
+      kind: string;
+      code: string;
+      description: string;
+      unit: string;
+      quantity: string;
+      rate: string;
+      amount: string;
+      remarks: string;
+    }[];
+  }[];
+  resources: {
+    code: string;
+    description: string;
+    unit: string;
+    category: string;
+    rate: string;
+    tax: string;
+    discount: string;
+    reference: string;
+  }[];
+  resource_usage: {
+    code: string;
+    description: string;
+    unit: string;
+    category: string;
+    quantity: string;
+    rate: string;
+    amount: string;
+  }[];
 }
 export interface ReportPreview {
   document: ReportDocument;

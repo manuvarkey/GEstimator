@@ -32,7 +32,7 @@ def _table(sheet, headings, rows, numeric=()):
             else:
                 _text(sheet, index, column, value or "")
     for column in range(1, len(headings) + 1):
-        sheet.column_dimensions[get_column_letter(column)].width = 54 if column == 2 else 20
+        sheet.column_dimensions[get_column_letter(column)].width = 54 if headings[column - 1] == "Description" else 20
     sheet.print_title_rows = "1:3"
     sheet.freeze_panes = "A4"
     sheet.sheet_properties.pageSetUpPr.fitToPage = True
@@ -66,35 +66,89 @@ def write_workbook(document: ReportDocument, destination):
         link = _text(contents, index + 1, 1, section.title)
         link.hyperlink = f"#'{sheet.title}'!A1"
         link.style = "Hyperlink"
-        if section.kind == "abstract":
-            _table(sheet, ("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (2,))
-            _text(sheet, len(document.abstract) + 5, 1, "Estimate total")
-            sheet.cell(len(document.abstract) + 5, 2, Decimal(document.total)).number_format = "0.00"
-        elif section.kind == "schedule":
-            _table(
-                sheet,
-                ("Code", "Description", "Unit", "Quantity", "Rate", "Amount", "Remarks"),
-                [
-                    (
-                        row.code,
-                        row.description,
-                        row.unit,
-                        row.quantity if row.unit else "",
-                        row.rate if row.unit else "",
-                        row.amount,
-                        row.remarks,
-                    )
-                    for row in document.schedule
-                ],
-                (4, 5, 6),
-            )
-            _text(sheet, len(document.schedule) + 5, 2, "Estimate total")
-            sheet.cell(len(document.schedule) + 5, 6, Decimal(document.total)).number_format = "0.00"
-        else:
-            _table(
-                sheet,
-                ("Prepared by", "Checked by", "Approved by"),
-                [("Name:",) * 3, ("Designation:",) * 3, ("Date:",) * 3],
-            )
+        _write_section(document, sheet, section.kind)
     contents.column_dimensions["A"].width = 60
     workbook.save(destination)
+
+
+def _analysis_values(document):
+    """Flatten analyses into one printable sheet without worksheet formulas."""
+    rows = []
+    for analysis in document.analyses:
+        rows.append(
+            (
+                "Stored rate",
+                analysis.code,
+                analysis.description,
+                analysis.unit,
+                "",
+                analysis.stored_rate,
+                "",
+                analysis.remarks,
+            )
+        )
+        rows.extend(
+            (row.kind, row.code, row.description, row.unit, row.quantity, row.rate, row.amount, row.remarks)
+            for row in analysis.rows
+        )
+        rows.append(("Calculated rate", analysis.code, "", analysis.unit, "", analysis.calculated_rate, "", ""))
+    return rows
+
+
+def _write_section(document, sheet, kind):
+    """Fill one section worksheet from immutable presentation values."""
+    if kind == "abstract":
+        _table(sheet, ("Category", "Amount"), [(row.category, row.amount) for row in document.abstract], (2,))
+        _text(sheet, len(document.abstract) + 5, 1, "Estimate total")
+        sheet.cell(len(document.abstract) + 5, 2, Decimal(document.total)).number_format = "0.00"
+    elif kind == "schedule":
+        _table(
+            sheet,
+            ("Code", "Description", "Unit", "Quantity", "Rate", "Amount", "Remarks"),
+            [
+                (
+                    row.code,
+                    row.description,
+                    row.unit,
+                    row.quantity if row.unit else "",
+                    row.rate if row.unit else "",
+                    row.amount,
+                    row.remarks,
+                )
+                for row in document.schedule
+            ],
+            (4, 5, 6),
+        )
+        _text(sheet, len(document.schedule) + 5, 2, "Estimate total")
+        sheet.cell(len(document.schedule) + 5, 6, Decimal(document.total)).number_format = "0.00"
+    elif kind == "analyses":
+        _table(
+            sheet,
+            ("Kind", "Code", "Description", "Unit", "Quantity", "Rate", "Amount", "Remarks"),
+            _analysis_values(document),
+            (5, 6, 7),
+        )
+    elif kind == "resources":
+        _table(
+            sheet,
+            ("Code", "Description", "Unit", "Basic rate", "Tax %", "Discount %", "Reference", "Category"),
+            [
+                (row.code, row.description, row.unit, row.rate, row.tax, row.discount, row.reference, row.category)
+                for row in document.resources
+            ],
+            (4, 5, 6),
+        )
+    elif kind == "resource_usage":
+        _table(
+            sheet,
+            ("Code", "Description", "Unit", "Quantity", "Adjusted rate", "Amount", "Category"),
+            [
+                (row.code, row.description, row.unit, row.quantity, row.rate, row.amount, row.category)
+                for row in document.resource_usage
+            ],
+            (4, 5, 6),
+        )
+    else:
+        _table(
+            sheet, ("Prepared by", "Checked by", "Approved by"), [("Name:",) * 3, ("Designation:",) * 3, ("Date:",) * 3]
+        )

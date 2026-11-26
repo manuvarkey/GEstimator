@@ -5,7 +5,14 @@ from dataclasses import dataclass
 
 from ..validation import text
 
-TITLES = {"abstract": "Abstract of estimate", "schedule": "Schedule", "signoff": "Signoff"}
+TITLES = {
+    "abstract": "Abstract of estimate",
+    "schedule": "Schedule",
+    "signoff": "Signoff",
+    "analyses": "Analyses of rates",
+    "resources": "Resources",
+    "resource_usage": "Resource usage",
+}
 
 
 def _fields(value, allowed, label):
@@ -84,7 +91,7 @@ class ReportSpec:
         version = value.get("schema_version", 1)
         if type(version) is not int or version != 1:
             raise ValueError("Unsupported report specification version")
-        raw = value.get("sections", [dict(id=kind, kind=kind) for kind in TITLES])
+        raw = value.get("sections", [dict(id=kind, kind=kind) for kind in ("abstract", "schedule", "signoff")])
         if not isinstance(raw, list) or len(raw) > 20:
             raise ValueError("Choose up to 20 report sections")
         sections = tuple(Section.parse(section) for section in raw)

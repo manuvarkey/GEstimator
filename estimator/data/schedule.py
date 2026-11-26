@@ -3007,7 +3007,13 @@ class ScheduleDatabase:
                 for code in unique_cats:
                     self.delete_schedule_category(code)
 
-    def get_res_usage(self):
+    def get_res_usage(self, codes=None):
+        """Aggregate direct resource usage, optionally for selected schedule codes.
+
+        Preserve the existing last-Multiply and per-entry four-place rounding
+        rules. None includes every stored schedule item; an empty list includes
+        none. Joining schedule quantities avoids a separate read per entry.
+        """
         with self.database.atomic():
             res_cats = OrderedDict()
             times_values = dict()
@@ -3017,7 +3023,7 @@ class ScheduleDatabase:
                 self.SequenceTable.itemtype == ScheduleItemModel.ANA_TIMES
             )
             for time_item in times_items:
-                times_values[time_item.id_sch.id] = time_item.value
+                times_values[time_item.id_sch_id] = time_item.value
 
             cats = self.ResourceCategoryTable.select().order_by(self.ResourceCategoryTable.order)
             for cat in cats:
@@ -3025,13 +3031,17 @@ class ScheduleDatabase:
                 # Get resource items
                 res_items = (
                     self.ResourceItemTable.select(
-                        self.ResourceItemTable, self.ResourceTable, self.ResourceCategoryTable
+                        self.ResourceItemTable, self.ResourceTable, self.ResourceCategoryTable, self.ScheduleTable
                     )
                     .join(self.ResourceTable)
                     .join(self.ResourceCategoryTable)
+                    .switch(self.ResourceItemTable)
+                    .join(self.ScheduleTable)
                     .where(self.ResourceCategoryTable.id == cat.id)
                     .order_by(self.ResourceTable.order)
                 )
+                if codes is not None:
+                    res_items = res_items.where(self.ScheduleTable.code.in_(codes))
                 for res_item in res_items:
                     code = res_item.id_res.code
                     res_qty = res_item.qty

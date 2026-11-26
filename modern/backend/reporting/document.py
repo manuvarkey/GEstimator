@@ -1,11 +1,12 @@
 """Capture ordered schedule rows and Decimal totals in an immutable document."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from decimal import Decimal
 
 from estimator import misc
 from estimator.data.schedule import Currency
 
+from .datasets import Analysis, ResourceRow, UsageRow, build_datasets
 from .specification import ReportSpec
 
 
@@ -45,24 +46,36 @@ class ReportDocument:
     schedule: tuple[ScheduleRow, ...]
     abstract: tuple[CategoryTotal, ...]
     total: str
+    analyses: tuple[Analysis, ...] = ()
+    resources: tuple[ResourceRow, ...] = ()
+    resource_usage: tuple[UsageRow, ...] = ()
 
     def to_dict(self):
         """Return independent JSON-compatible containers and decimal strings."""
-        result = asdict(self)
+        result = _json_values(asdict(self))
         result["schema_version"] = 1
-        # JSON transports encode tuples, but direct callers also receive lists.
-        result["schedule"] = list(result["schedule"])
-        result["abstract"] = list(result["abstract"])
-        spec = result["specification"]
-        spec["schema_version"] = 1
-        spec["sections"] = list(spec["sections"])
-        for field in ("item_ids", "category_ids"):
-            if spec[field] is not None:
-                spec[field] = list(spec[field])
+        result["specification"]["schema_version"] = 1
         return result
 
 
+def _json_values(value):
+    """Convert nested frozen tuples to detached lists at the IPC boundary."""
+    if isinstance(value, dict):
+        return {key: _json_values(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_json_values(item) for item in value]
+    return value
+
+
 def build_document(db, revision, specification):
+    """Capture all enabled datasets inside one owner-thread read transaction."""
+    with db.database.atomic():
+        snapshot = _schedule_document(db, revision, specification)
+        analyses, resources, usage = build_datasets(db, snapshot.schedule, specification)
+        return replace(snapshot, analyses=analyses, resources=resources, resource_usage=usage)
+
+
+def _schedule_document(db, revision, specification):
     """Batch-read one consistent project revision without model evaluation/writes.
 
     Call on the runtime owner thread. As with the schedule view total, stored

@@ -2376,3 +2376,68 @@ section datasets, report-definition persistence and installed Windows/Linux
 packaged renderer verification remain open. Native chooser/portal behavior was
 covered by existing adapters and backend failure tests, not an installed desktop
 or Flatpak interaction in this turn.
+
+## 2026-11-26 — Core analysis, resource and usage report sections
+
+Committed the workspace/export milestone as `72e3fd4f`, then added optional
+analyses, resource catalog and direct resource-usage sections to the same
+workspace and HTML/Excel/PDF document model. They start disabled so the default
+report is unchanged. The accepted-project adapter batches sequence/resource
+reads, evaluates detached engine models and freezes all nested values. Stored
+schedule rates and calculated analysis rates are shown separately; no rates,
+revision, undo history or source files are changed by generation.
+
+Extended `ScheduleDatabase.get_res_usage(codes=None)` with an optional schedule
+selection and joined schedule quantities. Its existing whole-project default,
+last-Multiply rule, direct-resource semantics and per-entry quantity rounding
+are retained. Explicit empty selection returns no usage. The report excludes
+headings/SUB ANALYSIS quantities and does not expand dependency resources.
+
+Reviewed the user-supplied GElectrical `gelectrical/templates/report.html` and
+`report.css`. Adapted the layout patterns into GEstimator's own escaped fixed
+renderer: nested per-analysis contents links, running section headers, repeated
+headings, caption break controls and landscape resource/usage pages. No source
+templates or stylesheets are loaded from that repository at runtime.
+
+- Full `.venv/bin/python -m unittest discover -s tests`: 266 tests passed.
+  Expected negative formatter-fixture diagnostics remain part of that suite.
+  After the final rendering/layout changes, the ten focused dataset/export
+  tests passed again. They cover all row kinds and adjusted rates, stored-rate
+  preservation, selections, unused resources, literal spreadsheet text, immutable
+  nested snapshots and skipped reads for disabled datasets.
+- Explicit prototype/CLI suite: nine tests passed with `.venv/bin` on PATH.
+- A trusted pre-change copy of the engine usage method was captured from Git
+  before editing. Its complete usage result matched the changed default for
+  every bundled database. Compared every analysis row amount and final calculated
+  rate against `db.get_item(...).evaluate_results` for all 2,124 E&M 2025 analyses
+  and 3,208 DSR 2023 analyses; Horticulture has no analysis/resource rows.
+  SQL dumps and source SHA-256 values remained unchanged.
+- Measured snapshot assembly for the three new datasets: approximately 0.014 s
+  (Horticulture), 0.891 s (E&M) and 1.329 s (DSR 2023) on this host. A separate
+  instrumented usage comparison measured baseline/new SQL statement counts of
+  3/3, 9,186/77 and 22,713/9 respectively, with identical output. Corresponding
+  baseline/new usage times were approximately 0/0, 1.374/0.250 and 3.457/0.855 s.
+  These are local observations, not performance guarantees.
+- Focused browser suite: four report scenarios passed after correcting an
+  intermediate template-quoting compile error. Full Chromium suite: 119 passed,
+  one opt-in GESTIMATOR_PERF scenario skipped. After final pagination/style
+  adjustments, all four report scenarios passed again. The new case exercises
+  enabling the extra sections, preview values and HTML/Excel export order.
+- Final frontend build/type check passed with the retained large-chunk warning.
+  Inspected the application analysis preview and all nine pages of the mixed
+  portrait/landscape sample PDF. Fixed narrow analysis column headings before
+  accepting the final layout. Nested contents correctly reference analyses on
+  different pages; small analyses stay together.
+- A separate 61-entry analysis fixture generated a ten-page report. Extraction
+  confirmed repeated column headings on every page containing resource entries;
+  visual inspection confirmed the first table shares its section-title page.
+  Large analysis blocks remain splittable rather than forcing an empty title
+  page. Small-block keep-together rules are layout heuristics, not hard quotas.
+- Changed-file Ruff/Prettier, documentation links/navigation and diff whitespace
+  checks passed. Existing NO_COLOR/FORCE_COLOR runner warnings remain visible.
+
+No project schema, runtime dependency, public MCP operation or native Rust code
+changed. Persisted report definitions, measurement/narrative sections, further
+customization and isolated/cancellable packaged renderer verification remain
+future work. Installed Windows/Flatpak behavior and broad font coverage were
+not verified by these local browser/PDF checks.
