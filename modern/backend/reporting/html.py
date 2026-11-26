@@ -3,18 +3,22 @@
 from html import escape
 
 from .document import ReportDocument
-from .tables import COLUMNS, table_values
+from .tables import COLUMNS, column_widths, table_values
 
 # Keep the complete fixed layout here so frozen backends need no template assets.
 # No project text is interpreted as template source, markup, CSS or script.
 STYLE = """
-@page { size:A4; margin:20mm 15mm;
- @top-left { content:"GEstimator · Estimate report"; font-size:8pt; }
- @top-right { content:string(section-heading); font-size:8pt; }
- @bottom-right { content:"Page " counter(page) " of " counter(pages); font-size:8pt; }
+@page { size:A4; margin:20mm;
+ @top-left { content:counter(page); background:#729fcf; color:#172b3a; font-style:italic;
+   width:6%; height:10mm; text-align:center; vertical-align:middle; border-bottom:0.5pt solid #729fcf; }
+ @top-right { content:string(section-heading); font-style:italic; vertical-align:middle;
+   width:94%; height:10mm; text-align:right; border-bottom:0.5pt solid #729fcf; }
+ @bottom-left { content:element(report-footer); width:80%; border-top:0.5pt solid #729fcf; }
+ @bottom-right { content:"Page " counter(page) " of " counter(pages); width:20%; text-align:right; border-top:0.5pt solid #729fcf; }
 }
-@page:first { @top-left { content:none; } @top-right { content:string(section-heading); font-size:8pt; }
- @bottom-right { content:none; } }
+@page:first { @top-left { content:none; background:none; border:none; }
+ @top-right { content:none; border:none; } @bottom-left { content:none; border:none; }
+ @bottom-right { content:none; border:none; } }
 @page report-wide { size:A4 landscape; }
 @page report-portrait { size:A4 portrait; }
 .wide { page:report-wide; }
@@ -24,15 +28,18 @@ h1,h2,h3 { break-after:avoid; }
 .keep-together { break-inside:avoid; }
 tbody tr:nth-child(even) { background:#f5f8fa; }
 * { box-sizing:border-box; }
-body { font:10pt/1.45 "DejaVu Sans",sans-serif; color:#243247; margin:0 auto; max-width:1100px; padding:24px; }
-h1 { color:#174e67; font-size:22pt; } h2 { font-size:17pt; }
+html { font-size:10pt; }
+body { font:1rem/1.45 "DejaVu Sans",sans-serif; color:#243247; margin:0 auto; max-width:1100px; padding:24px; }
+h1 { color:#174e67; font-size:2.2rem; } h2 { font-size:1.7rem; }
 a { color:#174e67; } .cover { padding:60px 0; }
 .section { break-before:page; margin-top:32px; }
-table { border-collapse:collapse; width:100%; font-size:9pt; }
+table { border-collapse:collapse; width:100%; font-size:0.9rem; table-layout:fixed; }
 thead { display:table-header-group; }
-th,td { border-bottom:1px solid #ccd6dc; padding:8px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
-th { background:#e4eef2; overflow-wrap:normal; } tr { break-inside:avoid; }
-.number { text-align:right; white-space:nowrap; overflow-wrap:normal; }
+th,td { border-bottom:1px solid #ccd6dc; padding:6px 5px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+th,th.number { background:#e4eef2; overflow-wrap:anywhere; hyphens:auto; } tr { break-inside:avoid; }
+.number { text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.report-footer { position:running(report-footer); font-size:0.8rem; white-space:nowrap; overflow:hidden; }
+@media screen { .report-footer { position:static; border-bottom:1px solid #729fcf; padding-bottom:8px; } }
 .description { white-space:pre-wrap; } .total { font-weight:bold; text-align:right; }
 .signatures { display:flex; gap:24px; margin-top:60px; }
 .signature { flex:1; border-top:1px solid; padding-top:8px; }
@@ -48,6 +55,7 @@ def _text(value):
 
 def _table(headings, rows, numeric=(), descriptions=(), widths=()):
     """Build accessible table markup without interpolating arbitrary attributes."""
+    widths = widths or column_widths(headings)
     output = ["<table>"]
     if widths:
         output.append("<colgroup>" + "".join(f'<col style="width:{width}%">' for width in widths) + "</colgroup>")
@@ -66,15 +74,31 @@ def _table(headings, rows, numeric=(), descriptions=(), widths=()):
     return "".join(output)
 
 
+def _css_string(value):
+    """Quote text as a CSS string, including HTML raw-text terminators and controls."""
+    return '"' + "".join(char if char.isalnum() or char in " -_." else f"\\{ord(char):x} " for char in value) + '"'
+
+
+def _presentation_style(spec):
+    """Scale every typographic role together without changing physical page margins."""
+    family = _css_string(spec.font_family or "DejaVu Sans")
+    return (
+        f"html {{ font-size:{10 * spec.font_scale:g}pt; }} body {{ font-family:{family},sans-serif; }}"
+        f" @page {{ font-family:{family},sans-serif; font-size:{8 * spec.font_scale:g}pt; }}"
+    )
+
+
 def render_html(document: ReportDocument) -> str:
     """Render a fixed cover, linked contents and the enabled ordered sections."""
     spec = document.specification
     sections = [section for section in spec.sections if section.enabled]
+    footer_label = spec.organization or document.project or spec.title
     output = [
         '<!doctype html><html lang="en"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\">",
-        f"<title>{_text(spec.title)} — {_text(document.project)}</title><style>{STYLE}</style></head><body>",
+        f"<title>{_text(spec.title)} — {_text(document.project)}</title><style>{STYLE}{_presentation_style(spec)}</style></head><body>",
+        f'<div class="report-footer">{_text(footer_label)} · GEstimator</div>',
         '<header class="cover">',
         f"<p>{_text(spec.organization)}</p><h1>{_text(spec.title)}</h1><h2>{_text(document.project)}</h2>",
         f"<p>Reference: {_text(spec.reference)}</p><p>Issued: {_text(spec.issue_date)}</p>",
@@ -142,7 +166,6 @@ def _analyses(document, section_id):
                 ],
                 (3, 4, 5),
                 (1,),
-                widths=(8, 44, 8, 14, 13, 13),
             )
         )
         output.append(
@@ -168,6 +191,7 @@ def _section_body(document, section):
                 rows,
                 tuple(index for index, column in enumerate(columns) if column.numeric),
                 tuple(index for index, column in enumerate(columns) if column.multiline),
+                widths=column_widths(tuple(column.title for column in columns)),
             )
         )
         if section.kind in ("abstract", "schedule"):

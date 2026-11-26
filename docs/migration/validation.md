@@ -2531,3 +2531,106 @@ available and avoids the earlier test/dev-server collision. Native installed
 WebView, portal and packaged Windows/Linux behavior remain unverified. Saved
 project definitions, office/custom templates and renderer release hardening
 remain future work.
+
+
+## 2026-11-27 — Optional saved report definitions
+
+First committed column/page customization as `fec24493`. Continued the plan with
+an optional `project_report_specification` JSON setting and explicit Apply/Reload
+controls. Apply is revision-checked and uses ProjectEditor.mutate for one undoable
+working-copy edit; normal project Save/Save Copy publishes it. Preview/export
+remain read-only and local composition is not implicitly applied. Identical
+normalized Apply is idempotent. Malformed/oversized/future definitions are ignored
+with a warning and preserved unchanged until explicitly replaced.
+
+Compatibility gate was exercised before implementation: loaded the actual
+archived ScheduleDatabase module from `archive/gtk` commit
+`0927aa789f18403ea01fcdf5bf6765f9ae0ffde8` against disposable data. Its settings and
+measurement writers retained the unknown report JSON exactly. A subsequent modern
+Save Copy/reopen retained it with SQLite integrity_check=ok, no foreign-key
+violations and the original source bytes unchanged. This tested archived engine
+read/write behavior, not an installed GTK UI. Forward path is an additive optional
+key with no table/version change; rollback readers ignore/retain it, with no
+contraction/deletion. Row filters are deliberately excluded from persistence
+until deletion/key-reuse invalidation is covered. Transient report filters remain
+available.
+
+- Full `.venv/bin/python -m unittest discover -s tests`: 280 passed. Six added
+  settings tests cover read-only absence, idempotency, undo/redo, save/reopen,
+  original source preservation, recovery, future/invalid data through unrelated
+  edits and saves, failure rollback, stale/invalid revisions, size/filter bounds,
+  and dirty-draft protection even with discard=true. Expected negative formatting
+  fixture diagnostics appeared; the suite returned success.
+- Focused `PLAYWRIGHT_PORT=1421 npm run --prefix modern test:e2e -- reports.spec.ts`:
+  eight workflows passed. Verified Apply busy locking and revision invalidation,
+  no source-file change before Save, file Save, reload and close/reopen restoring
+  notes/columns/orientation, and preservation/replacement of future definitions.
+- Full `PLAYWRIGHT_PORT=1421 npm run --prefix modern test:e2e`: 123 scenarios
+  passed, with one opt-in performance profile skipped (124 discovered). The
+  existing NO_COLOR/FORCE_COLOR warning remains. Test server exited and port 1421
+  was confirmed free. Visually reviewed the reopened report/settings screenshot.
+- Frontend production build/type check passed, retaining the existing main-chunk
+  warning (approximately 1.24 MB).
+- Changed-file `tools/check_quality.py`, documentation checks and diff whitespace
+  checks passed.
+
+No engine arithmetic, native code, runtime dependency, public MCP operation,
+project table or file-version marker changed. Office/template bundles, persisted
+row-selection lifecycle and renderer release hardening remain open. Installed
+WebView, Windows/Linux packaged apps and portal interactions were not exercised.
+
+
+## 2026-11-27 — Report settings and presentation
+
+Implemented the requested presentation changes using Open Planner Studio's
+Gantt report studio as a settings reference and GElectrical's report stylesheet
+as a running-header reference. The application keeps its own Vue components and
+fixed escaped renderer; no external template is loaded at runtime.
+
+- Numbered disclosure groups separate report details, page/typography and section
+  settings. Opening a section closes the previously open section settings;
+  inclusion/order controls remain accessible while collapsed. Replaced the old
+  nested Columns and page disclosure with inputs inside each section panel.
+- ReportAppearance reuses `program.fonts` for installed families, retaining a saved
+  unavailable family and default fallback. Python validates additive `font_family`
+  and `font_scale` fields (60–200%); saved definitions, Undo/Redo and read-only
+  preview/export use the existing boundaries. CSS family strings cannot introduce
+  markup or style declarations.
+- A4 portrait/landscape pages and every Excel sheet use 20 mm margins on all four
+  sides. Font scale affects headings, tables and running text. HTML/PDF have a
+  page-number tab, running section heading and ruled organization/page-count
+  footer, with the cover suppressed. Excel has corresponding text furniture.
+- Shared field-based proportions give descriptions more space and keep code/unit,
+  financial and ancillary fields distinct. Projection/reordering redistributes
+  proportions; values and financial calculations are unchanged.
+
+Validation:
+
+- Full `.venv/bin/python -m unittest discover -s tests`: 282 passed. Expected
+  negative formatting-fixture diagnostics appeared; the suite returned success.
+  Final focused layout/settings/export rerun: 18 passed after width/footer fixes.
+  Coverage includes typography persistence through Save/reopen and Undo/Redo,
+  malformed scale/family rejection, CSS/HTML injection resistance, worksheet
+  margins/font roles, literal header text, numeric cell values and widths.
+- Focused `PLAYWRIGHT_PORT=1421 npm run --prefix modern test:e2e -- reports.spec.ts`:
+  nine workflows passed, including real installed-font selection, scale changes,
+  preview invalidation, Apply/Reload and keyboard disclosure operation. Existing
+  report tests now open the appropriate section panel explicitly.
+- Full `PLAYWRIGHT_PORT=1421 npm run --prefix modern test:e2e`: 124 scenarios
+  passed; one opt-in performance profile was skipped (125 discovered). The
+  runner retained the existing NO_COLOR/FORCE_COLOR warning. A subsequent focused
+  report browser rerun passed all nine workflows after presentation adjustments.
+- Frontend production build/type check, changed-file quality checks, documentation
+  links and diff whitespace checks passed. Vite retains the existing large-chunk
+  warning (main JavaScript approximately 1.25 MB).
+- Generated and visually inspected an eight-page PDF spanning contents, abstract,
+  schedule, analyses, landscape resource/usage tables and signoff. WeasyPrint's
+  page layout confirms all four margins are 20 mm on every portrait/landscape
+  page. `pdffonts` confirms embedded DejaVu Serif regular/bold/italic faces.
+  Also rendered 30 real DSR 2023 schedule rows (total 47,914.65) to check longer
+  descriptions/codes/units and repeated table headings, plus 200% scaling.
+- Visually reviewed browser screenshots in light/wide and dark/narrow layouts.
+
+No native code, runtime dependency, project table/version or calculation changed.
+Installed Windows/Linux WebView, renderer/font packaging and portal checks remain
+release gates. Font availability on another computer can change local fallback.

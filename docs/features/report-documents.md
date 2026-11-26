@@ -1,12 +1,11 @@
 # Read-only report documents
 
-Current core workspace and export workflow, 2026-11-26. Navigation: [index](../README.md) ·
+Current workspace, saved definitions and export workflow, 2026-11-27. Navigation: [index](../README.md) ·
 [backend](../architecture/backend.md) · [report proposal](../report-module-plan.md).
 
 The Reports workspace composes abstract, schedule, analyses, resources, resource
 usage, measurements, notes and signoff sections from immutable accepted-project snapshots. It previews and exports
-standalone HTML, Excel and PDF when a suitable renderer is installed. Persisted specifications, custom templates and packaged PDF
-distribution remain future work.
+standalone HTML, Excel and PDF when a suitable renderer is installed. Custom templates and packaged PDF distribution remain future work.
 
 ## Request and response
 
@@ -17,7 +16,8 @@ changing state. A `discard` flag does not bypass this read's draft protection.
 Accepted but unsaved project edits are included; no save or recalculation occurs.
 This is an internal desktop operation, not an additional public MCP tool.
 
-The version-one specification accepts only:
+[`ReportAppearance.vue`](../../modern/src/components/ReportAppearance.vue) owns
+the typography inputs. The version-one specification accepts only:
 
 | Field | Meaning |
 | --- | --- |
@@ -66,7 +66,8 @@ The runtime owner thread serializes this read with project operations.
 No ORM models escape into the document. Generation never updates stored analyses, accepts drafts, changes quantities or
 rates, creates identities, advances revisions, changes clipboard contents or adds
 undo entries. The service retains its existing
-draft/revision boundaries. Report settings are not written into project files.
+draft/revision boundaries. Document generation never writes report settings;
+explicit definition persistence is described below.
 
 ## Analyses, catalog and usage
 
@@ -125,7 +126,45 @@ Each narrative instance owns independent plain text in its section `body`. HTML
 escapes that text and retains line breaks; Excel writes a literal wrapped text
 cell. Notes do not accept markup, executable templates or external assets. Notes
 and measurement settings share the existing open-tab memory and stale-preview
-behavior; they are not persisted to project files.
+behavior; applying and saving their definition is described below.
+
+## Report presentation
+
+Reports use numbered collapsible settings groups beside the preview, following
+[Open Planner Studio's Gantt report studio](https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/panels/reportStudio/GanttReportStudio.tsx).
+**Report details** contains facing fields; **Page and typography** contains font
+selection and scale. Individual section headers summarize inclusion and page
+orientation. Expanding another section closes the previous section's settings;
+inclusion and ordering controls remain available while collapsed.
+
+[`ReportAppearance.vue`](../../modern/src/components/ReportAppearance.vue) owns
+the typography inputs. The version-one specification accepts `font_family` (a plain family name up to
+200 characters, default empty) and `font_scale` (a finite number from 0.6 to 2,
+default 1). The desktop's **Report font** dropdown reuses `program.fonts`, the
+existing system-font inventory. Empty selects DejaVu Sans with a sans-serif
+fallback. Saved unavailable families remain selectable and labelled; rendering
+uses local fallback fonts when necessary. Fonts are not bundled in project files.
+**Font scale (%)** scales body, tables, headings and running text together; it does
+not change physical page margins. Values are validated in Python, and family
+names are quoted as CSS strings so they cannot introduce markup/styles. Both
+settings use the same explicit Apply/Save, Undo/Redo and stale-preview boundaries
+as other report settings.
+
+All A4 print pages have **20 mm margins on all four sides**, including landscape
+sections. Excel worksheets use the same physical margins and selected family /
+scale. HTML/PDF use a page-number tab, horizontal header rule and running section
+heading inspired by the
+[GElectrical report stylesheet](https://github.com/manuvarkey/GElectrical/blob/master/gelectrical/templates/report.css).
+A ruled footer shows the organization (or project name), GEstimator and page
+count; the cover suppresses running furniture. Excel uses corresponding text
+headers/footers. Screen HTML stays continuous; PDF provides final pagination.
+
+Column proportions follow field meaning across HTML/PDF and Excel: descriptions
+receive most space, unit/code fields stay compact, amounts/quantities have room
+for numeric values, and remarks/reference/category fields get intermediate
+widths. Hiding or reordering columns redistributes their relative space. Variable
+measurement tables use known field weights with equal fallback widths for
+unrecognized template labels. No values or estimate calculations change.
 
 ## Columns and page orientation
 
@@ -160,12 +199,56 @@ a separate estimate summary remains visible even if Amount is omitted or moved
 first. Literal text and existing escaping rules also apply to selected columns.
 
 In Reports, [`ReportSectionLayout.vue`](../../modern/src/components/ReportSectionLayout.vue)
-owns the bounded layout inputs. Expand **Columns and page** beneath a section. Choose **Page
+owns the bounded layout inputs. Expand a section heading. Choose **Page
 orientation** and optionally enable **Customize columns**, select fields and
 use their up/down buttons to set order. At least one field stays selected.
 Disable customization to restore each format's defaults. These settings use the
-existing tab memory, input locking and stale-preview protection. No settings are
-saved into project files yet.
+existing tab memory, input locking and stale-preview protection. Apply and Save
+project explicitly to persist the definition.
+
+## Saved report definitions
+
+`report.settings` requires an open project and the current integer `revision`.
+It returns `{specification, warning, revision}`. An absent definition returns null
+with no warning; invalid, oversized or unsupported optional data returns null
+with a warning. Reads do not activate drafts or change data/history. They may
+read the definition while a draft is open because no analysis/measurement data
+is included. Unreadable definitions remain byte-for-byte unchanged on ordinary
+open, unrelated edits, preview, Save and recovery.
+
+`report.settings.apply` requires those same revision checks, a valid complete
+`specification`, and no dirty analysis/measurement draft. A `discard` flag never
+bypasses this protection. Python normalizes the version-one definition to JSON,
+bounded to 1,000,000 UTF-8 bytes, and updates only the optional
+`project_report_specification` project setting through `ProjectEditor.mutate`.
+This creates one undo entry and marks the working project dirty. Reapplying the
+identical normalized definition is a no-op. Failures roll back settings, revision
+and history. The response has the same shape as the read. These are internal
+desktop operations, not new public MCP tools.
+
+Saved definitions include facing fields, section order/IDs/enabled state, titles,
+notes, columns, orientation, font family and font scale. Persisted `item_ids`/`category_ids` must be null
+or omitted. Explicit lists, including empty lists, are rejected for persistence
+until deletion/ID-reuse invalidation is implemented; transient report snapshots
+still support their existing filters. No derived values or external file paths
+are stored. Project format version/tables are unchanged.
+
+In Reports, **Apply report settings** updates the working project. **Save
+project** (or Save Copy) publishes that accepted definition alongside other
+project data through the normal backup/conflict boundary. Closing without saving
+can discard it. **Reload report settings** explicitly replaces the tab's local
+composition with the working project's accepted definition, or defaults when no
+readable definition exists. It can therefore load a project Undo/Redo result
+without silently overwriting local inputs during revision refresh. Apply changes
+the revision and invalidates an earlier preview. Changing a definition locally
+never applies it implicitly when previewing/exporting or saving the project.
+
+Compatibility uses an additive optional key, with no destructive migration.
+The archived version-two engine retained unknown project settings in the
+pre-implementation save/reopen check. Future/invalid JSON is preserved until
+**Apply report settings** explicitly replaces it. See the
+[project format](../architecture/database-format.md#project-settings-and-measurements)
+and dated [validation evidence](../migration/validation.md) for preservation scope.
 
 ## Preview and export operations
 
@@ -231,8 +314,9 @@ contents links. Python retains selection, rounding and validation authority.
 
 KeepAlive retains settings/preview across view changes; document-local memory
 retains them across project-tab switches. Replacing/closing a project clears
-them. Settings are intentionally not saved in project files yet, and the view
-states that limitation. Busy generation/export disables conflicting inputs and
+them. A fresh Reports workspace loads the saved definition from the working
+project; an existing tab retains its unapplied composition until Reload report
+settings is chosen. Busy generation/export disables conflicting inputs and
 navigation through the existing shell busy state. Cancellation of the native
 save chooser leaves the composition intact and sends no export request.
 
@@ -258,5 +342,6 @@ Regression coverage:
 [`test_report_exports.py`](../../tests/test_report_exports.py),
 [`test_report_datasets.py`](../../tests/test_report_datasets.py),
 [`test_report_customization.py`](../../tests/test_report_customization.py),
-[`test_report_layout.py`](../../tests/test_report_layout.py) and
+[`test_report_layout.py`](../../tests/test_report_layout.py),
+[`test_report_settings.py`](../../tests/test_report_settings.py) and
 [`reports.spec.ts`](../../modern/e2e/reports.spec.ts).

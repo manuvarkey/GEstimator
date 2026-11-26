@@ -242,3 +242,30 @@ apply to each section after renderer defaults. No engine, project schema, native
 code or runtime dependency changed. Saved definitions, office templates, custom
 layouts and release hardening remain open. Browser checks can use a separate
 PLAYWRIGHT_PORT, including secondary contexts, to avoid occupying the Tauri port.
+
+
+## 2026-11-27 optional saved report definitions
+
+A dedicated reporting settings adapter validates/normalizes an optional project
+key. Service adds only forwards; ProjectEditor.mutate retains transaction/undo
+ownership. A single App.vue changed-event forward refreshes authoritative state.
+Read-only snapshots and local composition remain separate from explicit Apply
+and normal project Save. Unknown/future optional JSON survives untouched until
+explicit replacement. The archived engine's existing writers were exercised on
+a disposable project before enabling persistence; no tables or file marker changed.
+Persisted selection filters are rejected until deletion/key-reuse invalidation
+is covered. Office templates, packaging and renderer hardening remain open.
+
+
+## 2026-11-27 report presentation
+
+Added a focused ReportAppearance component reusing the existing system-font
+operation; no new font enumerator, native command or runtime dependency. Python
+validates saved typography, quotes CSS family strings and applies margins/font
+roles in the existing document renderers. Shared proportional widths follow
+column meaning and survive projection/reordering without changing amounts.
+ReportWorkspace uses numbered native disclosure groups; section settings share
+one open group, with inclusion/order controls still available when collapsed.
+The fixed stylesheet now has a GElectrical-inspired running header and ruled
+footer. Office templates and installed-platform renderer/font verification
+remain outside this change. Validation evidence is recorded in the dated log.

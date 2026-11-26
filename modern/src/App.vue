@@ -851,6 +851,7 @@ onBeforeUnmount(() => {
             :revision="state.revision"
             :external-busy="uiBusy"
             @busy="projectBusy = $event"
+            @changed="w.refresh()"
           />
         </KeepAlive>
         <ProjectViews

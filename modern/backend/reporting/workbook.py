@@ -1,13 +1,15 @@
 """Excel presentation of the same immutable data used by HTML/PDF reports."""
 
+from copy import copy
 from decimal import Decimal
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.page import PageMargins
 
 from .document import ReportDocument
-from .tables import COLUMNS, table_values
+from .tables import COLUMNS, column_widths, table_values
 
 
 def _text(sheet, row, column, value):
@@ -32,8 +34,10 @@ def _table(sheet, headings, rows, numeric=(), start_row=3):
                 cell.alignment = Alignment(horizontal="right", vertical="top")
             else:
                 _text(sheet, index, column, value or "")
-    for column in range(1, len(headings) + 1):
-        sheet.column_dimensions[get_column_letter(column)].width = 54 if headings[column - 1] == "Description" else 20
+    for column, width in enumerate(column_widths(headings), 1):
+        # One full report table is about 120 Excel character units before print fitting.
+        letter = get_column_letter(column)
+        sheet.column_dimensions[letter].width = max(8, width * 1.2)
     sheet.print_title_rows = "1:3"
     sheet.freeze_panes = "A4"
     sheet.sheet_properties.pageSetUpPr.fitToPage = True
@@ -42,8 +46,6 @@ def _table(sheet, headings, rows, numeric=(), start_row=3):
     sheet.page_setup.fitToWidth = 1
     sheet.page_setup.fitToHeight = 0
     sheet.print_options.horizontalCentered = True
-    sheet.oddFooter.right.text = "Page &P of &N"
-    sheet.oddHeader.left.text = "GEstimator"
 
 
 def write_workbook(document: ReportDocument, destination):
@@ -71,6 +73,8 @@ def write_workbook(document: ReportDocument, destination):
         if section.orientation != "auto":
             sheet.page_setup.orientation = section.orientation
     contents.column_dimensions["A"].width = 60
+    for sheet in workbook:
+        _presentation(sheet, document)
     workbook.save(destination)
 
 
@@ -164,3 +168,32 @@ def _write_fixed_table(document, sheet, section):
     label_column = 2 if section.kind == "schedule" and section.columns is None else 1
     _text(sheet, len(rows) + 5, label_column, "Estimate total")
     sheet.cell(len(rows) + 5, amount_column, Decimal(document.total)).number_format = "0.00"
+
+
+def _presentation(sheet, document):
+    """Apply document typography and 20 mm print margins to every worksheet."""
+    spec = document.specification
+    for row in sheet:
+        for cell in row:
+            font = copy(cell.font)
+            font.name = spec.font_family or "DejaVu Sans"
+            font.sz = (font.sz or 10) * spec.font_scale
+            cell.font = font
+    margin = 20 / 25.4
+    sheet.page_margins = PageMargins(
+        left=margin, right=margin, top=margin, bottom=margin, header=8 / 25.4, footer=8 / 25.4
+    )
+    sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
+
+    # Double ampersands keep project strings literal in Excel's header/footer syntax.
+    def literal(value):
+        return value.replace("&", "&&").replace("\n", " ").replace("\r", " ")[:240]
+
+    sheet.oddHeader.left.text = "&P"
+    sheet.oddHeader.right.text = literal(str(sheet["A1"].value or spec.title))
+    sheet.oddFooter.left.text = literal(spec.organization or document.project or spec.title) + " · GEstimator"
+    sheet.oddFooter.right.text = "Page &P of &N"
+    for region in (sheet.oddHeader.left, sheet.oddHeader.right, sheet.oddFooter.left, sheet.oddFooter.right):
+        region.size = 8 * spec.font_scale
+        region.font = spec.font_family or "DejaVu Sans"
+    sheet.HeaderFooter.differentFirst = sheet.title == "Cover"

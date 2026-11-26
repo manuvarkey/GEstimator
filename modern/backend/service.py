@@ -266,6 +266,10 @@ class Service:
                 key: settings.get(key, "")
                 for key in ("project_name", "project_item_code", "project_resource_code", "project_metadata")
             }
+        if method == "report.settings":
+            return reporting.settings.read(self, p)
+        if method == "report.settings.apply":
+            return reporting.settings.apply(self, p)
         if method == "report.document":
             return reporting.document(self, p)
         if method == "report.preview":

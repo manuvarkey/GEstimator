@@ -76,8 +76,7 @@ function move(key: ReportColumnKey, direction: number) {
 </script>
 
 <template>
-  <details class="section-layout">
-    <summary>Columns and page</summary>
+  <div class="section-layout">
     <label class="orientation"
       >Page orientation
       <select v-model="orientation" :aria-label="`${label} page orientation`">
@@ -126,15 +125,12 @@ function move(key: ReportColumnKey, direction: number) {
       </ol>
     </template>
     <p>Orientation applies to printed pages. Auto keeps the format’s default layout.</p>
-  </details>
+  </div>
 </template>
 
 <style scoped>
 .section-layout {
   margin-block: 12px;
-}
-summary {
-  cursor: pointer;
 }
 .orientation {
   display: grid;

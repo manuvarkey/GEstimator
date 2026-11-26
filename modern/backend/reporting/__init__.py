@@ -1,9 +1,10 @@
-"""Read-only report assembly; project revisions and drafts stay with Service."""
+"""Report snapshots/exports and saved definitions; Service retains revision/draft guards."""
 
 from pathlib import Path
 
 from ..persistence import export_output
 from ..validation import text
+from . import settings
 from .document import build_document
 from .html import render_html
 from .pdf import find_renderer, render_pdf

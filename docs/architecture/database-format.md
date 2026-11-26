@@ -89,6 +89,14 @@ holds author-maintained database notes in Markdown. See
 [`metadata.py`](../../modern/backend/metadata.py) for `## Category: <name>` note
 sections and [MCP source notes](mcp.md#sources-and-placement).
 
+`project_report_specification` optionally stores the version-one report definition
+as bounded JSON. It is additive metadata: no file-version/table change is required.
+The [report contract](../features/report-documents.md#saved-report-definitions)
+owns validation, unsupported-data preservation and Apply/Save behavior. Report
+snapshots/previews never write this key. Explicit Apply uses project transactions
+and undo; ordinary saves/recovery copy it with the other project data. Persisted
+row filters are excluded until their deletion/ID-reuse lifecycle is implemented.
+
 `project_measurement` contains JSON from
 [`Measurement.get_model`](../../estimator/data/measurement.py):
 

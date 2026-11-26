@@ -19,8 +19,8 @@ tests Jinja2 plus WeasyPrint, following the rendering approach used in
 It supports deterministic demonstration rows or accepted real-project snapshots
 through `--project`. The application now has a Reports workspace for the initial
 abstract/schedule/analysis/resource/usage/signoff sections, fixed-layout preview and HTML/Excel exports,
-plus PDF through an installed WeasyPrint 70+ CLI. There is no report-definition
-project persistence or new application runtime Python dependency. The fixed
+plus PDF through an installed WeasyPrint 70+ CLI. Report definitions can be applied to the working project and persisted through
+normal project Save. There is no new application runtime Python dependency. The fixed
 application renderer is independent of the trusted custom-template experiment.
 
 ## Try the prototype
@@ -115,9 +115,11 @@ production needs size/time limits and validated template import.
 - Production exports use the existing safe publication/portal boundary;
   cancellation and rendering failures must leave existing destinations intact.
 
-Proposed persistence: a versioned JSON project setting for the report definition,
-plus reusable office template bundles. Do not implement until old-version
-save/reopen preservation is proved. Keep logos embedded and bounded; a saved
+Implemented persistence: a versioned optional JSON project setting for the
+report definition, after archived-engine save/reopen preservation was proved.
+Read failures preserve opaque data; explicit Apply and normal Save publish valid
+definitions. Persisted row filters remain excluded until deletion/key reuse is
+covered. Reusable office template bundles remain future work. Keep logos embedded and bounded; a saved
 project must not depend on the author's external logo path. Do not store arbitrary
 HTML in ordinary project text fields. Template bundles need validated paths,
 asset types, schema upgrades and clear project-versus-office override behavior.
@@ -146,8 +148,10 @@ No external template or stylesheet is loaded at runtime.
 4. **Customization (measurement/narrative subset implemented):** accepted measurement
    records, constants, separately labelled linked outputs and per-section plain-text
    notes are available in all formats. Fixed-table columns and per-section
-   portrait/landscape settings are also implemented. Remaining work: office
-   templates, persisted project overrides and template
+   portrait/landscape settings and persisted project definitions are also implemented.
+   Numbered collapsible settings, system-font selection/scaling, 20 mm margins,
+   running headers/footers and proportional table widths are implemented.
+   Remaining work: persisted row-selection lifecycle, office templates and template
    editor/import/export. Preserve existing project compatibility.
 5. **Release hardening:** isolated render worker with cancellation/limits,
    large-project profiling, accessibility, font coverage, frozen sidecar and
