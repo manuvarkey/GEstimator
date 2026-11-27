@@ -6,7 +6,11 @@ export interface EstimateFields {
   title: string;
   organization: string;
   reference: string;
-  issue_date: string;
+  issue_date?: string;
+  office: string;
+  logo: string;
+  signoff_intro: string;
+  headings: Partial<Record<ReportSectionKind, string>>;
   notes: string;
   signoff_blocks: SignoffBlock[];
 }
@@ -18,6 +22,7 @@ export type ReportSectionKind =
   | "analyses"
   | "resources"
   | "resource_usage"
+  | "measurement_abstract"
   | "measurements"
   | "narrative";
 export type ReportColumnKey =
@@ -44,6 +49,9 @@ export interface ReportSection {
   each_item_page?: boolean;
   show_name_of_work?: boolean;
   signoff_blocks?: SignoffBlock[];
+  signoff_intro?: string;
+  description_lines?: number;
+  description_words?: number;
 }
 export interface ReportSpecification {
   schema_version: 1;
@@ -54,6 +62,8 @@ export interface ReportSpecification {
   organization: string;
   reference: string;
   issue_date: string;
+  office: string;
+  logo: string;
   font_family?: string;
   font_scale?: number;
 }

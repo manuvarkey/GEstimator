@@ -2735,3 +2735,41 @@ are unchanged. The HTML parity test now reads the UTF-8 export explicitly.
   This check did not install a desktop package.
 - The full Chromium suite passed (126 passed, one skipped), including report
   export and typography. The existing NO_COLOR/FORCE_COLOR warning remained.
+
+## 2026-11-27 — Report settings, measurement abstract and workbook formulas
+
+Added office details, embedded logos, section heading defaults, tabbed notes
+and signoff editors, and the optional measurement abstract. Preview and export
+controls now stay below the scrolling report settings. Background rendering
+uses a detached snapshot and gives the PDF renderer 120 seconds.
+
+- The full Python suite passed (291 discovered, two skips). The report-specific
+  rerun passed 42 tests. These include embedded logo persistence, bounded
+  templates, worksheet references and background export snapshot isolation.
+  Inherited Git config injection was disabled for the local checks.
+- The initial full Chromium run discovered 128 scenarios, with 122 passes,
+  one optional performance skip and five failures. Four report scenarios
+  passed in the follow-up run of all 12 report tests after correcting narrow
+  sidebar overflow and updating assertions for the new workflows. The
+  independent editor Escape scenario timed out in the full run and passed
+  in isolation. A final three-scenario rerun covered estimate defaults,
+  repeated sections and background export. The test-owned servers exited.
+- Frontend type/build, changed-file Ruff and Prettier, documentation and
+  whitespace checks passed. Vite retained its existing large-chunk warning.
+- Local Windows Rust formatting, five native tests and Clippy passed. Rebuilt
+  the Windows PyInstaller sidecar and exercised it via JSON Lines outside
+  the checkout. It rendered office text and an embedded SVG with the bundled
+  fonts, exported Excel in the background and shut down cleanly.
+- The Windows WeasyPrint 70.0 renderer produced a nine-page A4 sample without
+  diagnostics. Poppler PNGs confirmed the facing page, contents alignment,
+  schedule subtotals, inline signoff and compact measurement totals.
+  Text extraction confirmed printed page targets in both directions.
+- LibreOffice recalculation matched the accepted snapshot for 30 analysis
+  rates, 30 schedule rates and amounts, and 82 resource usage rates and
+  amounts sampled from the bundled DSREM2025 project. Separate fixtures
+  confirmed stored overrides, linked resource rates and multi-unit
+  measurement totals of 0.333 m and 2.346 m². All source projects were
+  read through disposable working copies.
+
+Windows evidence covers the frozen backend and PDF renderer. Installed desktop
+WebView, packaged distribution and Flatpak portal workflows remain unverified.

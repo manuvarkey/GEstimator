@@ -1,5 +1,6 @@
 """Estimate metadata, grouped contents, templated pages and bundled report fonts."""
 
+import base64
 import tempfile
 import unittest
 from contextlib import closing
@@ -11,7 +12,7 @@ from estimator.data.measurement import MeasurementItemCustom, MeasurementItemHea
 from estimator.data.schedule import ResourceItemModel, ScheduleDatabase, ScheduleItemModel
 from estimator.undo import Stack
 from modern.backend.reporting import ReportSpec, build_document
-from modern.backend.reporting.estimate_fields import default_specification
+from modern.backend.reporting.estimate_fields import default_specification, validate
 from modern.backend.reporting.html import render_html
 from modern.backend.reporting.narrative import render
 from modern.backend.reporting.workbook import write_workbook
@@ -82,6 +83,48 @@ class EstimateReports(unittest.TestCase):
         self.service.call("project.open", dict(path=path))
         self.assertEqual(default_specification(self.service.db)["organization"], "Changed")
 
+    def test_logo_and_office_are_saved_and_signoff_remains_escaped(self):
+        def image(source):
+            return "data:image/svg+xml;base64," + base64.b64encode(source.encode()).decode()
+
+        logo = image('<svg xmlns="http://www.w3.org/2000/svg"><rect width="5" height="5"/></svg>')
+        program = validate(dict(office="<Office>\nDivision", logo=logo, issue_date="Old default"))
+        self.assertNotIn("issue_date", program)
+        self.service.call(
+            "project.settings.edit",
+            dict(
+                revision=self.service.revision,
+                settings=dict(
+                    estimate={
+                        **program,
+                        "issue_date": "Issued for tender",
+                        "headings": {"signoff": "Approval"},
+                        "signoff_intro": "Certified for {{ office }}",
+                    }
+                ),
+            ),
+        )
+        path = str(Path(self.temp.name) / "embedded.eproj")
+        self.service.call("project.save_copy", dict(path=path))
+        self.service.call("project.open", dict(path=path))
+        defaults = default_specification(self.service.db)
+        self.assertEqual(defaults["logo"], logo)
+        self.assertEqual(defaults["issue_date"], "Issued for tender")
+        self.assertEqual(defaults["sections"][3]["title"], "Approval")
+        html = render_html(build_document(self.service.db, self.service.revision, ReportSpec.parse(defaults)))
+        self.assertIn(f'src="{logo}"', html)
+        self.assertIn('class="cover-office">&lt;Office&gt;\nDivision', html)
+        self.assertIn("Certified for &lt;Office&gt;\nDivision", html)
+        for invalid in (
+            "https://example.invalid/logo.svg",
+            image('<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>'),
+            image(
+                '<svg xmlns="http://www.w3.org/2000/svg"><path style="fill:url(https://example.invalid/logo)"/></svg>'
+            ),
+        ):
+            with self.subTest(logo=invalid), self.assertRaises(ValueError):
+                ReportSpec.parse(dict(logo=invalid))
+
     def test_categories_item_contents_and_independent_pages(self):
         document = self.document(
             sections=[dict(id=kind, kind=kind, each_item_page=True) for kind in ("analyses", "measurements")]
@@ -97,7 +140,7 @@ class EstimateReports(unittest.TestCase):
             self.assertIn(f'href="#{target}"', html)
             self.assertIn(f'id="{target}"', html)
         self.assertIn('class="item-heading"', html)
-        self.assertEqual(html.count('class="keep-together item-page"'), 2)
+        self.assertEqual(html.count('class="measurement-item item-page"'), 2)
         path = Path(self.temp.name) / "report.xlsx"
         write_workbook(document, path)
         with closing(load_workbook(path)) as workbook:
@@ -171,5 +214,8 @@ class EstimateReports(unittest.TestCase):
             restored = "".join(sheet.cell(row, 1).value or "" for row in range(4, sheet.max_row + 1))
             self.assertEqual(restored, body)
             self.assertTrue(all(len(sheet.cell(row, 1).value or "") <= 100 for row in range(4, sheet.max_row + 1)))
+        six = "\f".join("abcdef")
+        section = dict(id="notes", kind="narrative", body=six)
+        self.assertEqual(ReportSpec.parse(dict(sections=[section])).sections[0].body, six)
         with self.assertRaises(ValueError):
-            ReportSpec.parse(dict(sections=[dict(id="notes", kind="narrative", body="a\fb\fc\fd")]))
+            ReportSpec.parse(dict(sections=[{**section, "body": six + "\fg"}]))

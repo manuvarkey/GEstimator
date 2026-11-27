@@ -68,7 +68,7 @@ class ReportLayout(unittest.TestCase):
         self.assertEqual(sheet["B5"].data_type, "s")
         self.assertEqual(sheet["C5"].value, 1.2345)
         self.assertEqual(sheet["C5"].number_format, "General")
-        self.assertEqual((sheet["A7"].value, sheet["B7"].value), ("Estimate total", 15.23))
+        self.assertEqual((sheet["A7"].value, sheet["B7"].value), ("Estimate total", "=SUM(A4:A5)"))
         brief = workbook["Section 2"]
         self.assertEqual((brief["A7"].value, brief["B7"].value), ("Estimate total", 15.23))
         self.assertEqual((sheet.page_setup.orientation, brief.page_setup.orientation), ("landscape", "portrait"))
@@ -141,8 +141,9 @@ class ReportLayout(unittest.TestCase):
         self.assertIn("font-size:12.5pt", html)
         self.assertIn('font-family:"DejaVu Serif",sans-serif', html)
         self.assertIn('class="report-footer">Office &amp;P', html)
-        self.assertIn("content:counter(page)", html)
-        self.assertIn("content:string(section-heading)", html)
+        self.assertIn('content:"Page " counter(page) " of " counter(pages)', html)
+        self.assertNotIn("@top-left", html)
+        self.assertNotIn("@top-right", html)
         self.assertIn("<colgroup>", html)
         workbook = self.workbook(document)
         for sheet in workbook:

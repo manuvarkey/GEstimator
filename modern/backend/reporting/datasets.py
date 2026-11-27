@@ -32,6 +32,9 @@ class UsageRow:
     quantity: str
     rate: str
     amount: str
+    basic_rate: str = ""
+    tax: str = ""
+    discount: str = ""
 
 
 @dataclass(frozen=True)
@@ -46,6 +49,11 @@ class AnalysisRow:
     rate: str = ""
     amount: str = ""
     remarks: str = ""
+    basic_rate: str = ""
+    tax: str = ""
+    discount: str = ""
+    resource_name: str = ""
+    reference: str = ""
 
 
 @dataclass(frozen=True)
@@ -60,6 +68,8 @@ class Analysis:
     calculated_rate: str
     rows: tuple[AnalysisRow, ...]
     category: str = ""
+    parent_code: str = ""
+    parent_description: str = ""
 
 
 def build_datasets(db, schedule, specification):
@@ -98,11 +108,14 @@ def build_datasets(db, schedule, specification):
     for row in entries:
         grouped_entries[row["id_seq"]].append(row)
     remarks = dict(S.select(S.code, S.ana_remarks).where(S.code.in_(codes)).tuples())
+    parent_ids = {int(row.parent_id) for row in schedule if row.parent_id}
+    parents = {str(row.id): row for row in S.select(S.id, S.code, S.description).where(S.id.in_(parent_ids))}
     # Step 2: evaluate detached models, never updating stored project rates.
     analyses = []
     for row in schedule:
         if not row.unit or not grouped_sequences[row.code]:
             continue
+        parent = parents.get(row.parent_id)
         model = ScheduleItemModel(row.code, row.description, row.unit)
         for sequence in grouped_sequences[row.code]:
             _append_sequence(model, sequence, grouped_entries[sequence["id"]], by_id)
@@ -117,6 +130,8 @@ def build_datasets(db, schedule, specification):
                 str(model.get_ana_rate()),
                 _analysis_rows(model),
                 row.category,
+                parent.code if parent else "",
+                (parent.description or "") if parent else "",
             )
         )
     return tuple(analyses), catalog, usage
@@ -187,12 +202,19 @@ def _analysis_rows(model):
                     AnalysisRow(
                         "Resource",
                         code,
-                        _resource_description(resource),
+                        resource_description(
+                            resource.description, resource.rate, resource.vat, resource.discount, resource.reference
+                        ),
                         resource.unit,
                         str(quantity),
                         str(rate),
                         str(amount),
                         remarks or "",
+                        str(resource.rate),
+                        str(resource.vat or 0),
+                        str(resource.discount or 0),
+                        resource.description,
+                        resource.reference or "",
                     )
                 )
             rows.append(
@@ -229,20 +251,23 @@ def _usage(db, codes):
                     str(quantity),
                     str(rate),
                     str(Currency(rate * quantity)),
+                    str(base),
+                    str(tax or 0),
+                    str(discount or 0),
                 )
             )
     return tuple(rows)
 
 
-def _resource_description(resource):
-    """Retain catalog adjustments/reference alongside the analysis's net rate."""
-    if not (resource.vat or resource.discount or resource.reference):
-        return resource.description
-    details = "Basic rate " + str(resource.rate)
-    if resource.reference:
-        details += " [" + resource.reference + "]"
-    if resource.vat:
-        details += " + Tax @" + str(resource.vat) + "%"
-    if resource.discount:
-        details += " - Discount @" + str(resource.discount) + "%"
-    return resource.description + "\n(" + details + ")"
+def resource_description(name, rate, tax, discount, reference, numbers=str):
+    """Retain adjustments and reference alongside the analysis net rate."""
+    if not (tax or discount or reference):
+        return name
+    details = "Basic rate " + numbers(rate)
+    if reference:
+        details += " [" + reference + "]"
+    if tax:
+        details += " + Tax @" + numbers(tax) + "%"
+    if discount:
+        details += " - Discount @" + numbers(discount) + "%"
+    return name + "\n(" + details + ")"

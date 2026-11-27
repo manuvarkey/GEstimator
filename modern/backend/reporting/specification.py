@@ -4,7 +4,8 @@ import re
 from dataclasses import dataclass
 
 from ..validation import text
-from .estimate_fields import blocks, notes, signoff_defaults
+from .estimate_fields import TITLES, blocks, notes, signoff_defaults
+from .logo import logo_data
 from .tables import parse_columns
 
 
@@ -14,18 +15,6 @@ class SignoffBlock:
 
     caption: str
     body: str
-
-
-TITLES = {
-    "abstract": "Abstract of estimate",
-    "schedule": "Schedule",
-    "signoff": "Signoff",
-    "analyses": "Analyses of rates",
-    "resources": "Resources",
-    "resource_usage": "Resource usage",
-    "measurements": "Measurements",
-    "narrative": "Notes",
-}
 
 
 def _fields(value, allowed, label):
@@ -63,6 +52,9 @@ class Section:
     each_item_page: bool = False
     show_name_of_work: bool = False
     signoff_blocks: tuple[SignoffBlock, ...] = ()
+    signoff_intro: str = ""
+    description_lines: int = 0
+    description_words: int = 0
 
     @classmethod
     def parse(cls, value):
@@ -81,6 +73,9 @@ class Section:
                 "each_item_page",
                 "show_name_of_work",
                 "signoff_blocks",
+                "signoff_intro",
+                "description_lines",
+                "description_words",
             ),
             "report section",
         )
@@ -121,6 +116,14 @@ class Section:
             if kind == "signoff"
             else ()
         )
+        intro = text(value.get("signoff_intro", ""))
+        if intro and kind != "signoff":
+            raise ValueError("Only signoff sections accept introductory text")
+        limits = (value.get("description_lines", 0), value.get("description_words", 0))
+        if any(type(limit) is not int or not 0 <= limit <= maximum for limit, maximum in zip(limits, (50, 500))):
+            raise ValueError("Choose up to 50 description lines and 500 description words")
+        if any(limits) and kind != "measurement_abstract":
+            raise ValueError("Description limits apply to the measurement abstract")
         return cls(
             identity,
             kind,
@@ -131,6 +134,8 @@ class Section:
             orientation,
             *options,
             signatures,
+            intro,
+            *limits,
         )
 
 
@@ -147,6 +152,8 @@ class ReportSpec:
     issue_date: str = ""
     font_family: str = ""
     font_scale: float = 1.0
+    office: str = ""
+    logo: str = ""
 
     @classmethod
     def parse(cls, value):
@@ -164,6 +171,8 @@ class ReportSpec:
                 "issue_date",
                 "font_family",
                 "font_scale",
+                "office",
+                "logo",
             ),
             "report specification",
         )
@@ -192,4 +201,6 @@ class ReportSpec:
             text(value.get("issue_date", "")),
             family.strip(),
             float(scale),
+            text(value.get("office", "")),
+            logo_data(value.get("logo", "")),
         )

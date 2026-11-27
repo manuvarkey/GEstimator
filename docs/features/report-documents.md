@@ -4,7 +4,7 @@ Current workspace, saved definitions and export workflow, 2026-11-27. Navigation
 [backend](../architecture/backend.md) · [report proposal](../report-module-plan.md).
 
 The Reports workspace composes abstract, schedule, analyses, resources, resource
-usage, measurements, notes and signoff sections from immutable accepted-project snapshots. It previews and exports
+usage, measurement abstracts, measurements, notes and signoff sections from immutable accepted-project snapshots. It previews and exports
 standalone HTML, Excel and PDF when a suitable renderer is installed. Office layout templates and packaged PDF renderer distribution remain future work.
 
 ## Request and response
@@ -24,14 +24,16 @@ the typography inputs. The version-one specification accepts only:
 | `schema_version` | Integer `1`; omitted means version one |
 | `sections` | Ordered list of up to 20 section objects; omitted means abstract, schedule, signoff |
 | `item_ids`, `category_ids` | Lists of up to 10,000 unique positive decimal-string database IDs; omitted/null means all; empty means none |
-| `title`, `organization`, `reference`, `issue_date` | Plain text, using the backend text length limit; issue date is a display label |
+| `title`, `organization`, `reference`, `issue_date`, `office` | Plain text. Office supports multiple lines. |
+| `logo` | Embedded PNG, JPEG, GIF, WebP or static SVG of up to 384 KiB |
 
 Each section has a unique `id` matching `[A-Za-z][A-Za-z0-9_-]{0,63}`, a supported
-`kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `measurements`, `narrative`, `signoff`), optional plain-text `title`, and optional
+`kind` (`abstract`, `schedule`, `analyses`, `resources`, `resource_usage`, `measurement_abstract`, `measurements`, `narrative`, `signoff`), optional plain-text `title`, and optional
 boolean `enabled` (default true). Narrative sections also accept a plain-text
-`body` of up to 10,000 characters; nonempty bodies on other kinds are rejected. Instances retain their IDs, order and enabled
+`body` with up to six pages. Signoff sections accept an optional Jinja2 `signoff_intro`
+of up to 10,000 characters. Instances retain their IDs, order and enabled
 state, including repeated kinds with distinct IDs. Sections also accept the bounded
-column/orientation settings described below. Arbitrary HTML, template source,
+column/orientation settings described below. Templates are restricted to the notes and signoff fields below. Arbitrary HTML,
 CSS and unknown layout fields are rejected. Unsupported fields/versions,
 malformed selections and IDs absent from the current project fail explicitly.
 Item and category filters intersect; they never reorder the project rows.
@@ -119,8 +121,23 @@ Without filters every sheet is included, including unlinked sheets. Item/categor
 filters include a whole sheet when at least one link targets a selected payable
 schedule item. All outputs of that sheet remain visible, including other links,
 so multi-output template records remain interpretable. Empty selections include
-no sheets. Disabled measurement sections do not load measurement models. Existing
+no sheets. Measurement models are loaded only when at least one of the two measurement
+sections is enabled. Existing
 report revision and dirty-draft guards also protect this read.
+
+The **Measurement abstract** is initially excluded. It groups selected payable
+items with linked measurements by schedule category. Each link contributes its
+accepted quantity and unit, followed by a total for that schedule item.
+`description_words` (0–500) and `description_lines` (0–50) retain both ends
+of a shortened description. Lines are estimated using a fixed text width.
+Zero leaves the corresponding limit off.
+
+PDF prints **Qty B/F** links to measurement sheets and **Quantity C/o** links
+back to abstract entries when the corresponding section is enabled. Repeated
+sections link to the first enabled destination of the corresponding kind.
+Continuous HTML uses measurement labels, and Excel uses worksheet links.
+Measurement details show numbered records, separate output totals and italic
+link remarks beneath the caption.
 
 Each narrative instance owns a bounded Jinja2 plain-text template in its section `body`.
 Accepted fields and limits are described below. HTML escapes the resolved text and
@@ -131,12 +148,11 @@ behavior; applying and saving their definition is described below.
 
 ## Report presentation
 
-Reports use numbered collapsible settings groups beside the preview, following
-[Open Planner Studio's Gantt report studio](https://github.com/OpenAEC-Foundation/open-planner-studio/blob/main/src/components/panels/reportStudio/GanttReportStudio.tsx).
-**Report details** contains facing fields; **Page and typography** contains font
-selection and scale. Individual section headers summarize inclusion and page
-orientation. Expanding another section closes the previous section's settings;
-inclusion and ordering controls remain available while collapsed.
+The report sidebar uses the analysis explorer's panel colors and heading style.
+Report details, typography and section settings share one accordion. Each section
+keeps its inclusion badge and drag handle in the heading. Add, Apply and Reload
+controls follow the section list in the scrollable area. Preview and export
+controls stay at the bottom of the sidebar.
 
 [`ReportAppearance.vue`](../../modern/src/components/ReportAppearance.vue) owns
 the typography inputs. The version-one specification accepts `font_family` (a plain family name up to
@@ -151,13 +167,19 @@ settings use the same explicit Apply/Save, Undo/Redo and stale-preview boundarie
 as other report settings.
 
 All A4 print pages have **20 mm margins on all four sides**, including landscape
-sections. Excel worksheets use the same physical margins and selected family /
-scale. HTML/PDF use a page-number tab, horizontal header rule and running section
-heading inspired by the
-[GElectrical report stylesheet](https://github.com/manuvarkey/GElectrical/blob/master/gelectrical/templates/report.css).
-A ruled footer shows the organization (or project name), GEstimator and page
-count; the cover suppresses running furniture. Excel uses corresponding text
-headers/footers. Screen HTML stays continuous; PDF provides final pagination.
+sections. HTML/PDF display the office and embedded logo on the facing page.
+A ruled footer shows the organization or project name, GEstimator and page
+count. PDF contents uses indented category and item entries with page numbers at
+the right edge. The cover suppresses the running footer. The name of work is
+one point larger than the base size on the cover and uses base size in the
+sections. Schedule groups include category subtotals and the estimate total.
+Resource and usage tables use category headings. Analyses show parent items
+above sub-items and use compact rows.
+
+HTML/PDF format monetary values using the selected regional number format or
+system region. The desktop passes a numeric grouping profile, and Python
+formats the captured Decimal strings without changing their values. Excel
+retains numeric cells and uses the spreadsheet application's regional separators.
 
 Column proportions follow field meaning across HTML/PDF and Excel: descriptions
 receive most space, unit/code fields stay compact, amounts/quantities have room
@@ -172,9 +194,9 @@ Each section accepts `orientation`: `auto` (the default), `portrait` or
 `landscape`. Explicit settings control that section's A4 PDF pages and Excel
 worksheet orientation. Standalone HTML uses the same print CSS; the continuous
 screen preview does not simulate paper dimensions. Cover and contents retain
-their fixed layout. Auto preserves existing format defaults: resource, usage and
-measurement PDF sections are landscape; other PDF sections are portrait. Excel
-uses its existing table-width defaults.
+their fixed layout. Auto uses portrait for all PDF sections. In Excel, resources, usage,
+measurements and the measurement abstract also default to portrait. Other
+Excel sections retain their table-width defaults.
 
 The fixed tables accept `columns`, an ordered, nonempty list of unique keys:
 
@@ -186,7 +208,9 @@ The fixed tables accept `columns`, an ordered, nonempty list of unique keys:
 | `resource_usage` | `code`, `description`, `unit`, `quantity`, `rate`, `amount`, `category` |
 
 Omitted/null columns preserve existing defaults, including schedule remarks in
-Excel and their omission in default HTML/PDF. Explicit selections use exactly
+Excel and their omission in default HTML/PDF. Resource categories appear as
+headings in HTML/PDF, with a category column available under Customize columns.
+Explicit selections use exactly
 the same chosen order in every format. Other section kinds reject non-null column
 settings: analysis and measurement templates retain their complete structures.
 Invalid, duplicate, unknown or empty selections fail before rendering.
@@ -203,32 +227,37 @@ In Reports, expand a section header to configure its columns and page layout.
 instances, numbered enable buttons, keyboard/drag-handle ordering and adding/removing
 sections (up to 20). A section's badge is a toggle button with `aria-pressed`;
 there is no separate inclusion checkbox. Drag the handle or focus it and press
-Alt+Up/Down. **Add page or section** can repeat any section, including independent
+Alt+Up/Down. Customized columns use the same drag and keyboard controls.
+**Add page or section** can repeat any section, including independent
 signoff sections. Each instance retains its own title, body, columns, signatures
 and pagination. [`ReportSectionLayout.vue`](../../modern/src/components/ReportSectionLayout.vue)
 owns bounded column/orientation inputs. Apply and Save explicitly to persist.
 
 ## Estimate defaults, signature blocks and notes templates
 
-Program settings has **Estimate defaults** for report title, organization,
-reference, issue date, notes pages and one to six signature blocks. Each block
-has an editable plain-text `caption` and multiline `body`. The program preference
-uses the existing validated local settings envelope. New projects copy it into
-an optional `project_estimate_fields` JSON project setting. Project settings shows
-these fields with per-field **Use default** controls and the corresponding program
-value. Editing them uses the existing ProjectEditor undo/save boundary. Existing
-projects without that key can accept program defaults through Project settings;
-reading or previewing alone never writes them.
+Program settings has **Estimate defaults** for the report title, organization,
+reference, office, embedded logo, section headings, notes pages and signoff.
+MCP server preferences have their own tab. Project settings has a **Report**
+tab with these fields plus the estimate-specific issue date. Existing projects
+retain stored issue dates. Program defaults omit issue dates for new estimates.
+
+New projects copy validated estimate defaults into the optional
+`project_estimate_fields` JSON setting. Project settings can restore program
+values to individual fields or groups. The normal ProjectEditor undo/save
+boundary owns these edits. The logo is saved with the settings and is independent
+of the source file. SVG logos support static shapes, text and local paint
+references.
 
 A Reports tab without an accepted report definition loads these project values
 (and program fallback values for an older project). A saved report definition
 retains its explicit report overrides; **Reload report settings** reloads it or
 the project defaults. The initial order is Notes, Abstract, Schedule, Signoff,
-Analyses, Resources, Usage, Measurements. Notes is initially included when its
+Analyses, Resources, Usage, Measurement abstract, Measurements. Notes is initially included when its
 default text is nonempty. Signoff defaults to continuing after Schedule;
 `new_page: true` gives it its own page/sheet. Inline Excel signatures preserve the
 preceding table's geometry, orientation and repeated rows. Multiple signoff
 sections and one to six independent caption/body blocks per section are supported.
+Signoff introduction text renders using the notes template rules and appears above the blocks.
 
 `each_item_page` (default false) applies only to analysis/measurement sections.
 Their items are grouped by category in first-occurrence order, with nested category
@@ -239,17 +268,20 @@ page. Category captions stay with their first item. `show_name_of_work` (default
 false) adds the project name above the abstract/schedule table.
 
 Notes pages are edited in [`ReportNotesEditor.vue`](../../modern/src/components/ReportNotesEditor.vue).
-**Add notes page** creates up to three explicit page areas; form feed separates
-pages in the stored `body`. Each starts a new printed page (Excel row break), and
-long text can flow farther. Templates resolve once against the immutable captured
-estimate. Fields: `project_name`, `name_of_work`, `title`, `organization`,
+Notes pages and signature blocks use numbered tabs. An editor can add up to six
+of each and remove its current tab after the first. Form feed separates pages in
+stored note text. Each starts a new printed page or Excel row break. Long text
+can flow farther. Templates resolve once against the immutable captured
+estimate. Fields include `project_name`, `name_of_work`, `title`, `organization`, `office`,
 `reference`, `issue_date`, `estimate_total`, `item_count`, `category_count`.
 For example: `Work: {{ name_of_work }} — {{ estimate_total }}`. Jinja2 `if`
 conditions and `upper`, `lower`, `title`, `trim`, `default` filters are supported.
 The sandbox parser allowlists the AST before compilation; loops, calls, attributes,
 imports, includes and arithmetic are rejected. Undefined fields/template errors
-fail visibly. Source is bounded to 60,000 characters / three pages and 2,000 AST
-nodes per page; resolved output to 100,000 characters per page. Resolved values
+fail visibly. Note source is bounded to six pages, 120,005 characters total and 60,000
+characters per page to retain older long pages. The editor caps new page input
+at 20,000 characters. Templates allow 2,000 AST nodes and at most 100,000
+resolved characters per page or signoff introduction. Resolved values
 are plain text, escaped in HTML and written literally in Excel. Raw template
 source stays in the saved definition. Project field values remain primitive text; only the allowlisted notes AST is compiled by Jinja.
 
@@ -282,12 +314,12 @@ identical normalized definition is a no-op. Failures roll back settings, revisio
 and history. The response has the same shape as the read. These are internal
 desktop operations, not new public MCP tools.
 
-Saved definitions include facing fields, section order/IDs/enabled state, titles,
-notes, columns, orientation, font family, font scale, editable signatures and pagination choices. Persisted `item_ids`/`category_ids` must be null
+Saved definitions include facing fields and logo, section order/IDs/enabled state,
+titles, notes, columns, orientation, font family, font scale, signoff text and
+blocks, measurement description limits and pagination choices. Persisted `item_ids`/`category_ids` must be null
 or omitted. Explicit lists, including empty lists, are rejected for persistence
 until deletion/ID-reuse invalidation is implemented; transient report snapshots
-still support their existing filters. No derived values or external file paths
-are stored. Project format version/tables are unchanged.
+still support their existing filters. The stored definition contains source settings and embedded logo bytes. Project format version/tables are unchanged.
 
 In Reports, **Apply report settings** updates the working project. **Save
 project** (or Save Copy) publishes that accepted definition alongside other
@@ -311,7 +343,7 @@ and dated [validation evidence](../migration/validation.md) for preservation sco
 `report.preview` accepts the same revision/specification inputs and returns
 `document`, escaped standalone `html`, and boolean `pdf_available`. A fixed
 Python layout uses standard HTML escaping at output; project strings never become
-HTML, CSS or template source. No arbitrary templates/assets are accepted. The
+HTML, CSS or template source. The fixed layout accepts a validated embedded logo and the bounded plain-text templates. The
 complete generated HTML is limited to 10 MB. The desktop displays it in an iframe
 with an empty sandbox and a restrictive document CSP. Preview is continuous;
 PDF provides final page numbers and contents targets.
@@ -323,12 +355,25 @@ revisions/dirty drafts again after the chooser. It returns `saved`, `revision`
 and a list of renderer diagnostic `warnings`. There is no cached-preview export
 that could silently publish data from a different revision.
 
-HTML/PDF consume the same fixed layout. Excel consumes the same frozen row and
-total values, uses literal text cells for author strings (including leading
-`=`), numeric cells for amounts, a contents sheet with internal worksheet links,
-repeated headings and print settings. Generated sheet names avoid collisions
-and unsupported worksheet title characters. It does not add editable formulas.
-The existing full-project workbook export remains unchanged.
+HTML and PDF share the same escaped layout. Excel uses numeric cells, literal
+author text, worksheet links and internally generated formulas. Schedule
+amounts and totals calculate from visible quantity/rate columns. The abstract
+references corresponding schedule amounts when available. An analyzed
+schedule rate links to its analysis when the calculated and accepted rates agree.
+Stored overrides keep their accepted rates. Analysis resource rates reference
+included catalog cells where available, including tax and discount. Analysis
+rows follow the engine's previous-item and running-total rules. Measurements
+sum captured record outputs, using visible quantities where they match engine
+precision. Otherwise, the sheet includes editable input values beside the
+print area. The measurement abstract references details and sums by billed item.
+The existing full-project workbook export remains available.
+
+The desktop starts an export with `report.export.start`, which validates the
+revision and draft guard and captures the snapshot on the project owner thread.
+The renderer and file publication run separately using the captured values.
+`report.export.status` returns progress or a terminal result. Project navigation
+and editing remain available during rendering. PDF becomes selectable after a
+successful preview when WeasyPrint is available.
 
 Exports use the existing
 [export publication boundary](../architecture/database-format.md#working-copies-save-and-recovery).
@@ -346,7 +391,7 @@ Python dependencies are introduced.
 
 The shared managed CLI adapter receives UTF-8 HTML on stdin, permits only data
 URLs, rejects redirects/failed assets, hides its Windows console and kills/reaps
-the direct child after a 60-second timeout. It validates the completed PDF and
+the direct child after a 120-second timeout. It validates the completed PDF and
 limits output to 50 MB and returned diagnostics to 16 KB. These are post-render
 checks, not hard memory/disk quotas. Full cancellation/process-tree control and
 installed renderer packaging still need release hardening.
@@ -361,9 +406,8 @@ retains native destination selection in the desktop adapter.
 
 Users edit facing fields, enable/rename/reorder and repeat section instances and
 manually generate a preview. The fixed cover and contents are always included. Analyses add per-item nested
-contents links. Resource/usage tables use named landscape PDF pages; cover,
-schedule, analyses and signoff use portrait pages. Running section headers,
-repeated headings and caption break controls keep multi-page reports readable.
+contents links. The cover and contents use portrait pages. Repeated table headings and caption
+break controls keep multi-page reports readable.
 Changing the definition or project revision visibly marks the preview stale and
 disables export until regenerated. Section order controls both output order and
 contents links. Python retains selection, rounding and validation authority.
@@ -372,8 +416,8 @@ KeepAlive retains settings/preview across view changes; document-local memory
 retains them across project-tab switches. Replacing/closing a project clears
 them. A fresh Reports workspace loads the saved definition from the working
 project; an existing tab retains its unapplied composition until Reload report
-settings is chosen. Busy generation/export disables conflicting inputs and
-navigation through the existing shell busy state. Cancellation of the native
+settings is chosen. Preview generation uses the existing shell busy state. Background export
+shows an indeterminate indicator in the report sidebar and a completion notice. Cancellation of the native
 save chooser leaves the composition intact and sends no export request.
 
 ## Real-project rendering experiment

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Edit presentation choices; Python validates fields and projects authoritative values. */
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import AppIcon from "./AppIcon.vue";
 import type { ReportColumnKey, ReportSection, ReportSectionKind } from "../reportTypes";
 
@@ -64,14 +64,22 @@ function toggle(key: ReportColumnKey) {
     ? columns.value.filter((value) => value !== key)
     : [...columns.value, key];
 }
+const dragging = ref<ReportColumnKey>();
 function move(key: ReportColumnKey, direction: number) {
   if (!columns.value) return;
   const values = [...columns.value];
   const index = values.indexOf(key);
   const target = index + direction;
   if (index < 0 || target < 0 || target >= values.length) return;
-  [values[index], values[target]] = [values[target]!, values[index]!];
+  values.splice(index, 1);
+  values.splice(target, 0, key);
   columns.value = values;
+}
+function drop(target: ReportColumnKey) {
+  const source = dragging.value;
+  dragging.value = undefined;
+  if (!source || !columns.value || !columns.value.includes(target)) return;
+  move(source, columns.value.indexOf(target) - columns.value.indexOf(source));
 }
 </script>
 
@@ -86,7 +94,7 @@ function move(key: ReportColumnKey, direction: number) {
       </select>
     </label>
     <template v-if="available.length">
-      <label
+      <label class="customize-columns"
         ><input
           type="checkbox"
           :checked="columns !== null"
@@ -95,7 +103,7 @@ function move(key: ReportColumnKey, direction: number) {
         />Customize columns</label
       >
       <ol v-if="columns !== null" :aria-label="`${label} columns`">
-        <li v-for="choice in ordered" :key="choice.key">
+        <li v-for="choice in ordered" :key="choice.key" @dragover.prevent @drop.prevent="drop(choice.key)">
           <label
             ><input
               type="checkbox"
@@ -106,20 +114,21 @@ function move(key: ReportColumnKey, direction: number) {
             />{{ choice.title }}</label
           >
           <button
-            class="icon-button"
-            :aria-label="`Move ${label} ${choice.title} column up`"
-            :disabled="!columns.includes(choice.key) || columns.indexOf(choice.key) === 0"
-            @click="move(choice.key, -1)"
+            type="button"
+            class="icon-button column-grip"
+            :aria-label="'Reorder ' + label + ' ' + choice.title + ' column'"
+            title="Drag to reorder; Alt+Up/Down to move"
+            :disabled="!columns.includes(choice.key)"
+            :draggable="columns.includes(choice.key)"
+            @dragstart="
+              dragging = choice.key;
+              $event.dataTransfer?.setData('text/plain', choice.key);
+            "
+            @dragend="dragging = undefined"
+            @keydown.alt.up.prevent="move(choice.key, -1)"
+            @keydown.alt.down.prevent="move(choice.key, 1)"
           >
-            <AppIcon name="up" />
-          </button>
-          <button
-            class="icon-button"
-            :aria-label="`Move ${label} ${choice.title} column down`"
-            :disabled="!columns.includes(choice.key) || columns.indexOf(choice.key) === columns.length - 1"
-            @click="move(choice.key, 1)"
-          >
-            <AppIcon name="down" />
+            <AppIcon name="grip" />
           </button>
         </li>
       </ol>
@@ -138,9 +147,20 @@ function move(key: ReportColumnKey, direction: number) {
   gap: 4px;
   margin-block: 12px;
 }
+.customize-columns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  padding-block: 6px;
+  border-block-end: 1px solid var(--line);
+}
+.column-grip:not(:disabled) {
+  cursor: grab;
+}
 ol {
   list-style: none;
-  padding: 0;
+  padding-inline-start: 12px;
 }
 li {
   display: flex;

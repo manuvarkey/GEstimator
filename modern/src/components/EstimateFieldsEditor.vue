@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** Estimate metadata shared by program defaults and project properties. */
+import ReportLogoEditor from "./ReportLogoEditor.vue";
 import SignoffEditor from "./SignoffEditor.vue";
 import ReportNotesEditor from "./ReportNotesEditor.vue";
 import type { EstimateFields } from "../reportTypes";
@@ -9,7 +10,6 @@ const fields = [
   { key: "title", label: "Report title" },
   { key: "organization", label: "Organization" },
   { key: "reference", label: "Estimate reference" },
-  { key: "issue_date", label: "Issue date" },
 ] as const;
 function restore(key: keyof EstimateFields) {
   if (props.defaults) values.value = { ...values.value, [key]: JSON.parse(JSON.stringify(props.defaults[key])) };
@@ -28,6 +28,37 @@ function restore(key: keyof EstimateFields) {
         </button>
       </p>
     </div>
+    <div v-if="label === 'Project'" class="estimate-field">
+      <label
+        >Issue date<input v-model="values.issue_date" :aria-label="label + ' Issue date'" maxlength="10000"
+      /></label>
+    </div>
+    <div class="estimate-field">
+      <label
+        >Office<textarea
+          v-model="values.office"
+          :aria-label="label + ' Office'"
+          rows="3"
+          maxlength="10000"
+          data-multiline
+        />
+      </label>
+      <button v-if="defaults" type="button" @click="restore('office')">Use program default office</button>
+    </div>
+    <ReportLogoEditor v-model="values.logo" :label="label + ' logo'" />
+    <button v-if="defaults" type="button" @click="restore('logo')">Use program default logo</button>
+    <details>
+      <summary>Default block headings</summary>
+      <label v-for="(_, kind) in values.headings" :key="kind" class="estimate-field">
+        {{ kind.replaceAll("_", " ") }}
+        <input
+          v-model="values.headings[kind]"
+          :aria-label="kind.replaceAll('_', ' ') + ' default heading'"
+          maxlength="10000"
+        />
+      </label>
+      <button v-if="defaults" type="button" @click="restore('headings')">Use program default headings</button>
+    </details>
     <details>
       <summary>Default notes pages</summary>
       <ReportNotesEditor v-model="values.notes" />
@@ -35,6 +66,11 @@ function restore(key: keyof EstimateFields) {
     </details>
     <details>
       <summary>Signoff blocks</summary>
+      <label
+        >Text before signature blocks (Jinja2)
+        <textarea v-model="values.signoff_intro" rows="3" maxlength="10000" data-multiline />
+      </label>
+      <button v-if="defaults" type="button" @click="restore('signoff_intro')">Use program default signoff text</button>
       <SignoffEditor v-model="values.signoff_blocks" :label="`${label} signoff`" />
       <button v-if="defaults" type="button" @click="restore('signoff_blocks')">
         Use program default signoff blocks

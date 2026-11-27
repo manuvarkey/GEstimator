@@ -3,10 +3,12 @@
 import tempfile
 import unittest
 from pathlib import Path
+from threading import Event
 from unittest.mock import patch
 
 from openpyxl import load_workbook
 
+from modern.backend.reporting.export_jobs import jobs
 from modern.backend.reporting.pdf import find_renderer
 from modern.backend.service import Service
 
@@ -69,7 +71,7 @@ class ReportExports(unittest.TestCase):
         self.assertEqual(before, list(self.service.db.database.connection().iterdump()))
         self.assertEqual(self.service.revision, revision)
 
-    def test_excel_uses_numeric_snapshot_values_and_literal_author_text(self):
+    def test_excel_recalculates_amounts_and_preserves_literal_author_text(self):
         self.export("xlsx")
         workbook = load_workbook(self.root / "report.xlsx")
         self.addCleanup(workbook.close)
@@ -79,13 +81,42 @@ class ReportExports(unittest.TestCase):
         schedule = workbook["Section 2"]
         self.assertTrue(schedule["B4"].value.startswith("=HYPERLINK"))
         self.assertEqual(schedule["B4"].data_type, "s")
-        self.assertEqual(schedule["F4"].value, 14.26)
-        self.assertEqual(schedule["F6"].value, 14.26)
-        self.assertEqual(workbook["Section 3"]["B4"].value, 14.26)
+        self.assertEqual(schedule["F4"].value, "=ROUND(D4*E4,2)")
+        self.assertEqual(schedule["F6"].value, "=SUM(F4:F4)")
+        self.assertEqual(workbook["Section 3"]["B4"].value, "=SUM('Section 2'!F4:F4)")
         self.assertEqual(workbook["Contents"]["A3"].hyperlink.target, "#'Section 2'!A1")
         self.assertEqual(schedule.print_title_rows, "$1:$3")
-        for sheet in workbook:
-            self.assertFalse(any(cell.data_type == "f" for row in sheet for cell in row))
+        self.assertEqual(schedule["D4"].value, 2)
+        self.assertEqual(schedule["E4"].value, 7.13)
+
+    def test_background_export_detaches_rendering_from_current_project(self):
+        entered, release = Event(), Event()
+        captured = {}
+
+        def render(snapshot, *_):
+            captured["revision"] = snapshot.revision
+            captured["title"] = snapshot.specification.title
+            entered.set()
+            if not release.wait(5):
+                raise RuntimeError("Test did not release renderer")
+            return dict(saved="background.html", revision=snapshot.revision, warnings=[])
+
+        with patch("modern.backend.reporting._render_export", side_effect=render):
+            revision = self.service.revision
+            token = self.call("report.export.start", format="html", path=str(self.root / "background.html"))["token"]
+            try:
+                self.assertTrue(entered.wait(5))
+                self.assertIsNone(self.service.call("report.export.status", dict(token=token))["result"])
+                self.call("report.settings.apply")
+                self.assertGreater(self.service.revision, revision)
+            finally:
+                release.set()
+            future = jobs[token]
+            self.assertEqual(future.result(timeout=5)["revision"], revision)
+            self.assertEqual(
+                self.service.call("report.export.status", dict(token=token))["result"]["saved"], "background.html"
+            )
+            self.assertEqual(captured, dict(revision=revision, title="<Title>"))
 
     def test_stale_drafts_and_invalid_formats_never_create_output(self):
         with self.assertRaisesRegex(ValueError, "Stale report"):

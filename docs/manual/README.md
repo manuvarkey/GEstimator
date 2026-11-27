@@ -207,72 +207,57 @@ use their template's calculation and display rounding.
 ### Compose an estimate report
 
 Open **Reports** with a project loaded. Enter the report title, organization,
-reference and issue date under **Report details**. Numbered section headers expand
-their settings one at a time, with a summary while collapsed. Include the abstract, schedule and signoff sections you
-need, edit their titles and drag their handles to choose order. Number badges toggle
-sections; focus a handle and press Alt+Up/Down for keyboard ordering. **Add page or
-section** allows repeated notes, signoff and other sections.
-Optionally include **Analyses of rates**, **Resources**, **Resource usage**,
-**Measurements** and **Notes**. Enable and expand the narrative section to enter **Notes text**;
-line breaks are retained as plain text. Measurements show accepted template
-records, constants and each output with its linked schedule item and unit.
-The cover and linked contents are included automatically. Analyses and measurements
-are grouped by category, with nested item contents links and normal-sized bold item
-captions. Enable **Print each item on a separate page** within either section when
-needed.
+office, reference and issue date under **Report details**. Select a logo if you
+want it on the facing page. GEstimator embeds the image so it stays available
+when the project moves. The sidebar opens one group at a time. Number badges
+toggle inclusion. Drag section and column handles to reorder them, or focus a
+handle and press Alt+Up/Down. Use **Add page or section** below the list to add
+another section.
 
-Open **Page and typography** to select an installed **Report font** and a
-**Font scale (%)** from 60% to 200%. Default reports use bundled Iosevka; HTML/PDF
-embed it, while Excel needs Iosevka installed in its viewer. The scale applies to preview and all report
-exports. Pages have 20 mm margins on all sides. A saved font unavailable on another
-computer uses a local fallback. Printed pages have a running section heading,
-page-number tab and ruled organization/page-count footer; the cover omits these.
+**Estimate defaults** in Program settings sets the office, logo, report title,
+section headings, notes and signature blocks for future estimates. Set a
+particular estimate's issue date in **Project settings → Report** or in the
+report itself. The Report tab also lets you restore program defaults. Reports
+loads project values when it has no saved definition.
 
-Use **Estimate defaults** in Program settings for organization, report title,
-reference/date, notes and editable signature captions/text. New projects copy
-those defaults. Project settings shows the corresponding fields and **Use default**
-controls. Reports populates from project settings when no saved report definition
-exists; saved report overrides are retained. Notes defaults precede the abstract.
-Signoff defaults to following Schedule on the same page. Edit its blocks or enable
-**Start signoff on a separate page**; additional signoff sections are independent.
+Notes and signature blocks have up to six numbered tabs each. You can add a tab
+or remove the selected tab after the first. Notes and the text before signature
+blocks can use Jinja2 fields such as `{{ name_of_work }}`, `{{ office }}` or
+`{{ estimate_total }}`, with simple conditions and text filters. Signoff follows
+Schedule by default. Enable **Start signoff on a separate page** to print it
+separately.
 
-Notes supports Jinja2 fields such as `{{ name_of_work }}`, `{{ organization }}` and
-`{{ estimate_total }}`, simple `if` conditions and text filters. Add up to three
-editable notes pages; long text may flow beyond a page. Template errors appear
-when generating the preview. HTML/executable expressions are not supported.
-**Show name of work** adds the project name to abstract/schedule sections.
+The cover and linked contents are included automatically. Schedule shows category
+subtotals and an estimate total. Resources and resource usage are grouped by
+category. The optional **Measurement abstract** lists the contributing
+measurements and total quantity for each linked schedule item. Set a word or
+line limit to shorten descriptions. Enable **Measurements** as well to link
+**Qty B/F** and **Quantity C/o** in both directions. Analyses and measurements
+link to individual items in the contents. Enable **Print each item on a
+separate page** when needed.
 
-Expand a section heading to choose Auto, Portrait or Landscape
-for printed pages. For abstract, schedule, resources and resource usage, enable
-**Customize columns** to include and reorder fields. Keep at least one column.
-Disable customization to restore the default columns. Estimate totals remain
-visible when an amount column is hidden. The continuous preview does not simulate
-paper orientation; PDF gives the paginated layout.
+Use **Page and typography** to choose an installed **Report font** and scale
+from 60% to 200%. HTML and PDF embed the default Iosevka font. Excel uses the
+selected font when it is installed in the workbook viewer. Printed pages use
+20 mm margins. Resources, resource usage and measurements default to portrait.
+Use a section's **Page orientation** setting to choose landscape. Enable
+**Customize columns** to choose and reorder fields. Keep at least one column.
 
-Choose **Generate preview**, review the total and document, then select HTML,
-Excel or available PDF and choose **Export report…**. The preview is continuous;
-PDF has definitive printed page numbers. Excel contents link to worksheets.
-Estimate totals use stored schedule rates and accepted quantities. Analysis
-sections show calculated analysis rates separately without changing stored rates. Apply or discard pending analysis/measurement drafts before reporting.
+Use **Generate preview** at the bottom of the sidebar. Review the report, then
+choose an output format and **Export report…**. PDF becomes available after a
+successful preview when WeasyPrint 70 or newer is installed. PDF shows printed
+page numbers, while Excel contents link to worksheets. Excel uses formulas for
+analysis calculations, measurement sums and links between available rate cells.
+Stored schedule rate overrides retain their accepted values. You can keep
+working while the report exports. Progress and export errors appear in Reports.
 
-Changing report settings or project data marks the preview out of date. Generate
-it again before exporting. Settings stay with the open project tab while you
-switch views/tabs. Choose **Apply report settings** to accept the definition into
-the working project, then **Save project** to keep it in the file. Apply is
-undoable and requires clean analysis/measurement drafts. Preview and export do
-not apply settings automatically. Closing without applying/saving can discard
-local changes. **Reload report settings** restores the working project's accepted
-definition, replacing local inputs. A newly opened Reports view loads it from the
-project. Unreadable newer definitions show a warning and are preserved until
-explicitly replaced with Apply. The existing full workbook export remains available.
-Resource usage shows direct resources and does not expand sub-analysis
-dependencies; its total can differ from the estimate because weights and stored
-rate overrides do not change resource quantities. Measurement and resource/usage PDF tables use
-landscape pages, and the analysis contents link to individual items.
-
-PDF requires an installed WeasyPrint 70 or newer renderer. If unavailable, HTML
-and Excel remain usable. A cancelled save chooser retains your report settings;
-export errors appear in the Reports view.
+Project data or composition edits make the preview out of date. Generate it
+again before exporting. Apply or discard pending analysis and measurement drafts
+before generating reports. Use **Apply report settings** to accept the
+definition into the working project, then **Save project** to keep it in the
+file. You can undo Apply. **Reload report settings** replaces local composition
+with the accepted definition or project defaults. The full-project workbook
+export is also available from the Schedule or Resources ribbon.
 
 ## 9. Save, tabs and recovery
 
@@ -294,13 +279,13 @@ replace an existing file after you confirm it in the Flatpak file chooser.
 ## 10. Settings
 
 - **Program settings** (application menu) controls number and currency formatting, live search, the MCP server and whether Enter opens the cell below. It also controls appearance, default analysis rows and the settings for **Modify & Add**.
-- **Project settings**: project name, code prefixes for items and resources, and project notes.
+- **Project settings** groups the project name, code prefixes and database notes under **General**. Estimate fields and defaults are under **Report**.
 
 ## 11. Use an AI assistant (MCP)
 
 GEstimator can run a local [Model Context Protocol](https://modelcontextprotocol.io) server so that an AI assistant (Claude, or any MCP client) reads and prepares estimates in the open project, using the same operations as the application.
 
-1. Tick **Enable the MCP server for AI assistants** in **Program settings → General** and save. In the **MCP** ribbon, use **Estimation skillset** to see or change the active library. The choice is saved and takes effect immediately, even while the server is running.
+1. Tick **Enable the MCP server for AI assistants** in **Program settings → MCP** and save. In the **MCP** ribbon, use **Estimation skillset** to see or change the active library. The choice is saved and takes effect immediately, even while the server is running.
 2. Click **Configure server** to choose the port and the access mode: **Read only** or **Read and write**. Copy the client configuration (endpoint and connection token) into your AI client.
 3. Click **Start server**.
 

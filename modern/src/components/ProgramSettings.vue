@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingsTabs from "./SettingsTabs.vue";
 import EstimateFieldsEditor from "./EstimateFieldsEditor.vue";
 import { computed, ref, onMounted, watch } from "vue";
 import { moneyFormatter } from "../numberFormatting";
@@ -50,6 +51,7 @@ function fontOptions(selected: string) {
 }
 const sections = [
   { key: "general", label: "General" },
+  { key: "mcp", label: "MCP" },
   { key: "appearance", label: "Appearance" },
   { key: "estimate", label: "Estimate defaults" },
   { key: "default", label: "Default analysis template" },
@@ -59,22 +61,6 @@ const fontGroups = [
   { label: "Interface", family: "uiFamily", size: "uiSize", placeholder: "Desktop default" },
   { label: "Tables", family: "tableFamily", size: "tableSize", placeholder: "Desktop default" },
 ] as const;
-function navigate(event: KeyboardEvent, index: number) {
-  const last = sections.length - 1;
-  const next =
-    event.key === "ArrowRight"
-      ? (index + 1) % sections.length
-      : event.key === "ArrowLeft"
-        ? (index + last) % sections.length
-        : event.key === "Home"
-          ? 0
-          : event.key === "End"
-            ? last
-            : -1;
-  if (next < 0) return;
-  event.preventDefault();
-  document.getElementById("settings-tab-" + sections[next]!.key)?.focus();
-}
 onMounted(async () => {
   try {
     await initializeProgramSettings();
@@ -142,187 +128,181 @@ async function reset() {
       current settings.
     </p>
     <p v-if="programSettingsWarning" class="dialog-error" role="status">{{ programSettingsWarning }}</p>
-    <div class="settings-tabs" role="tablist" aria-label="Program settings sections">
-      <button
-        v-for="(section, index) in sections"
-        :id="'settings-tab-' + section.key"
-        :key="section.key"
-        role="tab"
-        :tabindex="tab === section.key ? 0 : -1"
-        :aria-selected="tab === section.key"
-        :aria-controls="'settings-panel-' + section.key"
-        :disabled="busy"
-        @click="tab = section.key"
-        @keydown="navigate($event, index)"
-      >
-        {{ section.label }}
-      </button>
-    </div>
-    <section v-if="draft" :id="'settings-panel-' + tab" role="tabpanel" :aria-labelledby="'settings-tab-' + tab">
-      <template v-if="tab === 'general'">
-        <h3>Rates and amounts</h3>
-        <label class="field"
-          >Regional format<select v-model="draft.number_locale" aria-label="Regional format" :disabled="busy">
-            <option value="">System default</option>
-            <option v-if="savedLocale" :value="savedLocale">{{ savedLocale }} (saved format)</option>
-            <option v-for="option in localeOptions" :key="option.value" :value="option.value">
-              {{ option.label }} · {{ option.value }}
-            </option>
-          </select></label
-        >
-        <label class="field"
-          >Currency code<input
-            v-model="draft.currency_code"
-            maxlength="3"
-            aria-describedby="currency-code-help"
-            :disabled="busy"
-            @input="draft.currency_code = draft.currency_code.toUpperCase()"
-        /></label>
-        <p id="currency-code-help" class="field-hint">
-          Three-letter currency code (for example INR, USD or EUR). Selects the symbol for displayed rates, amounts and
-          monetary totals when enabled below. It does not convert prices or change calculations or workbook numeric
-          values.
-        </p>
-        <label class="library-remember"
-          ><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label
-        >
-        <p class="field-hint">
-          Preview: <output aria-label="Regional amount preview">{{ moneyPreview }}</output
-          >. Leave the region blank to follow your system. Numeric editing uses the original values and arithmetic
-          expressions.
-        </p>
-        <h3>Search</h3>
-        <label class="library-remember"
-          ><input v-model="draft.live_search" type="checkbox" :disabled="busy" />Search as you type</label
-        >
-        <p class="field-hint">
-          Schedule, Resources, the Analysis explorer and item pickers update shortly after you stop typing. Press Enter
-          or Search when this setting is off.
-        </p>
-        <h3>Cell editing</h3>
-        <label class="library-remember"
-          ><input v-model="draft.enter_edits_next_cell" type="checkbox" :disabled="busy" />Edit the cell below after
-          pressing Enter</label
-        >
-        <h3>AI assistants (MCP)</h3>
-        <label class="library-remember"
-          ><input v-model="draft.mcp_enabled" type="checkbox" :disabled="busy" />Enable the MCP server for AI
-          assistants</label
-        >
-        <p class="field-hint">
-          Off by default. When on, the MCP tab lets you start a local server (127.0.0.1 only, with a connection token)
-          that AI assistants on this computer can use to read and, if you allow it, edit the open project. Turning this
-          off stops a running server.
-        </p>
-        <label class="field">
-          Estimation skillset
-          <select v-model="draft.estimation_skill_library" :disabled="busy" aria-describedby="estimation-skillset-hint">
-            <option v-for="library in skillLibraries?.libraries" :key="library.id" :value="library.id">
-              {{ library.name }}
-            </option>
-          </select>
-        </label>
-        <p id="estimation-skillset-hint" class="field-hint">
-          {{ skillLibraries?.libraries.find((library) => library.id === draft?.estimation_skill_library)?.description }}
-        </p>
-        <p v-if="skillLibraries && skillLibraries.active_library !== skillLibraries.requested_library" role="status">
-          Estimation skill library “{{ skillLibraries.requested_library }}” is unavailable. Generic is active.
-        </p>
-        <h3>Export options</h3>
-        <label class="library-remember"
-          ><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across
-          multiple rows in exported workbooks</label
-        >
-      </template>
-      <template v-else-if="tab === 'estimate'"
-        ><fieldset :disabled="busy">
-          <legend>Defaults for new estimates</legend>
-          <EstimateFieldsEditor v-model="draft.estimate_defaults" label="Program default" /></fieldset
-      ></template>
-      <template v-else-if="tab === 'appearance'">
-        <label class="field"
-          >Theme<select v-model="appearanceDraft.theme" :disabled="busy">
-            <option value="system">Follow system</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select></label
-        >
-        <div v-for="group in fontGroups" :key="group.family" class="field-pair">
+    <SettingsTabs v-model="tab" :tabs="sections" label="Program settings sections" :disabled="busy">
+      <section v-if="draft">
+        <template v-if="tab === 'general'">
+          <h3>Rates and amounts</h3>
           <label class="field"
-            >{{ group.label }} font face<select
-              v-model="appearanceDraft[group.family]"
-              :aria-label="group.label + ' font face'"
-              :disabled="busy || fontsLoading"
-            >
-              <option value="">Desktop default</option>
-              <option v-for="font in fontOptions(appearanceDraft[group.family])" :key="font" :value="font">
-                {{ font }}{{ fontFamilies && !fontFamilies.includes(font) ? " (saved font unavailable)" : "" }}
+            >Regional format<select v-model="draft.number_locale" aria-label="Regional format" :disabled="busy">
+              <option value="">System default</option>
+              <option v-if="savedLocale" :value="savedLocale">{{ savedLocale }} (saved format)</option>
+              <option v-for="option in localeOptions" :key="option.value" :value="option.value">
+                {{ option.label }} · {{ option.value }}
               </option>
             </select></label
           >
           <label class="field"
-            >{{ group.label }} font size (px)<input
-              type="number"
-              min="10"
-              max="30"
-              step="any"
-              :value="appearanceDraft[group.size] ?? ''"
-              :placeholder="group.placeholder"
+            >Currency code<input
+              v-model="draft.currency_code"
+              maxlength="3"
+              aria-describedby="currency-code-help"
               :disabled="busy"
-              @input="
-                appearanceDraft[group.size] =
-                  ($event.target as HTMLInputElement).value === ''
-                    ? null
-                    : ($event.target as HTMLInputElement).valueAsNumber
-              "
+              @input="draft.currency_code = draft.currency_code.toUpperCase()"
           /></label>
-        </div>
-        <p v-if="fontsLoading" role="status" class="field-hint">Loading installed fonts…</p>
-        <p v-else-if="!fontFamilies?.length" class="field-hint">
-          The system font list is unavailable. Desktop default and any saved font remain available.
-        </p>
-        <p v-else class="field-hint">Choose an installed font, or Desktop default to follow the system.</p>
-      </template>
-      <template v-else-if="tab === 'default'">
-        <p class="field-hint">
-          Used by Analysis → Default rows and when opening an analysis with no calculation rows. An empty template
-          leaves blank analyses empty.
-        </p>
-        <AnalysisRowEditor v-model="draft.ana_default_rows" prefix="Default row" :disabled="busy" />
-      </template>
-      <template v-else>
-        <div class="settings-import-options">
-          <section>
-            <h3>Stored schedule rate</h3>
+          <p id="currency-code-help" class="field-hint">
+            Three-letter currency code (for example INR, USD or EUR). Selects the symbol for displayed rates, amounts
+            and monetary totals when enabled below. It does not convert prices or change calculations or workbook
+            numeric values.
+          </p>
+          <label class="library-remember"
+            ><input v-model="draft.show_currency_symbol" type="checkbox" :disabled="busy" />Show currency symbol</label
+          >
+          <p class="field-hint">
+            Preview: <output aria-label="Regional amount preview">{{ moneyPreview }}</output
+            >. Leave the region blank to follow your system. Numeric editing uses the original values and arithmetic
+            expressions.
+          </p>
+          <h3>Search</h3>
+          <label class="library-remember"
+            ><input v-model="draft.live_search" type="checkbox" :disabled="busy" />Search as you type</label
+          >
+          <p class="field-hint">
+            Schedule, Resources, the Analysis explorer and item pickers update shortly after you stop typing. Press
+            Enter or Search when this setting is off.
+          </p>
+          <h3>Cell editing</h3>
+          <label class="library-remember"
+            ><input v-model="draft.enter_edits_next_cell" type="checkbox" :disabled="busy" />Edit the cell below after
+            pressing Enter</label
+          >
+          <label class="field">
+            Estimation skillset
+            <select
+              v-model="draft.estimation_skill_library"
+              :disabled="busy"
+              aria-describedby="estimation-skillset-hint"
+            >
+              <option v-for="library in skillLibraries?.libraries" :key="library.id" :value="library.id">
+                {{ library.name }}
+              </option>
+            </select>
+          </label>
+          <p id="estimation-skillset-hint" class="field-hint">
+            {{
+              skillLibraries?.libraries.find((library) => library.id === draft?.estimation_skill_library)?.description
+            }}
+          </p>
+          <p v-if="skillLibraries && skillLibraries.active_library !== skillLibraries.requested_library" role="status">
+            Estimation skill library “{{ skillLibraries.requested_library }}” is unavailable. Generic is active.
+          </p>
+          <h3>Export options</h3>
+          <label class="library-remember"
+            ><input v-model="draft.export_break_items" type="checkbox" :disabled="busy" />Break item descriptions across
+            multiple rows in exported workbooks</label
+          >
+        </template>
+        <template v-else-if="tab === 'mcp'">
+          <h3>AI assistants (MCP)</h3>
+          <label class="library-remember"
+            ><input v-model="draft.mcp_enabled" type="checkbox" :disabled="busy" />Enable the MCP server for AI
+            assistants</label
+          >
+          <p class="field-hint">
+            Off by default. When on, the MCP tab lets you start a local server (127.0.0.1 only, with a connection token)
+            that AI assistants on this computer can use to read and, if you allow it, edit the open project. Turning
+            this off stops a running server.
+          </p>
+        </template>
+        <template v-else-if="tab === 'estimate'"
+          ><fieldset :disabled="busy">
+            <legend>Defaults for new estimates</legend>
+            <EstimateFieldsEditor v-model="draft.estimate_defaults" label="Program default" /></fieldset
+        ></template>
+        <template v-else-if="tab === 'appearance'">
+          <label class="field"
+            >Theme<select v-model="appearanceDraft.theme" :disabled="busy">
+              <option value="system">Follow system</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select></label
+          >
+          <div v-for="group in fontGroups" :key="group.family" class="field-pair">
             <label class="field"
-              >Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy"
-            /></label>
-            <p class="field-hint">Multiply the source rate. Use 1 to keep the source rate.</p>
-          </section>
-          <section>
-            <h3>Replace trailing analysis rows</h3>
+              >{{ group.label }} font face<select
+                v-model="appearanceDraft[group.family]"
+                :aria-label="group.label + ' font face'"
+                :disabled="busy || fontsLoading"
+              >
+                <option value="">Desktop default</option>
+                <option v-for="font in fontOptions(appearanceDraft[group.family])" :key="font" :value="font">
+                  {{ font }}{{ fontFamilies && !fontFamilies.includes(font) ? " (saved font unavailable)" : "" }}
+                </option>
+              </select></label
+            >
             <label class="field"
-              >Trailing analysis rows to replace<input
-                v-model.number="draft.ana_copy_delete_rows"
+              >{{ group.label }} font size (px)<input
                 type="number"
-                min="0"
-                max="5"
-                step="1"
+                min="10"
+                max="30"
+                step="any"
+                :value="appearanceDraft[group.size] ?? ''"
+                :placeholder="group.placeholder"
                 :disabled="busy"
+                @input="
+                  appearanceDraft[group.size] =
+                    ($event.target as HTMLInputElement).value === ''
+                      ? null
+                      : ($event.target as HTMLInputElement).valueAsNumber
+                "
             /></label>
-            <p v-if="!draft.ana_copy_delete_rows" class="field-hint">
-              Use a count above 0 to configure replacement rows.
-            </p>
-            <template v-else>
-              <p class="field-hint">
-                Add replacement rows below. This applies to source analyses with more rows than the count.
+          </div>
+          <p v-if="fontsLoading" role="status" class="field-hint">Loading installed fonts…</p>
+          <p v-else-if="!fontFamilies?.length" class="field-hint">
+            The system font list is unavailable. Desktop default and any saved font remain available.
+          </p>
+          <p v-else class="field-hint">Choose an installed font, or Desktop default to follow the system.</p>
+        </template>
+        <template v-else-if="tab === 'default'">
+          <p class="field-hint">
+            Used by Analysis → Default rows and when opening an analysis with no calculation rows. An empty template
+            leaves blank analyses empty.
+          </p>
+          <AnalysisRowEditor v-model="draft.ana_default_rows" prefix="Default row" :disabled="busy" />
+        </template>
+        <template v-else>
+          <div class="settings-import-options">
+            <section>
+              <h3>Stored schedule rate</h3>
+              <label class="field"
+                >Schedule rate multiplier<input v-model="draft.sch_rate_mult_factor" :disabled="busy"
+              /></label>
+              <p class="field-hint">Multiply the source rate. Use 1 to keep the source rate.</p>
+            </section>
+            <section>
+              <h3>Replace trailing analysis rows</h3>
+              <label class="field"
+                >Trailing analysis rows to replace<input
+                  v-model.number="draft.ana_copy_delete_rows"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="1"
+                  :disabled="busy"
+              /></label>
+              <p v-if="!draft.ana_copy_delete_rows" class="field-hint">
+                Use a count above 0 to configure replacement rows.
               </p>
-              <AnalysisRowEditor v-model="draft.ana_copy_rows" prefix="Modify row" :disabled="busy" />
-            </template>
-          </section>
-        </div>
-      </template>
-    </section>
+              <template v-else>
+                <p class="field-hint">
+                  Add replacement rows below. This applies to source analyses with more rows than the count.
+                </p>
+                <AnalysisRowEditor v-model="draft.ana_copy_rows" prefix="Modify row" :disabled="busy" />
+              </template>
+            </section>
+          </div>
+        </template>
+      </section>
+    </SettingsTabs>
     <p v-if="error" role="alert" class="dialog-error">{{ error }}</p>
     <div class="dialog-footer">
       <button class="button secondary" :disabled="busy || !draft" @click="reset">Restore shipped defaults</button

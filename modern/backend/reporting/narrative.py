@@ -25,6 +25,7 @@ FIELDS = (
     "name_of_work",
     "title",
     "organization",
+    "office",
     "reference",
     "issue_date",
     "estimate_total",
@@ -78,6 +79,7 @@ def build_narratives(document):
         name_of_work=document.project,
         title=spec.title,
         organization=spec.organization,
+        office=spec.office,
         reference=spec.reference,
         issue_date=spec.issue_date,
         estimate_total=document.total,
@@ -86,6 +88,8 @@ def build_narratives(document):
     )
     return tuple(
         Narrative(section.id, tuple(render(page, context) for page in section.body.split("\f")))
+        if section.kind == "narrative"
+        else Narrative(section.id, (render(section.signoff_intro, context),))
         for section in spec.sections
-        if section.enabled and section.kind == "narrative"
+        if section.enabled and (section.kind == "narrative" or section.kind == "signoff" and section.signoff_intro)
     )

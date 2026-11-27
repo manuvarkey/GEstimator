@@ -272,6 +272,10 @@ class Service:
             return reporting.document(self, p)
         if method == "report.preview":
             return reporting.preview(self, p)
+        if method == "report.export.start":
+            return reporting.start_export(self, p)
+        if method == "report.export.status":
+            return reporting.export_jobs.status(p)
         if method == "report.export":
             return reporting.export(self, p, progress)
         if method == "project.open":

@@ -4,6 +4,10 @@
 def category_groups(items):
     """Group by first category occurrence, retaining original item indices as anchors."""
     grouped = {}
+    labels = {}
     for index, item in enumerate(items):
-        grouped.setdefault(item.category or "UNCATEGORISED", []).append((index, item))
-    return tuple((category, tuple(values)) for category, values in grouped.items())
+        label = item.category or "UNCATEGORISED"
+        identity = getattr(item, "category_id", label)
+        labels.setdefault(identity, label)
+        grouped.setdefault(identity, []).append((index, item))
+    return tuple((labels[identity], tuple(values)) for identity, values in grouped.items())

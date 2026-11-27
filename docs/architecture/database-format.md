@@ -184,7 +184,9 @@ and record actual results in the [validation log](../migration/validation.md).
 ### Estimate field defaults
 
 `project_estimate_fields` is an optional JSON ProjectTable value for organization,
-report title/reference/date, template notes and editable signoff captions/text.
+report title/reference/date, office and embedded logo, section headings, template
+notes, signoff introduction and editable signature blocks. Program defaults omit
+issue date. The date remains editable per project and per report.
 No table or file-version marker changes. Program defaults are copied only when
 creating or explicitly editing a project; reads do not publish defaults. Existing
 unknown keys survive legacy settings writers. ProjectEditor owns Undo/Redo and

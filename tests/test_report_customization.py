@@ -3,6 +3,7 @@
 import copy
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -95,7 +96,9 @@ class ReportCustomization(unittest.TestCase):
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
         self.assertNotIn("<script>", html)
         self.assertIn('id="other"><h1>Notes</h1><div class="note-page"><p class="description">Other notes', html)
-        self.assertIn('class="section wide" id="measurements"', html)
+        self.assertIn('class="section" id="measurements"', html)
+        self.assertIn(">Sl. No.</th>", html)
+        self.assertIn("<em>A — Length\nB — Area</em>", html)
         path = Path(self.temp.name) / "report.xlsx"
         write_workbook(document, path)
         workbook = load_workbook(path)
@@ -106,9 +109,43 @@ class ReportCustomization(unittest.TestCase):
         self.assertEqual(workbook["Section 2"]["A4"].data_type, "s")
         self.assertEqual(workbook["Section 3"]["A4"].value, "Other notes")
         cells = [cell for sheet in workbook for row in sheet for cell in row]
-        self.assertFalse(any(cell.data_type == "f" for cell in cells))
+        self.assertTrue(any(cell.data_type == "f" and "SUM(" in cell.value for cell in cells))
         self.assertTrue(any(cell.value == "=Literal" for cell in cells))
-        self.assertTrue(any(cell.value == 2.346 and cell.number_format == "General" for cell in cells))
+        self.assertTrue(any(cell.value == 2.346 and cell.data_type == "n" for cell in cells))
+        self.assertEqual(workbook["Section 1"].page_setup.orientation, "portrait")
+
+    def test_measurement_abstract_links_each_output_and_sums_matching_units(self):
+        document = self.document(
+            sections=[
+                dict(id="billed", kind="measurement_abstract", description_words=1),
+                dict(id="detail", kind="measurements"),
+            ]
+        )
+        html = render_html(document)
+        for target in ("detail:measurement:0", "billed:item:0", "billed:item:1"):
+            self.assertIn(f'href="#{target}"', html)
+        self.assertIn("Qty B/F [", html)
+        self.assertIn("Quantity C/o [", html)
+        self.assertIn("Work …", html)
+        self.assertEqual(html.count(">Sl. No.</th>"), 2)
+        self.assertNotIn("<script>", html)
+        path = Path(self.temp.name) / "linked.xlsx"
+        write_workbook(document, path)
+        with closing(load_workbook(path)) as workbook:
+            abstract, details = workbook["Section 1"], workbook["Section 2"]
+            self.assertEqual(abstract["D6"].data_type, "f")
+            self.assertTrue(abstract["D6"].value.startswith("='Section 2'!E"))
+            self.assertEqual(abstract["C6"].value, "m")
+            self.assertEqual(abstract["D7"].value, "=SUM(D6:D6)")
+            self.assertEqual(abstract["C9"].value, "m2")
+            self.assertTrue(abstract["B6"].hyperlink.target.startswith("#'Section 2'!"))
+            self.assertTrue(
+                any(
+                    cell.hyperlink and cell.hyperlink.target.startswith("#'Section 1'!")
+                    for row in details
+                    for cell in row
+                )
+            )
 
     def test_template_constants_and_wide_columns_are_retained(self):
         db = self.service.db

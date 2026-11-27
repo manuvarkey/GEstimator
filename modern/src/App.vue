@@ -41,6 +41,7 @@ import { useWorkspaceNavigation, type ProjectView } from "./useWorkspaceNavigati
 import { useWorkspaceMCP } from "./useWorkspaceMCP";
 import { notify, statusNotice } from "./statusNotice";
 import ProjectViews from "./components/ProjectViews.vue";
+import { reportExporting } from "./reportExport";
 import ReportWorkspace from "./components/ReportWorkspace.vue";
 import AnalysisTable from "./components/AnalysisTable.vue";
 import { useWorkspace } from "./useWorkspace";
@@ -504,6 +505,11 @@ onMounted(async () => {
       );
       unsubscribers.push(
         await getCurrentWindow().onCloseRequested(async (event) => {
+          if (reportExporting.value) {
+            event.preventDefault();
+            status.value = "Wait for the report export to finish before closing GEstimator.";
+            return;
+          }
           if (busy.value || projectBusy.value) {
             event.preventDefault();
             return;

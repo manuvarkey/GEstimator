@@ -60,7 +60,7 @@ def parse_columns(kind, value):
     return tuple(value)
 
 
-def table_values(document, section, *, excel=False):
+def table_values(document, section, *, excel=False, group_categories=False):
     """Project accepted values in the chosen order without recalculating totals.
 
     Default HTML omits schedule remarks, while default Excel retains its existing
@@ -72,6 +72,8 @@ def table_values(document, section, *, excel=False):
         columns = tuple(by_key[key] for key in section.columns)
     else:
         columns = available[:-1] if section.kind == "schedule" and not excel else available
+    if group_categories and section.columns is None:
+        columns = tuple(column for column in columns if column.key != "category")
     rows = getattr(document, section.kind)
     values = []
     for row in rows:
@@ -89,6 +91,7 @@ def table_values(document, section, *, excel=False):
 # Relative space follows the meaning of the field, so hiding or moving a column
 # redistributes the available page width without losing the description's share.
 WIDTH_WEIGHTS = {
+    "Sl. No.": 11,
     "Code": 13,
     "Description": 48,
     "Unit": 10,

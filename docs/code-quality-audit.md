@@ -282,3 +282,23 @@ without new calculations. Original Iosevka faces/license are packaged and embedd
 for offline HTML/PDF. Full renderer cancellation/quotas, office layout bundles and
 installed Windows/portal verification remain open; local frozen Linux evidence
 is recorded in validation. XLSX retains font names rather than embedding fonts.
+
+## 2026-11-27 report settings and export follow-up
+
+Settings use shared, keyboard-accessible tabs for notes and signature blocks.
+The report sidebar keeps scrolling input separate from preview and export
+controls. The Tauri WebView permits embedded images and fonts. The preview
+frame retains its sandbox and restrictive content policy.
+
+The project owner still validates revisions and captures accepted data.
+Background rendering uses an immutable snapshot and the existing export
+publication boundary. The PDF renderer has its own 120-second limit.
+Renderer process-tree cancellation, installed WebView and Flatpak portal
+verification remain deployment work.
+
+Excel formulas refer to generated cells and validated numeric inputs. Formula
+addressing and analysis state live in a separate workbook module. The HTML
+measurement layout owns printable cross-references. The engine continues to
+own accepted quantities and rates. Stored schedule overrides retain their value
+in the workbook. Measurement formula inputs may appear beside the print area
+when an installed template's visible record precision differs from its sum inputs.

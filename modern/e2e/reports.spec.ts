@@ -53,6 +53,7 @@ s.close_database()
 test("reports compose ordered sections and export matching HTML, Excel and available PDF", async ({ page }) => {
   test.setTimeout(90000);
   const report = await openReport(page);
+  await expect(report.getByLabel("Output format").locator('option[value="pdf"]')).toBeDisabled();
   await report.getByLabel("Report title", { exact: true }).fill("<Project report>");
   await report.getByLabel("Organization", { exact: true }).fill("Engineering office");
   await report.getByLabel("Include signoff", { exact: true }).click();
@@ -127,11 +128,11 @@ test("reports preserve settings across views, reject stale previews and retain f
   await expect(report.getByRole("alert")).toBeVisible();
   expect(await readFile(path, "utf8")).toBe("original");
   await expect(report.getByLabel("Reference", { exact: true })).toHaveValue("REF-1");
-  const before = frontendCalls.filter((entry) => entry.method === "report.export").length;
+  const before = frontendCalls.filter((entry) => entry.method === "report.export.start").length;
   nativeDialogResults.push(null);
   await exportButton.click();
   await expect(exportButton).toBeEnabled();
-  expect(frontendCalls.filter((entry) => entry.method === "report.export")).toHaveLength(before);
+  expect(frontendCalls.filter((entry) => entry.method === "report.export.start")).toHaveLength(before);
 });
 
 test("reports handle busy previews and keep composition local to a project tab", async ({ page }) => {
@@ -181,7 +182,7 @@ test("reports include analyses, resources and usage with shared engine values", 
   await expect(page.getByText(`Report exported: ${htmlPath}`, { exact: true })).toBeVisible();
   const html = await readFile(htmlPath, "utf8");
   expect(html).toContain('href="#analyses:analysis:0"');
-  expect(html).toContain('class="section wide" id="resources"');
+  expect(html).toContain('class="section" id="resources"');
   await report.getByLabel("Output format").selectOption("xlsx");
   const excelPath = resolve(directory, "complete.xlsx");
   nativeDialogResults.push(excelPath);
@@ -224,7 +225,7 @@ test("reports render measurement templates and editable plain-text notes", async
   const preview = page.frameLocator('iframe[title="Report preview"]');
   await expect(preview.locator("#narrative")).toContainText("<Notes>");
   await expect(preview.locator("#narrative script")).toHaveCount(0);
-  await expect(preview.locator("#measurements")).toContainText("Complete measurement sheets");
+  await expect(preview.locator("#measurements")).toContainText("Sl. No.");
   await expect(preview.locator("#measurements")).toContainText("Measured foundation");
   await expect(preview.locator("#measurements")).toContainText("24.0");
   await notes.fill("Updated notes");
@@ -258,14 +259,13 @@ test("reports customize column order and page orientation without changing total
     await schedule.getByLabel(`Include schedule ${name} column`, { exact: true }).uncheck();
   }
   await schedule.getByLabel("Include schedule Remarks column", { exact: true }).check();
-  const move = schedule.getByRole("button", { name: "Move schedule Amount column up", exact: true });
-  await move.focus();
-  await page.keyboard.press("Enter");
-  await move.click();
+  const move = schedule.getByRole("button", { name: "Reorder schedule Amount column", exact: true });
+  await move.press("Alt+ArrowUp");
+  await move.dragTo(schedule.getByRole("button", { name: "Reorder schedule Description column", exact: true }));
   await schedule.getByLabel("schedule page orientation", { exact: true }).selectOption("landscape");
   await report.getByRole("button", { name: "Generate preview", exact: true }).click();
   const preview = page.frameLocator('iframe[title="Report preview"]');
-  await expect(preview.locator("#schedule th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
+  await expect(preview.locator("#schedule thead th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
   await expect(preview.locator("#schedule")).toHaveClass("section wide");
   await expect(report.locator(".report-summary")).toContainText("20.00");
   await report.getByLabel("Output format").selectOption("xlsx");
@@ -290,7 +290,7 @@ test("reports customize column order and page orientation without changing total
   await expect(schedule.getByLabel("schedule page orientation", { exact: true })).toHaveValue("portrait");
   await report.getByRole("button", { name: "Generate preview", exact: true }).click();
   await expect(preview.locator("#schedule")).toHaveClass("section portrait");
-  await expect(preview.locator("#schedule th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
+  await expect(preview.locator("#schedule thead th")).toHaveText(["Amount", "Description", "Quantity", "Remarks"]);
   await schedule.scrollIntoViewIfNeeded();
   await page.screenshot({ path: "test-results/report-layout-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
@@ -299,7 +299,7 @@ test("reports customize column order and page orientation without changing total
   await page.screenshot({ path: "test-results/report-layout-dark-narrow.png", animations: "disabled" });
   await schedule.getByLabel("schedule custom columns", { exact: true }).uncheck();
   await report.getByRole("button", { name: "Generate preview", exact: true }).click();
-  await expect(preview.locator("#schedule th")).toHaveText([
+  await expect(preview.locator("#schedule thead th")).toHaveText([
     "Code",
     "Description",
     "Unit",
@@ -341,6 +341,7 @@ test("reports apply settings to the working project and restore them after save 
   await page.locator(".titlebar").getByRole("button", { name: "Save project", exact: true }).click();
   await expect.poll(async () => (await call("state")).result.workspace_dirty).toBe(false);
   expect(await readFile(path)).not.toEqual(original);
+  await report.locator(".settings-group").filter({ hasText: "Report details" }).locator("summary").click();
   await report.getByLabel("Report title", { exact: true }).fill("Unapplied change");
   await report.getByRole("button", { name: "Reload report settings", exact: true }).click();
   await expect(report.getByLabel("Report title", { exact: true })).toHaveValue("Saved office report");
@@ -435,7 +436,7 @@ test("report typography uses installed fonts, persists and invalidates previews"
   await page.screenshot({ path: "test-results/report-typography-light.png", animations: "disabled" });
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await page.setViewportSize({ width: 700, height: 900 });
-  await typography.scrollIntoViewIfNeeded();
+  await typography.locator("summary").click();
   await expect(font).toBeVisible();
   await page.screenshot({ path: "test-results/report-typography-dark-narrow.png", animations: "disabled" });
 });
@@ -500,15 +501,51 @@ test("program estimate defaults populate project fields and the report", async (
   await page.getByRole("menuitem", { name: "Program settings…", exact: true }).click();
   const program = page.getByRole("dialog", { name: "Program settings", exact: true });
   await program.getByRole("tab", { name: "Estimate defaults", exact: true }).click();
+  await expect(program.getByLabel("Program default Issue date", { exact: true })).toHaveCount(0);
   await program.getByLabel("Program default Organization", { exact: true }).fill("Default office");
+  await program.getByLabel("Program default Office", { exact: true }).fill("Engineering Division\nNorth Office");
+  await program.getByLabel("Program default logo", { exact: true }).setInputFiles({
+    name: "office.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20"><rect width="40" height="20" fill="navy"/></svg>',
+    ),
+  });
+  await expect(program.getByRole("img", { name: "Selected report logo" })).toBeVisible();
+  await program.getByText("Default block headings", { exact: true }).click();
+  await program.getByLabel("schedule default heading", { exact: true }).fill("Schedule of work");
+  await program.getByText("Default notes pages", { exact: true }).click();
+  await expect(program.getByRole("button", { name: "Remove current page" })).toBeDisabled();
+  const addPage = program.getByRole("button", { name: "Add notes page" });
+  for (let index = 2; index <= 6; index++) await addPage.click();
+  await expect(addPage).toBeDisabled();
+  await expect(program.getByRole("tab", { name: "Page 6" })).toHaveAttribute("aria-selected", "true");
+  await program.getByLabel("Notes text page 6", { exact: true }).fill("Remove this page");
+  await program.getByRole("button", { name: "Remove current page" }).click();
+  await expect(program.getByRole("tab", { name: "Page 6" })).toHaveCount(0);
+  await program.getByRole("tab", { name: "Page 1" }).click();
+  await program.getByLabel("Notes text", { exact: true }).fill("Prepared for {{ organization }}");
   await program.locator("summary").filter({ hasText: "Signoff blocks" }).click();
   await program.getByLabel("Program default signoff block 1 caption", { exact: true }).fill("Office engineer");
+  await program
+    .getByLabel("Text before signature blocks (Jinja2)", { exact: true })
+    .fill("Certified by {{ organization }}");
+  await expect(program.getByRole("button", { name: "Remove current block" })).toBeDisabled();
+  const addBlock = program.getByRole("button", { name: "Add signature block" });
+  for (let index = 4; index <= 6; index++) await addBlock.click();
+  await expect(addBlock).toBeDisabled();
+  await expect(program.getByRole("tab", { name: "Block 6" })).toHaveAttribute("aria-selected", "true");
+  await program.getByRole("button", { name: "Remove current block" }).click();
+  await expect(program.getByRole("tab", { name: "Block 6" })).toHaveCount(0);
   await program.getByRole("button", { name: "Save program settings", exact: true }).click();
   await expect(program).not.toBeVisible();
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Project settings…", exact: true }).click();
   const project = page.getByRole("dialog", { name: "Project settings", exact: true });
+  await project.getByRole("tab", { name: "Report", exact: true }).click();
   await expect(project.getByLabel("Project Organization", { exact: true })).toHaveValue("Default office");
+  await expect(project.getByLabel("Project Office", { exact: true })).toHaveValue("Engineering Division\nNorth Office");
+  await expect(project.getByRole("img", { name: "Selected report logo" })).toBeVisible();
   await project.getByLabel("Project Organization", { exact: true }).fill("Override");
   await project.getByRole("button", { name: "Use program default for organization", exact: true }).click();
   await expect(project.getByLabel("Project Organization", { exact: true })).toHaveValue("Default office");
@@ -522,4 +559,39 @@ test("program estimate defaults populate project fields and the report", async (
     .filter({ has: page.getByRole("button", { name: "Include signoff", exact: true }) });
   await signoff.locator("summary").click();
   await expect(signoff.getByLabel("Signoff signature block 1 caption", { exact: true })).toHaveValue("Office engineer");
+  await expect(report.getByLabel("Report title", { exact: true })).toBeHidden();
+  await expect(report.locator("details[open]")).toHaveCount(1);
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.getByRole("img", { name: "Office logo" })).toBeVisible();
+  await expect(preview.locator(".cover-office")).toContainText("Engineering Division");
+  await expect(preview.locator("#signoff")).toContainText("Certified by Default office");
+  await expect(preview.locator("#schedule h1")).toHaveText("Schedule of work");
+});
+
+test("report export keeps the workspace interactive and measurement sections cross-reference", async ({ page }) => {
+  const report = await openReport(page, true);
+  await expect(report.getByLabel("Include measurement abstract", { exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await report.getByLabel("Include measurement abstract", { exact: true }).click();
+  await report.getByLabel("Include measurements", { exact: true }).click();
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator('#measurement_abstract a[href="#measurements:measurement:0"]')).toBeVisible();
+  await expect(preview.locator('#measurements a[href="#measurement_abstract:item:0"]')).toBeVisible();
+
+  const resume = await holdNextRequest(page, "report.export.status");
+  const path = resolve(directory, "background.html");
+  nativeDialogResults.push(path);
+  await report.getByRole("button", { name: "Export report…", exact: true }).click();
+  await expect(report.getByRole("progressbar", { name: "Exporting report" })).toBeVisible();
+  await page.waitForFunction(() => typeof Reflect.get(window, "resumeHeldRequest") === "function");
+  await expect(report.getByRole("button", { name: "Generate preview", exact: true })).toBeEnabled();
+  await page.locator("#view-schedule").click();
+  await expect(page.locator("#view-schedule")).toHaveAttribute("aria-selected", "true");
+  await resume();
+  await expect(page.getByText("Report exported: " + path, { exact: true })).toBeVisible();
+  expect(await readFile(path, "utf8")).toContain("Quantity C/o");
 });

@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 
-def render_pdf(html: str, executable: Path, timeout: float = 60) -> tuple[bytes, str]:
+def render_pdf(html: str, executable: Path, timeout: float = 120) -> tuple[bytes, str]:
     """Render in a fresh scratch directory and return PDF bytes and diagnostics.
 
     The caller selects a trusted executable, not a project-supplied command.

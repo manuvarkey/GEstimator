@@ -2,21 +2,17 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { save } from "@tauri-apps/plugin-dialog";
 import AppIcon from "./AppIcon.vue";
+import ReportLogoEditor from "./ReportLogoEditor.vue";
 import ReportAppearance from "./ReportAppearance.vue";
 import ReportSections from "./ReportSections.vue";
 import { initializeProgramSettings, programSettings } from "../programSettings";
-import { request } from "../backend";
+import { currentBackendSession, request } from "../backend";
 import { activeDocument } from "../documents";
 import { recallTabState, rememberTabState } from "../tabMemory";
 import { formatMoney } from "../numberFormatting";
+import { renderReportExport, reportExporting, reportExportMessage, reportNumberFormat } from "../reportExport";
 import { notify } from "../statusNotice";
-import type {
-  ReportExportResult,
-  ReportFormat,
-  ReportPreview,
-  ReportSettings,
-  ReportSpecification,
-} from "../reportTypes";
+import type { ReportFormat, ReportPreview, ReportSettings, ReportSpecification } from "../reportTypes";
 
 const props = defineProps<{ revision: number; externalBusy: boolean }>();
 const emit = defineEmits<{ busy: [value: boolean]; changed: [] }>();
@@ -26,6 +22,7 @@ type ReportMemory = {
   preview?: ReportPreview;
   previewSpec: string;
   format: ReportFormat;
+  defaults?: ReportSpecification;
 };
 const memory = recallTabState<ReportMemory>("report");
 const defaultSpecification = (): ReportSpecification => ({
@@ -34,6 +31,8 @@ const defaultSpecification = (): ReportSpecification => ({
   organization: "",
   reference: "",
   issue_date: "",
+  office: "",
+  logo: "",
   font_family: "",
   font_scale: 1,
   sections: [],
@@ -44,6 +43,7 @@ const previewSpec = ref(memory?.previewSpec ?? "");
 const format = ref<ReportFormat>(memory?.format ?? "html");
 const busy = ref(false);
 const error = ref("");
+const defaults = ref<ReportSpecification | undefined>(memory?.defaults);
 const locked = computed(() => busy.value || props.externalBusy);
 const stale = computed(
   () =>
@@ -51,7 +51,12 @@ const stale = computed(
     (preview.value.document.revision !== props.revision || previewSpec.value !== JSON.stringify(specification.value)),
 );
 const canExport = computed(
-  () => !!preview.value && !stale.value && !locked.value && (format.value !== "pdf" || preview.value.pdf_available),
+  () =>
+    !!preview.value &&
+    !stale.value &&
+    !locked.value &&
+    !reportExporting.value &&
+    (format.value !== "pdf" || preview.value.pdf_available),
 );
 let generation = 0;
 
@@ -67,7 +72,8 @@ async function loadSettings() {
       estimate_defaults: programSettings.value?.estimate_defaults,
     });
     if (token !== generation) return;
-    specification.value = result.specification ?? result.defaults;
+    defaults.value = result.defaults;
+    specification.value = result.specification ?? structuredClone(result.defaults);
     error.value = result.warning;
   } catch (reason) {
     if (token === generation) error.value = String(reason);
@@ -114,6 +120,7 @@ async function generate() {
     const result = await request<ReportPreview>("report.preview", {
       revision: props.revision,
       specification: JSON.parse(snapshot),
+      number_format: reportNumberFormat(programSettings.value?.number_locale ?? ""),
     });
     if (token !== generation) return;
     preview.value = result;
@@ -130,10 +137,11 @@ async function generate() {
 
 async function exportReport() {
   if (!canExport.value || !preview.value) return;
-  busy.value = true;
-  emit("busy", true);
-  error.value = "";
+  reportExporting.value = true;
+  reportExportMessage.value = "";
+  const session = currentBackendSession();
   try {
+    const numberFormat = reportNumberFormat(programSettings.value?.number_locale ?? "");
     // Keep the preview's exact definition/revision across the native chooser.
     const captured = preview.value.document;
     const selectedFormat = format.value;
@@ -143,20 +151,22 @@ async function exportReport() {
       filters: [{ name: labels[selectedFormat], extensions: [selectedFormat] }],
     });
     if (typeof path !== "string") return;
-    const result = await request<ReportExportResult>("report.export", {
-      revision: captured.revision,
-      specification: captured.specification,
-      format: selectedFormat,
-      path,
-      replace_selected: true,
-    });
-    notify(`Report exported: ${result.saved}`);
-    if (result.warnings.length) error.value = result.warnings.join("\n");
+    await renderReportExport(
+      {
+        revision: captured.revision,
+        specification: captured.specification,
+        format: selectedFormat,
+        path,
+        replace_selected: true,
+        number_format: numberFormat,
+      },
+      session,
+    );
   } catch (reason) {
-    error.value = String(reason);
+    reportExportMessage.value = String(reason);
+    notify("Report export failed: " + String(reason));
   } finally {
-    busy.value = false;
-    emit("busy", false);
+    reportExporting.value = false;
   }
 }
 
@@ -168,6 +178,7 @@ onBeforeUnmount(() => {
     preview: preview.value,
     previewSpec: previewSpec.value,
     format: format.value,
+    defaults: defaults.value,
   } satisfies ReportMemory);
 });
 defineExpose({ exportWorkbook: exportReport, canExport });
@@ -175,19 +186,6 @@ defineExpose({ exportWorkbook: exportReport, canExport });
 
 <template>
   <section class="report-workspace" aria-label="Report workspace" :aria-busy="busy">
-    <div class="report-toolbar">
-      <strong>Estimate report</strong>
-      <button :disabled="locked" @click="generate"><AppIcon name="refresh" />Generate preview</button>
-      <label
-        >Output format
-        <select v-model="format" :disabled="locked">
-          <option value="html">HTML</option>
-          <option value="xlsx">Excel</option>
-          <option value="pdf" :disabled="!preview?.pdf_available">PDF</option>
-        </select>
-      </label>
-      <button :disabled="!canExport" @click="exportReport"><AppIcon name="file" />Export report…</button>
-    </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <p v-if="stale" class="report-status" role="status">
       Preview is out of date. Generate a new preview before exporting.
@@ -196,58 +194,81 @@ defineExpose({ exportWorkbook: exportReport, canExport });
       PDF export requires an installed WeasyPrint 70 or newer renderer. HTML and Excel are available.
     </p>
     <div class="report-body">
-      <fieldset class="report-settings" :disabled="locked">
-        <legend>Report settings</legend>
-        <details class="settings-group" open>
-          <summary>
-            <span class="step-number">1</span
-            ><span
-              >Report details<small>{{ specification.title || "Title, organization and reference" }}</small></span
-            >
-            <AppIcon class="settings-chevron" name="chevron" />
-          </summary>
-          <div class="settings-group-body">
-            <label>Report title<input v-model="specification.title" maxlength="10000" /></label>
-            <label>Organization<input v-model="specification.organization" maxlength="10000" /></label>
-            <label>Reference<input v-model="specification.reference" maxlength="10000" /></label>
-            <label
-              >Issue date<input
-                v-model="specification.issue_date"
-                maxlength="10000"
-                placeholder="e.g. 26 November 2026"
-            /></label>
-          </div>
-        </details>
-        <details class="settings-group">
-          <summary>
-            <span class="step-number">2</span
-            ><span
-              >Page and typography<small
-                >20 mm margins · {{ Math.round((specification.font_scale ?? 1) * 100) }}% font scale</small
-              ></span
-            >
-            <AppIcon class="settings-chevron" name="chevron" />
-          </summary>
-          <div class="settings-group-body"><ReportAppearance v-model="specification" /></div>
-        </details>
-        <div class="report-settings-actions">
-          <button :disabled="locked" @click="applySettings">Apply report settings</button>
-          <button :disabled="locked" @click="loadSettings">Reload report settings</button>
+      <aside class="report-settings" aria-label="Report settings">
+        <div class="panel-heading">Report settings</div>
+        <div class="report-scroll">
+          <fieldset class="report-composition-fields" :disabled="locked" aria-label="Report composition">
+            <details class="settings-group" name="report-settings" open>
+              <summary>
+                <span
+                  >Report details<small>{{ specification.title || "Title, organization and reference" }}</small></span
+                >
+                <AppIcon class="settings-chevron" name="chevron" />
+              </summary>
+              <div class="settings-group-body">
+                <label>Report title<input v-model="specification.title" maxlength="10000" /></label>
+                <label>Organization<input v-model="specification.organization" maxlength="10000" /></label>
+                <label>Reference<input v-model="specification.reference" maxlength="10000" /></label>
+                <label
+                  >Issue date<input
+                    v-model="specification.issue_date"
+                    maxlength="10000"
+                    placeholder="e.g. 26 November 2026"
+                /></label>
+                <label
+                  >Office<textarea v-model="specification.office" rows="3" maxlength="10000" data-multiline />
+                </label>
+                <ReportLogoEditor v-model="specification.logo" />
+              </div>
+            </details>
+            <details class="settings-group" name="report-settings">
+              <summary>
+                <span
+                  >Page and typography<small
+                    >20 mm margins · {{ Math.round((specification.font_scale ?? 1) * 100) }}% font scale</small
+                  ></span
+                >
+                <AppIcon class="settings-chevron" name="chevron" />
+              </summary>
+              <div class="settings-group-body"><ReportAppearance v-model="specification" /></div>
+            </details>
+            <ReportSections
+              v-model="specification.sections"
+              :locked="locked"
+              :default-sections="defaults?.sections ?? []"
+              :signoff-defaults="
+                specification.sections.find((section) => section.kind === 'signoff')?.signoff_blocks ??
+                programSettings?.estimate_defaults.signoff_blocks ??
+                []
+              "
+            />
+            <div class="report-settings-actions">
+              <button :disabled="locked" @click="applySettings">Apply report settings</button>
+              <button :disabled="locked" @click="loadSettings">Reload report settings</button>
+            </div>
+            <p class="report-hint">
+              Apply report settings to the working project, then Save project to keep them in the file. Unapplied
+              changes stay with this open tab.
+            </p>
+          </fieldset>
         </div>
-        <ReportSections
-          v-model="specification.sections"
-          :locked="locked"
-          :signoff-defaults="
-            specification.sections.find((section) => section.kind === 'signoff')?.signoff_blocks ??
-            programSettings?.estimate_defaults.signoff_blocks ??
-            []
-          "
-        />
-        <p class="report-hint">
-          Apply report settings to the working project, then Save project to keep them in the file. Unapplied changes
-          stay with this open tab.
-        </p>
-      </fieldset>
+        <div class="report-controls">
+          <button :disabled="locked" @click="generate"><AppIcon name="refresh" />Generate preview</button>
+          <label
+            >Output format
+            <select v-model="format" :disabled="locked">
+              <option value="html">HTML</option>
+              <option value="xlsx">Excel</option>
+              <option value="pdf" :disabled="!preview?.pdf_available">PDF</option>
+            </select>
+          </label>
+          <button :disabled="!canExport" @click="exportReport"><AppIcon name="file" />Export report…</button>
+          <div v-if="reportExporting" class="export-progress" role="status">
+            <progress aria-label="Exporting report" />Exporting report…
+          </div>
+          <p v-if="reportExportMessage" class="error" role="alert">{{ reportExportMessage }}</p>
+        </div>
+      </aside>
       <div class="report-preview">
         <template v-if="preview">
           <div class="report-summary">
@@ -271,16 +292,27 @@ defineExpose({ exportWorkbook: exportReport, canExport });
   padding: 12px;
   gap: 10px;
 }
-.report-toolbar {
+.report-controls {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-block-start: 1px solid var(--line);
 }
-.report-toolbar label {
+.report-controls > button:first-child,
+.export-progress,
+.report-controls > p {
+  flex-basis: 100%;
+}
+.report-controls label,
+.export-progress {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.export-progress progress {
+  inline-size: 54px;
 }
 .report-status {
   margin: 0;
@@ -294,26 +326,41 @@ defineExpose({ exportWorkbook: exportReport, canExport });
   flex: 1;
 }
 .report-settings {
-  margin: 0;
-  padding: 12px;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.report-scroll {
   overflow: auto;
   min-width: 0;
-  border: 1px solid var(--line);
+  min-height: 0;
+}
+.report-composition-fields {
+  margin: 0;
+  padding: 0 12px 12px;
+  min-width: 0;
+  border: 0;
 }
 .settings-group-body > label {
   display: grid;
   gap: 4px;
   margin-bottom: 12px;
 }
-.report-settings legend {
-  background: var(--bg);
-  padding-inline: 4px;
-}
 .settings-group {
-  border-bottom: 1px solid var(--line);
+  border: 1px solid transparent;
+  border-block-end-color: var(--line);
+  padding-inline: 6px;
 }
-.settings-group summary,
-.section-settings summary {
+.settings-group[open] {
+  border-color: var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.settings-group summary {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -337,20 +384,6 @@ summary small {
   font-weight: normal;
   color: var(--muted);
   margin-block-start: 3px;
-}
-.step-number {
-  display: grid;
-  place-items: center;
-  min-width: 26px;
-  height: 26px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--muted);
-  background: var(--panel);
-}
-details[open] > summary .step-number {
-  color: var(--text);
-  border-color: var(--accent);
 }
 .settings-group-body {
   padding-block: 6px;
@@ -404,7 +437,8 @@ details[open] > summary .step-number {
     overflow: auto;
   }
   .report-settings {
-    overflow: visible;
+    block-size: min(65vh, 520px);
+    flex-shrink: 0;
   }
   .report-preview {
     min-height: 500px;

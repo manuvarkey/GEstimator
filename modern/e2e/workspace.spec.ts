@@ -396,6 +396,7 @@ test("MCP server is off until enabled in Program Settings", async ({ page }) => 
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: /Program settings/ }).click();
   const settings = page.getByRole("dialog", { name: /Program settings/ });
+  await settings.getByRole("tab", { name: "MCP", exact: true }).click();
   const option = settings.getByRole("checkbox", { name: "Enable the MCP server for AI assistants" });
   await expect(option).not.toBeChecked();
   await option.check();
@@ -418,6 +419,7 @@ test("MCP server is off until enabled in Program Settings", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Stop MCP server", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Application menu", exact: true }).click();
   await page.getByRole("menuitem", { name: /Program settings/ }).click();
+  await settings.getByRole("tab", { name: "MCP", exact: true }).click();
   await settings.getByRole("checkbox", { name: "Enable the MCP server for AI assistants" }).uncheck();
   await settings.getByRole("button", { name: /^Save/ }).click();
   await expect(page.locator("#view-mcp")).toHaveCount(0);
