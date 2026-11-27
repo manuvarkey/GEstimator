@@ -11,6 +11,7 @@ import {
   pendingPaths,
   type DocumentAction,
 } from "./documents";
+import { initializeProgramSettings, programSettings } from "./programSettings";
 import { restoreLibraries } from "./libraryPreferences";
 import type { useDocumentTabs } from "./useDocumentTabs";
 import type { useWorkspace } from "./useWorkspace";
@@ -218,7 +219,8 @@ export function useProjectFiles(context: ProjectFilesContext) {
     if (await inNewDocument({ type: "new" })) return;
     await navigate(async (discard) => {
       await w.run(async () => {
-        await request("project.new", { discard });
+        await initializeProgramSettings();
+        await request("project.new", { discard, estimate_defaults: programSettings.value?.estimate_defaults });
         await restoreLibraries();
         await w.refresh();
         // Step 2: invalidate old view state only after the replacement succeeds.

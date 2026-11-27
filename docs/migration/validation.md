@@ -2634,3 +2634,76 @@ Validation:
 No native code, runtime dependency, project table/version or calculation changed.
 Installed Windows/Linux WebView, renderer/font packaging and portal checks remain
 release gates. Font availability on another computer can change local fallback.
+
+
+## 2026-11-27 — Estimate report composition, defaults and bundled Iosevka
+
+Committed the preceding saved-definition/presentation work as `39e9f1ab`, then
+implemented the requested report extensions:
+
+- Bundled upstream Iosevka v34.9.2 Regular/Bold (lossless WOFF2 conversion), OFL
+  license and provenance. Verified the upstream TTF ZIP SHA-256 before conversion:
+  `76620515a293be7f7ea389d2e95c7d88c8ff3bebeb32222a8390867f338ac37a`.
+  Default HTML/PDF embeds both faces offline; system font selection remains.
+  XLSX stores the family name and requires installation in its viewer.
+- Category-first analysis/measurement groups and nested category/item contents,
+  measurement sheet anchors, normal-sized bold item captions and per-item PDF /
+  worksheet row-break options. Existing accepted financial/measurement values
+  remain unchanged.
+- Default order places Notes before Abstract and Signoff after Schedule. Signoff
+  continues on the preceding page/sheet by default, with an explicit separate-page
+  option. Editable captions/multiline blocks and repeated independent signoff
+  sections reuse stable section IDs. Inline signatures retain the schedule's
+  columns/orientation; worksheet row heights account for multiline signatures.
+- Number badges toggle inclusion, drag handles reorder with Alt+Up/Down keyboard
+  support, and additional sections can be added/removed up to the existing limit.
+- Program estimate defaults, project fields and per-field Use default controls
+  reuse validated application preferences and ProjectEditor transactions. New
+  projects copy defaults into optional `project_estimate_fields` JSON. Fresh
+  report definitions populate from project values; accepted report overrides
+  retain their explicit values.
+- One to three notes editor pages with bounded Jinja2 substitution/conditions and
+  text filters. AST allowlisting rejects calls, attributes, loops, imports and
+  arithmetic; malformed/deep/unknown templates fail visibly. Captured primitive
+  fields generate escaped HTML and literal Excel text. Long worksheet notes use
+  short rows, avoiding Excel's cell-length and wrapped-row-height truncation.
+  Added Jinja2/MarkupSafe runtime dependencies; no arbitrary office templates.
+- Abstract/schedule options show the project name as Name of work.
+
+Validation:
+
+- Full Python suite: 288 tests passed. Expected negative formatting-check fixture
+  diagnostics appeared; the suite returned success. Focused final report checks
+  also passed. New coverage proves project/default persistence, grouped contents,
+  per-item row breaks, editable inline/separate signatures, template field and
+  rejection boundaries, bundled font embedding, and lossless 40,000-character
+  notes export. Existing assertions were updated for the intentionally changed
+  category layout, inline signoff behavior and expanded notes bounds.
+- Focused real-backend Chromium report suite: 11 workflows passed, including
+  actual handle dragging, badge toggles, repeated signoff pages, multiple Jinja
+  notes pages, program/project default controls and report autofill. The PDF
+  assertion now waits within the existing 60-second renderer budget because
+  decoding embedded Iosevka adds real rendering work.
+- Full Chromium suite: 126 scenarios passed, one optional performance profile
+  skipped (127 discovered). Existing NO_COLOR/FORCE_COLOR warnings remain.
+- Production Vue type/build check and changed-file formatting, documentation
+  links and diff whitespace checks passed. Vite's existing large-chunk warning
+  remains (main JavaScript approximately 1.25 MB).
+- Built the native Linux PyInstaller sidecar with packaged font assets/license
+  and Jinja dependencies. JSON Lines smoke test of the frozen executable created
+  a project and rendered a Jinja notes preview containing both bundled font data
+  URLs. This verifies local frozen execution, not an installed package/portal.
+- Ran the actual archived GTK ScheduleDatabase against a disposable modern
+  project: legacy settings and measurement saves preserved the estimate JSON
+  byte-for-byte. Modern reopen retained organization/notes; SQLite integrity and
+  foreign keys passed. No table/version change or user source file was involved.
+- Rendered and visually reviewed a 14-page sample including two notes pages,
+  nested contents, inline signoff, category/item pages in both orientations and
+  an independent final approval. `pdffonts` confirms embedded Iosevka regular,
+  bold and italic output faces. Browser screenshots cover the new composition.
+
+Initial checks caught an uninitialized signature form during first mount and
+inline signatures resetting worksheet geometry; both were corrected before the
+successful runs. Office template bundles, full renderer cancellation/quotas,
+installed Windows/Linux packages, font discovery on clean Windows and Flatpak
+portal interactions remain release gates.

@@ -59,6 +59,7 @@ class Analysis:
     stored_rate: str
     calculated_rate: str
     rows: tuple[AnalysisRow, ...]
+    category: str = ""
 
 
 def build_datasets(db, schedule, specification):
@@ -115,6 +116,7 @@ def build_datasets(db, schedule, specification):
                 row.rate,
                 str(model.get_ana_rate()),
                 _analysis_rows(model),
+                row.category,
             )
         )
     return tuple(analyses), catalog, usage

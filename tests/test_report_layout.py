@@ -105,7 +105,9 @@ class ReportLayout(unittest.TestCase):
             "signoff",
         ]
         for orientation in ("portrait", "landscape"):
-            document = self.document([dict(id=kind, kind=kind, orientation=orientation) for kind in kinds])
+            document = self.document(
+                [dict(id=kind, kind=kind, orientation=orientation, new_page=True) for kind in kinds]
+            )
             sheets = list(self.workbook(document))[2:]
             self.assertEqual([sheet.page_setup.orientation for sheet in sheets], [orientation] * len(kinds))
             html = render_html(document)

@@ -269,3 +269,16 @@ one open group, with inclusion/order controls still available when collapsed.
 The fixed stylesheet now has a GElectrical-inspired running header and ruled
 footer. Office templates and installed-platform renderer/font verification
 remain outside this change. Validation evidence is recorded in the dated log.
+
+
+## 2026-11-27 estimate report composition
+
+ReportSections now owns repeated instances, drag/keyboard ordering and numbered
+include toggles. EstimateFieldsEditor, SignoffEditor and ReportNotesEditor share
+bounded form controls across program/project/report settings. Project settings
+writes forward to a focused metadata helper, retaining ProjectEditor transactions.
+Grouped immutable datasets and a bounded Jinja AST renderer supply HTML/Excel
+without new calculations. Original Iosevka faces/license are packaged and embedded
+for offline HTML/PDF. Full renderer cancellation/quotas, office layout bundles and
+installed Windows/portal verification remain open; local frozen Linux evidence
+is recorded in validation. XLSX retains font names rather than embedding fonts.

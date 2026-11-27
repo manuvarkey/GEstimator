@@ -94,13 +94,15 @@ class ReportCustomization(unittest.TestCase):
         self.assertIn("&lt;Linked sheet&gt;", html)
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
         self.assertNotIn("<script>", html)
-        self.assertIn('id="other"><h1>Notes</h1><p class="description">Other notes', html)
+        self.assertIn('id="other"><h1>Notes</h1><div class="note-page"><p class="description">Other notes', html)
         self.assertIn('class="section wide" id="measurements"', html)
         path = Path(self.temp.name) / "report.xlsx"
         write_workbook(document, path)
         workbook = load_workbook(path)
         self.addCleanup(workbook.close)
-        self.assertEqual(workbook["Section 2"]["A4"].value, "=Notes\n<script>alert(1)</script>")
+        self.assertEqual(
+            [workbook["Section 2"][f"A{row}"].value for row in (4, 5)], ["=Notes", "<script>alert(1)</script>"]
+        )
         self.assertEqual(workbook["Section 2"]["A4"].data_type, "s")
         self.assertEqual(workbook["Section 3"]["A4"].value, "Other notes")
         cells = [cell for sheet in workbook for row in sheet for cell in row]
@@ -126,7 +128,7 @@ class ReportCustomization(unittest.TestCase):
         self.assertIn(str(steel.user_data[-1]), html)
 
     def test_body_validation_and_dirty_draft_protection(self):
-        for body in (None, 1, "x" * 10001):
+        for body in (None, 1, "x" * 60001):
             with self.subTest(body_type=type(body)), self.assertRaises(ValueError):
                 ReportSpec.parse(dict(sections=[dict(id="notes", kind="narrative", body=body)]))
         with self.assertRaisesRegex(ValueError, "Only narrative"):

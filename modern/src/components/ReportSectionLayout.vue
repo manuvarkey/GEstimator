@@ -4,7 +4,7 @@ import { computed } from "vue";
 import AppIcon from "./AppIcon.vue";
 import type { ReportColumnKey, ReportSection, ReportSectionKind } from "../reportTypes";
 
-const props = defineProps<{ kind: ReportSectionKind }>();
+const props = defineProps<{ kind: ReportSectionKind; inline?: boolean }>();
 const columns = defineModel<ReportColumnKey[] | null>("columns", { default: null });
 const orientation = defineModel<ReportSection["orientation"]>("orientation", { default: "auto" });
 type Choice = { key: ReportColumnKey; title: string };
@@ -79,7 +79,7 @@ function move(key: ReportColumnKey, direction: number) {
   <div class="section-layout">
     <label class="orientation"
       >Page orientation
-      <select v-model="orientation" :aria-label="`${label} page orientation`">
+      <select :disabled="inline" v-model="orientation" :aria-label="`${label} page orientation`">
         <option value="auto">Auto</option>
         <option value="portrait">Portrait</option>
         <option value="landscape">Landscape</option>
@@ -124,7 +124,8 @@ function move(key: ReportColumnKey, direction: number) {
         </li>
       </ol>
     </template>
-    <p>Orientation applies to printed pages. Auto keeps the format’s default layout.</p>
+    <p v-if="inline">Inline signoff uses the preceding page’s orientation.</p>
+    <p v-else>Orientation applies to printed pages. Auto keeps the format’s default layout.</p>
   </div>
 </template>
 

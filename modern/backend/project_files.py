@@ -1,6 +1,7 @@
 """Project file and recovery commands dispatched by the authoritative service."""
 
 import copy
+import json
 import sqlite3
 from contextlib import closing
 from decimal import Decimal
@@ -27,6 +28,8 @@ from .persistence import (
     verified_alias,
 )
 from .project import ProjectEditor
+from .reporting.estimate_fields import KEY as ESTIMATE_FIELDS_KEY
+from .reporting.estimate_fields import validate as validate_estimate_fields
 from .validation import request_text as text
 
 
@@ -100,7 +103,12 @@ def new_project(service, p):
     """Install a blank project after the service checks for unsaved drafts."""
     target = Path(service.temp.name) / (uuid4().hex + ".eproj")
     new = ScheduleDatabase(Stack())
+    # Validate defaults before replacing the current project/session.
+    estimate = validate_estimate_fields(p.get("estimate_defaults", {}))
     new.create_new_database(str(target))
+    values = new.get_project_settings()
+    values[ESTIMATE_FIELDS_KEY] = json.dumps(estimate, ensure_ascii=False)
+    new.set_project_settings(values)
     if p.get("discard") is True:
         service.clear_recovery()
     service.clear_mcp_indexes()

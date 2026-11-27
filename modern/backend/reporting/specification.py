@@ -4,7 +4,17 @@ import re
 from dataclasses import dataclass
 
 from ..validation import text
+from .estimate_fields import blocks, notes, signoff_defaults
 from .tables import parse_columns
+
+
+@dataclass(frozen=True)
+class SignoffBlock:
+    """Editable literal caption and signature text."""
+
+    caption: str
+    body: str
+
 
 TITLES = {
     "abstract": "Abstract of estimate",
@@ -49,10 +59,31 @@ class Section:
     columns: tuple[str, ...] | None = None
     orientation: str = "auto"
 
+    new_page: bool = True
+    each_item_page: bool = False
+    show_name_of_work: bool = False
+    signoff_blocks: tuple[SignoffBlock, ...] = ()
+
     @classmethod
     def parse(cls, value):
         """Accept only initial supported section kinds and safe anchor identities."""
-        _fields(value, ("id", "kind", "title", "enabled", "body", "columns", "orientation"), "report section")
+        _fields(
+            value,
+            (
+                "id",
+                "kind",
+                "title",
+                "enabled",
+                "body",
+                "columns",
+                "orientation",
+                "new_page",
+                "each_item_page",
+                "show_name_of_work",
+                "signoff_blocks",
+            ),
+            "report section",
+        )
         identity = value.get("id")
         kind = value.get("kind")
         if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,63}", identity):
@@ -62,14 +93,45 @@ class Section:
         enabled = value.get("enabled", True)
         if type(enabled) is not bool:
             raise ValueError("Invalid report section enabled state")
-        body = text(value.get("body", ""))
+        body = notes(value.get("body", ""))
         if body and kind != "narrative":
             raise ValueError("Only narrative sections accept body text")
         columns = parse_columns(kind, value.get("columns"))
         orientation = value.get("orientation", "auto")
         if not isinstance(orientation, str) or orientation not in ("auto", "portrait", "landscape"):
             raise ValueError("Unsupported report page orientation")
-        return cls(identity, kind, text(value.get("title", TITLES[kind])), enabled, body, columns, orientation)
+        options = [
+            value.get("new_page", kind != "signoff"),
+            value.get("each_item_page", False),
+            value.get("show_name_of_work", False),
+        ]
+        if any(type(option) is not bool for option in options):
+            raise ValueError("Invalid report pagination option")
+        if options[1] and kind not in ("analyses", "measurements"):
+            raise ValueError("Per-item pages apply to analyses and measurements")
+        if options[2] and kind not in ("abstract", "schedule"):
+            raise ValueError("Name of work applies to abstract and schedule")
+        raw_blocks = value.get("signoff_blocks")
+        if raw_blocks not in (None, []) and kind != "signoff":
+            raise ValueError("Only signoff sections accept signature blocks")
+        signatures = (
+            tuple(
+                SignoffBlock(**block) for block in blocks(raw_blocks if raw_blocks is not None else signoff_defaults())
+            )
+            if kind == "signoff"
+            else ()
+        )
+        return cls(
+            identity,
+            kind,
+            text(value.get("title", TITLES[kind])),
+            enabled,
+            body,
+            columns,
+            orientation,
+            *options,
+            signatures,
+        )
 
 
 @dataclass(frozen=True)

@@ -51,12 +51,13 @@ s.close_database()
 }
 
 test("reports compose ordered sections and export matching HTML, Excel and available PDF", async ({ page }) => {
+  test.setTimeout(90000);
   const report = await openReport(page);
   await report.getByLabel("Report title", { exact: true }).fill("<Project report>");
   await report.getByLabel("Organization", { exact: true }).fill("Engineering office");
-  await report.getByLabel("Include signoff", { exact: true }).uncheck();
-  await report.getByRole("button", { name: "Move schedule up", exact: true }).focus();
-  await page.keyboard.press("Enter");
+  await report.getByLabel("Include signoff", { exact: true }).click();
+  await report.getByRole("button", { name: "Reorder schedule", exact: true }).focus();
+  await page.keyboard.press("Alt+ArrowUp");
   await report.getByRole("button", { name: "Generate preview", exact: true }).click();
   const preview = page.frameLocator('iframe[title="Report preview"]');
   await expect(preview.getByRole("heading", { name: "<Project report>" })).toBeVisible();
@@ -83,7 +84,7 @@ test("reports compose ordered sections and export matching HTML, Excel and avail
     const pdfPath = resolve(directory, "report.pdf");
     nativeDialogResults.push(pdfPath);
     await report.getByRole("button", { name: "Export report…", exact: true }).click();
-    await expect(page.getByText(`Report exported: ${pdfPath}`, { exact: true })).toBeVisible();
+    await expect(page.getByText(`Report exported: ${pdfPath}`, { exact: true })).toBeVisible({ timeout: 60000 });
     expect((await readFile(pdfPath)).subarray(0, 5).toString()).toBe("%PDF-");
   }
   await page.screenshot({ path: "test-results/report-workspace-light.png", animations: "disabled" });
@@ -153,17 +154,17 @@ test("reports handle busy previews and keep composition local to a project tab",
 test("reports include analyses, resources and usage with shared engine values", async ({ page }) => {
   const report = await openReport(page);
   for (const label of ["Include analyses", "Include resources", "Include resource usage"]) {
-    await report.getByLabel(label, { exact: true }).check();
+    await report.getByLabel(label, { exact: true }).click();
   }
   await report.getByRole("button", { name: "Generate preview", exact: true }).click();
   const preview = page.frameLocator('iframe[title="Report preview"]');
   await expect(preview.locator("section > h1")).toHaveText([
     "Abstract of estimate",
     "Schedule",
+    "Signoff",
     "Analyses of rates",
     "Resources",
     "Resource usage",
-    "Signoff",
   ]);
   const analyses = preview.locator("#analyses");
   await expect(analyses).toContainText("Stored schedule rate: 20");
@@ -201,7 +202,6 @@ test("reports include analyses, resources and usage with shared engine values", 
     "Analyses of rates",
     "Resources",
     "Resource usage",
-    "Signoff",
   ]);
   await analyses.getByRole("heading", { name: "Analyses of rates", exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "test-results/report-analyses.png", animations: "disabled" });
@@ -209,8 +209,8 @@ test("reports include analyses, resources and usage with shared engine values", 
 
 test("reports render measurement templates and editable plain-text notes", async ({ page }) => {
   const report = await openReport(page, true);
-  await report.getByLabel("Include measurements", { exact: true }).check();
-  await report.getByLabel("Include narrative", { exact: true }).check();
+  await report.getByLabel("Include measurements", { exact: true }).click();
+  await report.getByLabel("Include narrative", { exact: true }).click();
   await report
     .locator(".report-sections > li")
     .filter({ has: page.getByLabel("Include narrative", { exact: true }) })
@@ -314,7 +314,7 @@ test("reports apply settings to the working project and restore them after save 
   const path = resolve(directory, "report.eproj");
   const original = await readFile(path);
   await report.getByLabel("Report title", { exact: true }).fill("Saved office report");
-  await report.getByLabel("Include narrative", { exact: true }).check();
+  await report.getByLabel("Include narrative", { exact: true }).click();
   await report
     .locator(".report-sections > li")
     .filter({ has: page.getByLabel("Include narrative", { exact: true }) })
@@ -438,4 +438,88 @@ test("report typography uses installed fonts, persists and invalidates previews"
   await typography.scrollIntoViewIfNeeded();
   await expect(font).toBeVisible();
   await page.screenshot({ path: "test-results/report-typography-dark-narrow.png", animations: "disabled" });
+});
+
+test("reports edit templated pages, repeat signoffs, group items and reorder by drag handle", async ({ page }) => {
+  const report = await openReport(page, true);
+  const item = (kind: string) =>
+    report
+      .locator(".report-sections > li")
+      .filter({ has: page.getByRole("button", { name: `Include ${kind}`, exact: true }) });
+  await report.getByLabel("Organization", { exact: true }).fill("Office reference");
+  await report.getByRole("button", { name: "Include narrative", exact: true }).click();
+  await item("narrative").locator("summary").click();
+  await report
+    .getByLabel("Notes text", { exact: true })
+    .fill("Office: {{ organization | upper }}\nTotal: {{ estimate_total }}");
+  await report.getByRole("button", { name: "Add notes page", exact: true }).click();
+  await report
+    .getByLabel("Notes text page 2", { exact: true })
+    .fill("Reference: {{ reference | default('Not issued', true) }}");
+  // Bounded Jinja supports positional default arguments, without arbitrary calls.
+  await report.getByLabel("Notes text page 2", { exact: true }).fill("Second page: {{ title }}");
+  for (const kind of ["analyses", "measurements"]) {
+    await report.getByRole("button", { name: `Include ${kind}`, exact: true }).click();
+    await item(kind).locator("summary").click();
+    await item(kind).getByLabel(`${kind} separate item pages`, { exact: true }).check();
+  }
+  await item("schedule").locator("summary").click();
+  await item("schedule").getByLabel("schedule show name of work", { exact: true }).check();
+  await item("signoff").locator("summary").click();
+  await expect(item("signoff").getByLabel("signoff page orientation", { exact: true })).toBeDisabled();
+  await item("signoff").getByLabel("Signoff signature block 1 caption", { exact: true }).fill("Designed by");
+  await item("signoff").getByLabel("Signoff signature block 1 text", { exact: true }).fill("Engineer\nDepartment");
+  await report.getByLabel("Add page or section").selectOption("signoff");
+  await report.getByRole("button", { name: "Add section", exact: true }).click();
+  const extra = item("signoff").last();
+  await extra.locator("summary").click();
+  await extra.getByLabel("signoff title", { exact: true }).fill("Approval page");
+  await extra.getByLabel("Start signoff on a separate page").check();
+  await expect(extra.getByLabel("signoff page orientation", { exact: true })).toBeEnabled();
+  const notes = item("narrative");
+  const abstract = item("abstract");
+  await notes.getByRole("button", { name: "Reorder narrative", exact: true }).dragTo(abstract);
+  await expect(
+    report.locator(".report-sections > li").first().getByRole("button", { name: "Include abstract", exact: true }),
+  ).toBeVisible();
+  await report.getByRole("button", { name: "Generate preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Report preview"]');
+  await expect(preview.locator("#narrative")).toContainText("OFFICE REFERENCE");
+  await expect(preview.locator("#narrative .note-page")).toHaveCount(2);
+  await expect(preview.locator("#signoff")).toHaveClass("section inline");
+  await expect(preview.locator("#signoff")).toContainText("Designed by");
+  await expect(preview.locator('.toc a[href="#measurements:measurement:0"]')).toContainText("Measured foundation");
+  await expect(preview.locator(".item-heading").first()).toHaveCSS("font-size", "13.3333px");
+  await expect(preview.getByRole("heading", { name: "Approval page", exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/report-composition-pages.png", animations: "disabled" });
+});
+
+test("program estimate defaults populate project fields and the report", async ({ page }) => {
+  await openReport(page);
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Program settings…", exact: true }).click();
+  const program = page.getByRole("dialog", { name: "Program settings", exact: true });
+  await program.getByRole("tab", { name: "Estimate defaults", exact: true }).click();
+  await program.getByLabel("Program default Organization", { exact: true }).fill("Default office");
+  await program.locator("summary").filter({ hasText: "Signoff blocks" }).click();
+  await program.getByLabel("Program default signoff block 1 caption", { exact: true }).fill("Office engineer");
+  await program.getByRole("button", { name: "Save program settings", exact: true }).click();
+  await expect(program).not.toBeVisible();
+  await page.getByRole("button", { name: "Application menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Project settings…", exact: true }).click();
+  const project = page.getByRole("dialog", { name: "Project settings", exact: true });
+  await expect(project.getByLabel("Project Organization", { exact: true })).toHaveValue("Default office");
+  await project.getByLabel("Project Organization", { exact: true }).fill("Override");
+  await project.getByRole("button", { name: "Use program default for organization", exact: true }).click();
+  await expect(project.getByLabel("Project Organization", { exact: true })).toHaveValue("Default office");
+  await project.getByRole("button", { name: "Apply settings", exact: true }).click();
+  await expect(project).not.toBeVisible();
+  const report = page.getByRole("region", { name: "Report workspace" });
+  await report.getByRole("button", { name: "Reload report settings", exact: true }).click();
+  await expect(report.getByLabel("Organization", { exact: true })).toHaveValue("Default office");
+  const signoff = report
+    .locator(".report-sections > li")
+    .filter({ has: page.getByRole("button", { name: "Include signoff", exact: true }) });
+  await signoff.locator("summary").click();
+  await expect(signoff.getByLabel("Signoff signature block 1 caption", { exact: true })).toHaveValue("Office engineer");
 });

@@ -12,6 +12,7 @@ from estimator.data.schedule import ScheduleItemModel
 from . import libraries, library_import, measurements, project_edits, project_reports, project_tables
 from .insertion import keep_sub_analysis_last
 from .persistence import export_output
+from .reporting.estimate_fields import update_project
 from .validation import text
 
 
@@ -703,20 +704,7 @@ class ProjectEditor:
         if method == "project.settings.edit":
 
             def update_settings():
-                settings = self.db.get_project_settings()
-                changes = p.get("settings", {})
-                if not isinstance(changes, dict) or any(
-                    key not in ("project_name", "project_item_code", "project_resource_code", "project_metadata")
-                    for key in changes
-                ):
-                    raise ValueError("Invalid project setting")
-                metadata = changes.get("project_metadata")
-                if metadata is not None and (not isinstance(metadata, str) or len(metadata) > 100_000):
-                    raise ValueError("Database notes must be text of at most 100,000 characters")
-                settings.update(
-                    {key: metadata if key == "project_metadata" else text(value) for key, value in changes.items()}
-                )
-                self.db.set_project_settings(settings)
+                update_project(self.db, p.get("settings", {}))
 
             self.mutate(update_settings)
             return dict(ok=True)

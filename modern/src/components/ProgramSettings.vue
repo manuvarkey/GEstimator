@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EstimateFieldsEditor from "./EstimateFieldsEditor.vue";
 import { computed, ref, onMounted, watch } from "vue";
 import { moneyFormatter } from "../numberFormatting";
 import Dialog from "primevue/dialog";
@@ -50,6 +51,7 @@ function fontOptions(selected: string) {
 const sections = [
   { key: "general", label: "General" },
   { key: "appearance", label: "Appearance" },
+  { key: "estimate", label: "Estimate defaults" },
   { key: "default", label: "Default analysis template" },
   { key: "modify", label: "Library Modify & Add" },
 ];
@@ -232,6 +234,11 @@ async function reset() {
           multiple rows in exported workbooks</label
         >
       </template>
+      <template v-else-if="tab === 'estimate'"
+        ><fieldset :disabled="busy">
+          <legend>Defaults for new estimates</legend>
+          <EstimateFieldsEditor v-model="draft.estimate_defaults" label="Program default" /></fieldset
+      ></template>
       <template v-else-if="tab === 'appearance'">
         <label class="field"
           >Theme<select v-model="appearanceDraft.theme" :disabled="busy">

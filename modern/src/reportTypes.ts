@@ -1,3 +1,15 @@
+export interface SignoffBlock {
+  caption: string;
+  body: string;
+}
+export interface EstimateFields {
+  title: string;
+  organization: string;
+  reference: string;
+  issue_date: string;
+  notes: string;
+  signoff_blocks: SignoffBlock[];
+}
 /** Report inputs and authoritative snapshot values at the Python IPC boundary. */
 export type ReportSectionKind =
   | "abstract"
@@ -28,6 +40,10 @@ export interface ReportSection {
   body?: string;
   columns?: ReportColumnKey[] | null;
   orientation?: "auto" | "portrait" | "landscape";
+  new_page?: boolean;
+  each_item_page?: boolean;
+  show_name_of_work?: boolean;
+  signoff_blocks?: SignoffBlock[];
 }
 export interface ReportSpecification {
   schema_version: 1;
@@ -61,7 +77,9 @@ export interface ReportDocument {
   }[];
   abstract: { category_id: string; category: string; amount: string }[];
   total: string;
+  narratives: { id: string; pages: string[] }[];
   analyses: {
+    category: string;
     code: string;
     description: string;
     unit: string;
@@ -124,6 +142,7 @@ export interface ReportExportResult {
 /** Optional saved definition; unreadable future data remains intact until explicitly replaced. */
 export interface ReportSettings {
   specification: ReportSpecification | null;
+  defaults: ReportSpecification;
   warning: string;
   revision: number;
 }

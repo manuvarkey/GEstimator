@@ -151,6 +151,8 @@ No external template or stylesheet is loaded at runtime.
    portrait/landscape settings and persisted project definitions are also implemented.
    Numbered collapsible settings, system-font selection/scaling, 20 mm margins,
    running headers/footers and proportional table widths are implemented.
+   Bundled Iosevka, project/program estimate defaults, editable repeated signoffs,
+   category/item contents, per-item pages and bounded Jinja notes are implemented.
    Remaining work: persisted row-selection lifecycle, office templates and template
    editor/import/export. Preserve existing project compatibility.
 5. **Release hardening:** isolated render worker with cancellation/limits,

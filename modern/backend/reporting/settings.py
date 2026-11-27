@@ -3,6 +3,7 @@
 import json
 from dataclasses import asdict
 
+from .estimate_fields import default_specification
 from .specification import ReportSpec
 
 KEY = "project_report_specification"
@@ -50,7 +51,12 @@ def read(service, params):
             specification = json.loads(_encode(ReportSpec.parse(json.loads(raw))))
         except (ValueError, TypeError, RecursionError):
             warning = "Saved report settings cannot be read by this version. They remain unchanged until you apply new settings."
-    return dict(specification=specification, warning=warning, revision=service.revision)
+    return dict(
+        specification=specification,
+        defaults=default_specification(service.db, params.get("estimate_defaults")),
+        warning=warning,
+        revision=service.revision,
+    )
 
 
 def apply(service, params):

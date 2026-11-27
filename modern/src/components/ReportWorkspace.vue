@@ -3,7 +3,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { save } from "@tauri-apps/plugin-dialog";
 import AppIcon from "./AppIcon.vue";
 import ReportAppearance from "./ReportAppearance.vue";
-import ReportSectionLayout from "./ReportSectionLayout.vue";
+import ReportSections from "./ReportSections.vue";
+import { initializeProgramSettings, programSettings } from "../programSettings";
 import { request } from "../backend";
 import { activeDocument } from "../documents";
 import { recallTabState, rememberTabState } from "../tabMemory";
@@ -35,16 +36,7 @@ const defaultSpecification = (): ReportSpecification => ({
   issue_date: "",
   font_family: "",
   font_scale: 1,
-  sections: [
-    { id: "abstract", kind: "abstract", title: "Abstract of estimate", enabled: true },
-    { id: "schedule", kind: "schedule", title: "Schedule", enabled: true },
-    { id: "analyses", kind: "analyses", title: "Analyses of rates", enabled: false },
-    { id: "resources", kind: "resources", title: "Resources", enabled: false },
-    { id: "resource_usage", kind: "resource_usage", title: "Resource usage", enabled: false },
-    { id: "measurements", kind: "measurements", title: "Measurements", enabled: false },
-    { id: "narrative", kind: "narrative", title: "Notes", enabled: false, body: "" },
-    { id: "signoff", kind: "signoff", title: "Signoff", enabled: true },
-  ],
+  sections: [],
 });
 const specification = ref<ReportSpecification>(memory?.specification ?? defaultSpecification());
 const preview = ref<ReportPreview | undefined>(memory?.preview);
@@ -63,23 +55,19 @@ const canExport = computed(
 );
 let generation = 0;
 
-function move(index: number, direction: number) {
-  const sections = specification.value.sections;
-  const target = index + direction;
-  if (locked.value || target < 0 || target >= sections.length) return;
-  const [section] = sections.splice(index, 1);
-  sections.splice(target, 0, section!);
-}
-
 async function loadSettings() {
   const token = ++generation;
   busy.value = true;
   emit("busy", true);
   error.value = "";
   try {
-    const result = await request<ReportSettings>("report.settings", { revision: props.revision });
+    await initializeProgramSettings();
+    const result = await request<ReportSettings>("report.settings", {
+      revision: props.revision,
+      estimate_defaults: programSettings.value?.estimate_defaults,
+    });
     if (token !== generation) return;
-    specification.value = result.specification ?? defaultSpecification();
+    specification.value = result.specification ?? result.defaults;
     error.value = result.warning;
   } catch (reason) {
     if (token === generation) error.value = String(reason);
@@ -246,62 +234,15 @@ defineExpose({ exportWorkbook: exportReport, canExport });
           <button :disabled="locked" @click="applySettings">Apply report settings</button>
           <button :disabled="locked" @click="loadSettings">Reload report settings</button>
         </div>
-        <h2>Report sections</h2>
-        <ol class="report-sections" aria-label="Report sections">
-          <li v-for="(section, index) in specification.sections" :key="section.id">
-            <label class="report-section-enabled"
-              ><input v-model="section.enabled" type="checkbox" />Include
-              {{ section.kind === "resource_usage" ? "resource usage" : section.kind }}</label
-            >
-            <details class="section-settings" name="report-section-settings">
-              <summary>
-                <span class="step-number">{{ index + 3 }}</span
-                ><span
-                  >{{ section.title || section.kind.replaceAll("_", " ")
-                  }}<small
-                    >{{ section.enabled ? "Included" : "Excluded" }} · {{ section.orientation || "auto" }} pages</small
-                  ></span
-                >
-                <AppIcon class="settings-chevron" name="chevron" />
-              </summary>
-              <div class="settings-group-body">
-                <label
-                  >Section title<input
-                    v-model="section.title"
-                    :aria-label="`${section.kind.replaceAll('_', ' ')} title`"
-                    maxlength="10000"
-                /></label>
-                <label v-if="section.kind === 'narrative'"
-                  >Notes text
-                  <textarea v-model="section.body" maxlength="10000" rows="6" data-multiline />
-                </label>
-                <ReportSectionLayout
-                  :kind="section.kind"
-                  v-model:columns="section.columns"
-                  v-model:orientation="section.orientation"
-                />
-              </div>
-            </details>
-            <div class="report-order">
-              <button
-                class="icon-button"
-                :aria-label="`Move ${section.kind.replaceAll('_', ' ')} up`"
-                :disabled="index === 0"
-                @click="move(index, -1)"
-              >
-                <AppIcon name="up" />
-              </button>
-              <button
-                class="icon-button"
-                :aria-label="`Move ${section.kind.replaceAll('_', ' ')} down`"
-                :disabled="index === specification.sections.length - 1"
-                @click="move(index, 1)"
-              >
-                <AppIcon name="down" />
-              </button>
-            </div>
-          </li>
-        </ol>
+        <ReportSections
+          v-model="specification.sections"
+          :locked="locked"
+          :signoff-defaults="
+            specification.sections.find((section) => section.kind === 'signoff')?.signoff_blocks ??
+            programSettings?.estimate_defaults.signoff_blocks ??
+            []
+          "
+        />
         <p class="report-hint">
           Apply report settings to the working project, then Save project to keep them in the file. Unapplied changes
           stay with this open tab.
@@ -368,20 +309,6 @@ defineExpose({ exportWorkbook: exportReport, canExport });
   background: var(--bg);
   padding-inline: 4px;
 }
-.report-settings h2 {
-  font-size: var(--text-size-heading);
-}
-.report-sections {
-  padding: 0;
-  list-style: none;
-}
-.report-sections li {
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
-}
-.report-section-enabled {
-  margin-bottom: 8px;
-}
 .settings-group {
   border-bottom: 1px solid var(--line);
 }
@@ -429,10 +356,6 @@ details[open] > summary .step-number {
   padding-block: 6px;
 }
 
-.report-order {
-  display: flex;
-  gap: 6px;
-}
 .report-settings-actions {
   display: flex;
   flex-wrap: wrap;

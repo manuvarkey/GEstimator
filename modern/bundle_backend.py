@@ -1,9 +1,9 @@
 """Build a native standalone Python sidecar; run on each target OS/architecture."""
 
-from pathlib import Path
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 modern = root / "modern"
@@ -41,6 +41,8 @@ subprocess.run(
             for database in (root / "estimator/database").glob("*.eproj")
             for argument in ("--add-data", str(database) + ":estimator/database")
         ],
+        "--add-data",
+        str(root / "estimator/fonts") + ":estimator/fonts",
         # Search dictionaries and estimation skills (served as MCP resources).
         "--add-data",
         str(modern / "backend/data") + ":modern/backend/data",

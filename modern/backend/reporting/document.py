@@ -8,6 +8,7 @@ from estimator.data.schedule import Currency
 
 from .datasets import Analysis, ResourceRow, UsageRow, build_datasets
 from .measurements import MeasurementSheet, build_measurements
+from .narrative import Narrative, build_narratives
 from .specification import ReportSpec
 
 
@@ -52,6 +53,8 @@ class ReportDocument:
     resource_usage: tuple[UsageRow, ...] = ()
     measurements: tuple[MeasurementSheet, ...] = ()
 
+    narratives: tuple[Narrative, ...] = ()
+
     def to_dict(self):
         """Return independent JSON-compatible containers and decimal strings."""
         result = _json_values(asdict(self))
@@ -74,13 +77,14 @@ def build_document(db, revision, specification):
     with db.database.atomic():
         snapshot = _schedule_document(db, revision, specification)
         analyses, resources, usage = build_datasets(db, snapshot.schedule, specification)
-        return replace(
+        snapshot = replace(
             snapshot,
             analyses=analyses,
             resources=resources,
             resource_usage=usage,
             measurements=build_measurements(db, snapshot.schedule, specification),
         )
+        return replace(snapshot, narratives=build_narratives(snapshot))
 
 
 def _schedule_document(db, revision, specification):

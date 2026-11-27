@@ -36,9 +36,10 @@ onMounted(async () => {
     <label
       >Report font
       <select aria-label="Report font" v-model="specification.font_family" :disabled="loading">
-        <option value="">Default (DejaVu Sans)</option>
+        <option value="">Default (bundled Iosevka)</option>
         <option v-for="family in options" :key="family" :value="family">
-          {{ family }}{{ !families.includes(family) ? " (saved font unavailable)" : "" }}
+          {{ family
+          }}{{ family === "Iosevka" ? " (bundled)" : !families.includes(family) ? " (saved font unavailable)" : "" }}
         </option>
       </select>
     </label>

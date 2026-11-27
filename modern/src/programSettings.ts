@@ -1,3 +1,4 @@
+import type { EstimateFields } from "./reportTypes";
 import { ref } from "vue";
 import { request, type RowKind } from "./backend";
 import { appearance, programSettingsKey, validateAppearance, type Appearance } from "./appearance";
@@ -9,6 +10,7 @@ export interface TemplateRow {
   code?: string;
 }
 export interface ProgramSettings {
+  estimate_defaults: EstimateFields;
   number_locale: string;
   currency_code: string;
   show_currency_symbol: boolean;

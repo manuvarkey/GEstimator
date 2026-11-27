@@ -179,3 +179,13 @@ Relevant tests include [modern backend](../../tests/test_modern_backend.py),
 [document sessions](../../tests/test_document_sessions.py) and
 [MCP queries](../../tests/test_mcp_query.py). Follow the [testing guide](../testing.md)
 and record actual results in the [validation log](../migration/validation.md).
+
+
+### Estimate field defaults
+
+`project_estimate_fields` is an optional JSON ProjectTable value for organization,
+report title/reference/date, template notes and editable signoff captions/text.
+No table or file-version marker changes. Program defaults are copied only when
+creating or explicitly editing a project; reads do not publish defaults. Existing
+unknown keys survive legacy settings writers. ProjectEditor owns Undo/Redo and
+ordinary Save/recovery. See the [report contract](../features/report-documents.md#estimate-defaults-signature-blocks-and-notes-templates).

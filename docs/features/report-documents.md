@@ -5,7 +5,7 @@ Current workspace, saved definitions and export workflow, 2026-11-27. Navigation
 
 The Reports workspace composes abstract, schedule, analyses, resources, resource
 usage, measurements, notes and signoff sections from immutable accepted-project snapshots. It previews and exports
-standalone HTML, Excel and PDF when a suitable renderer is installed. Custom templates and packaged PDF distribution remain future work.
+standalone HTML, Excel and PDF when a suitable renderer is installed. Office layout templates and packaged PDF renderer distribution remain future work.
 
 ## Request and response
 
@@ -122,9 +122,10 @@ so multi-output template records remain interpretable. Empty selections include
 no sheets. Disabled measurement sections do not load measurement models. Existing
 report revision and dirty-draft guards also protect this read.
 
-Each narrative instance owns independent plain text in its section `body`. HTML
-escapes that text and retains line breaks; Excel writes a literal wrapped text
-cell. Notes do not accept markup, executable templates or external assets. Notes
+Each narrative instance owns a bounded Jinja2 plain-text template in its section `body`.
+Accepted fields and limits are described below. HTML escapes the resolved text and
+retains line breaks; Excel writes literal wrapped text cells. Notes accept no HTML
+or external assets. Notes
 and measurement settings share the existing open-tab memory and stale-preview
 behavior; applying and saving their definition is described below.
 
@@ -141,8 +142,7 @@ inclusion and ordering controls remain available while collapsed.
 the typography inputs. The version-one specification accepts `font_family` (a plain family name up to
 200 characters, default empty) and `font_scale` (a finite number from 0.6 to 2,
 default 1). The desktop's **Report font** dropdown reuses `program.fonts`, the
-existing system-font inventory. Empty selects DejaVu Sans with a sans-serif
-fallback. Saved unavailable families remain selectable and labelled; rendering
+existing system-font inventory. Empty selects bundled Iosevka with a monospace fallback. Saved unavailable families remain selectable and labelled; rendering
 uses local fallback fonts when necessary. Fonts are not bundled in project files.
 **Font scale (%)** scales body, tables, headings and running text together; it does
 not change physical page margins. Values are validated in Python, and family
@@ -198,13 +198,68 @@ blank. Excel retains numeric amounts and quantity precision after reordering;
 a separate estimate summary remains visible even if Amount is omitted or moved
 first. Literal text and existing escaping rules also apply to selected columns.
 
-In Reports, [`ReportSectionLayout.vue`](../../modern/src/components/ReportSectionLayout.vue)
-owns the bounded layout inputs. Expand a section heading. Choose **Page
-orientation** and optionally enable **Customize columns**, select fields and
-use their up/down buttons to set order. At least one field stays selected.
-Disable customization to restore each format's defaults. These settings use the
-existing tab memory, input locking and stale-preview protection. Apply and Save
-project explicitly to persist the definition.
+In Reports, expand a section header to configure its columns and page layout.
+[`ReportSections.vue`](../../modern/src/components/ReportSections.vue) owns stable
+instances, numbered enable buttons, keyboard/drag-handle ordering and adding/removing
+sections (up to 20). A section's badge is a toggle button with `aria-pressed`;
+there is no separate inclusion checkbox. Drag the handle or focus it and press
+Alt+Up/Down. **Add page or section** can repeat any section, including independent
+signoff sections. Each instance retains its own title, body, columns, signatures
+and pagination. [`ReportSectionLayout.vue`](../../modern/src/components/ReportSectionLayout.vue)
+owns bounded column/orientation inputs. Apply and Save explicitly to persist.
+
+## Estimate defaults, signature blocks and notes templates
+
+Program settings has **Estimate defaults** for report title, organization,
+reference, issue date, notes pages and one to six signature blocks. Each block
+has an editable plain-text `caption` and multiline `body`. The program preference
+uses the existing validated local settings envelope. New projects copy it into
+an optional `project_estimate_fields` JSON project setting. Project settings shows
+these fields with per-field **Use default** controls and the corresponding program
+value. Editing them uses the existing ProjectEditor undo/save boundary. Existing
+projects without that key can accept program defaults through Project settings;
+reading or previewing alone never writes them.
+
+A Reports tab without an accepted report definition loads these project values
+(and program fallback values for an older project). A saved report definition
+retains its explicit report overrides; **Reload report settings** reloads it or
+the project defaults. The initial order is Notes, Abstract, Schedule, Signoff,
+Analyses, Resources, Usage, Measurements. Notes is initially included when its
+default text is nonempty. Signoff defaults to continuing after Schedule;
+`new_page: true` gives it its own page/sheet. Inline Excel signatures preserve the
+preceding table's geometry, orientation and repeated rows. Multiple signoff
+sections and one to six independent caption/body blocks per section are supported.
+
+`each_item_page` (default false) applies only to analysis/measurement sections.
+Their items are grouped by category in first-occurrence order, with nested category
+and item contents links in HTML/PDF. Measurement contents now has individual sheet
+targets. Item captions use normal body size in bold. Per-item pagination inserts
+PDF page breaks and Excel row breaks; a long item may continue beyond its first
+page. Category captions stay with their first item. `show_name_of_work` (default
+false) adds the project name above the abstract/schedule table.
+
+Notes pages are edited in [`ReportNotesEditor.vue`](../../modern/src/components/ReportNotesEditor.vue).
+**Add notes page** creates up to three explicit page areas; form feed separates
+pages in the stored `body`. Each starts a new printed page (Excel row break), and
+long text can flow farther. Templates resolve once against the immutable captured
+estimate. Fields: `project_name`, `name_of_work`, `title`, `organization`,
+`reference`, `issue_date`, `estimate_total`, `item_count`, `category_count`.
+For example: `Work: {{ name_of_work }} — {{ estimate_total }}`. Jinja2 `if`
+conditions and `upper`, `lower`, `title`, `trim`, `default` filters are supported.
+The sandbox parser allowlists the AST before compilation; loops, calls, attributes,
+imports, includes and arithmetic are rejected. Undefined fields/template errors
+fail visibly. Source is bounded to 60,000 characters / three pages and 2,000 AST
+nodes per page; resolved output to 100,000 characters per page. Resolved values
+are plain text, escaped in HTML and written literally in Excel. Raw template
+source stays in the saved definition. Project field values remain primitive text; only the allowlisted notes AST is compiled by Jinja.
+
+Bundled Iosevka Regular/Bold faces and their OFL license live under
+[`estimator/fonts/iosevka`](../../estimator/fonts/iosevka/README.md); the frozen
+sidecar includes them. Default HTML/PDF embeds the faces as data URLs, allowing
+offline font use without system installation. Other selected families use the
+system inventory. Excel stores the family name and needs that font installed in
+its viewer; XLSX does not embed font binaries. Font assets count toward the
+existing 10 MB standalone HTML bound. Jinja2/MarkupSafe are now runtime dependencies.
 
 ## Saved report definitions
 
@@ -227,7 +282,7 @@ and history. The response has the same shape as the read. These are internal
 desktop operations, not new public MCP tools.
 
 Saved definitions include facing fields, section order/IDs/enabled state, titles,
-notes, columns, orientation, font family and font scale. Persisted `item_ids`/`category_ids` must be null
+notes, columns, orientation, font family, font scale, editable signatures and pagination choices. Persisted `item_ids`/`category_ids` must be null
 or omitted. Explicit lists, including empty lists, are rejected for persistence
 until deletion/ID-reuse invalidation is implemented; transient report snapshots
 still support their existing filters. No derived values or external file paths
@@ -303,7 +358,7 @@ have explicit shapes in [`reportTypes.ts`](../../modern/src/reportTypes.ts).
 The shell forwards Reports navigation through the existing draft guard and
 retains native destination selection in the desktop adapter.
 
-Users edit facing fields, enable/rename/reorder the eight sections and
+Users edit facing fields, enable/rename/reorder and repeat section instances and
 manually generate a preview. The fixed cover and contents are always included. Analyses add per-item nested
 contents links. Resource/usage tables use named landscape PDF pages; cover,
 schedule, analyses and signoff use portrait pages. Running section headers,

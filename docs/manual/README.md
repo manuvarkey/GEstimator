@@ -209,18 +209,38 @@ use their template's calculation and display rounding.
 Open **Reports** with a project loaded. Enter the report title, organization,
 reference and issue date under **Report details**. Numbered section headers expand
 their settings one at a time, with a summary while collapsed. Include the abstract, schedule and signoff sections you
-need, edit their titles and use the up/down buttons to choose their order.
+need, edit their titles and drag their handles to choose order. Number badges toggle
+sections; focus a handle and press Alt+Up/Down for keyboard ordering. **Add page or
+section** allows repeated notes, signoff and other sections.
 Optionally include **Analyses of rates**, **Resources**, **Resource usage**,
 **Measurements** and **Notes**. Enable and expand the narrative section to enter **Notes text**;
 line breaks are retained as plain text. Measurements show accepted template
 records, constants and each output with its linked schedule item and unit.
-The cover and linked contents are included automatically.
+The cover and linked contents are included automatically. Analyses and measurements
+are grouped by category, with nested item contents links and normal-sized bold item
+captions. Enable **Print each item on a separate page** within either section when
+needed.
 
 Open **Page and typography** to select an installed **Report font** and a
-**Font scale (%)** from 60% to 200%. The scale applies to preview and all report
+**Font scale (%)** from 60% to 200%. Default reports use bundled Iosevka; HTML/PDF
+embed it, while Excel needs Iosevka installed in its viewer. The scale applies to preview and all report
 exports. Pages have 20 mm margins on all sides. A saved font unavailable on another
 computer uses a local fallback. Printed pages have a running section heading,
 page-number tab and ruled organization/page-count footer; the cover omits these.
+
+Use **Estimate defaults** in Program settings for organization, report title,
+reference/date, notes and editable signature captions/text. New projects copy
+those defaults. Project settings shows the corresponding fields and **Use default**
+controls. Reports populates from project settings when no saved report definition
+exists; saved report overrides are retained. Notes defaults precede the abstract.
+Signoff defaults to following Schedule on the same page. Edit its blocks or enable
+**Start signoff on a separate page**; additional signoff sections are independent.
+
+Notes supports Jinja2 fields such as `{{ name_of_work }}`, `{{ organization }}` and
+`{{ estimate_total }}`, simple `if` conditions and text filters. Add up to three
+editable notes pages; long text may flow beyond a page. Template errors appear
+when generating the preview. HTML/executable expressions are not supported.
+**Show name of work** adds the project name to abstract/schedule sections.
 
 Expand a section heading to choose Auto, Portrait or Landscape
 for printed pages. For abstract, schedule, resources and resource usage, enable

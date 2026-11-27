@@ -11,6 +11,8 @@ from estimator.data.schedule import Currency, ScheduleItemModel
 
 from .mcp_skills import DEFAULT_LIBRARY, SHARED_LIBRARY, validate_library_id
 from .numbers import decimal
+from .reporting.estimate_fields import defaults as estimate_defaults
+from .reporting.estimate_fields import validate as validate_estimate
 
 KINDS = ("Group", "Subtotal", "Weight", "Multiply", "Round")
 
@@ -68,6 +70,7 @@ def defaults():
         estimation_skill_library=DEFAULT_LIBRARY,
         ana_default_rows=template_rows(misc.ana_default_add_items),
         ana_copy_rows=[],
+        estimate_defaults=estimate_defaults(),
     )
 
 
@@ -121,6 +124,7 @@ def validate(settings):
         raise ValueError("Use a three-letter currency code, such as INR")
     if type(base["show_currency_symbol"]) is not bool:
         raise ValueError("Choose whether to display currency symbols")
+    base["estimate_defaults"] = validate_estimate(base["estimate_defaults"])
     factor = decimal(base["sch_rate_mult_factor"])
     count = base["ana_copy_delete_rows"]
     if type(count) is not int or not 0 <= count <= 5:

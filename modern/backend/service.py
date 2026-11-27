@@ -261,11 +261,9 @@ class Service:
         if method == "project.settings":
             if not self.db:
                 raise ValueError("Open a project first")
-            settings = self.db.get_project_settings()
-            return {
-                key: settings.get(key, "")
-                for key in ("project_name", "project_item_code", "project_resource_code", "project_metadata")
-            }
+            from .reporting.estimate_fields import project_settings
+
+            return project_settings(self.db)
         if method == "report.settings":
             return reporting.settings.read(self, p)
         if method == "report.settings.apply":
