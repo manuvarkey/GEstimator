@@ -255,8 +255,9 @@ source stays in the saved definition. Project field values remain primitive text
 
 Bundled Iosevka Regular/Bold faces and their OFL license live under
 [`estimator/fonts/iosevka`](../../estimator/fonts/iosevka/README.md); the frozen
-sidecar includes them. Default HTML/PDF embeds the faces as data URLs, allowing
-offline font use without system installation. Other selected families use the
+sidecar includes them. Default HTML/PDF embeds the WOFF2 faces as data URLs
+for offline use. The bundled files omit WOFF2 table transforms to keep font
+loading fast in the PDF renderer. Other selected families use the
 system inventory. Excel stores the family name and needs that font installed in
 its viewer; XLSX does not embed font binaries. Font assets count toward the
 existing 10 MB standalone HTML bound. Jinja2/MarkupSafe are now runtime dependencies.

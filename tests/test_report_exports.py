@@ -57,7 +57,7 @@ class ReportExports(unittest.TestCase):
         revision = self.service.revision
         preview = self.call("report.preview")
         self.export("html")
-        html = (self.root / "report.html").read_text()
+        html = (self.root / "report.html").read_text(encoding="utf-8")
         self.assertEqual(preview["html"], html)
         self.assertEqual(preview["document"]["total"], "14.26")
         self.assertIn("&lt;script&gt;x&lt;/script&gt;", html)

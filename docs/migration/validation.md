@@ -2707,3 +2707,31 @@ inline signatures resetting worksheet geometry; both were corrected before the
 successful runs. Office template bundles, full renderer cancellation/quotas,
 installed Windows/Linux packages, font discovery on clean Windows and Flatpak
 portal interactions remain release gates.
+
+## 2026-11-27 — Windows PDF report font timeout
+
+Reproduced the 60-second timeout with the real report export test on Windows
+and traced it to WeasyPrint's reconstruction of transformed WOFF2 glyph outlines.
+Re-encoded the two bundled Iosevka faces as WOFF2 without table transforms.
+The same faces still load offline in HTML and PDF, with approximately 5.38 MB of
+embedded font data per report. The 10 MB HTML limit and 60-second PDF deadline
+are unchanged. The HTML parity test now reads the UTF-8 export explicitly.
+
+- The Windows WeasyPrint 70.0 renderer exported the test report in about eight
+  seconds and a 30-item DSR 2023 schedule/abstract/signoff report in 10.5 seconds.
+  `pdffonts` confirmed embedded Iosevka; the DSR source hash was unchanged.
+  Chromium also loaded both bundled font weights from their embedded data URLs.
+- The full Python suite passed (288 discovered, two skipped) with inherited Git
+  config injection disabled for that command. The first run hit an unrelated
+  missing Git config value in the invalid-ref check. Changed-file formatting,
+  documentation links and diff whitespace passed.
+- The frontend type/build check passed in an isolated checkout after an active
+  esbuild process prevented `npm ci` in the working checkout. Vite kept its
+  existing large-chunk warning.
+- Built the Windows PyInstaller sidecar and exported a PDF through its JSON
+  Lines interface outside the checkout in about 11 seconds including startup.
+  The first smoke run missed the renderer's three-second version-probe deadline;
+  starting the copied renderer once took 3.3 seconds and the next run succeeded.
+  This check did not install a desktop package.
+- The full Chromium suite passed (126 passed, one skipped), including report
+  export and typography. The existing NO_COLOR/FORCE_COLOR warning remained.

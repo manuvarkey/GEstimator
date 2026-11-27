@@ -157,9 +157,9 @@ class EstimateReports(unittest.TestCase):
         html = render_html(self.document(sections=[]))
         self.assertEqual(html.count("data:font/woff2;base64,"), 2)
         self.assertIn('font-family:"Iosevka"', html)
-        self.assertLess(len(html), 10000000)
+        self.assertLess(len(html.encode("utf-8")), 10_000_000)
         custom = render_html(self.document(sections=[], font_family="DejaVu Serif"))
-        self.assertNotIn("data:font/woff2", custom)
+        self.assertNotIn("data:font/", custom)
 
     def test_long_notes_are_not_truncated_by_excel_cell_limits(self):
         body = "x" * 40000

@@ -1,7 +1,11 @@
 # Iosevka report font
 
 Unmodified Iosevka Regular and Bold from upstream v34.9.2, converted losslessly
-from TTF to WOFF2 with fontTools. Licensed under SIL OFL 1.1 (see OFL.md).
+from TTF to WOFF2 with fontTools. The WOFF2 files use Brotli compression
+without table transforms so WeasyPrint can load them without reconstructing
+the glyph outlines on each export. To regenerate either face from the upstream
+TTF, call `fontTools.ttLib.woff2.compress(input_path, output_path, transform_tables=[])`.
+Licensed under SIL OFL 1.1 (see OFL.md).
 
 Source: https://github.com/be5invis/Iosevka/releases/tag/v34.9.2
 Archive: PkgTTF-Iosevka-34.9.2.zip
